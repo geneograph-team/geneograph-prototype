@@ -16735,6 +16735,7 @@ function renderGeneographConnectionInspector(
 
 function renderGeneographEditor()
 {
+    geneoClearAlignmentGuides();
     if (geneoImageCropRuntime?.boardId !== selectedGeneographBoard()?.id) geneoImageCropRuntime = null;
     if (geneoImageCropRuntime && !resolveGeneographImageSource(getGeneographNode(geneoImageCropRuntime.nodeId)).available)
         geneoImageCropRuntime = null;
@@ -16954,7 +16955,7 @@ function renderGeneographEditor()
         ${renderGeneoCreationToolPanel('drawing')}
         ${renderGeneoCreationToolPanel('shape')}
         <div class="geneo-editor-main ${state.geneoInspectorCollapsed ? 'inspector-collapsed' : ''}"><div class="geneo-canvas-viewport" data-geneo-canvas-viewport style="--geneo-canvas-background:${escapeHtml(geneoPaintCssColor(diagram.canvas.backgroundPaint))}"><div class="geneo-canvas-wrap" data-geneo-canvas-wrap><div class="geneo-board-space pattern-${escapeHtml(diagram.canvas.backgroundPattern)}" style="width:${bounds.width * zoom}px;height:${bounds.height * zoom}px;--geneo-canvas-zoom:${zoom};--geneo-grid-origin-x:${gridOriginX}px;--geneo-grid-origin-y:${gridOriginY}px"><div class="${stageClasses}" data-geneo-stage style="width:${bounds.width}px;height:${bounds.height}px;transform:scale(${zoom})">
-          ${renderGeneographConnectors()}<div class="geneo-panel-draft" data-geneo-panel-draft hidden><span data-geneo-panel-draft-size></span></div><div class="geneo-selection-marquee" data-geneo-marquee hidden></div>${ordered.map(renderGeneographObject).join('')}
+          ${renderGeneographConnectors()}<div class="geneo-panel-draft" data-geneo-panel-draft hidden><span data-geneo-panel-draft-size></span></div><div class="geneo-selection-marquee" data-geneo-marquee hidden></div><div class="geneo-alignment-guides" aria-hidden="true"><div class="geneo-alignment-guide vertical" data-geneo-align-x hidden></div><div class="geneo-alignment-guide horizontal" data-geneo-align-y hidden></div></div>${ordered.map(renderGeneographObject).join('')}
           </div></div></div><div class="geneo-zoom-overlay canvas-zoom"><button class="geneo-zoom-button zoom-button" type="button" data-geneo-zoom="out" aria-label="Zoom out">${icon.zoomOut}</button><span class="geneo-zoom-value zoom-value">${state.geneoZoom}%</span><button class="geneo-zoom-button zoom-button" type="button" data-geneo-zoom="in" aria-label="Zoom in">${icon.zoomIn}</button><button class="geneo-zoom-button zoom-button" type="button" data-geneo-zoom="fit" aria-label="Fit board">${icon.home}</button></div></div>${renderGeneographInspector()}</div>
           </section>`;
     localizeUI(
@@ -24941,6 +24942,7 @@ function geneoSetSelectedObjectsProperty(property, value)
 
 let geneoObjectMenuController = null;
 let geneoLayerDrag = null;
+let geneoLayerRangeAnchor = null;
 
 function geneoCancelLayerDrag()
 {
@@ -25370,10 +25372,68 @@ function applyGeneographSelectionTranslation(pointerState, dx, dy)
                     x: geneoNumber(point.x + dx, point.x, -GENEO_WORLD_LIMIT, GENEO_WORLD_LIMIT),
                     y: geneoNumber(point.y + dy, point.y, -GENEO_WORLD_LIMIT, GENEO_WORLD_LIMIT)
                 };
-                return selectedGeneographDiagram().canvas.snapToGrid ? snapGeneographPoint(translated) : translated;
+                return pointerState.nodes.length || !selectedGeneographDiagram().canvas.snapToGrid
+                    ? translated : snapGeneographPoint(translated);
             })
         };
     });
+}
+
+function geneoClearAlignmentGuides()
+{
+    main.querySelectorAll('[data-geneo-align-x], [data-geneo-align-y]').forEach(guide => { guide.hidden = true; });
+}
+
+function geneoShowAlignmentGuides(guides)
+{
+    const bounds = geneoCanvasRuntime.bounds || { left: 0, top: 0 };
+    const vertical = main.querySelector('[data-geneo-align-x]');
+    const horizontal = main.querySelector('[data-geneo-align-y]');
+    if (vertical)
+    {
+        vertical.hidden = !guides.x;
+        if (guides.x)
+        {
+            vertical.style.left = `${guides.x.position - bounds.left}px`;
+            vertical.style.top = `${guides.x.start - bounds.top}px`;
+            vertical.style.height = `${guides.x.end - guides.x.start}px`;
+            vertical.style.width = `${2 / (state.geneoZoom / 100)}px`;
+        }
+    }
+    if (horizontal)
+    {
+        horizontal.hidden = !guides.y;
+        if (guides.y)
+        {
+            horizontal.style.left = `${guides.y.start - bounds.left}px`;
+            horizontal.style.top = `${guides.y.position - bounds.top}px`;
+            horizontal.style.width = `${guides.y.end - guides.y.start}px`;
+            horizontal.style.height = `${2 / (state.geneoZoom / 100)}px`;
+        }
+    }
+}
+
+function geneoMoveAlignmentContext(pointerState)
+{
+    if (pointerState.alignmentContext) return pointerState.alignmentContext;
+    const movingIds = new Set(pointerState.nodes.map(item => item.id));
+    const movingNodes = pointerState.nodes.flatMap(item =>
+    {
+        const node = getGeneographNode(item.id);
+        return node ? [{ id: item.id, type: node.type, x: item.x, y: item.y, width: node.width, height: node.height }] : [];
+    });
+    if (!movingNodes.length) return null;
+    const targets = selectedGeneographDiagram().nodes.filter(target =>
+        geneoNodeEffectiveVisible(target)
+        && target.type !== 'drawing'
+        && !movingIds.has(target.id)
+        && !movingNodes.some(moving =>
+            geneoNodeInsidePanel(target, moving.id)
+            || geneoNodeInsidePanel(getGeneographNode(moving.id), target.id)
+        )
+    ).map(target => ({ id: target.id, type: target.type, x: target.x, y: target.y, width: target.width, height: target.height }));
+    pointerState.alignmentContext = { movingNodes, targets, matches: null };
+    return pointerState.alignmentContext;
 }
 
 function geneoPointerToCanvas(event)
@@ -25592,23 +25652,27 @@ function startGeneographObjectDrag(event)
         && !geneoPanelDirectTarget(event, nodeElement)) return;
     if (!node || (!['select', 'pan'].includes(geneoEffectiveCanvasTool())
         && !(geneoEffectiveCanvasTool() === 'connect' && geneoSelectedNodeIdSet().has(node.id)))) return;
-    if (event.shiftKey || event.ctrlKey || event.metaKey) return;
-    if (!geneoSelectedNodeIdSet().has(node.id)) selectGeneographNode(node.id);
-    event.preventDefault();
-    event.stopPropagation();
+    if (event.ctrlKey || event.metaKey) return;
+    const pendingSelectNodeId = event.shiftKey && !geneoSelectedNodeIdSet().has(node.id) ? node.id : null;
+    if (!geneoSelectedNodeIdSet().has(node.id) && !pendingSelectNodeId) selectGeneographNode(node.id);
     if (geneoNodeEffectiveLocked(node)) return;
+    if (!event.shiftKey)
+    {
+        event.preventDefault();
+        event.stopPropagation();
+    }
     const beforeSnapshot = geneoSnapshot();
     const undoLength = geneoHistoryRuntime.undo.length;
     const redo = [...geneoHistoryRuntime.redo];
     geneoPushHistory(); const point = geneoPointerToCanvas(event);
-    const selection = selectedGeneographNodes();
+    const selection = pendingSelectNodeId ? [node] : selectedGeneographNodes();
     const nodes = geneoGroupMoveSnapshot(selection);
-    const connections = geneoConnectionMoveSnapshot(nodes);
+    const connections = geneoConnectionMoveSnapshot(nodes, pendingSelectNodeId ? [] : selectedGeneographConnections());
     if (!nodes.length && !connections.length)
     {
         geneoHistoryRuntime.undo.pop(); return;
     }
-    geneoPointerState = { kind: 'move-group', pointerId: event.pointerId, beforeSnapshot, undoLength, redo, nodeId: node.id, start: point, x: node.x, y: node.y, nodes, connections, moved: false };
+    geneoPointerState = { kind: 'move-group', pointerId: event.pointerId, beforeSnapshot, undoLength, redo, nodeId: node.id, start: point, x: node.x, y: node.y, nodes, connections, pendingSelectNodeId, axisLockAllowed: true, axisLock: null, moved: false };
 }
 
 function geneoPanelDirectTarget(event, element)
@@ -25929,12 +25993,43 @@ function moveGeneographObject(event)
     if (geneoPointerState.kind === 'move-group')
     {
         if (!geneoPointerState.moved) return;
-        let deltaX = dx, deltaY = dy;
+        if (geneoPointerState.pendingSelectNodeId)
+        {
+            setGeneographNodeSelection([geneoPointerState.pendingSelectNodeId], geneoPointerState.pendingSelectNodeId);
+            geneoPointerState.pendingSelectNodeId = null;
+        }
+        geneoPointerState.axisLock = geneoAxisLockForMove(
+            geneoPointerState.axisLock,
+            geneoPointerState.axisLockAllowed && event.shiftKey,
+            dx, dy
+        );
+        const moveDx = geneoPointerState.axisLock === 'x' ? 0 : dx;
+        const moveDy = geneoPointerState.axisLock === 'y' ? 0 : dy;
+        let deltaX = moveDx, deltaY = moveDy;
         if (selectedGeneographDiagram().canvas.snapToGrid)
         {
-            deltaX = node ? snapGeneographCoordinate(geneoPointerState.x + dx) - geneoPointerState.x : Math.round(dx / GENEO_GRID_SIZE) * GENEO_GRID_SIZE;
-            deltaY = node ? snapGeneographCoordinate(geneoPointerState.y + dy) - geneoPointerState.y : Math.round(dy / GENEO_GRID_SIZE) * GENEO_GRID_SIZE;
+            deltaX = node ? snapGeneographCoordinate(geneoPointerState.x + moveDx) - geneoPointerState.x : Math.round(moveDx / GENEO_GRID_SIZE) * GENEO_GRID_SIZE;
+            deltaY = node ? snapGeneographCoordinate(geneoPointerState.y + moveDy) - geneoPointerState.y : Math.round(moveDy / GENEO_GRID_SIZE) * GENEO_GRID_SIZE;
         }
+        if (geneoPointerState.axisLock === 'x') deltaX = 0;
+        if (geneoPointerState.axisLock === 'y') deltaY = 0;
+        const alignmentContext = geneoMoveAlignmentContext(geneoPointerState);
+        if (alignmentContext)
+        {
+            const aligned = geneoCalculateAlignment({
+                movingNodes: alignmentContext.movingNodes,
+                targets: alignmentContext.targets,
+                dx: moveDx, dy: moveDy, fallbackDx: deltaX, fallbackDy: deltaY,
+                zoom: state.geneoZoom / 100,
+                lockedAxis: geneoPointerState.axisLock,
+                previous: alignmentContext.matches
+            });
+            deltaX = aligned.dx;
+            deltaY = aligned.dy;
+            alignmentContext.matches = aligned.matches;
+            geneoShowAlignmentGuides(aligned.guides);
+        }
+        else geneoClearAlignmentGuides();
         if (geneoPointerState.moved) clearGeneographConnectionClick();
         applyGeneographSelectionTranslation(geneoPointerState, deltaX, deltaY);
         updateGeneographLiveGeometry(node, geneoPointerState.nodes.map(item => getGeneographNode(item.id)).filter(Boolean));
@@ -26297,6 +26392,7 @@ function endGeneographObjectDrag(event)
     if (geneoPointerState?.pointerId !== undefined && event.pointerId !== geneoPointerState.pointerId) return;
     if (geneoPointerState?.kind === 'pencil' && event?.type === 'pointerup' && (event.buttons & 1)) return;
     if (!geneoPointerState) return; const stateBefore = geneoPointerState; geneoPointerState = null;
+    geneoClearAlignmentGuides();
     if (event?.type === 'pointercancel' && stateBefore.beforeSnapshot)
     {
         geneoDrawPanPending = false;
@@ -30184,16 +30280,22 @@ function bindGeneographSidebarControls()
                         return;
                     }
 
-                    selectGeneographNode(
-                        row.dataset.geneoLayer,
-                        {
-                            toggle:
-                    event.shiftKey
-                    || event.ctrlKey
-                    || event.metaKey
-                        }
-                    );
-
+                    const nodeId = row.dataset.geneoLayer;
+                    const boardId = selectedGeneographBoard()?.id;
+                    if (event.shiftKey && !event.ctrlKey && !event.metaKey)
+                    {
+                        const displayedIds = [...sidebar.querySelectorAll('.geneo-layer-list [data-geneo-layer]')]
+                            .map(item => item.dataset.geneoLayer);
+                        const anchorId = geneoLayerRangeAnchor?.boardId === boardId
+                            ? geneoLayerRangeAnchor.nodeId : null;
+                        setGeneographNodeSelection(geneoLayerRangeIds(displayedIds, anchorId, nodeId), nodeId);
+                        if (!displayedIds.includes(anchorId)) geneoLayerRangeAnchor = { boardId, nodeId };
+                    }
+                    else
+                    {
+                        selectGeneographNode(nodeId, { toggle: event.ctrlKey || event.metaKey });
+                        if (!event.ctrlKey && !event.metaKey) geneoLayerRangeAnchor = { boardId, nodeId };
+                    }
                     renderGeneographEditorPreserveScroll();
                 }
             );
@@ -30543,6 +30645,19 @@ function ensureGeneographKeyboardBinding()
             event.preventDefault();
             cancelGeneographPencilStroke();
             state.geneoTool = 'pan';
+            renderGeneographEditorPreserveScroll();
+            return;
+        }
+        if (event.key === 'Escape' && geneoPointerState?.kind === 'move-group')
+        {
+            event.preventDefault();
+            const drag = geneoPointerState;
+            geneoPointerState = null;
+            const board = selectedGeneographBoard();
+            if (board) board.diagram = JSON.parse(drag.beforeSnapshot);
+            geneoHistoryRuntime.undo.length = drag.undoLength;
+            geneoHistoryRuntime.redo = drag.redo;
+            geneoClearAlignmentGuides();
             renderGeneographEditorPreserveScroll();
             return;
         }

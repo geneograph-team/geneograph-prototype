@@ -3171,6 +3171,23 @@
     outline-offset: 1px;
 }
 
+.geneo-alignment-guides {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 1001;
+}
+
+.geneo-alignment-guide {
+    position: absolute;
+    background: var(--brand-green-300);
+    pointer-events: none;
+}
+
+.geneo-alignment-guide[hidden] { display: none; }
+.geneo-alignment-guide.vertical { width: 2px; }
+.geneo-alignment-guide.horizontal { height: 2px; }
+
 .geneo-selection-marquee {
     position: absolute;
     z-index: 45;
