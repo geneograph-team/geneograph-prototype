@@ -5492,7 +5492,12 @@ const RU_DATA_NAMES_FIRST = {
 
     // Geneograph-local seeded people
     'Iris': 'Ирис',
-    'Theo': 'Тео'
+    'Theo': 'Тео',
+    'Dave': 'Дейв',
+    'Andrew': 'Эндрю',
+    'Fiona': 'Фиона',
+    'Lisa': 'Лиза',
+    'Sandra': 'Сандра'
 };
 const RU_DATA_NAMES_MIDDLE = Object.freeze({});
 const RU_DATA_NAMES_SURNAMES = {
@@ -6212,7 +6217,25 @@ const RU_DATA_GENEO = {
 
     // Seeded board
     'Whiskerfield tree research':
-        'Исследование родословной Вискерфильдов'
+        'Исследование родословной Вискерфильдов',
+
+    'Potential Whiskerfield branch from Old Cattery':
+        'Предполагаемая ветвь Вискерфильдов из Олд-Кэттери',
+
+    'According to Barnaby, Dave had 2 children, one named Andrew. They lived in Old Cattery.':
+        'По словам Барнаби, у Дейва было двое детей, одного из них звали Эндрю. Они жили в Олд-Кэттери.',
+
+    "Barnaby mentioned a relative named Dave, who could have been Archibald's brother":
+        'Барнаби рассказывал о родственнике по имени Дейв. Возможно, он был братом Арчибальда.',
+
+    'Edith had a half-sister named Fiona':
+        'У Эдит была сестра по одному из родителей по имени Фиона.',
+
+    "Fiona's branch":
+        'Ветвь Фионы',
+
+    "Photo from Barnaby's family album - potentially showing Mackerelton sisters, daughters of Fiona":
+        'Фотография из семейного альбома Барнаби: возможно, на ней сёстры Макрельтон, дочери Фионы.'
 };
 
 function buildLocalizationMap(
