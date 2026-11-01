@@ -58,14 +58,14 @@ function geneoAlignmentBestMatch(axis, moving, targets, rawDelta, otherDelta, zo
             const [first, second] = pair;
             const gapStart = geneoAlignmentAnchor(first.rect, axis, 'end');
             const gapEnd = geneoAlignmentAnchor(second.rect, axis, 'start');
-            const movingSize = geneoAlignmentAnchor(moving, axis, 'end') - geneoAlignmentAnchor(moving, axis, 'start');
-            if (gapEnd - gapStart < movingSize) continue;
+            if (gapEnd <= gapStart) continue;
             const otherAxis = axis === 'x' ? 'y' : 'x';
             const overlapStart = Math.max(geneoAlignmentAnchor(first.rect, otherAxis, 'start'), geneoAlignmentAnchor(second.rect, otherAxis, 'start'));
             const overlapEnd = Math.min(geneoAlignmentAnchor(first.rect, otherAxis, 'end'), geneoAlignmentAnchor(second.rect, otherAxis, 'end'));
             const movingOtherCenter = geneoAlignmentAnchor(moving, otherAxis, 'center') + otherDelta;
             if (overlapEnd <= overlapStart || movingOtherCenter < overlapStart || movingOtherCenter > overlapEnd) continue;
-            const position = (gapStart + gapEnd) / 2;
+            const position = (geneoAlignmentAnchor(first.rect, axis, 'center')
+                + geneoAlignmentAnchor(second.rect, axis, 'center')) / 2;
             const offset = position - geneoAlignmentAnchor(moving, axis, 'center') - rawDelta;
             const distance = Math.abs(offset);
             const key = `midpoint:${axis}:${first.target.id}:${second.target.id}`;

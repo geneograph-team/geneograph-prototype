@@ -4,7 +4,7 @@
 
 - [x] 1.1 Add a pure alignment calculation for node rectangles, selected bounds, axis matches, zoom-scaled capture and release thresholds, and deterministic tie-breaking; verify with one focused dependency-free test for edge, center, dual-axis, group, locked/hidden, and no-match cases.
 - [ ] 1.2 Integrate the calculation into `move-group` before grid snapping, preserving one translation for selected nodes and attached manual waypoints; verify grid-on priority, grid fallback, grid-off movement, and undo/redo on a sample board.
-- [x] 1.3 Add midpoint candidates for gaps between visible person cards, with fit and shared-row/column checks, and exclude pencil drawings from both moving and target alignment; extend the focused geometry test.
+- [x] 1.3 Add midpoint candidates between visible person-card centers, with nonoverlap and shared-row/column checks regardless of moving-object width; exclude pencil drawings from moving and target alignment and cover seeded card dimensions in the focused geometry test.
 
 ## 2. Guide presentation and lifecycle
 

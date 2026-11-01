@@ -40,14 +40,14 @@ For multi-object movement, the editor SHALL align the moving selection as one bo
 - **THEN** it does not produce a guide or snapping target
 
 ### Requirement: Midpoint alignment between person cards
-When a dragged object fits in the gap between two stationary visible person cards sharing a row or column, the editor SHALL guide and snap its center to the midpoint of that gap within the alignment threshold. This midpoint behavior SHALL not apply to other target types.
+When two stationary visible person cards share a row or column without overlapping on that axis, the editor SHALL guide and snap a dragged object's center to the midpoint of the card centers within the alignment threshold. The moving object need not fit between their edges. This midpoint behavior SHALL not apply to other target types.
 
 #### Scenario: Center within a person-card gap
-- **WHEN** a moving object fits between two visible person cards and its center approaches the middle of their gap
+- **WHEN** a moving object's center approaches the midpoint of two visible person-card centers on a shared row or column
 - **THEN** a center guide appears and the object snaps to that midpoint on the matching axis
 
 #### Scenario: No qualifying pair
-- **WHEN** the cards do not share the relevant row or column, the moving object does not fit in their gap, or either card is hidden
+- **WHEN** the cards do not share the relevant row or column, overlap on that axis, or either card is hidden
 - **THEN** that pair does not produce a midpoint guide or snap
 
 ### Requirement: Pencil drawings excluded from alignment
