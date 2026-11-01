@@ -799,7 +799,8 @@ function geneoPersonHasResettableSettings(node)
     const appearance = node.appearance || {};
     return geneoPersonCardHasOverrides({ personCard: { ...card, style: null } })
         || ['fill', 'stroke', 'text'].some(key => appearance.paintOverrides?.[key] === true)
-        || ['strokeWidth', 'strokePattern'].some(key => appearance.styleOverrides?.[key] === true);
+        || ['strokeWidth', 'strokePattern'].some(key => appearance.styleOverrides?.[key] === true)
+        || appearance.shadowEnabled !== null;
 }
 
 function geneoResetPersonCardSettings(node, diagram)
@@ -812,6 +813,7 @@ function geneoResetPersonCardSettings(node, diagram)
         node.appearance[key] = structuredClone(inherited[key]);
     node.appearance.strokeWidth = inherited.strokeWidth;
     node.appearance.strokePattern = inherited.strokePattern;
+    node.appearance.shadowEnabled = null;
     node.appearance.paintOverrides = { fill: false, stroke: false, text: false };
     node.appearance.styleOverrides = { strokeWidth: false, strokePattern: false };
 }
@@ -1812,6 +1814,7 @@ function createEmptyGeneographDiagram()
             backgroundPattern: 'dots',
             snapToGrid: true,
             alwaysShowSockets: false,
+            shadowEnabled: true,
             colorPersonCardsByGender: false
         },
         personCardDefaults:
@@ -8282,6 +8285,7 @@ function geneoAppearance(value, defaults = {}, nodeType = '')
         : null;
     const defaultPattern = defaults.strokePattern === 'dashed' ? 'dashed' : 'solid';
     const result = { ...defaults, ...source };
+    result.shadowEnabled = geneoShadowOverride(source.shadowEnabled);
     if (nodeType === 'image') delete result.fill;
     else result.fill = geneoPaintFromLegacy(
         source.fill,
@@ -8840,6 +8844,7 @@ function normalizeGeneographBoardRecord(board, projectPeople)
                 backgroundPattern,
                 snapToGrid: Boolean(canvas.snapToGrid),
                 alwaysShowSockets: Boolean(canvas.alwaysShowSockets),
+                shadowEnabled: canvas.shadowEnabled !== false,
                 colorPersonCardsByGender:
               Boolean(canvas.colorPersonCardsByGender)
             },
@@ -9261,6 +9266,7 @@ function geneoNodeDefaults(type)
             stroke: { color: '#52615D', opacity: 100, enabled: true },
             strokeWidth: 1,
             strokePattern: 'solid',
+            shadowEnabled: null,
             text: { color: '#F1F5F3', opacity: 100, enabled: true }
         }
     };
@@ -11607,6 +11613,7 @@ function renderGeneographObject(node)
           class="
             geneo-node
             geneo-node-${node.type}
+            ${geneoEffectiveNodeShadow(node, selectedGeneographDiagram(), visibleFill) ? 'geneo-shadow-on' : 'geneo-shadow-off'}
             ${
                 geneoSelectedNodeIdSet()
                     .has(node.id)
@@ -14919,6 +14926,17 @@ function renderGeneographPersonCardSection(
     });
 }
 
+function renderGeneoShadowControl(scope, enabled)
+{
+    return `<label class="geneo-check geneo-shadow-control">
+      <input type="checkbox" data-geneo-shadow="${scope}" ${enabled === true ? 'checked' : ''}
+        ${enabled === null ? 'data-mixed="true" aria-checked="mixed"' : ''}>
+      <span>${escapeHtml(t('Shadow'))}${enabled === null ? ` · ${escapeHtml(t('Mixed'))}` : ''}
+        ${scope === 'canvas' ? `<small class="geneo-check-help">${escapeHtml(t('Default for board objects. Individual settings can override it.'))}</small>` : ''}
+      </span>
+    </label>`;
+}
+
 function renderGeneoPersonAppearanceControls({ scope, id, appearance, radius })
 {
     const boardDefault = scope === 'card-default';
@@ -14958,6 +14976,7 @@ function renderGeneoPersonAppearanceControls({ scope, id, appearance, radius })
                 ? `data-geneo-card-default-radius="${id}"`
                 : `data-geneo-person-card-radius="node" data-geneo-person-card-node="${escapeHtml(id)}"`}>
         </div>
+        ${scope === 'node' ? renderGeneoShadowControl('node', geneoEffectiveNodeShadow(getGeneographNode(id), selectedGeneographDiagram(), appearance.fill)) : ''}
       </div>`;
 }
 
@@ -15053,6 +15072,7 @@ function renderGeneographInspector()
             scope: 'canvas',
             property: 'background'
         })}
+        ${renderGeneoShadowControl('canvas', canvas.shadowEnabled)}
 
         <div class="geneo-field">
           <span class="geneo-field-label">
@@ -15290,6 +15310,7 @@ function renderGeneographPersonMultiAppearance(nodes)
               value="${radius ?? ''}" placeholder="${escapeHtml(t('Mixed'))}"
               data-geneo-person-multi-appearance="cornerRadius">
           </div>
+          ${renderGeneoShadowControl('person-multi', geneoSharedNodeShadow(nodes, selectedGeneographDiagram(), node => geneoResolveVisibleNodeAppearance(node).fill))}
         </div>
         <button class="button secondary geneo-apply-gender" type="button"
           data-geneo-person-multi-apply-gender>${escapeHtml(t('Apply gender color'))}</button>`
@@ -15486,6 +15507,7 @@ function geneoBulkNodeAppearanceIsDefault(node)
     const appearance = node.appearance || {};
     return ['fill', 'stroke', 'text'].some(key => appearance.paintOverrides?.[key] === true)
         || ['strokeWidth', 'strokePattern'].some(key => appearance.styleOverrides?.[key] === true)
+        || appearance.shadowEnabled !== null
         || normalizeGeneographPersonCardOverrides(node.personCard).cornerRadius != null;
 }
 
@@ -15551,6 +15573,7 @@ function renderGeneographGenericMultiAppearance(nodes)
               ${shapeKind === null ? `<option value="" selected>${escapeHtml(t('Mixed'))}</option>` : ''}
               ${GENEO_SHAPE_KINDS.map(shape => `<option value="${shape.id}" ${shapeKind === shape.id ? 'selected' : ''}>${escapeHtml(t(shape.label))}</option>`).join('')}
             </select><span class="common-select-chevron" aria-hidden="true">${icon.chevron}</span></span></label>` : ''}
+          ${renderGeneoShadowControl('bulk', geneoSharedNodeShadow(nodes, selectedGeneographDiagram(), node => node.type === 'person' ? geneoResolveVisibleNodeAppearance(node).fill : node.appearance.fill))}
         </div>`
     });
 }
@@ -16501,6 +16524,7 @@ function renderGeneographNodeInspector(
 
         ${renderGeneoNodeRadiusControl(node)}
         ${renderGeneoNodeFontSizeControl(node)}
+        ${renderGeneoShadowControl('node', geneoEffectiveNodeShadow(node, selectedGeneographDiagram(), appearance.fill))}
 
       `;
 
@@ -22716,7 +22740,7 @@ function geneoImagePickerActionLabel(count)
     if (state.geneoImagePicker.mode === 'avatar') return t('Adjust photo');
     if (state.geneoImagePicker.mode === 'replace')
     {
-        return 'Replace image';
+        return t('Replace image');
     }
 
     if (!count) return t('Add images');
@@ -22889,7 +22913,7 @@ function renderGeneographImageUploadDraft(draft)
     const photo = geneoImageUploadDraftAsPhoto(draft);
     const title = draft.filename || 'Uploaded image';
 
-    if (state.geneoImagePicker.mode !== 'add')
+    if (state.geneoImagePicker.mode === 'avatar')
     {
         return `<article class="person-photo-candidate person-photos-adder-upload-card">
           <span class="person-photo-candidate-preview">
@@ -22979,24 +23003,27 @@ function renderGeneographImageUploadPanel()
             ? 'Choose more images'
             : 'Choose images';
 
-    if (adding)
+    if (adding || picker.mode === 'replace')
     {
         const detail = state.language === 'ru'
             ? `JPEG, PNG или WebP, до ${maxMegabytes} МБ на файл.`
             : `JPEG, PNG, or WebP up to ${maxMegabytes} MB each.`;
         return `
-          <div class="person-photo-picker-notice">${escapeHtml(state.language === 'ru'
-                ? 'Без выбора альбома изображения будут доступны только на этой доске.'
-                : 'Without an album, uploads stay local to this board and do not appear in Albums.')}</div>
+          <div class="person-photo-picker-notice">${escapeHtml(adding
+                ? state.language === 'ru'
+                    ? 'Без выбора альбома изображения будут доступны только на этой доске.'
+                    : 'Without an album, uploads stay local to this board and do not appear in Albums.'
+                : t('This upload will be stored only inside this board and will not appear in Albums.'))}</div>
           <div class="person-photos-adder-upload-panel">
             <div class="person-photo-upload-dropzone person-photos-adder-upload-dropzone upload-dropzone ${drafts.length ? 'has-drafts' : ''}"
-              data-geneo-image-dropzone role="button" tabindex="0" aria-label="${escapeHtml(t('Choose photos'))}">
-              <input type="file" accept="${PHOTO_UPLOAD_ALLOWED_TYPES.join(',')}" multiple data-geneo-image-file hidden>
-              ${renderUploadDropzonePrompt(drafts.length ? 'Add more photos' : 'Choose photos', detail)}
+              data-geneo-image-dropzone role="button" tabindex="0" aria-label="${escapeHtml(t(adding ? 'Choose photos' : 'Choose image'))}">
+              <input type="file" accept="${PHOTO_UPLOAD_ALLOWED_TYPES.join(',')}" ${adding ? 'multiple' : ''} data-geneo-image-file hidden>
+              ${renderUploadDropzonePrompt(adding ? drafts.length ? 'Add more photos' : 'Choose photos'
+                : drafts.length ? 'Choose a different image' : 'Choose image', detail)}
             </div>
             ${renderGeneographImageUploadErrors()}
             ${drafts.length ? `<div class="rp-upload-tiles" aria-label="${escapeHtml(state.language === 'ru' ? 'Выбранные изображения' : 'Selected images')}">${drafts.map(renderGeneographImageUploadDraft).join('')}</div>` : ''}
-            <div class="geneo-image-album-choice">
+            ${adding ? `<div class="geneo-image-album-choice">
               <label><input type="checkbox" data-geneo-image-add-to-album
                 ${picker.addUploadsToAlbum ? 'checked' : ''} ${albums.length ? '' : 'disabled'}>
                 ${escapeHtml(t('Add to album'))}</label>
@@ -23005,7 +23032,7 @@ function renderGeneographImageUploadPanel()
                 <option value="">${escapeHtml(state.language === 'ru' ? 'Выберите альбом' : 'Choose album')}</option>
                 ${albums.map(album => `<option value="${escapeHtml(album.id)}" ${picker.uploadAlbumId === album.id ? 'selected' : ''}>${escapeHtml(album.title || album.name || '')}</option>`).join('')}
               </select>` : `<p>${escapeHtml(state.language === 'ru' ? 'Сначала создайте альбом в разделе «Альбомы».' : 'Create an album in Albums first.')}</p>`}
-            </div>
+            </div>` : ''}
           </div>`;
     }
 
@@ -23077,6 +23104,7 @@ function renderGeneographImageUploadPanel()
 function renderGeneographAddImageResults()
 {
     const picker = state.geneoImagePicker;
+    if (picker.mode === 'replace' && picker.addView === 'selected' && picker.sourceTab === 'upload') return '';
     const projectId = geneoImagePickerProjectId();
     const selected = geneoImagePickerSelectedProjectIds();
     let photos = getProjectPhotos(projectId).filter(photo => !photo.deletedAt);
@@ -23109,8 +23137,9 @@ function renderGeneographAddImageResults()
               ${photo.caption ? `<span class="rp-description">${escapeHtml(photo.caption)}</span>` : ''}
               ${meta ? `<small title="${escapeHtml(meta)}">${escapeHtml(meta)}</small>` : ''}
             </span>
-            <input type="checkbox" data-geneo-image-candidate="${escapeHtml(photo.id)}"
-              aria-label="${escapeHtml(`${checked ? 'Deselect' : 'Select'} ${title}`)}" ${checked ? 'checked' : ''}>
+            <input type="${picker.mode === 'replace' ? 'radio' : 'checkbox'}" ${picker.mode === 'replace' ? 'name="geneoReplacementPhoto"' : ''}
+              data-geneo-image-candidate="${escapeHtml(photo.id)}"
+              aria-label="${escapeHtml(`${picker.mode === 'replace' ? 'Use' : checked ? 'Deselect' : 'Select'} ${title}`)}" ${checked ? 'checked' : ''}>
           </label>
         </article>`;
     }).join('')}</div>`;
@@ -23119,6 +23148,7 @@ function renderGeneographAddImageResults()
 function renderGeneographAddImageModal({ focusSelector = '' } = {})
 {
     const picker = state.geneoImagePicker;
+    const replacing = picker.mode === 'replace';
     const count = geneoImagePickerPendingCount();
     const albumReady = !picker.addUploadsToAlbum || getProjectAlbums(geneoImagePickerProjectId())
         .some(album => album.id === picker.uploadAlbumId && !album.deleted);
@@ -23129,8 +23159,9 @@ function renderGeneographAddImageModal({ focusSelector = '' } = {})
 
     openModal(`<section class="modal resource-picker geneo-image-add-modal ${view === 'upload' ? `rp-upload-staging ${picker.uploadDrafts.length ? 'has-items' : ''}` : ''}" data-resource-picker="photos"
       data-geneo-image-picker role="dialog" aria-modal="true" aria-labelledby="geneoImagePickerTitle">
-      <header class="modal-header"><div><h2 id="geneoImagePickerTitle">${escapeHtml(t('Add images'))}</h2>
-        <p>${escapeHtml(t('Select project photos, upload new images, or combine both sources in one addition.'))}</p></div>
+      <header class="modal-header"><div><h2 id="geneoImagePickerTitle">${escapeHtml(t(replacing ? 'Replace image' : 'Add images'))}</h2>
+        <p>${escapeHtml(t(replacing ? 'Choose one project photo or upload a replacement stored locally in this board.'
+            : 'Select project photos, upload new images, or combine both sources in one addition.'))}</p></div>
         <button type="button" class="close-button" data-close aria-label="${text('Close', 'Закрыть')}">${icon.close}</button>
       </header>
       <div class="rp-toolbar">
@@ -23155,7 +23186,7 @@ function renderGeneographAddImageModal({ focusSelector = '' } = {})
             : view === 'browse' ? `<div class="rp-scopes"><button type="button" class="rp-scope" data-geneo-image-scope="">${icon.folder}<span>${text('All photos', 'Все фотографии')}</span>${icon.chevron}</button>
                 ${albums.map(album => `<button type="button" class="rp-scope" data-geneo-image-scope="${escapeHtml(album.id)}">${icon.folder}<span>${escapeHtml(album.title || album.name || '')}</span>${icon.chevron}</button>`).join('')}</div>`
             : `<div data-geneo-image-project-results>${renderGeneographAddImageResults()}</div>
-                ${view === 'selected' && picker.uploadDrafts.length ? `<section class="geneo-image-selected-uploads">
+                ${view === 'selected' && picker.uploadDrafts.length && (!replacing || picker.sourceTab === 'upload') ? `<section class="geneo-image-selected-uploads">
                   <h3>${text('Uploaded images', 'Загруженные изображения')}</h3>
                   <div class="rp-upload-tiles">${picker.uploadDrafts.map(renderGeneographImageUploadDraft).join('')}</div>
                 </section>` : ''}`}
@@ -23177,7 +23208,7 @@ function renderGeneographImagePickerModal({
 {
     const picker = state.geneoImagePicker;
     if (!picker.open) return;
-    if (picker.mode === 'add')
+    if (picker.mode === 'add' || picker.mode === 'replace')
     {
         renderGeneographAddImageModal({ focusSelector });
         return;
@@ -23386,7 +23417,7 @@ function refreshGeneographImagePickerSelectionUi()
                 String(selected)
             );
 
-            if (card.matches('input[type="checkbox"]'))
+            if (card.matches('input[type="checkbox"], input[type="radio"]'))
             {
                 card.checked = selected;
                 card.closest('.rp-record')?.classList.toggle('is-selected', selected);
@@ -23524,11 +23555,11 @@ function bindGeneographImageProjectResultActions(
             button.addEventListener('click', () =>
             {
                 state.geneoImagePicker.sourceTab = 'upload';
-                if (state.geneoImagePicker.mode === 'add') state.geneoImagePicker.addView = 'upload';
+                if (state.geneoImagePicker.mode !== 'avatar') state.geneoImagePicker.addView = 'upload';
 
                 renderGeneographImagePickerModal({
                     focusSelector:
-                state.geneoImagePicker.mode === 'add' ? '[data-geneo-image-dropzone]' : '[data-geneo-image-choose-file]'
+                state.geneoImagePicker.mode !== 'avatar' ? '[data-geneo-image-dropzone]' : '[data-geneo-image-choose-file]'
                 });
             });
         });
@@ -23668,7 +23699,7 @@ async function processGeneographImageUploads(fileList)
 
     renderGeneographImagePickerModal({
         focusSelector:
-          picker.mode === 'add' ? '[data-geneo-image-dropzone]' : '[data-geneo-image-choose-file]'
+          picker.mode !== 'avatar' ? '[data-geneo-image-dropzone]' : '[data-geneo-image-choose-file]'
     });
 }
 
@@ -24096,7 +24127,7 @@ function bindGeneographImagePickerModal()
         refreshGeneographImagePickerSelectionUi();
     });
 
-    if (state.geneoImagePicker.mode === 'add')
+    if (state.geneoImagePicker.mode !== 'avatar')
     {
         bindUploadDropzoneChooser(modalBackdrop.querySelector('[data-geneo-image-dropzone]'), fileInput);
     }
@@ -24136,7 +24167,7 @@ function bindGeneographImagePickerModal()
 
                 renderGeneographImagePickerModal({
                     focusSelector:
-                state.geneoImagePicker.mode === 'add' ? '[data-geneo-image-dropzone]' : '[data-geneo-image-choose-file]'
+                state.geneoImagePicker.mode !== 'avatar' ? '[data-geneo-image-dropzone]' : '[data-geneo-image-choose-file]'
                 });
             });
         });
@@ -24195,6 +24226,7 @@ function bindGeneographAddImageModal()
     modalBackdrop.querySelector('[data-geneo-image-browse]')?.addEventListener('click', () =>
     {
         picker.addView = picker.addView === 'browse' ? 'results' : 'browse';
+        if (picker.mode === 'replace') picker.sourceTab = 'project';
         renderGeneographImagePickerModal({ focusSelector: '[data-geneo-image-browse]' });
     });
     modalBackdrop.querySelector('[data-geneo-image-selected]')?.addEventListener('click', () =>
@@ -24207,6 +24239,7 @@ function bindGeneographAddImageModal()
         {
             picker.albumScopeId = button.dataset.geneoImageScope;
             picker.addView = 'results';
+            if (picker.mode === 'replace') picker.sourceTab = 'project';
             renderGeneographImagePickerModal({ focusSelector: '[data-geneo-image-search]' });
         }));
     modalBackdrop.querySelector('[data-geneo-image-filter]')?.addEventListener('click', () =>
@@ -24469,6 +24502,11 @@ function openGeneographImagePicker({
         uploadErrors: [],
         uploadBusy: false
     });
+
+    if (replacing && state.geneoImagePicker.sourceTab === 'upload')
+    {
+        state.geneoImagePicker.addView = 'upload';
+    }
 
     renderGeneographImagePickerModal();
 }
@@ -27798,6 +27836,7 @@ function geneoResetBulkNodeAppearance(node, diagram)
     for (const key of ['fill', 'stroke', 'text']) node.appearance[key] = structuredClone(inherited[key]);
     node.appearance.strokeWidth = inherited.strokeWidth;
     node.appearance.strokePattern = inherited.strokePattern;
+    node.appearance.shadowEnabled = null;
     node.appearance.paintOverrides = { fill: false, stroke: false, text: false };
     node.appearance.styleOverrides = { strokeWidth: false, strokePattern: false };
     node.personCard = normalizeGeneographPersonCardOverrides(node.personCard);
@@ -30066,8 +30105,35 @@ function bindGeneographEditor()
     bindGeneographPersonCardControls();
     bindGeneographPersonMultiAppearance();
     bindGeneographGenericBulkControls();
+    bindGeneographShadowControls();
     bindGeneographSidebarControls();
     bindToasts(main);
+}
+
+function bindGeneographShadowControls()
+{
+    main.querySelectorAll('[data-geneo-shadow]').forEach(input =>
+    {
+        if (input.dataset.mixed === 'true') input.indeterminate = true;
+        input.addEventListener('change', () =>
+        {
+            const diagram = selectedGeneographDiagram();
+            if (!diagram) return;
+            const scope = input.dataset.geneoShadow;
+            if (scope === 'canvas')
+            {
+                updateGeneoCanvasSetting('shadowEnabled', input.checked);
+                return;
+            }
+            const nodes = scope === 'node' ? [selectedGeneographNode()].filter(Boolean)
+                : selectedGeneographNodes();
+            if (!nodes.length || nodes.every(node => node.appearance.shadowEnabled === input.checked)) return;
+            geneoPushHistory();
+            nodes.forEach(node => { node.appearance.shadowEnabled = input.checked; });
+            touchGeneographBoard();
+            renderGeneographEditorPreserveScroll({ preserveInspectorScroll: true, preserveSidebarScroll: true });
+        });
+    });
 }
 
 function ensureGeneographPointerBinding()
@@ -30077,6 +30143,11 @@ function ensureGeneographPointerBinding()
     window.addEventListener('pointermove', moveGeneographObject);
     window.addEventListener('pointerup', endGeneographObjectDrag);
     window.addEventListener('pointercancel', endGeneographObjectDrag);
+    document.addEventListener('selectstart', event =>
+    {
+        if (geneoPointerState?.kind === 'move-group' && geneoPointerState.axisLockAllowed)
+            event.preventDefault();
+    });
 }
 
 function updateGeneoCanvasSetting(field, value)

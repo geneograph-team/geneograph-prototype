@@ -88,6 +88,21 @@ function geneoAlignmentBestMatch(axis, moving, targets, rawDelta, otherDelta, zo
     return candidates[0] || null;
 }
 
+function geneoAlignmentGuide(axis, moving, match, dx, dy, zoom)
+{
+    if (!match) return null;
+    const movingStart = axis === 'x' ? moving.top + dy : moving.left + dx;
+    const movingEnd = axis === 'x' ? moving.bottom + dy : moving.right + dx;
+    const targetStart = axis === 'x' ? match.rect.top : match.rect.left;
+    const targetEnd = axis === 'x' ? match.rect.bottom : match.rect.right;
+    if (movingEnd < targetStart)
+        return { position: match.position, start: movingEnd, end: targetStart };
+    if (targetEnd < movingStart)
+        return { position: match.position, start: targetEnd, end: movingStart };
+    const outerStart = Math.min(movingStart, targetStart);
+    return { position: match.position, start: outerStart - 14 / zoom, end: outerStart - 2 / zoom };
+}
+
 function geneoCalculateAlignment({ movingNodes, targets, dx, dy, fallbackDx = dx,
     fallbackDy = dy, zoom = 1, previous = null, lockedAxis = null })
 {
@@ -105,16 +120,8 @@ function geneoCalculateAlignment({ movingNodes, targets, dx, dy, fallbackDx = dx
         dx: finalDx, dy: finalDy,
         matches: { x: x ? { key: x.key } : null, y: y ? { key: y.key } : null },
         guides: {
-            x: x ? {
-                position: x.position,
-                start: Math.min(bounds.top + finalDy, x.rect.top),
-                end: Math.max(bounds.bottom + finalDy, x.rect.bottom)
-            } : null,
-            y: y ? {
-                position: y.position,
-                start: Math.min(bounds.left + finalDx, y.rect.left),
-                end: Math.max(bounds.right + finalDx, y.rect.right)
-            } : null
+            x: geneoAlignmentGuide('x', bounds, x, finalDx, finalDy, scale),
+            y: geneoAlignmentGuide('y', bounds, y, finalDx, finalDy, scale)
         }
     };
 }

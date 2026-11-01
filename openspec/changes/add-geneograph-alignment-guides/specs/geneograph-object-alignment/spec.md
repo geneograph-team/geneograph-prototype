@@ -17,6 +17,10 @@ While a user drags one or more board objects, the editor SHALL show temporary ho
 - **WHEN** horizontal and vertical matches are available at the same time
 - **THEN** both guides can appear and both axes can align
 
+#### Scenario: Guide near aligned cards
+- **WHEN** an alignment guide appears for two cards
+- **THEN** its visible segment stays between separated cards or outside their bounds, without crossing either card's interior
+
 ### Requirement: Alignment priority over the grid
 The editor SHALL use object alignment when a matching object is within the guide threshold, even when Snap to grid is enabled. When no match qualifies on an axis, existing grid snapping SHALL apply on that axis.
 

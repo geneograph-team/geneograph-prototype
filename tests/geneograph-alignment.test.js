@@ -11,6 +11,22 @@ assert.equal(edges.dx, 90);
 assert.equal(edges.dy, 60);
 assert.equal(edges.guides.x.position, 100);
 assert.equal(edges.guides.y.position, 80);
+assert.ok(edges.guides.x.end < moving[0].y + edges.dy);
+assert.ok(edges.guides.y.end < moving[0].x + edges.dx);
+
+const verticalGap = geneoCalculateAlignment({
+    movingNodes: [{ id: 'lower', x: 0, y: 100, width: 40, height: 30 }],
+    targets: [{ id: 'upper', x: 0, y: 20, width: 40, height: 30 }],
+    dx: 0, dy: 0
+});
+assert.deepEqual(verticalGap.guides.x, { position: 0, start: 50, end: 100 });
+
+const horizontalGap = geneoCalculateAlignment({
+    movingNodes: [{ id: 'right', x: 100, y: 0, width: 40, height: 30 }],
+    targets: [{ id: 'left', x: 20, y: 0, width: 40, height: 30 }],
+    dx: 0, dy: 0
+});
+assert.deepEqual(horizontalGap.guides.y, { position: 0, start: 60, end: 100 });
 
 const center = calculate({ dx: 91, dy: 61 });
 assert.equal(center.dx, 90);
@@ -57,6 +73,7 @@ const seededCardGap = geneoCalculateAlignment({
 });
 assert.equal(seededCardGap.matches.x.key, 'midpoint:x:left-card:right-card');
 assert.equal(seededCardGap.guides.x.position, -420);
+assert.ok(seededCardGap.guides.x.end < 120);
 
 const unequalCards = geneoCalculateAlignment({
     movingNodes: [{ id: 'middle', type: 'sticky', x: 65, y: 20, width: 30, height: 20 }],

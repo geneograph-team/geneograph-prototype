@@ -2095,6 +2095,8 @@ const RU_UI_GENEO = {
 
     'Card content': 'Содержимое карточки',
     'Card appearance': 'Оформление карточки',
+    'Shadow': 'Тень',
+    'Default for board objects. Individual settings can override it.': 'Тень по умолчанию для объектов доски. Её можно изменить для каждого объекта.',
     'Card layout': 'Макет карточки',
     'Position & size': 'Положение и размер',
     'Apply gender color': 'Применить цвета для пола',
