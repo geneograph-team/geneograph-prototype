@@ -27,7 +27,7 @@ The original monolithic `index.html` has been split: the application now lives i
   - `projects-tree-layout.js`, `family-and-shared.js`, `people.js`, `albums.js`, `geneograph.js`, `archive.js`, `notes.js`, `places.js`, `publish.js` — per-module rendering and behavior.
   - `shared-media.js`, `shared-actions.js` — shared media access and cross-module actions.
   - `bootstrap.js` — global keyboard handling (Escape) and the initial `render()` call.
-- Stylesheets: `foundation.css` defines base styles and tokens; feature stylesheets and `final-overrides.css` follow in the order shown in `src/index.html`. Additional feature stylesheets load after `final-overrides.css`, so check the actual cascade before changing selectors.
+- Stylesheets: `foundation.css` defines base styles and tokens; feature and shared stylesheets follow in the order shown in `src/index.html`. Check the actual cascade before changing selectors.
 - Sample photos, project covers, and other static media live in `src/assets/`.
 
 ## OpenSpec Handoff
@@ -78,6 +78,12 @@ Several extracted files are still very large. **Never read them end-to-end.**
 - Use the Whiskerfield sample project (Silver Whiskerfield, Luna Purrington, the Meowbridge marriage record) consistently. This is sample data, not historical records.
 - Keep the dark identity: near-black surfaces (`#0B0F0E` app background), brand green (`#62D99A` primary accent). Amber (`#D4AA6B`) is reserved for possible/uncertain relationships only; red/purple/blue are status/semantic accents as already used.
 - No glass/glow effects, floating decorative cards, or generic startup motifs.
+
+## CSS Ownership
+
+- Edit declarations in their owning feature or shared stylesheet. Merge superseded rules; do not append competing overrides or use `!important` merely to avoid reconciling an existing rule.
+- Put shared tokens and truly cross-module controls in `foundation.css`; keep module, state, and responsive rules with their owning feature. Shared resource-picker rules belong in `resource-picker.css`. Preserve the existing CSS load order while consolidating.
+- Check English/Russian, desktop/phone widths, focus, and relevant modal states when changing shared or responsive styles.
 
 ## Accessibility Requirements
 

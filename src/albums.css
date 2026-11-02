@@ -1,4 +1,12 @@
 /* Albums module */
+body.mobile-surface-open:has(.albums-shell) .modal-backdrop.open {
+    z-index: 1006;
+}
+
+body.mobile-surface-open:has(.albums-shell) .menu-popover {
+    z-index: 1004;
+}
+
 .albums-shell {
     height: 100%;
     min-width: 0;
@@ -1552,6 +1560,59 @@
         justify-content: flex-end;
     }
 }
+
+@media (max-width: 900px) {
+    .person-photos-adder-modal .person-photos-adder-body {
+        display: flex;
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .person-photos-adder-modal .person-photo-picker-tabs {
+        flex: 0 0 auto;
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        width: 100%;
+        box-sizing: border-box;
+    }
+
+    .person-photos-adder-modal .person-photo-picker-tab {
+        min-width: 0;
+        min-height: 44px;
+        white-space: nowrap;
+    }
+
+    .person-photos-adder-modal [role="tabpanel"] {
+        min-width: 0;
+        flex: 0 0 auto;
+    }
+
+    .person-photos-adder-upload-panel {
+        align-content: start;
+    }
+}
+
+@media (max-width: 540px) {
+    #modalBackdrop > .person-photos-adder-modal {
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+    }
+
+    #modalBackdrop > .person-photos-adder-modal .person-photos-adder-body {
+        flex: 1 1 auto;
+        min-height: 0;
+        overflow-y: auto;
+        overscroll-behavior: contain;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    #modalBackdrop > .person-photos-adder-modal .person-photos-adder-footer {
+        flex: 0 0 auto;
+        padding-bottom: max(var(--space-4), env(safe-area-inset-bottom));
+    }
+}
+
 
 .person-photo-adjust-layout {
     --person-photo-adjust-size: 560px;
@@ -4978,6 +5039,28 @@ button.albums-inspector-row-main:focus-visible {
     .albums-detail {
         display: none;
     }
+
+    body.mobile-details-open .albums-shell .albums-detail {
+        padding-top: 0 !important;
+    }
+
+    body.mobile-details-open .albums-detail-toolbar {
+        padding-right: 68px;
+    }
+
+    body.mobile-details-open:has(.albums-detail) #mobileDetailsClose {
+        top: 9px;
+        right: 16px;
+        width: 40px;
+        height: 40px;
+        min-height: 40px;
+        padding: 0;
+        justify-content: center;
+    }
+
+    body.mobile-details-open:has(.albums-detail) #mobileDetailsClose span {
+        display: none;
+    }
 }
 
 @media (max-width: 900px) {
@@ -5318,6 +5401,7 @@ button.albums-inspector-row-main:focus-visible {
     }
 
     .albums-card-footer .mobile-item-details {
+        margin-left: auto;
         grid-column: 2;
         width: 36px;
         min-width: 36px;

@@ -10,9 +10,7 @@ Pages configuration does not publish the application from `src/`.
 - `src/index.html` contains the application shell, CDN references, runtime map
   configuration, and the ordered stylesheet and classic deferred script tags.
   Script order matters because files share load-order-dependent globals.
-- `src/foundation.css` defines base styles and tokens. Feature stylesheets sit
-  beside their corresponding scripts; `final-overrides.css` contains later
-  overrides. Keep the stylesheet order in `index.html` when making changes.
+- `src/foundation.css` defines base styles and tokens. Edit module styles in their\n  owning stylesheet and shared controls in `foundation.css` or `resource-picker.css`.\n  Check the stylesheet order in `index.html` when changing the cascade.
 - `src/app-shell.js`, `state-tree-core.js`, and `bootstrap.js` handle rendering,
   shared state, and startup. Feature files include `people.js`, `geneograph.js`,
   `albums.js`, `archive.js`, `notes.js`, and `places.js`. Shared helpers and seed

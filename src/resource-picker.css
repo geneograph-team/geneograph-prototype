@@ -1315,6 +1315,123 @@
 
 }
 
+.source-create-short {
+    display: none;
+}
+
+#modalBackdrop .target-source-picker-modal .notes-related-toolbar .app-search-field {
+    width: 100%;
+}
+
+@media (max-width: 900px) {
+    .person-mobile-link-picker .notes-related-modal-body {
+        min-height: 0;
+        padding: var(--space-4);
+    }
+
+    .person-mobile-link-picker .notes-related-toolbar {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .person-mobile-link-picker .notes-related-toolbar .app-search-field,
+    .person-mobile-link-picker .notes-related-toolbar .app-search-field input {
+        min-width: 0;
+        width: 100%;
+    }
+
+    .person-mobile-link-picker .note-link-picker-toolbar-actions {
+        justify-content: flex-start;
+        flex-wrap: wrap;
+    }
+
+    .person-mobile-link-picker .notes-related-selected-panel {
+        min-height: 0;
+        max-height: min(25%, 144px);
+        overflow-y: auto;
+    }
+
+    .person-mobile-link-picker :is(.notes-related-selected-list, .source-picker-selected-list),
+    .person-mobile-link-picker :is(.notes-related-results-panel, .notes-related-results) {
+        min-width: 0;
+        min-height: 0;
+    }
+
+    .person-mobile-link-picker .notes-related-results {
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .person-mobile-link-picker :is(.notes-related-choice, .source-picker-choice) {
+        min-width: 0;
+        grid-template-columns: 42px minmax(0, 1fr) 18px;
+    }
+
+    .person-mobile-link-picker :is(.notes-related-choice, .source-picker-choice) > input {
+        grid-column: 3;
+        grid-row: 1;
+    }
+
+    .person-mobile-link-picker :is(.notes-related-choice-status, .source-picker-choice-status) {
+        grid-column: 2 / -1;
+        grid-row: 2;
+        justify-self: start;
+    }
+
+    .person-mobile-link-picker .notes-related-footer {
+        flex-wrap: wrap;
+    }
+
+    #modalBackdrop .target-source-picker-modal .notes-related-toolbar {
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 8px;
+    }
+
+    #modalBackdrop .archive-link-picker-modal .archive-link-picker-toolbar {
+        flex-direction: row;
+        align-items: center;
+        gap: 8px;
+    }
+
+    #modalBackdrop :is(.target-source-picker-modal, .archive-link-picker-modal) :is(.notes-related-toolbar, .archive-link-picker-toolbar) .app-search-field {
+        min-width: 0;
+        width: 100%;
+    }
+
+    #modalBackdrop :is(.target-source-picker-modal, .archive-link-picker-modal) :is(.notes-related-toolbar, .archive-link-picker-toolbar) input[type="search"] {
+        min-width: 0;
+        width: 100%;
+    }
+
+    #modalBackdrop :is(.target-source-picker-modal, .archive-link-picker-modal) :is(.notes-related-toolbar, .archive-link-picker-toolbar) > .button {
+        flex: 0 0 auto;
+        width: auto;
+        min-height: 44px;
+        padding-inline: 10px;
+        white-space: nowrap;
+    }
+}
+
+@media (max-width: 540px) and (max-height: 600px) {
+    .person-mobile-link-picker :is(.notes-related-modal-body, .notes-related-footer) {
+        padding: var(--space-3);
+    }
+
+    .person-mobile-link-picker .notes-related-selected-panel {
+        max-height: 72px;
+    }
+}
+
+@media (max-width: 540px) {
+    #modalBackdrop :is(.target-source-picker-modal, .archive-link-picker-modal) .source-create-full {
+        display: none;
+    }
+
+    #modalBackdrop :is(.target-source-picker-modal, .archive-link-picker-modal) .source-create-short {
+        display: inline;
+    }
+}
+
+
 /* Media uploads: review a queue before adding it to the project. */
 .rp-upload-staging:not(.has-items) .upload-dropzone {
     min-height: clamp(240px, 40vh, 340px);

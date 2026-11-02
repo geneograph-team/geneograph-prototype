@@ -195,6 +195,12 @@ OpenSpec is initialized here with Codex integration. Keep its config short and w
 5. Validate transitions, not only appearance: selection, Cancel, undo/redo, reload, import/export, missing assets, external-service failures, and mixed bulk values.
 6. Inspect the browser console and run `git diff --check`. For structural changes, open `src/index.html` locally and exercise the relevant workflow at desktop and phone widths.
 
+### CSS ownership
+
+The CSS consolidation is complete. Edit styles in the stylesheet that owns the module; keep shared tokens and cross-module controls in `foundation.css`, and shared picker controls in `resource-picker.css`. Reconcile existing declarations directly instead of adding a trailing override or unnecessary `!important`. Preserve direct `file://` opening and check the load order in `src/index.html` when changing the cascade.
+
+For shared or responsive changes, check the affected modules in English and Russian at desktop and phone widths, including focus and modal states. Run `git diff --check`. Automated checks should target meaningful regressions.
+
 ## 13. Production direction
 
 The prototype is a substantial interaction reference, not a deployable production architecture. A product implementation should first define durable project-scoped schemas and stable identifiers, then extract and test pure relationship, date, place, board-validation, and appearance-resolution logic. Add persistence, authenticated access, media/document storage, and reliable import/export around those contracts. Implement GEDCOM and publication generation as separately verified pipelines. Keep English/Russian localization and accessible keyboard/touch operation as release criteria, not later polish.

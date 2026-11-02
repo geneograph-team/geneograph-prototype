@@ -770,6 +770,25 @@
     letter-spacing: .01em;
 }
 
+.people-add-person-compact {
+    display: none;
+}
+
+.people-mobile-list {
+    display: none;
+}
+
+.people-mobile-search-trigger,
+.people-mobile-search-close {
+    display: none;
+}
+
+.people-mobile-search-trigger:focus-visible,
+.people-mobile-search-close:focus-visible {
+    outline: 2px solid var(--brand-green-300);
+    outline-offset: 2px;
+}
+
 /* ---------- Shared module filters ---------- */
 
 .shared-filter-panel {
@@ -1468,32 +1487,9 @@
     }
 }
 
-.people-columns-button {
-    white-space: nowrap;
-    justify-content: center;
-    min-width: 118px;
-}
-
 .people-columns-button svg {
     width: 18px;
     height: 18px;
-}
-
-.people-columns-button.active {
-    background: var(--surface-selected);
-    border-color: rgba(98, 217, 154, .3);
-    color: var(--brand-green-300);
-}
-
-.people-columns-popover {
-    position: fixed;
-    width: 290px;
-    z-index: 95;
-    border: 1px solid var(--border-strong);
-    border-radius: var(--radius-lg);
-    background: var(--surface-card);
-    box-shadow: var(--shadow-soft);
-    overflow: hidden;
 }
 
 .people-columns-header {
@@ -1512,32 +1508,39 @@
     font-size: 13px;
 }
 
-.people-columns-list {
-    padding: var(--space-3);
-    display: grid;
-    gap: 4px;
-}
-
 .people-columns-option {
-    min-height: 38px;
-    display: flex;
+    min-height: 42px;
+    display: grid;
     align-items: center;
-    gap: var(--space-2);
-    border-radius: 8px;
-    padding: 0 var(--space-2);
+    gap: 8px;
+    border-radius: var(--radius-sm);
+    padding: 0 8px;
     color: var(--text-secondary);
     font-weight: 800;
+    min-width: 0;
+    grid-template-columns: 18px minmax(0, 1fr);
+    border: 1px solid transparent;
+    cursor: pointer;
 }
 
 .people-columns-option:hover {
     background: rgba(255, 255, 255, .035);
     color: var(--text-primary);
+    border-color: var(--border-default);
 }
 
 .people-columns-option input {
     width: 18px;
     height: 18px;
     accent-color: var(--brand-green-500);
+    position: static !important;
+    opacity: 1 !important;
+    pointer-events: auto !important;
+}
+
+.people-columns-option.locked {
+    cursor: default;
+    color: var(--text-tertiary);
 }
 
 .people-columns-option input:disabled {
@@ -2515,23 +2518,26 @@
 .people-columns-button {
     white-space: nowrap;
     justify-content: center;
+    min-width: 110px;
 }
 
 .people-columns-button.active {
     background: var(--surface-selected);
-    border-color: rgba(98, 217, 154, .3);
+    border-color: rgba(98, 217, 154, .32);
     color: var(--brand-green-300);
 }
 
 .people-columns-popover {
     position: fixed;
-    width: 288px;
-    z-index: 96;
+    width: min(360px, calc(100vw - 24px));
+    z-index: 90;
     border: 1px solid var(--border-strong);
     border-radius: var(--radius-lg);
-    background: var(--surface-card);
+    background: rgba(26, 32, 31, .98);
     box-shadow: var(--shadow-soft);
     overflow: hidden;
+    display: grid;
+    grid-template-rows: auto minmax(0, 1fr) auto;
 }
 
 .people-columns-header {
@@ -2551,9 +2557,12 @@
 }
 
 .people-columns-list {
-    display: grid;
-    gap: 2px;
     padding: 8px;
+    display: grid;
+    gap: 4px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-content: start;
+    overflow-y: auto;
 }
 
 .people-columns-footer {
@@ -2646,6 +2655,248 @@
         grid-template-columns: 1fr;
     }
 }
+
+@media (max-width: 900px) {
+    .people-mobile-search-trigger,
+    .people-mobile-search-close {
+        width: 40px;
+        min-width: 40px;
+        height: 40px;
+        padding: 0;
+        align-items: center;
+        justify-content: center;
+        border: 1px solid var(--border-default);
+        border-radius: var(--radius-sm);
+        background: var(--surface-card);
+        color: var(--text-primary);
+    }
+
+    .people-mobile-search-trigger {
+        display: inline-flex;
+    }
+
+    .people-normal-toolbar .people-search-field {
+        display: none;
+    }
+
+    #peopleColumnsButton {
+        display: none;
+    }
+}
+
+
+@media (max-width: 900px) {
+    .people-normal-toolbar {
+        width: 100%;
+        flex-wrap: nowrap;
+        min-width: 0;
+        gap: 6px;
+    }
+
+    .people-normal-toolbar .people-mobile-search-trigger,
+    .people-normal-toolbar .people-mobile-search-close,
+    .people-normal-toolbar .people-columns-button,
+    .people-normal-toolbar .people-filter-button,
+    .people-normal-toolbar .app-sort-trigger {
+        width: 40px;
+        min-width: 40px;
+        height: 44px;
+        padding: 0;
+    }
+
+    .people-normal-toolbar .people-mobile-search-trigger svg,
+    .people-normal-toolbar .people-mobile-search-close svg,
+    .people-normal-toolbar .people-columns-button svg,
+    .people-normal-toolbar .people-filter-button svg,
+    .people-normal-toolbar .app-sort-trigger svg,
+    .people-normal-toolbar #addPeoplePerson svg {
+        width: 18px;
+        height: 18px;
+        flex: 0 0 18px;
+        pointer-events: none;
+    }
+
+    .people-normal-toolbar .people-filter-button > *,
+    .people-normal-toolbar .people-columns-button > * {
+        pointer-events: none;
+    }
+
+    .people-normal-toolbar #addPeoplePerson {
+        flex: 0 0 auto;
+        width: auto;
+        min-width: 0;
+        height: 44px;
+        margin-left: 0;
+        padding-inline: 10px;
+        gap: 5px;
+        font-size: 13px;
+        white-space: nowrap;
+    }
+
+    .people-normal-toolbar #addPeoplePerson .people-add-person-full {
+        display: inline;
+    }
+
+    #modalBackdrop:has(.person-mobile-link-picker) {
+        padding: 8px;
+    }
+
+    .person-mobile-link-picker {
+        width: min(100%, calc(100vw - 16px));
+        height: min(760px, calc(100dvh - 16px));
+        max-height: calc(100dvh - 16px);
+    }
+
+    .people-table-wrap .people-table {
+        display: none;
+    }
+
+    .people-mobile-list {
+        display: grid;
+        gap: 8px;
+        padding: 8px;
+    }
+
+    .people-mobile-select-all {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        min-height: 36px;
+        color: var(--text-secondary);
+        font-size: 12px;
+    }
+
+    .people-mobile-row {
+        display: grid;
+        grid-template-columns: 24px 42px minmax(0, 1fr) 36px;
+        align-items: center;
+        gap: 8px;
+        min-width: 0;
+        padding: 10px;
+        border: 1px solid var(--border-default);
+        border-radius: var(--radius-sm);
+        background: var(--surface-card);
+    }
+
+    .people-mobile-row.is-previewed {
+        border-color: var(--brand-green-500);
+    }
+
+    .people-mobile-copy {
+        display: grid;
+        gap: 3px;
+        min-width: 0;
+    }
+
+    .people-mobile-copy strong {
+        overflow-wrap: anywhere;
+        white-space: normal;
+    }
+
+    .people-mobile-copy span,
+    .people-mobile-copy small {
+        color: var(--text-secondary);
+        overflow-wrap: anywhere;
+        white-space: normal;
+    }
+
+    .people-mobile-profile {
+        grid-column: 3 / 5;
+        justify-self: start;
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        min-height: 30px;
+        padding: 2px 0;
+        border: 0;
+        background: transparent;
+        color: var(--brand-green-300);
+        font: inherit;
+    }
+
+    .people-mobile-profile svg {
+        width: 16px;
+        height: 16px;
+    }
+}
+
+@media (min-width: 541px) and (max-width: 900px) {
+    .people-normal-toolbar .people-mobile-search-trigger {
+        display: none;
+    }
+
+    .people-normal-toolbar .people-search-field {
+        display: flex;
+        flex: 1 1 0;
+        width: auto;
+        min-width: 0;
+    }
+
+    .people-normal-toolbar.mobile-search-open .people-mobile-search-close {
+        display: none;
+    }
+}
+
+@media (max-width: 540px) {
+    .people-normal-toolbar {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr)) minmax(max-content, 1.55fr);
+    }
+
+    .people-normal-toolbar .people-mobile-search-trigger,
+    .people-normal-toolbar .people-filter-button,
+    .people-normal-toolbar .app-sort-field,
+    .people-normal-toolbar .app-sort-trigger,
+    .people-normal-toolbar #addPeoplePerson {
+        width: 100%;
+        min-width: 0;
+    }
+
+    .people-normal-toolbar .app-sort-field {
+        max-width: 100%;
+    }
+
+    .people-normal-toolbar.mobile-search-open {
+        grid-template-columns: minmax(0, 1fr) 44px;
+    }
+
+    .people-normal-toolbar.mobile-search-open > :not(.people-search-field, .people-mobile-search-close) {
+        display: none;
+    }
+
+    .people-normal-toolbar.mobile-search-open .people-search-field {
+        display: flex;
+        width: 100%;
+        min-width: 0;
+    }
+
+    .people-normal-toolbar.mobile-search-open .people-mobile-search-close {
+        display: inline-flex;
+        width: 100%;
+    }
+
+    .people-normal-toolbar #addPeoplePerson .people-add-person-full {
+        display: none;
+    }
+
+    .people-normal-toolbar #addPeoplePerson .people-add-person-compact {
+        display: inline;
+    }
+}
+
+@media (max-width: 540px) and (max-height: 600px) {
+    .person-mobile-link-picker .modal-header {
+        max-height: 132px;
+        overflow-y: auto;
+    }
+
+    .person-mobile-link-picker .modal-header .close-button {
+        position: sticky;
+        top: 0;
+        flex: 0 0 auto;
+    }
+}
+
 
 .profile-edit-card-state {
     display: inline-flex;
@@ -2795,6 +3046,247 @@
     grid-column: 1 / -1;
 }
 
+.people-full-profile-cta {
+    grid-column: 1 / -1;
+    justify-content: flex-start !important;
+    text-align: left !important;
+    padding-left: 16px !important;
+    min-height: 44px;
+}
+
+.person-profile .profile-main-edit-grid {
+    --profile-main-control-height: var(--control-height);
+    display: grid;
+    grid-template-columns: minmax(220px, 1fr) minmax(220px, 1fr) minmax(170px, .72fr);
+    gap: 20px 24px;
+    align-items: start;
+    width: 100%;
+    min-width: 0;
+}
+
+.person-profile .profile-main-edit-grid .field,
+.person-profile .profile-main-edit-grid .genealogy-date-field {
+    min-width: 0;
+}
+
+.person-profile .profile-main-edit-grid .field label,
+.person-profile .profile-main-edit-grid .genealogy-date-field>label {
+    display: block;
+    min-height: 18px;
+    margin-bottom: 8px;
+    color: var(--text-secondary);
+    font-weight: 800;
+    line-height: 1.2;
+}
+
+.person-profile .profile-main-edit-grid .genealogy-date-field>label {
+    margin-bottom: 0;
+}
+
+.person-profile .profile-main-edit-grid input,
+.person-profile .profile-main-edit-grid select,
+.person-profile .profile-main-edit-grid .add-person-status-button,
+.person-profile .profile-main-edit-grid .genealogy-date-type,
+.person-profile .profile-main-edit-grid .genealogy-date-input,
+.person-profile .profile-main-edit-grid .genealogy-date-details-button {
+    box-sizing: border-box;
+    width: 100%;
+    min-height: var(--profile-main-control-height);
+    height: var(--profile-main-control-height);
+    max-height: var(--profile-main-control-height);
+}
+
+.person-profile .profile-main-edit-grid .add-person-select-field,
+.person-profile .profile-main-edit-grid .profile-status-field {
+    position: relative;
+    z-index: 6;
+}
+
+.person-profile .profile-main-edit-grid .add-person-select,
+.person-profile .profile-main-edit-grid .add-person-status-button {
+    padding-right: 44px;
+}
+
+.person-profile .profile-main-edit-grid .add-person-select {
+    appearance: none;
+    -webkit-appearance: none;
+}
+
+.person-profile .profile-main-edit-grid .add-person-select-chevron,
+.person-profile .profile-main-edit-grid .add-person-status-chevron {
+    position: absolute;
+    right: 14px;
+    bottom: 0;
+    width: 20px;
+    height: var(--profile-main-control-height);
+    display: inline-grid;
+    place-items: center;
+    color: var(--text-secondary);
+    pointer-events: none;
+}
+
+.person-profile .profile-main-edit-grid .add-person-select-chevron svg,
+.person-profile .profile-main-edit-grid .add-person-status-chevron svg {
+    width: 16px;
+    height: 16px;
+    display: block;
+}
+
+.person-profile .profile-main-edit-grid .add-person-status-menu {
+    z-index: 180;
+}
+
+.person-profile .profile-main-edit-grid .genealogy-date-controls {
+    align-items: start;
+    min-width: 0;
+}
+
+.person-profile .profile-main-edit-grid .genealogy-date-inline-range {
+    --genealogy-date-type-column:
+    minmax(160px, 188px);
+
+    --genealogy-date-input-column:
+    minmax(0, 1fr);
+
+    --genealogy-date-column-gap:
+    var(--space-2);
+}
+
+.person-profile .profile-main-edit-grid .genealogy-date-details-button {
+    width: var(--control-icon-button-size);
+    min-width: var(--control-icon-button-size);
+    padding: 0;
+    place-self: start;
+}
+
+.person-profile .profile-main-edit-grid .genealogy-date-details-button svg {
+    width: 18px;
+    height: 18px;
+    display: block;
+}
+
+.person-profile .profile-field-gender {
+    grid-column: 1;
+    grid-row: 1;
+}
+
+.person-profile .profile-field-living {
+    grid-column: 2;
+    grid-row: 1;
+}
+
+.person-profile .profile-field-first {
+    grid-column: 1;
+    grid-row: 2;
+}
+
+.person-profile .profile-field-last {
+    grid-column: 2;
+    grid-row: 2;
+}
+
+.person-profile .profile-field-prefix {
+    grid-column: 3;
+    grid-row: 2;
+}
+
+.person-profile .profile-field-patronym {
+    grid-column: 1;
+    grid-row: 3;
+}
+
+.person-profile .profile-field-maiden {
+    grid-column: 2;
+    grid-row: 3;
+}
+
+.person-profile .profile-field-suffix {
+    grid-column: 3;
+    grid-row: 3;
+}
+
+.person-profile .profile-field-birth-date {
+    grid-column: 1;
+    grid-row: 4;
+}
+
+.person-profile .profile-field-birth-place {
+    grid-column: 2 / 4;
+    grid-row: 4;
+}
+
+.person-profile .profile-field-death-date {
+    grid-column: 1;
+    grid-row: 5;
+}
+
+.person-profile .profile-field-death-place {
+    grid-column: 2 / 4;
+    grid-row: 5;
+}
+
+.person-profile .profile-field-death-reason {
+    grid-column: 1;
+    grid-row: 6;
+}
+
+.person-profile .profile-field-burial-place {
+    grid-column: 2 / 4;
+    grid-row: 6;
+}
+
+.person-profile .profile-main-edit-grid.no-maiden .profile-field-maiden,
+.person-profile .profile-main-edit-grid:not(.has-maiden) .profile-field-maiden,
+.person-profile #profileInlineMaiden[hidden] {
+    display: none !important;
+}
+
+.person-profile .profile-death-fields-group {
+    display: contents;
+}
+
+.person-profile .profile-death-fields-group[hidden],
+.person-profile .profile-main-edit-grid:not(.is-deceased) .profile-field-death-date,
+.person-profile .profile-main-edit-grid:not(.is-deceased) .profile-field-death-place,
+.person-profile .profile-main-edit-grid:not(.is-deceased) .profile-field-death-reason,
+.person-profile .profile-main-edit-grid:not(.is-deceased) .profile-field-burial-place,
+.person-profile .profile-field-death-date[hidden],
+.person-profile .profile-field-death-place[hidden],
+.person-profile .profile-field-death-reason[hidden],
+.person-profile .profile-field-burial-place[hidden] {
+    display: none !important;
+}
+
+.person-profile .profile-card-edit-grid>.genealogy-date-field {
+    --genealogy-date-input-column:
+    minmax(220px, 1fr);
+}
+
+@media (max-width: 1180px) {
+    .person-profile .profile-main-edit-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .person-profile .profile-field-gender,
+    .person-profile .profile-field-living,
+    .person-profile .profile-field-first,
+    .person-profile .profile-field-last,
+    .person-profile .profile-field-prefix,
+    .person-profile .profile-field-patronym,
+    .person-profile .profile-field-maiden,
+    .person-profile .profile-field-suffix,
+    .person-profile .profile-field-birth-date,
+    .person-profile .profile-field-birth-place,
+    .person-profile .profile-field-death-date,
+    .person-profile .profile-field-death-place,
+    .person-profile .profile-field-death-reason,
+    .person-profile .profile-field-burial-place {
+        grid-column: 1;
+        grid-row: auto;
+    }
+}
+
+
 /* Profile → Other editing */
 
 .person-profile .profile-other-edit-grid {
@@ -2812,6 +3304,9 @@
     grid-column: 2;
     grid-row: 1;
     min-width: 0;
+    --genealogy-date-type-column: minmax(104px, .8fr);
+    --genealogy-date-input-column: minmax(220px, 1fr);
+    --genealogy-date-column-gap: var(--space-2);
 }
 
 .person-profile .profile-other-baptism-place {

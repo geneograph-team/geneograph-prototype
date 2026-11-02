@@ -4,10 +4,8 @@
 }
 
 .tree-shell {
-    height: 100%;
     min-width: 0;
     display: grid;
-    grid-template-rows: 58px 1fr;
     background: #090f0d;
     overflow: hidden;
 }
@@ -59,9 +57,6 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: var(--space-3);
-    padding: 0 var(--space-4);
-    min-width: 0;
     z-index: 6;
 }
 
@@ -369,11 +364,53 @@
     display: none;
 }
 
+.tree-mobile-search-trigger,
+.tree-mobile-search-close,
+.tree-mobile-more {
+    display: none;
+}
+
+.tree-mobile-menu {
+    position: fixed;
+    z-index: 80;
+    width: min(230px, calc(100vw - 16px));
+    padding: 6px;
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-sm);
+    background: var(--surface-card);
+    box-shadow: var(--shadow-soft);
+}
+
+.tree-mobile-menu button {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    min-height: 42px;
+    padding: 8px 10px;
+    border: 0;
+    border-radius: var(--radius-sm);
+    background: transparent;
+    color: var(--text-primary);
+    font: inherit;
+    text-align: left;
+}
+
+.tree-mobile-menu button:hover,
+.tree-mobile-menu button:focus-visible {
+    background: var(--surface-card-hover);
+}
+
+.tree-mobile-menu button svg {
+    width: 18px;
+    height: 18px;
+}
+
+
 .tree-workspace {
     min-height: 0;
     min-width: 0;
     display: grid;
-    grid-template-columns: minmax(0, 1fr) 450px;
     overflow: hidden;
     position: relative;
 }
@@ -383,7 +420,6 @@
     touch-action: none;
     min-width: 0;
     min-height: 0;
-    overflow: auto;
     background-color: #090f0d;
     background-image: radial-gradient(rgba(127, 138, 134, .18) 1px, transparent 1px);
     background-size: 20px 20px;
@@ -930,10 +966,8 @@
 }
 
 .tree-inspector {
-    min-width: 0;
     border-left: 1px solid var(--border-default);
     background: var(--surface-sidebar);
-    overflow-y: auto;
 }
 
 .person-panel-header {
@@ -1003,6 +1037,26 @@
 .tree-person-hero-top .tree-person-hero-profile {
     order: 1;
     margin-left: auto;
+}
+
+.tree-person-hero .tree-person-hero-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
+}
+
+.tree-person-hero .tree-person-hero-top #collapseInspector {
+    order: 0;
+    margin-left: 0;
+    margin-right: auto;
+    margin-top: 0;
+}
+
+.tree-person-hero .tree-person-hero-top .tree-person-hero-profile {
+    order: 1;
+    margin-left: auto;
+    margin-right: 0;
 }
 
 .tree-person-hero-actions {
@@ -2937,6 +2991,38 @@ button.timeline-evidence-name:hover, button.timeline-evidence-name:focus-visible
 .family-actions-menu {
     min-width: 210px;
 }
+body.mobile-person-details-open .modal-backdrop.open {
+    z-index: 1005;
+}
+
+@media (max-width: 900px) {
+    body.mobile-person-details-open .modal-backdrop.open {
+        z-index: 1006;
+    }
+
+    body.mobile-person-details-open #modalBackdrop:has(.connected-files-modal) {
+        padding: 8px;
+    }
+
+    body.mobile-person-details-open .connected-files-modal {
+        width: min(100%, calc(100vw - 16px));
+        height: min(760px, calc(100dvh - 16px));
+        max-height: calc(100dvh - 16px);
+    }
+}
+
+@media (max-width: 540px) {
+    #modalBackdrop > .connected-files-modal {
+        display: grid;
+        grid-template-rows: auto minmax(0, 1fr) auto;
+    }
+
+    #modalBackdrop > .connected-files-modal > .connected-files-modal-body {
+        overflow: hidden;
+    }
+}
+
+
 
 .relative-popover {
     --relative-popover-arrow-top: 88px;
@@ -3003,6 +3089,33 @@ button.timeline-evidence-name:hover, button.timeline-evidence-name:focus-visible
 .relative-popover p {
     margin: 0 0 var(--space-4);
     color: var(--text-secondary);
+}
+
+body.mobile-person-details-open .menu-popover,
+body.mobile-person-details-open .relative-popover {
+    z-index: 1004;
+}
+
+body.mobile-person-details-open .relative-popover {
+    width: min(360px, calc(100vw - 24px));
+}
+
+body.mobile-person-details-open .relative-popover-body {
+    max-height: calc(100dvh - 24px);
+    overflow-y: auto;
+}
+
+@media (max-width: 900px) {
+    body .mobile-choice-sheet.relative-popover {
+        width: 100vw !important;
+        height: 100dvh !important;
+        max-height: 100dvh !important;
+        border-radius: 0;
+    }
+
+    body .mobile-choice-sheet .relative-popover-body > h2 {
+        display: none;
+    }
 }
 
 .relative-group {
@@ -4754,6 +4867,67 @@ button.timeline-evidence-name:hover, button.timeline-evidence-name:focus-visible
     grid-column: 1 / -1;
 }
 
+@media (max-width: 900px) {
+    #modalBackdrop > :is(.relationship-edit-modal, .unlink-relationship-modal) {
+        display: grid;
+        grid-template-rows: auto minmax(0, 1fr) auto;
+        overflow: hidden;
+    }
+
+    :is(.relationship-edit-modal, .unlink-relationship-modal) > .modal-body {
+        min-height: 0;
+        align-content: start;
+        align-items: start;
+        overflow-y: auto;
+        overscroll-behavior: contain;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .relationship-edit-modal :is(.two-col-form, .genealogy-date-editor-grid),
+    .unlink-relationship-modal .unlink-relationship-options {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    :is(.relationship-edit-modal, .unlink-relationship-modal) .modal-footer {
+        flex-wrap: wrap;
+    }
+
+    :is(.relationship-edit-modal, .unlink-relationship-modal) .modal-footer .button {
+        flex: 1 1 auto;
+        min-width: 0;
+        min-height: 44px;
+        white-space: normal;
+        text-align: center;
+    }
+
+    .unlink-relationship-modal .unlink-relationship-option {
+        min-height: 48px;
+    }
+}
+
+
+@media (max-width: 900px) {
+    #modalBackdrop > .manage-relationships-modal {
+        display: grid;
+        grid-template-rows: auto minmax(0, 1fr) auto;
+    }
+
+    #modalBackdrop > .manage-relationships-modal > .manage-relationships-body {
+        overflow: hidden;
+    }
+
+    #modalBackdrop > .manage-relationships-modal.is-empty {
+        height: auto;
+        align-self: center;
+        grid-template-rows: auto auto auto;
+    }
+
+    #modalBackdrop > .manage-relationships-modal.is-empty > .manage-relationships-body {
+        overflow-y: auto;
+    }
+}
+
+
 /* Inline-labelled Between date layout */
 
 .genealogy-date-inline-range.is-between {
@@ -5352,7 +5526,7 @@ button.timeline-evidence-name:hover, button.timeline-evidence-name:focus-visible
 
 .tree-shell {
     height: calc(100vh - var(--topbar-h));
-    grid-template-rows: 70px minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr);
     margin: 0;
 }
 
@@ -5365,6 +5539,9 @@ button.timeline-evidence-name:hover, button.timeline-evidence-name:focus-visible
     align-self: stretch;
     padding: 0 22px;
     gap: 14px;
+    grid-column: 1;
+    grid-row: 1;
+    min-width: 0;
 }
 
 .tree-toolbar-left,
@@ -5373,16 +5550,21 @@ button.timeline-evidence-name:hover, button.timeline-evidence-name:focus-visible
 }
 
 .tree-toolbar-left {
-    flex: 0 1 auto;
+    flex: 1 1 auto;
 }
 
 .tree-toolbar-right {
-    flex: 1 1 320px;
+    flex: 0 0 auto;
+    gap: 14px;
 }
 
 .tree-toolbar .tree-control-select {
-    flex: 0 1 320px;
-    min-width: 180px;
+    flex: 0 1 auto;
+    min-width: 0;
+    width: clamp(210px, 22vw, 280px);
+    max-width: 280px;
+    grid-template-columns: 18px minmax(0, 1fr) 16px;
+    height: 44px;
 }
 
 .tree-toolbar-right .app-search-field {
@@ -5477,8 +5659,205 @@ button.timeline-evidence-name:hover, button.timeline-evidence-name:focus-visible
     }
 }
 
+.tree-control-copy {
+    min-width: 0;
+    display: grid;
+    gap: 1px;
+    text-align: left;
+}
+
+.tree-control-copy .tree-control-name {
+    font-size: 13px;
+    line-height: 1.15;
+}
+
+.tree-control-find {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    color: var(--text-tertiary);
+    font-size: 11px;
+    line-height: 1.15;
+    white-space: nowrap;
+}
+
+.tree-control-find svg {
+    width: 12px;
+    height: 12px;
+    flex: none;
+}
+
+.tree-toolbar .view-modes {
+    width: max-content;
+    min-width: 204px;
+    flex-shrink: 0;
+    height: 44px;
+    background: transparent;
+}
+
+.tree-toolbar .view-mode {
+    width: 42px;
+    min-width: 42px;
+    padding: 0;
+    border: 0;
+    border-right: 1px solid var(--border-default);
+    gap: 5px;
+    cursor: pointer;
+}
+
+.tree-toolbar .view-mode.active {
+    width: max-content;
+    min-width: 118px;
+    flex-shrink: 0;
+    padding: 0 14px;
+    box-sizing: border-box;
+    white-space: nowrap;
+    border: 0;
+    border-right: 1px solid var(--border-default);
+    border-radius: 0;
+    box-shadow: none;
+}
+
+.tree-toolbar .view-mode:last-child {
+    border-right: 0;
+}
+
+.tree-toolbar .view-mode svg {
+    width: 17px;
+    height: 17px;
+    flex: none;
+}
+
+.tree-toolbar .view-mode[data-tree-view="Pedigree"] svg {
+    width: 22px;
+    height: 22px;
+}
+
+.tree-toolbar .view-mode[data-tree-view="Fan"] svg {
+    width: 25px;
+    height: 25px;
+}
+
+.tree-toolbar .view-mode:not(.active) span {
+    display: none;
+}
+
+.tree-toolbar .view-mode:disabled {
+    opacity: .42;
+    cursor: not-allowed;
+}
+
+.tree-toolbar .view-mode:disabled:hover {
+    background: transparent;
+    color: var(--text-tertiary);
+}
+
+.tree-toolbar .tree-display-settings {
+    width: 44px;
+    flex: 0 0 44px;
+}
+
+.tree-display-settings svg {
+    width: 18px;
+    height: 18px;
+}
+
+.tree-view-mobile {
+    display: none;
+}
+
+.tree-canvas-status {
+    position: absolute;
+    z-index: 8;
+    top: 12px;
+    left: 16px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    max-width: calc(100% - 32px);
+    padding: 5px 8px;
+    border: 1px solid var(--border-default);
+    border-radius: 5px;
+    background: rgba(18, 24, 23, .9);
+    color: var(--text-secondary);
+    font-size: 12px;
+    line-height: 1.2;
+    pointer-events: none;
+}
+
+.tree-canvas-status svg {
+    width: 15px;
+    height: 15px;
+    flex: none;
+}
+
+.tree-canvas-status span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.tree-person-picker {
+    width: min(360px, calc(100vw - 24px));
+    max-height: min(520px, calc(100dvh - 24px));
+    padding: 6px;
+    overflow: hidden;
+}
+
+.tree-person-picker-search {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 4px 4px 8px;
+    padding: 0 10px;
+    min-height: 42px;
+    border: 1px solid var(--border-default);
+    border-radius: 6px;
+    background: var(--surface-input);
+}
+
+.tree-person-picker-search:focus-within {
+    border-color: var(--brand-green-300);
+}
+
+.tree-person-picker-search svg {
+    width: 16px;
+    height: 16px;
+    color: var(--text-tertiary);
+    flex: none;
+}
+
+.tree-person-picker-search input {
+    flex: 1;
+    min-width: 0;
+    border: 0;
+    outline: 0;
+    background: transparent;
+    color: var(--text-primary);
+    font: inherit;
+}
+
+.tree-person-picker-results {
+    max-height: min(420px, calc(100dvh - 130px));
+    overflow-y: auto;
+}
+
+.tree-person-picker-results .tree-recent-person[aria-selected="true"] {
+    background: var(--surface-card-hover);
+}
+
+.tree-people-status {
+    color: var(--text-tertiary);
+    font-size: 12px;
+    line-height: 1.2;
+    white-space: nowrap;
+    pointer-events: none;
+}
+
+
 .tree-workspace {
     grid-template-columns: minmax(0, 1fr) 450px;
+    grid-template-rows: 70px minmax(0, 1fr);
 }
 
 .tree-workspace.inspector-collapsed {
@@ -5499,6 +5878,8 @@ button.timeline-evidence-name:hover, button.timeline-evidence-name:focus-visible
 
 .tree-canvas {
     overflow: auto;
+    grid-column: 1;
+    grid-row: 2;
 }
 
 .tree-stage {
@@ -5592,6 +5973,18 @@ button.timeline-evidence-name:hover, button.timeline-evidence-name:focus-visible
     min-width: 450px;
     overflow-y: auto;
     position: relative;
+    grid-column: 2;
+    grid-row: 1 / 3;
+}
+
+.people-sidebar-toggle-icon svg {
+    width: 18px;
+    height: 18px;
+    display: block;
+}
+
+.people-sidebar-toggle-restore svg {
+    transform: rotate(180deg);
 }
 
 .people-person-sidebar.collapsed {
@@ -5954,6 +6347,26 @@ button.timeline-evidence-name:hover, button.timeline-evidence-name:focus-visible
     }
 }
 
+@media (max-width: 390px) {
+    .tree-view-mobile {
+        width: 48px;
+        justify-content: center;
+    }
+
+    .tree-view-mobile select {
+        position: absolute;
+        width: 48px;
+        height: 42px;
+        opacity: 0;
+        cursor: pointer;
+    }
+
+    .tree-view-mobile > svg:last-child {
+        display: none;
+    }
+}
+
+
 @media (max-width: 1180px) {
     .tree-workspace {
         grid-template-columns: 1fr 360px;
@@ -5971,15 +6384,61 @@ button.timeline-evidence-name:hover, button.timeline-evidence-name:focus-visible
     .tree-toolbar {
         overflow-x: auto;
     }
+
+    .tree-toolbar .view-modes {
+        display: none;
+    }
+
+    .tree-view-mobile {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        width: 106px;
+        height: 42px;
+        padding: 0 6px;
+        border: 1px solid var(--border-default);
+        border-radius: 5px;
+        background: var(--surface-card);
+        color: var(--text-secondary);
+    }
+
+    .tree-view-mobile svg {
+        width: 16px;
+        height: 16px;
+        flex: none;
+    }
+
+    .tree-view-mobile select {
+        min-width: 0;
+        flex: 1;
+        appearance: none;
+        border: 0;
+        background: transparent;
+        color: var(--text-primary);
+        font: inherit;
+        font-size: 12px;
+    }
+
+    .tree-view-mobile > svg:last-child {
+        width: 12px;
+        transform: rotate(90deg);
+        pointer-events: none;
+    }
+
+    .tree-toolbar .tree-control-select {
+        flex: 1 1 auto;
+    }
 }
 
 @media (max-width: 900px) {
     .tree-shell {
         height: calc(100vh - var(--topbar-h));
+        grid-template-rows: 54px minmax(0, 1fr);
     }
 
     .tree-workspace {
         grid-template-columns: 1fr;
+        grid-template-rows: 76px minmax(0, 1fr);
     }
 
     .tree-inspector {
@@ -6013,5 +6472,166 @@ button.timeline-evidence-name:hover, button.timeline-evidence-name:focus-visible
 
     .add-person-fact-grid {
         grid-template-columns: 1fr;
+    }
+
+    .tree-toolbar {
+        overflow: visible;
+        gap: 8px;
+        padding-inline: 8px;
+        position: relative;
+        min-height: 76px;
+        align-items: flex-start;
+        padding-top: 6px;
+    }
+
+    .tree-toolbar-left {
+        flex: 1 1 auto;
+        min-width: 0;
+        gap: 5px;
+    }
+
+    .tree-toolbar-right {
+        flex: 0 0 auto;
+        gap: 6px;
+    }
+
+    .tree-toolbar .tree-control-select {
+        flex: 1 1 auto;
+        width: 100%;
+        min-width: 0;
+        max-width: none;
+        grid-template-columns: 18px minmax(0, 1fr) 14px;
+        padding-inline: 8px;
+        height: 42px;
+    }
+
+    .tree-toolbar .tree-control-name {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .tree-toolbar .view-modes,
+    .tree-toolbar .people-count,
+    .tree-toolbar .tree-action,
+    .tree-toolbar .tree-toolbar-right .app-search-field {
+        display: none;
+    }
+
+    .tree-toolbar .tree-mobile-search-trigger,
+    .tree-toolbar .tree-mobile-more {
+        display: inline-flex;
+        flex: 0 0 38px;
+    }
+
+    .tree-toolbar.mobile-search-open .tree-toolbar-left,
+    .tree-toolbar.mobile-search-open .tree-mobile-search-trigger,
+    .tree-toolbar.mobile-search-open .tree-mobile-more {
+        display: none;
+    }
+
+    .tree-toolbar.mobile-search-open .tree-toolbar-right {
+        flex: 1 1 auto;
+        min-width: 0;
+    }
+
+    .tree-toolbar.mobile-search-open .tree-toolbar-right .app-search-field {
+        display: flex;
+        flex: 1 1 auto;
+        min-width: 0;
+    }
+
+    .tree-toolbar.mobile-search-open .tree-mobile-search-close {
+        display: inline-flex;
+        flex: 0 0 38px;
+    }
+
+    .tree-toolbar .tree-arrow-button {
+        flex: 0 0 38px;
+    }
+
+    .tree-toolbar .view-modes {
+        display: none;
+    }
+
+    .tree-view-mobile {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        width: 106px;
+        height: 42px;
+        padding: 0 6px;
+        border: 1px solid var(--border-default);
+        border-radius: 5px;
+        background: var(--surface-card);
+        color: var(--text-secondary);
+    }
+
+    .tree-view-mobile svg {
+        width: 16px;
+        height: 16px;
+        flex: none;
+    }
+
+    .tree-view-mobile select {
+        min-width: 0;
+        flex: 1;
+        appearance: none;
+        border: 0;
+        background: transparent;
+        color: var(--text-primary);
+        font: inherit;
+        font-size: 12px;
+    }
+
+    .tree-view-mobile select:focus-visible {
+        outline: 2px solid var(--brand-green-300);
+        outline-offset: 2px;
+    }
+
+    .tree-view-mobile select option {
+        background: var(--surface-card);
+    }
+
+    .tree-view-mobile > svg:last-child {
+        width: 12px;
+        transform: rotate(90deg);
+        pointer-events: none;
+    }
+
+    .tree-toolbar .tree-display-settings {
+        display: inline-flex;
+        width: 42px;
+        flex-basis: 42px;
+        height: 42px;
+    }
+
+    body .tree-person-picker.mobile-choice-sheet {
+        width: 100vw !important;
+        max-height: min(80dvh, 620px);
+    }
+
+    body .tree-person-picker.mobile-choice-sheet .mobile-choice-body {
+        display: flex;
+        flex-direction: column;
+        min-height: 0;
+        overflow: hidden;
+    }
+
+    body .tree-person-picker.mobile-choice-sheet .tree-person-picker-search {
+        flex: none;
+    }
+
+    body .tree-person-picker.mobile-choice-sheet .tree-person-picker-results {
+        flex: 1;
+        min-height: 0;
+        max-height: none;
+    }
+
+    .tree-people-status {
+        position: absolute;
+        left: 8px;
+        bottom: 6px;
+        font-size: 11px;
     }
 }
