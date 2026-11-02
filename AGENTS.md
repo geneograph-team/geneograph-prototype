@@ -12,7 +12,7 @@ The original monolithic `index.html` has been split: the application now lives i
 
 ## Current Architecture
 
-- `src/index.html` (small, ~70 lines): CDN `<link>`/`<script>` tags for Leaflet and Quill, nine stylesheets listed in source order, the application shell markup (topbar, sidebar, main, modal backdrop, toast), a tiny inline `<script>` that sets `window.GENEOGRAPH_CONFIG` (MapTiler key), and 21 classic deferred `<script src="..." defer>` tags listed in source order. **The order of stylesheets and scripts is load-order significant — preserve it when editing `src/index.html`.**
+- `src/index.html` contains CDN references, ordered stylesheets, the application shell, runtime map configuration, and classic deferred scripts. **Stylesheet and script order is load-order significant — inspect the current file before editing it.**
 - All scripts are classic (non-module) scripts sharing one global scope: top-level `const`/`let`/`function` declarations in one file are visible to all later files, so top-level identifiers must be unique across files.
 - Extracted JS files retain the original 4-space indentation of the former inline script block (code starts at column 4); match it when editing those files.
 - Key modules:
@@ -27,7 +27,7 @@ The original monolithic `index.html` has been split: the application now lives i
   - `projects-tree-layout.js`, `family-and-shared.js`, `people.js`, `albums.js`, `geneograph.js`, `archive.js`, `notes.js`, `places.js`, `publish.js` — per-module rendering and behavior.
   - `shared-media.js`, `shared-actions.js` — shared media access and cross-module actions.
   - `bootstrap.js` — global keyboard handling (Escape) and the initial `render()` call.
-- Stylesheets: `foundation.css` (design tokens in `:root`, base styles), then feature groups `family-people.css`, `people-shared.css`, `geneograph.css`, `albums.css`, `archive.css`, `notes-places.css`, `publish.css`, with `final-overrides.css` loaded last.
+- Stylesheets: `foundation.css` defines base styles and tokens; feature stylesheets and `final-overrides.css` follow in the order shown in `src/index.html`. Additional feature stylesheets load after `final-overrides.css`, so check the actual cascade before changing selectors.
 - Sample photos, project covers, and other static media live in `src/assets/`.
 
 ## OpenSpec Handoff
@@ -36,24 +36,24 @@ OpenSpec is initialized in this repository with Codex integration. Keep `openspe
 
 For substantive changes, inspect current behavior, create and validate one focused OpenSpec change, review its proposal before implementation, complete and test its tasks, then archive it after verification. Small, unambiguous fixes need not generate a large specification. Existing working-tree changes belong to the user; never discard them during setup.
 
-`Prototype_Design_Document.md` is the current product and engineering guide, not a backlog or an OpenSpec change. Verify its claims against code before promoting them to durable specs. For Geneograph sample-board work, `src/seed-boards.js` validates and installs the data-only asset in `src/assets/boards/`. Convert a `.ggboard` export with `node tools/ggboard-to-seed.js <input.ggboard> <output.js> <title> [board-id] [project-id]`; the resulting script loads under `file://`.
+`Prototype_Design_Document.md` is the current product and engineering guide, not a backlog or an OpenSpec change. Verify its claims against code before promoting them to durable specs. For Geneograph sample-board work, `src/seed-boards.js` validates and installs the data-only asset in `src/assets/boards/`. The checked-in seed asset is a data-only `window.GENEO_SEED_BOARD_ASSETS.push(...)` script. Keep its board and project IDs valid and preserve direct `file://` loading when replacing it; no conversion tool is currently checked in.
 
 ## Critical File-Handling Rule
 
 Several extracted files are still very large. **Never read them end-to-end.**
 
-- Largest JS files: `archive.js` (~25,800 lines), `geneograph.js` (~25,800), `notes.js` (~15,800), `albums.js` (~12,500), `family-and-shared.js` (~11,900), `people.js` (~9,600), `places.js` (~9,400), `localization.js` (~8,300), `shared-media.js` (~5,000), `projects-tree-layout.js` (~4,200), `shared-actions.js` (~3,800), `state-tree-core.js` (~1,800).
+- Large JS files include `geneograph.js`, `archive.js`, `localization.js`, `family-and-shared.js`, `albums.js`, `notes.js`, `places.js`, and `people.js`. Locate a symbol before reading a bounded range.
 - Largest CSS files: `notes-places.css`, `family-people.css`, `geneograph.css`, `archive.css`, `albums.css`, `foundation.css`.
-- Use targeted `grep` searches (selectors, ids, class names, function names, `aria-` attributes) to locate the section you need.
-- Read only specific ranges with `offset`/`limit`.
-- When editing, prefer narrow, surgical `edit_file` replacements anchored on unique strings.
+- Use targeted `rg` searches (selectors, ids, class names, function names, `aria-` attributes) to locate the section you need.
+- Read only the relevant line ranges.
+- When editing, prefer narrow, surgical patches anchored on unique strings.
 
 ## Token-Efficient Workflow
 
 - Inspect only files relevant to the requested change. Avoid repository-wide scans unless targeted searches fail or cross-cutting behavior requires one.
 - Prefer targeted `rg` searches and bounded file ranges. Do not reread or repeat file contents already inspected.
 - Make surgical patches at the responsible layer; avoid unrelated refactors.
-- Keep tests proportional to risk. Run focused tests first; use broader suites only when the change warrants them. Do not add tests for every minor change.
+- Keep verification proportional to risk. Check the affected browser workflow and console; add automated checks only when they meaningfully cover a regression.
 - Stop when the acceptance criteria are met. Keep explanations concise and omit large diffs from final responses.
 
 ## Repository Structure
@@ -62,11 +62,11 @@ Several extracted files are still very large. **Never read them end-to-end.**
 - `.github/` — issue and pull request templates.
 - `.markdownlint.yaml`, `.markdownlint-cli2.yaml` — Markdown lint settings.
 - `LICENSE.txt` — GNU GPL 3.
-- `README.md` — brief static-site description.
+- `README.md` — setup instructions and source map.
 
 ## Coding Conventions
 
-- No build step, no dependencies beyond the pinned CDN libraries (Leaflet, Quill). Do not add new runtime dependencies without asking.
+- No build step; Leaflet and Quill load from pinned CDNs, and local browser libraries live in `src/vendor/`. Do not add new runtime dependencies without asking.
 - JavaScript: Allman-style braces (opening brace on its own line), single quotes for strings, semicolons never omitted. Icons are inline SVG strings in the `icon` dictionary (`src/icons.js`) — reuse them rather than duplicating markup.
 - CSS: design tokens are custom properties in `:root` (surface ramps `--surface-*`, brand greens `--brand-green-*`, text `--text-*`, borders, spacing `--space-*`, radii, `--shadow-soft`, `--ease`, scrollbar colors). Reuse tokens instead of hard-coded values. Dark theme via `color-scheme: dark`.
 - HTML: semantic elements (`section`, `figure`, `article`, `nav`), `aria-*` attributes, `role="status"`/`aria-live` for the toast. Explicit `width`/`height` on images, `loading="lazy"`/`decoding="async"` for non-critical images.

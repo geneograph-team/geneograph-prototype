@@ -22,8 +22,7 @@ Pages configuration does not publish the application from `src/`.
 - `src/vendor/` holds pinned local browser libraries, including `html-to-image`
   with its source map, version note, and license. Leaflet and Quill load from
   pinned CDNs.
-- `tests/` contains focused browser regressions; `openspec/` contains project
-  specifications and focused changes. See `AGENTS.md` and
+- `openspec/` contains project specifications and focused changes. See `AGENTS.md` and
   `Prototype_Design_Document.md` for development and product guidance.
 
 ## License
