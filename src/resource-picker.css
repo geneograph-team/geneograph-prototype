@@ -1407,3 +1407,113 @@
 @media (max-width: 540px) {
     .rp-upload-staging .rp-upload-tiles { grid-template-columns: 1fr; }
 }
+
+/* Geneograph's single-place chooser shares the Manage places dialog shell. */
+.resource-picker.geneo-place-modal.modal {
+    width: min(980px, calc(100vw - 48px));
+    height: min(800px, calc(100dvh - 48px));
+    max-height: calc(100dvh - 48px);
+}
+.resource-picker.geneo-place-modal .geneo-place-picker-form {
+    flex: 1;
+    height: 100%;
+    max-height: none;
+}
+.resource-picker.geneo-place-modal .geneo-place-picker-toolbar .rp-search {
+    flex: 1;
+    min-width: 0;
+}
+.resource-picker.geneo-place-modal .rp-path {
+    margin-bottom: 16px;
+}
+.resource-picker.geneo-place-modal .geneo-place-picker-body {
+    display: block;
+    flex: 1;
+    min-height: 0;
+    padding: 0 24px 20px;
+    overflow-y: auto;
+}
+.resource-picker.geneo-place-modal .geneo-place-picker-options {
+    max-height: none;
+    overflow: visible;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    scrollbar-gutter: auto;
+}
+.resource-picker.geneo-place-modal .geneo-place-picker-results-heading {
+    min-height: 0;
+    padding: 16px 8px 8px;
+}
+.resource-picker.geneo-place-modal .geneo-place-picker-results-heading h3 {
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: 0;
+}
+.resource-picker.geneo-place-modal .geneo-place-picker-option,
+.resource-picker.geneo-place-modal .geneo-place-board-choice {
+    display: flex;
+    align-items: center;
+    min-height: 64px;
+    padding: 8px;
+    gap: 12px;
+    border-bottom: 1px solid var(--border-default);
+    border-radius: 4px;
+}
+.resource-picker.geneo-place-modal .geneo-place-picker-option-copy,
+.resource-picker.geneo-place-modal .geneo-place-board-choice-copy {
+    flex: 1;
+    min-width: 0;
+    gap: 5px;
+}
+.resource-picker.geneo-place-modal .geneo-place-picker-option-copy strong,
+.resource-picker.geneo-place-modal .geneo-place-board-choice-name {
+    font-size: 14px;
+    font-weight: 700;
+}
+.resource-picker.geneo-place-modal .geneo-place-picker-option-copy span,
+.resource-picker.geneo-place-modal .geneo-place-board-choice-meta {
+    color: var(--text-secondary);
+    font-size: 13px;
+}
+.resource-picker.geneo-place-modal .geneo-place-board-choice-host {
+    margin-top: 12px;
+    border-top: 0;
+}
+.resource-picker.geneo-place-modal .geneo-place-picker-check {
+    flex: none;
+}
+.resource-picker.geneo-place-modal .geneo-place-picker-error:not(:empty) {
+    display: block;
+    margin-top: 12px;
+}
+.resource-picker.geneo-place-modal .geneo-place-selection-summary {
+    min-width: 0;
+    overflow: hidden;
+    color: var(--text-secondary);
+    font-size: 14px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+@media (max-width: 600px) {
+    .resource-picker.geneo-place-modal.modal {
+        width: 100vw;
+        height: 100dvh;
+        max-height: 100dvh;
+    }
+    .resource-picker.geneo-place-modal .geneo-place-picker-toolbar .rp-search {
+        flex-basis: 100%;
+    }
+    .resource-picker.geneo-place-modal .geneo-place-picker-body {
+        padding: 0 12px 12px;
+    }
+    .resource-picker.geneo-place-modal .modal-footer {
+        flex-wrap: wrap;
+    }
+    .resource-picker.geneo-place-modal .geneo-place-selection-summary {
+        flex-basis: 100%;
+    }
+    .resource-picker.geneo-place-modal .rp-footer-actions {
+        margin-left: auto;
+    }
+}
