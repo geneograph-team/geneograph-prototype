@@ -19610,27 +19610,197 @@ function openArchiveBulkMoveModal(folderIds, fileIds)
 {
     const items = archiveEffectiveBulkItems(folderIds, fileIds);
     if (!items.folders.length && !items.files.length) return;
-    const choices = [{ id: null, label: t(ARCHIVE_ROOT_LABEL) },
-        ...archiveFlattenFolders().map(({ folder }) => ({ id: folder.id, label: archiveFolderPath(folder.id) }))];
-    openModal(`<div class="modal archive-bulk-move-modal" role="dialog" aria-modal="true" aria-labelledby="archiveBulkMoveTitle">
-        <div class="modal-header"><div><h2 id="archiveBulkMoveTitle">${escapeHtml(t('Move selected items'))}</h2>
-        <p>${escapeHtml(archiveBulkSelectionLabel())}</p></div>
-        <button class="close-button" type="button" data-close aria-label="${escapeHtml(t('Close'))}">${icon.close}</button></div>
-        <div class="modal-body"><label class="form-field"><span>${escapeHtml(t('Destination folder'))}</span>
-        <select data-archive-bulk-destination size="8">${choices.map(choice =>
-            `<option value="${escapeHtml(choice.id || '')}" ${archiveCanMoveBulkItems(items, choice.id) ? '' : 'disabled'}>${escapeHtml(choice.label)}</option>`).join('')}</select></label></div>
-        <div class="modal-footer"><button class="button secondary" type="button" data-close>${escapeHtml(t('Cancel'))}</button>
-        <button class="button primary" type="button" data-archive-bulk-move-confirm disabled>${escapeHtml(t('Move'))}</button></div></div>`);
-    const select = modalBackdrop.querySelector('[data-archive-bulk-destination]');
-    const confirm = modalBackdrop.querySelector('[data-archive-bulk-move-confirm]');
-    select?.addEventListener('change', () => { confirm.disabled = !archiveCanMoveBulkItems(items, select.value || null); });
-    confirm?.addEventListener('click', () => {
-        if (!archiveCanMoveBulkItems(items, select.value || null)) return;
-        closeModal();
-        archiveMoveBulkItems(items, select.value || null);
-    });
-}
 
+    let selectedId = ARCHIVE_MOVE_NO_DESTINATION;
+    let query = '';
+    let searchExpanded = false;
+    let creatingFolder = false;
+    const expandedIds = new Set([null]);
+
+    openModal(`<div class="modal archive-move-modal resource-picker" role="dialog"
+        aria-modal="true" aria-labelledby="archiveBulkMoveTitle">
+        <div class="modal-header"><div><h2 id="archiveBulkMoveTitle">${escapeHtml(t('Move selected items'))}</h2>
+        <p>${escapeHtml(t('Choose a destination folder.'))}</p></div>
+        <button class="close-button" type="button" data-close aria-label="${escapeHtml(t('Close'))}">${icon.close}</button></div>
+        <div class="modal-body">
+            <div class="archive-move-item-summary">
+                <span class="archive-move-context-label">${escapeHtml(t('Moving'))}</span>
+                <div class="archive-move-item-row">
+                    <span class="archive-move-item-icon" aria-hidden="true">${items.folders.length ? icon.folderyellow : icon.file}</span>
+                    <span class="archive-move-item-copy"><strong>${escapeHtml(archiveBulkSelectionLabel())}</strong></span>
+                </div>
+            </div>
+            <div class="archive-move-content" data-archive-bulk-move-content></div>
+        </div>
+        <div class="modal-footer">
+            <button class="button secondary" type="button" data-close>${escapeHtml(t('Cancel'))}</button>
+            <button class="button primary" type="button" data-archive-bulk-move-confirm disabled>${escapeHtml(t('Move here'))}</button>
+        </div>
+    </div>`);
+
+    const modal = modalBackdrop.querySelector('.archive-move-modal');
+    const contentRoot = modal?.querySelector('[data-archive-bulk-move-content]');
+    const confirm = modal?.querySelector('[data-archive-bulk-move-confirm]');
+    const canUse = folderId => archiveCanMoveBulkItems(items, folderId);
+    const canCreateInside = folderId => !items.folders.some(folder =>
+        archiveFolderDescendantIds(folder.id).includes(folderId));
+
+    const renderPicker = ({ focusSearch = false, focusFolderName = false } = {}) =>
+    {
+        if (!contentRoot) return;
+        const hasDestination = archiveMoveHasDestination(selectedId);
+        const breadcrumbs = hasDestination
+            ? [{ id: ARCHIVE_ROOT_PICKER_VALUE, name: t('All files') },
+                ...archiveFolderAncestors(selectedId).map(folder => ({ id: folder.id, name: folder.name }))]
+            : [{ id: ARCHIVE_ROOT_PICKER_VALUE, name: t('Choose a folder') }];
+        const currentCrumb = breadcrumbs.at(-1);
+        const fullPath = breadcrumbs.map(crumb => crumb.name).join(' / ');
+        const newFolderParentId = hasDestination ? selectedId : null;
+
+        contentRoot.innerHTML = `
+            <div class="archive-create-folder-path-row">
+                <div class="archive-create-folder-path-context">
+                    <span class="archive-create-folder-path-label">${escapeHtml(t('Destination'))}</span>
+                    <nav class="rp-path archive-folder-path" aria-label="${escapeHtml(t('Destination'))}" aria-live="polite">
+                        <span class="rp-path-icon" aria-hidden="true">${icon.folderyellow}</span>
+                        ${breadcrumbs.slice(0, -1).map((crumb, index) => `<button class="${index ? 'archive-folder-crumb-intermediate' : ''}" type="button" data-archive-bulk-move-crumb="${escapeHtml(crumb.id)}" title="${escapeHtml(crumb.name)}">${escapeHtml(crumb.name)}</button><span class="${index ? 'archive-folder-crumb-intermediate' : ''}" aria-hidden="true">${icon.chevron}</span>`).join('')}
+                        <span aria-current="page" class="${hasDestination ? '' : 'is-placeholder'}" title="${escapeHtml(fullPath)}">${escapeHtml(currentCrumb.name)}</span>
+                    </nav>
+                </div>
+                <div class="archive-folder-inline-search ${searchExpanded ? 'is-expanded' : ''}">
+                    <button type="button" class="icon-button" data-archive-bulk-move-search-toggle
+                        aria-label="${escapeHtml(t(searchExpanded ? 'Close search' : 'Search folders'))}" aria-expanded="${searchExpanded}" aria-controls="archiveBulkMoveSearch" title="${escapeHtml(t(searchExpanded ? 'Close search' : 'Search folders'))}">${icon.search}</button>
+                    <input id="archiveBulkMoveSearch" type="search" data-archive-bulk-move-search
+                        aria-label="${escapeHtml(t('Search folders'))}" placeholder="${escapeHtml(t('Search folders'))}" value="${escapeHtml(query)}" ${searchExpanded ? '' : 'hidden'}>
+                </div>
+                <button class="button secondary archive-move-item-action" type="button" data-archive-bulk-move-new-folder>
+                    ${icon.plus}<span>${escapeHtml(t('New folder'))}</span>
+                </button>
+            </div>
+            ${creatingFolder ? `<form class="archive-move-new-folder-form" data-archive-bulk-move-new-folder-form>
+                <div class="archive-move-new-folder-context"><span>${escapeHtml(t('Create inside'))}</span>
+                    <strong>${escapeHtml(archiveMoveFolderPath(newFolderParentId))}</strong></div>
+                <div class="archive-move-new-folder-fields">
+                    <input data-archive-bulk-move-new-folder-name required maxlength="160"
+                        aria-label="${escapeHtml(t('Folder name'))}" placeholder="${escapeHtml(t('Folder name'))}">
+                    <button class="button secondary" type="button" data-archive-bulk-move-cancel-new-folder>${escapeHtml(t('Cancel'))}</button>
+                    <button class="button primary" type="submit">${escapeHtml(t('Create'))}</button>
+                </div>
+            </form>` : ''}
+            ${renderArchiveMovePicker({
+                query, selectedId, expandedIds, movingFolder: null, currentFolderState: null
+            })}`;
+
+        contentRoot.querySelectorAll('[data-archive-move-select]').forEach(button =>
+        {
+            const destinationId = archiveFolderIdFromChoice(button.dataset.archiveMoveSelect);
+            if (canUse(destinationId)) return;
+            button.disabled = true;
+            button.setAttribute('aria-disabled', 'true');
+            button.title = t('Cannot move selected items here');
+        });
+        confirm.disabled = !hasDestination || !canUse(selectedId);
+        localizeUI(modal, { suppressObserverReplay: true });
+        requestAnimationFrame(() =>
+        {
+            if (focusSearch)
+            {
+                const input = modal.querySelector('[data-archive-bulk-move-search]');
+                input?.focus();
+                input?.setSelectionRange(input.value.length, input.value.length);
+            }
+            if (focusFolderName) modal.querySelector('[data-archive-bulk-move-new-folder-name]')?.focus();
+        });
+    };
+
+    modal?.addEventListener('input', event =>
+    {
+        if (!event.target.matches('[data-archive-bulk-move-search]')) return;
+        query = event.target.value;
+        renderPicker({ focusSearch: true });
+    });
+
+    modal?.addEventListener('submit', event =>
+    {
+        const form = event.target.closest('[data-archive-bulk-move-new-folder-form]');
+        if (!form) return;
+        event.preventDefault();
+        const parentId = archiveMoveHasDestination(selectedId) ? selectedId : null;
+        if (!canCreateInside(parentId)) return;
+        const nameInput = form.querySelector('[data-archive-bulk-move-new-folder-name]');
+        const folder = createArchiveFolderRecord(nameInput?.value.trim() || '', parentId);
+        if (!folder) { nameInput?.focus(); return; }
+        expandedIds.add(parentId);
+        selectedId = folder.id;
+        query = '';
+        searchExpanded = false;
+        creatingFolder = false;
+        renderPicker();
+    });
+
+    modal?.addEventListener('click', event =>
+    {
+        if (event.target.closest('[data-archive-bulk-move-search-toggle]'))
+        {
+            searchExpanded = !searchExpanded;
+            if (!searchExpanded) query = '';
+            renderPicker({ focusSearch: searchExpanded });
+            return;
+        }
+        const crumb = event.target.closest('[data-archive-bulk-move-crumb]');
+        if (crumb)
+        {
+            const id = archiveFolderIdFromChoice(crumb.dataset.archiveBulkMoveCrumb);
+            if (!canUse(id)) return;
+            selectedId = id;
+            query = '';
+            searchExpanded = false;
+            renderPicker();
+            return;
+        }
+        const toggle = event.target.closest('[data-archive-move-toggle]');
+        if (toggle)
+        {
+            const id = archiveFolderIdFromChoice(toggle.dataset.archiveMoveToggle);
+            if (expandedIds.has(id)) expandedIds.delete(id);
+            else expandedIds.add(id);
+            renderPicker();
+            return;
+        }
+        const destination = event.target.closest('[data-archive-move-select]');
+        if (destination)
+        {
+            if (destination.disabled) return;
+            const id = archiveFolderIdFromChoice(destination.dataset.archiveMoveSelect);
+            if (!canUse(id)) return;
+            selectedId = id;
+            renderPicker();
+            return;
+        }
+        if (event.target.closest('[data-archive-bulk-move-new-folder]'))
+        {
+            const parentId = archiveMoveHasDestination(selectedId) ? selectedId : null;
+            if (!canCreateInside(parentId)) return;
+            creatingFolder = true;
+            renderPicker({ focusFolderName: true });
+            return;
+        }
+        if (event.target.closest('[data-archive-bulk-move-cancel-new-folder]'))
+        {
+            creatingFolder = false;
+            renderPicker();
+            return;
+        }
+        if (event.target.closest('[data-archive-bulk-move-confirm]'))
+        {
+            if (!archiveMoveHasDestination(selectedId) || !canUse(selectedId)) return;
+            closeModal();
+            archiveMoveBulkItems(items, selectedId);
+        }
+    });
+
+    renderPicker();
+}
 function openArchiveBulkDeleteConfirm(folderIds, fileIds)
 {
     const items = archiveEffectiveBulkItems(folderIds, fileIds);

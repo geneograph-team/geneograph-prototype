@@ -3173,6 +3173,7 @@ const RU_UI_ARCHIVE = {
     'Select all visible items': 'Выбрать все видимые элементы',
     'Clear selection': 'Снять выделение',
     'Move selected items': 'Переместить выбранные элементы',
+    'Cannot move selected items here': 'Сюда нельзя переместить выбранные элементы',
     'Destination folder': 'Папка назначения',
     'Moved selected items to': 'Выбранные элементы перемещены в',
     'Selected Archive items permanently deleted.': 'Выбранные элементы архива удалены безвозвратно.',
