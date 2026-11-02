@@ -10904,37 +10904,6 @@ function archiveInspectorToolbarContext()
     return null;
 }
 
-function renderArchiveInspectorFolderOpenButton(
-    context
-)
-{
-    if (
-        context?.type !== 'folder'
-        || context.folderMode
-          !== 'selected'
-    )
-    {
-        return '';
-    }
-
-    return `
-        <button
-          class="
-            archive-inspector-action
-            archive-inspector-action-text
-          "
-          type="button"
-          data-archive-inspector-open-folder="${escapeHtml(
-                context.id
-            )}"
-          aria-label="Open folder"
-          title="Open folder">
-
-          Open
-        </button>
-      `;
-}
-
 function renderArchiveInspectorRenameButton(
     context
 )
@@ -11128,13 +11097,6 @@ function renderArchiveInspectorToolbar()
             aria-hidden="true">
           </span>
 
-          ${renderArchiveInspectorFolderOpenButton(
-                context
-            )}
-
-          ${renderArchiveInspectorRenameButton(
-                context
-            )}
 
           ${renderArchiveInspectorMoveButton(
                 context
@@ -11277,7 +11239,8 @@ function renderArchiveInspector()
 
 function renderArchiveInspectorHeader(
     title,
-    subtitle = ''
+    subtitle = '',
+    titleAction = ''
 )
 {
     return `
@@ -11291,11 +11254,12 @@ function renderArchiveInspectorHeader(
               archive-inspector-head-copy
             ">
 
-            <h2>
-              ${escapeHtml(
-                    title
-                )}
-            </h2>
+            <div class="archive-inspector-title-row">
+              <h2>
+                ${escapeHtml(title)}
+              </h2>
+              ${titleAction}
+            </div>
 
             ${
                 subtitle
@@ -11317,6 +11281,7 @@ function renderArchiveInspectorShell({
     content,
     title = '',
     subtitle = '',
+    titleAction = '',
     showHeader = true,
     bodyClass =
         'archive-inspector-body',
@@ -11342,7 +11307,8 @@ function renderArchiveInspectorShell({
                 showHeader
                     ? renderArchiveInspectorHeader(
                         title,
-                        subtitle
+                        subtitle,
+                        titleAction
                     )
                     : ''
             }
@@ -13509,6 +13475,12 @@ function renderArchiveFolderInspector(
     return renderArchiveInspectorShell({
         title:
           folder.name,
+
+        titleAction:
+          renderArchiveInspectorRenameButton({
+              type: 'folder',
+              id: folder.id
+          }),
 
         subtitle:
           selectedFolder
@@ -20823,22 +20795,6 @@ function bindArchiveControls(root = main.querySelector('.archive-shell'))
     bindPlaceComboboxes(
         root
     );
-    root
-        .querySelector(
-            '[data-archive-inspector-open-folder]'
-        )
-        ?.addEventListener(
-            'click',
-            event =>
-            {
-                archiveOpenFolder(
-                    event.currentTarget
-                        .dataset
-                        .archiveInspectorOpenFolder
-                );
-            }
-        );
-
     root
         .querySelector(
             '[data-archive-inspector-rename-folder]'
