@@ -119,7 +119,7 @@
                 <div class="rp-upload-tiles" data-rp-upload-tiles aria-label="${escapeHtml(rpText('Selected photos', 'Выбранные фотографии'))}" hidden></div>
                 <div class="rp-upload-errors" data-rp-upload-errors role="alert" hidden></div>
             </div>
-            <div class="modal-footer"><p class="archive-document-import-notice"><span aria-hidden="true">${icon.warning}</span><span>${escapeHtml(rpText('Available until page reload', 'Доступны до перезагрузки страницы'))}</span></p><button type="button" class="button secondary" data-close>${escapeHtml(rpText('Cancel', 'Отмена'))}</button><button type="button" class="button primary" data-rp-upload-confirm disabled>${escapeHtml(rpText('Add photos', 'Добавить фотографии'))}</button></div>
+            <div class="modal-footer"><p class="archive-document-import-notice"><span aria-hidden="true">${icon.warning}</span><span>${escapeHtml(t('Uploaded files are available until page reload.'))}</span></p><button type="button" class="button secondary" data-close>${escapeHtml(rpText('Cancel', 'Отмена'))}</button><button type="button" class="button primary" data-rp-upload-confirm disabled>${escapeHtml(rpText('Add photos', 'Добавить фотографии'))}</button></div>
         </form>`, root =>
         {
             const form = root.matches('[data-rp-photo-upload]') ? root : root.querySelector('[data-rp-photo-upload]');

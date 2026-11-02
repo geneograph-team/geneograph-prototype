@@ -7717,7 +7717,6 @@ function openUnifiedImagePeopleModal(photoId, { mode = 'tag', activePersonId = n
                 photo-people-footer-actions
               ">
               <button type="button" class="button secondary albums-search-cancel" data-albums-search-back>${escapeHtml(t('Cancel'))}</button>
-              ${archiveMode ? `<button type="button" class="button secondary archive-unified-download" data-archive-image-download>${escapeHtml(archiveDocumentLabel('Download', 'Скачать'))}</button>` : ''}
               <button type="button" class="button secondary albums-preview-done" data-close>${escapeHtml(t('Done'))}</button>
             </div>
           </div>
@@ -8229,12 +8228,6 @@ function openUnifiedImagePeopleModal(photoId, { mode = 'tag', activePersonId = n
                 if (event.target.closest('[data-image-zoom-out]')) zoomImage(imageView.zoom / 1.25, cx, cy);
                 else if (event.target.closest('[data-image-zoom-in]')) zoomImage(imageView.zoom * 1.25, cx, cy);
                 else fitImageView();
-                return;
-            }
-            if (event.target.closest('[data-archive-image-download]')) {
-                archiveDocumentBlob(archiveFile)
-                    .then(blob => archiveDocumentDownload(archiveFile, blob))
-                    .catch(error => showToast(error.message));
                 return;
             }
             if (event.target.closest('[data-lightbox-tag]')) {
@@ -10910,7 +10903,7 @@ ${renderUploadDropzonePrompt(photoCount ? 'Add more photos' : 'Drop photos here 
 
               <p class="albums-photo-upload-notice">
                 <span aria-hidden="true">${icon.warning}</span>
-                <span>${escapeHtml(state.language === 'ru' ? 'Доступны до перезагрузки страницы' : 'Available until page reload')}</span>
+                <span>${escapeHtml(t('Uploaded files are available until page reload.'))}</span>
               </p>
 
               <div

@@ -3334,3 +3334,291 @@
     height: 16px;
     color: var(--text-tertiary);
 }
+
+/* Archive folder dialogs use the Manage files browsing shell. */
+.archive-create-folder-modal.resource-picker.modal,
+.archive-move-modal.resource-picker.modal {
+    width: min(980px, calc(100vw - 48px));
+    max-width: 980px;
+    height: min(800px, calc(100dvh - 48px));
+    max-height: calc(100dvh - 48px);
+    display: flex;
+    flex-direction: column;
+}
+
+.archive-create-folder-modal.resource-picker .archive-create-folder-form {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+.archive-create-folder-modal.resource-picker .archive-create-folder-body,
+.archive-move-modal.resource-picker .modal-body {
+    flex: 1;
+    min-height: 0;
+}
+
+.archive-create-folder-modal.resource-picker .archive-create-folder-parent-picker,
+.archive-move-modal.resource-picker .archive-move-content {
+    min-height: 0;
+    gap: 0;
+}
+
+.archive-create-folder-modal.resource-picker .archive-folder-toolbar,
+.archive-move-modal.resource-picker .archive-folder-toolbar {
+    padding: 0 0 var(--space-3);
+}
+
+.archive-create-folder-modal.resource-picker .archive-folder-toolbar .rp-search,
+.archive-move-modal.resource-picker .archive-folder-toolbar .rp-search {
+    flex: 1;
+    min-width: 0;
+    max-width: none;
+}
+
+.archive-create-folder-modal.resource-picker .archive-folder-path,
+.archive-move-modal.resource-picker .archive-folder-path {
+    flex: none;
+    height: 44px;
+    min-height: 44px;
+    max-height: 44px;
+    margin: 0 0 var(--space-3);
+    padding: 0;
+    border-bottom: 1px solid var(--border-default);
+}
+
+.archive-create-folder-modal.resource-picker .archive-folder-path .is-placeholder,
+.archive-move-modal.resource-picker .archive-folder-path .is-placeholder {
+    color: var(--text-secondary);
+    font-weight: 400;
+}
+
+.archive-create-folder-modal.resource-picker .archive-move-picker,
+.archive-move-modal.resource-picker .archive-move-picker {
+    flex: 1;
+    min-height: 0;
+    max-height: none;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+}
+
+.archive-create-folder-modal.resource-picker .archive-move-tree-main,
+.archive-move-modal.resource-picker .archive-move-tree-main,
+.archive-create-folder-modal.resource-picker .archive-move-search-result,
+.archive-move-modal.resource-picker .archive-move-search-result {
+    min-height: 48px;
+}
+
+.archive-move-modal.resource-picker .archive-move-item-row {
+    grid-template-columns: 48px minmax(0, 1fr);
+}
+
+.archive-move-modal.resource-picker .archive-move-item-summary {
+    gap: var(--space-2);
+}
+
+.archive-move-modal.resource-picker .archive-move-item-action {
+    height: 44px;
+    min-height: 44px;
+}
+
+.archive-create-folder-modal.resource-picker .modal-footer,
+.archive-move-modal.resource-picker .modal-footer {
+    flex: none;
+}
+
+.archive-create-folder-modal.resource-picker .modal-footer .button.primary {
+    min-width: 0;
+    max-width: 70%;
+    overflow-wrap: anywhere;
+}
+
+:is(.archive-create-folder-modal, .archive-move-modal).resource-picker .archive-create-folder-path-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    column-gap: var(--space-4);
+    min-width: 0;
+    padding: var(--space-2) 0 var(--space-3);
+    margin-bottom: var(--space-4);
+    border-bottom: 1px solid var(--border-default);
+}
+
+:is(.archive-create-folder-modal, .archive-move-modal).resource-picker .archive-create-folder-path-context {
+    display: grid;
+    gap: var(--space-1);
+    min-width: 0;
+}
+
+:is(.archive-create-folder-modal, .archive-move-modal).resource-picker .archive-create-folder-path-label {
+    color: var(--text-secondary);
+    font-size: 12px;
+    font-weight: 600;
+}
+
+:is(.archive-create-folder-modal, .archive-move-modal).resource-picker .archive-folder-path {
+    width: 100%;
+    height: 24px;
+    min-height: 24px;
+    max-height: 24px;
+    min-width: 0;
+    margin: 0;
+    border: 0;
+    gap: var(--space-2);
+    font-size: 13px;
+}
+
+:is(.archive-create-folder-modal, .archive-move-modal).resource-picker .archive-folder-path button,
+:is(.archive-create-folder-modal, .archive-move-modal).resource-picker .archive-folder-path [aria-current="page"] {
+    min-width: 0;
+    max-width: 160px;
+    text-overflow: ellipsis;
+}
+
+:is(.archive-create-folder-modal, .archive-move-modal).resource-picker .archive-folder-path .rp-path-icon svg {
+    width: 18px;
+    height: 18px;
+}
+
+:is(.archive-create-folder-modal, .archive-move-modal).resource-picker .archive-folder-inline-search {
+    display: flex;
+    align-items: center;
+    flex: none;
+    height: 44px;
+    margin: 0;
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-sm);
+    background: var(--surface-input);
+}
+
+:is(.archive-create-folder-modal, .archive-move-modal).resource-picker .archive-folder-inline-search:focus-within {
+    outline: 2px solid var(--brand-green-400);
+    outline-offset: 2px;
+}
+
+:is(.archive-create-folder-modal, .archive-move-modal).resource-picker .archive-folder-inline-search .icon-button {
+    width: 42px;
+    height: 42px;
+    flex: 0 0 42px;
+    padding: 0;
+    border: 0;
+    background: transparent;
+}
+
+:is(.archive-create-folder-modal, .archive-move-modal).resource-picker .archive-folder-inline-search input {
+    width: clamp(120px, 28vw, 220px);
+    min-width: 0;
+    height: 42px;
+    padding: 0 var(--space-2) 0 0;
+    border: 0;
+    background: transparent;
+    color: var(--text-primary);
+    font: inherit;
+    font-size: 14px;
+    outline: 0;
+}
+
+:is(.archive-create-folder-modal, .archive-move-modal).resource-picker .archive-folder-inline-search input[hidden] {
+    display: none;
+}
+
+@media (max-width: 800px) {
+    :is(.archive-create-folder-modal, .archive-move-modal).resource-picker .archive-folder-crumb-intermediate {
+        display: none;
+    }
+}
+
+.archive-create-folder-modal.resource-picker .archive-move-tree-main>svg,
+.archive-create-folder-modal.resource-picker .archive-move-search-result>svg,
+.archive-move-modal.resource-picker .archive-move-tree-main>svg,
+.archive-move-modal.resource-picker .archive-move-search-result>svg {
+    width: 20px;
+    height: 20px;
+}
+
+@media (max-width: 600px) {
+    .archive-create-folder-modal.resource-picker.modal,
+    .archive-move-modal.resource-picker.modal {
+        width: 100vw;
+        height: 100dvh;
+        max-width: none;
+        max-height: 100dvh;
+        border-radius: 0;
+    }
+
+    .archive-create-folder-modal.resource-picker .archive-folder-toolbar .rp-search,
+    .archive-move-modal.resource-picker .archive-folder-toolbar .rp-search {
+        flex-basis: 100%;
+    }
+
+    .archive-create-folder-modal.resource-picker .modal-footer .button.primary {
+        white-space: normal;
+    }
+
+    .archive-create-folder-modal.resource-picker .modal-footer {
+        flex-wrap: wrap;
+    }
+}
+
+.archive-move-modal.resource-picker .archive-move-item-summary {
+    padding: var(--space-3) var(--space-4);
+    margin-bottom: 0;
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-md);
+    background: var(--surface-input);
+}
+
+.archive-move-modal.resource-picker .archive-move-item-icon {
+    width: 48px;
+    height: 48px;
+    border: 0;
+    border-radius: var(--radius-sm);
+    background: color-mix(in srgb, var(--brand-green-400) 12%, transparent);
+    color: var(--brand-green-400);
+}
+
+.archive-move-modal.resource-picker .archive-move-item-icon svg {
+    width: 24px;
+    height: 24px;
+}
+
+.archive-move-modal.resource-picker .archive-move-item-icon svg[width="512"] {
+    width: 28px;
+    height: 28px;
+}
+
+@media (max-width: 620px) {
+    .archive-move-modal.resource-picker .archive-move-item-row {
+        grid-template-columns: 48px minmax(0, 1fr);
+    }
+
+    .archive-move-modal.resource-picker .archive-move-item-action {
+        grid-column: 1 / -1;
+        justify-self: stretch;
+    }
+}
+.archive-move-modal.resource-picker .archive-create-folder-path-row {
+    grid-template-columns: minmax(0, 1fr) auto auto;
+    column-gap: var(--space-2);
+    padding-top: 0;
+}
+
+.archive-move-modal.resource-picker .archive-move-item-action {
+    margin: 0;
+    align-self: center;
+}
+
+@media (max-width: 620px) {
+    .archive-move-modal.resource-picker .archive-create-folder-path-row {
+        grid-template-columns: minmax(0, 1fr) auto;
+        row-gap: var(--space-2);
+    }
+
+    .archive-move-modal.resource-picker .archive-move-item-action {
+        grid-column: 1 / -1;
+        justify-self: end;
+    }
+}

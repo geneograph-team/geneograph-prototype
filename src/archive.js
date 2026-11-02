@@ -13732,6 +13732,8 @@ function openArchiveCreateFolderModal(
     let query =
         '';
 
+    let searchExpanded = false;
+
     const expandedIds =
         new Set([
             null
@@ -13762,6 +13764,7 @@ function openArchiveCreateFolderModal(
           class="
             modal
             archive-create-folder-modal
+            resource-picker
           "
           role="dialog"
           aria-modal="true"
@@ -13812,7 +13815,7 @@ function openArchiveCreateFolderModal(
                 <label
                   for="archiveCreateFolderName">
 
-                  Folder name
+                  Name of new folder
                 </label>
 
                 <input
@@ -13882,61 +13885,29 @@ function openArchiveCreateFolderModal(
                 return;
             }
 
-            const parentPath =
-                archiveMoveFolderPath(
-                    selectedParentId
-                );
+            const breadcrumbs = [
+                { id: ARCHIVE_ROOT_PICKER_VALUE, name: t('All files') },
+                ...archiveFolderAncestors(selectedParentId).map(folder => ({ id: folder.id, name: folder.name }))
+            ];
+            const currentCrumb = breadcrumbs.at(-1);
+            const fullPath = breadcrumbs.map(crumb => crumb.name).join(' / ');
 
             parentPickerRoot.innerHTML = `
-            <label
-              class="
-                app-search-field
-                archive-create-folder-search
-              "
-              aria-label="Search folders">
-
-              ${icon.search}
-
-              <input
-                type="search"
-                data-archive-create-folder-search
-                placeholder="Search folders"
-                value="${escapeHtml(
-                    query
-                )}">
-            </label>
-
-            <div
-              class="
-                archive-move-destination
-              "
-              aria-live="polite">
-
-              <span
-                class="
-                  archive-move-destination-label
-                ">
-
-                Parent folder
-              </span>
-
-              <strong
-                class="
-                  archive-move-destination-value
-                ">
-
-                ${escapeHtml(
-                    parentPath
-                )}
-              </strong>
-            </div>
-
-            <div
-              class="
-                archive-move-section-label
-              ">
-
-              Folders
+            <div class="archive-create-folder-path-row">
+              <div class="archive-create-folder-path-context">
+                <span class="archive-create-folder-path-label">${escapeHtml(t('Create inside'))}</span>
+                <nav class="rp-path archive-folder-path" aria-label="${escapeHtml(t('Parent folder'))}" aria-live="polite">
+                  <span class="rp-path-icon" aria-hidden="true">${icon.folderyellow}</span>
+                  ${breadcrumbs.slice(0, -1).map((crumb, index) => `<button class="${index ? 'archive-folder-crumb-intermediate' : ''}" type="button" data-archive-create-folder-crumb="${escapeHtml(crumb.id)}" title="${escapeHtml(crumb.name)}">${escapeHtml(crumb.name)}</button><span class="${index ? 'archive-folder-crumb-intermediate' : ''}" aria-hidden="true">${icon.chevron}</span>`).join('')}
+                  <span aria-current="page" title="${escapeHtml(fullPath)}">${escapeHtml(currentCrumb.name)}</span>
+                </nav>
+              </div>
+              <div class="archive-folder-inline-search ${searchExpanded ? 'is-expanded' : ''}">
+                <button type="button" class="icon-button" data-archive-create-folder-search-toggle
+                  aria-label="${escapeHtml(t(searchExpanded ? 'Close search' : 'Search folders'))}" aria-expanded="${searchExpanded}" aria-controls="archiveCreateFolderSearch" title="${escapeHtml(t(searchExpanded ? 'Close search' : 'Search folders'))}">${icon.search}</button>
+                <input id="archiveCreateFolderSearch" type="search" data-archive-create-folder-search
+                  aria-label="${escapeHtml(t('Search folders'))}" placeholder="${escapeHtml(t('Search folders'))}" value="${escapeHtml(query)}" ${searchExpanded ? '' : 'hidden'}>
+              </div>
             </div>
 
             ${renderArchiveMovePicker({
@@ -13964,6 +13935,12 @@ function openArchiveCreateFolderModal(
                 null
             })}
           `;
+
+            const createButton = form?.querySelector('button[type="submit"]');
+            const parentName = selectedParentId
+                ? archiveFolderById(selectedParentId)?.name
+                : t('All files');
+            if (createButton) createButton.textContent = `${t('Create in')} ${parentName || t('All files')}`;
 
             /*
            * This picker is rendered after openModal()
@@ -14048,6 +14025,26 @@ function openArchiveCreateFolderModal(
         'click',
         event =>
         {
+            if (event.target.closest('[data-archive-create-folder-search-toggle]'))
+            {
+                searchExpanded = !searchExpanded;
+                if (!searchExpanded) query = '';
+                renderParentPicker({ focusSearch: searchExpanded });
+                if (!searchExpanded) requestAnimationFrame(() => parentPickerRoot.querySelector('[data-archive-create-folder-search-toggle]')?.focus());
+                return;
+            }
+
+            const crumb = event.target.closest('[data-archive-create-folder-crumb]');
+            if (crumb)
+            {
+                selectedParentId = archiveFolderIdFromChoice(crumb.dataset.archiveCreateFolderCrumb);
+                query = '';
+                searchExpanded = false;
+                renderParentPicker();
+                requestAnimationFrame(() => parentPickerRoot.querySelector('[data-archive-create-folder-search-toggle]')?.focus());
+                return;
+            }
+
             const toggle =
                 event.target.closest(
                     '[data-archive-move-toggle]'
@@ -15147,7 +15144,9 @@ function renderArchiveMoveItemSummary({
 })
 {
     let itemIcon =
-        icon.file;
+        files.length === 1 && archiveFileKind(files[0]) === 'img'
+            ? icon.image
+            : icon.file;
 
     let itemName =
         '';
@@ -15163,7 +15162,7 @@ function renderArchiveMoveItemSummary({
             );
 
         itemIcon =
-            icon.folder;
+            icon.folderyellow;
 
         itemName =
             movingFolder.name
@@ -15223,7 +15222,7 @@ function renderArchiveMoveItemSummary({
               archive-move-context-label
             ">
 
-            Moving
+            ${movingFolder ? 'Folder to move' : files.length === 1 ? 'File to move' : 'Files to move'}
           </span>
 
           <div
@@ -15264,21 +15263,7 @@ function renderArchiveMoveItemSummary({
                 }
             </span>
 
-            <button
-              class="
-                button
-                secondary
-                archive-move-item-action
-              "
-              type="button"
-              data-archive-move-new-folder
-              aria-label="Create a new destination folder"
-              title="New folder">
 
-              ${icon.plus}
-
-              New folder
-            </button>
           </div>
         </div>
       `;
@@ -15572,7 +15557,7 @@ function renderArchiveMoveTreeFolderRows({
                         : ''
                 }>
 
-                ${icon.folder}
+                ${icon.folderyellow}
 
                 <span
                   class="
@@ -15589,7 +15574,7 @@ function renderArchiveMoveTreeFolderRows({
                         isCurrentFolder
                             ? `
                         <span>
-                          Current folder
+                          ${escapeHtml(t(movingFolderId ? 'Cannot move a folder into itself' : 'Already in this folder'))}
                         </span>
                       `
                             : ''
@@ -15744,7 +15729,7 @@ function renderArchiveMoveTree({
                         : ''
                 }>
 
-              ${icon.folder}
+              ${icon.folderyellow}
 
               <span
                 class="
@@ -15758,7 +15743,7 @@ function renderArchiveMoveTree({
                 <span>
                   ${
                         rootCurrent
-                            ? 'Current folder'
+                            ? t(movingFolderId ? 'Cannot move a folder into itself' : 'Already in this folder')
                             : 'Top level'
                     }
                 </span>
@@ -15919,7 +15904,7 @@ function renderArchiveMoveSearchResults({
                             : ''
                     }>
 
-                  ${icon.folder}
+                  ${icon.folderyellow}
 
                   <span
                     class="
@@ -15936,7 +15921,7 @@ function renderArchiveMoveSearchResults({
                     <span>
                       ${
                             rootCurrent
-                                ? 'Current folder'
+                                ? t(movingFolder ? 'Cannot move a folder into itself' : 'Already in this folder')
                                 : 'Top level'
                         }
                     </span>
@@ -16001,7 +15986,7 @@ function renderArchiveMoveSearchResults({
                             : ''
                     }>
 
-                  ${icon.folder}
+                  ${icon.folderyellow}
 
                   <span
                     class="
@@ -16018,7 +16003,7 @@ function renderArchiveMoveSearchResults({
                     <span>
                       ${
                             isCurrentFolder
-                                ? 'Current folder'
+                                ? t(movingFolder ? 'Cannot move a folder into itself' : 'Already in this folder')
                                 : escapeHtml(
                                     archiveMoveFolderPath(
                                         archiveFolderParentId(
@@ -16055,6 +16040,7 @@ function renderArchiveMovePicker({
         <div
           class="
             archive-move-picker
+            rp-content
           "
           data-archive-move-picker>
 
@@ -16128,6 +16114,9 @@ function openArchiveMoveModal({
     let query =
         '';
 
+    let searchExpanded =
+        false;
+
     let creatingFolder =
         false;
 
@@ -16171,6 +16160,7 @@ function openArchiveMoveModal({
           class="
             modal
             archive-move-modal
+            resource-picker
           "
           role="dialog"
           aria-modal="true"
@@ -16272,12 +16262,14 @@ function openArchiveMoveModal({
                     selectedId
                 );
 
-            const destinationPath =
-                hasDestination
-                    ? archiveMoveFolderPath(
-                        selectedId
-                    )
-                    : 'Choose a folder';
+            const breadcrumbs = hasDestination
+                ? [
+                    { id: ARCHIVE_ROOT_PICKER_VALUE, name: t('All files') },
+                    ...archiveFolderAncestors(selectedId).map(folder => ({ id: folder.id, name: folder.name }))
+                ]
+                : [{ id: ARCHIVE_ROOT_PICKER_VALUE, name: t('Choose a folder') }];
+            const currentCrumb = breadcrumbs.at(-1);
+            const fullPath = breadcrumbs.map(crumb => crumb.name).join(' / ');
 
             const newFolderParentId =
                 getNewFolderParentId();
@@ -16290,55 +16282,26 @@ function openArchiveMoveModal({
             if (contentRoot)
             {
                 contentRoot.innerHTML = `
-              <label
-                class="
-                  app-search-field
-                  archive-move-search-field
-                "
-                aria-label="Search folders">
-
-                ${icon.search}
-
-                <input
-                  type="search"
-                  data-archive-move-search
-                  placeholder="Search folders"
-                  value="${escapeHtml(
-                        query
-                    )}">
-              </label>
-
-              <div
-                class="
-                  archive-move-destination
-                "
-                aria-live="polite">
-
-                <span
-                  class="
-                    archive-move-destination-label
-                  ">
-
-                  Destination
-                </span>
-
-                <strong
-                  class="
-                    archive-move-destination-value
-
-                    ${
-                        hasDestination
-                            ? ''
-                            : 'is-placeholder'
-                    }
-                  ">
-
-                  ${escapeHtml(
-                        destinationPath
-                    )}
-                </strong>
+              <div class="archive-create-folder-path-row">
+                <div class="archive-create-folder-path-context">
+                  <span class="archive-create-folder-path-label">${escapeHtml(t('Destination'))}</span>
+                  <nav class="rp-path archive-folder-path" aria-label="${escapeHtml(t('Destination'))}" aria-live="polite">
+                    <span class="rp-path-icon" aria-hidden="true">${icon.folderyellow}</span>
+                    ${breadcrumbs.slice(0, -1).map((crumb, index) => `<button class="${index ? 'archive-folder-crumb-intermediate' : ''}" type="button" data-archive-move-crumb="${escapeHtml(crumb.id)}" title="${escapeHtml(crumb.name)}">${escapeHtml(crumb.name)}</button><span class="${index ? 'archive-folder-crumb-intermediate' : ''}" aria-hidden="true">${icon.chevron}</span>`).join('')}
+                    <span aria-current="page" class="${hasDestination ? '' : 'is-placeholder'}" title="${escapeHtml(fullPath)}">${escapeHtml(currentCrumb.name)}</span>
+                  </nav>
+                </div>
+                <div class="archive-folder-inline-search ${searchExpanded ? 'is-expanded' : ''}">
+                  <button type="button" class="icon-button" data-archive-move-search-toggle
+                    aria-label="${escapeHtml(t(searchExpanded ? 'Close search' : 'Search folders'))}" aria-expanded="${searchExpanded}" aria-controls="archiveMoveSearch" title="${escapeHtml(t(searchExpanded ? 'Close search' : 'Search folders'))}">${icon.search}</button>
+                  <input id="archiveMoveSearch" type="search" data-archive-move-search
+                    aria-label="${escapeHtml(t('Search folders'))}" placeholder="${escapeHtml(t('Search folders'))}" value="${escapeHtml(query)}" ${searchExpanded ? '' : 'hidden'}>
+                </div>
+                <button class="button secondary archive-move-item-action" type="button"
+                  data-archive-move-new-folder aria-label="Create a new destination folder">
+                  ${icon.plus}<span>New folder</span>
+                </button>
               </div>
-
               ${
                     creatingFolder
                         ? `
@@ -16400,14 +16363,6 @@ function openArchiveMoveModal({
                   `
                         : ''
                 }
-
-              <div
-                class="
-                  archive-move-section-label
-                ">
-
-                Folders
-              </div>
 
               ${renderArchiveMovePicker({
                     query,
@@ -16831,6 +16786,33 @@ function openArchiveMoveModal({
         'click',
         event =>
         {
+            const searchToggle = event.target.closest('[data-archive-move-search-toggle]');
+            if (searchToggle)
+            {
+                searchExpanded = !searchExpanded;
+                if (!searchExpanded) query = '';
+                renderMoveContent({ focusSearch: searchExpanded });
+                if (!searchExpanded)
+                {
+                    requestAnimationFrame(() => modal?.querySelector('[data-archive-move-search-toggle]')?.focus());
+                }
+                return;
+            }
+
+            const crumb = event.target.closest('[data-archive-move-crumb]');
+            if (crumb)
+            {
+                const nextId = archiveFolderIdFromChoice(crumb.dataset.archiveMoveCrumb);
+                const blocked = movingFolder
+                    && archiveFolderDescendantIds(movingFolder.id).includes(nextId);
+                if (blocked || !archiveMoveSelectionStats({ movingFolder, files, selectedId: nextId }).canMove) return;
+                selectedId = nextId;
+                query = '';
+                searchExpanded = false;
+                renderMoveContent();
+                return;
+            }
+
             const toggle =
                 event.target.closest(
                     '[data-archive-move-toggle]'
@@ -19429,7 +19411,10 @@ function openArchiveDeleteFileConfirm(fileIds)
     const files = archiveUniqueIds(fileIds).map(id => archiveFileById(id)).filter(Boolean);
     if (!files.length) return;
     const label = files.length === 1 ? files[0].name : `${files.length} files`;
-    openModal(`<div class="modal" role="dialog" aria-modal="true" aria-labelledby="archiveDeleteFileTitle"><div class="modal-header"><div><h2 id="archiveDeleteFileTitle">Delete permanently?</h2><p>${escapeHtml(label)}</p></div><button class="close-button" type="button" data-close aria-label="Close">${icon.close}</button></div><div class="modal-body"><div class="archive-delete-summary"><strong>This action cannot be undone.</strong><span>The ${files.length === 1 ? 'file' : 'files'} and all links to People, Events, Notes, Places, and Sources will be removed. Connected records will not be deleted.</span></div></div><div class="modal-footer"><button class="button secondary" type="button" data-close>Cancel</button><button class="button danger" type="button" data-archive-delete-file-confirm>Delete permanently</button></div></div>`);
+    const impact = files.length === 1
+        ? 'The file and all links to People, Events, Notes, Places, and Sources will be removed. Connected records will not be deleted.'
+        : 'The files and all links to People, Events, Notes, Places, and Sources will be removed. Connected records will not be deleted.';
+    openModal(`<div class="modal" role="dialog" aria-modal="true" aria-labelledby="archiveDeleteFileTitle"><div class="modal-header"><div><h2 id="archiveDeleteFileTitle">Delete permanently?</h2><p>${escapeHtml(label)}</p></div><button class="close-button" type="button" data-close aria-label="Close">${icon.close}</button></div><div class="modal-body"><div class="archive-delete-summary"><strong>This action cannot be undone.</strong><span>${escapeHtml(t(impact))}</span></div></div><div class="modal-footer"><button class="button secondary" type="button" data-close>Cancel</button><button class="button danger" type="button" data-archive-delete-file-confirm>Delete permanently</button></div></div>`);
     modalBackdrop.querySelector('[data-archive-delete-file-confirm]')?.addEventListener('click', () =>
     {
         deleteArchiveFilesPermanently(files.map(file => file.id));

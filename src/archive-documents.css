@@ -33,7 +33,6 @@
 
 .archive-document-modal .modal-header,
 .archive-document-import .modal-header,
-.archive-document-modal .modal-footer,
 .archive-document-import .modal-footer {
     flex: none;
 }
@@ -209,7 +208,6 @@
     .archive-document-import-notice { flex-basis: 100%; margin-right: 0; }
     .archive-document-import-results p.archive-document-import-row { align-items: flex-start; flex-direction: column; gap: 3px; }
 
-    .archive-document-modal .modal-footer,
     .archive-document-import .modal-footer {
         padding-bottom: max(16px, env(safe-area-inset-bottom));
     }

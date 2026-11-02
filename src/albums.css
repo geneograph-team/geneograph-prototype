@@ -4894,7 +4894,6 @@ button.albums-inspector-row-main:focus-visible {
 .archive-unified-image-modal .photo-people-image-error { align-self: center; padding: var(--space-4); color: var(--text-secondary); text-align: center; }
 .archive-unified-image-modal .modal-header > div { min-width: 0; }
 .archive-unified-image-modal .modal-header h2 { overflow-wrap: anywhere; }
-.archive-unified-image-modal.is-tagging .archive-unified-download { display: none; }
 
 @media (max-width: 760px) {
     .albums-tag-people-modal .photo-people-body { display: flex; flex-direction: column; overflow-y: auto; overscroll-behavior: contain; }
@@ -4927,7 +4926,6 @@ button.albums-inspector-row-main:focus-visible {
     .albums-tag-people-modal.is-tagging .photo-people-footer-actions { width: 100%; justify-content: flex-end; }
     .archive-unified-image-modal.is-preview .photo-people-footer-actions { display: contents; }
     .archive-unified-image-modal.is-preview .albums-preview-done { grid-column: 2; grid-row: 2; }
-    .archive-unified-image-modal.is-preview .archive-unified-download { grid-column: 1 / -1; grid-row: 3; width: 100%; }
 }
 
 @media (max-width: 700px) {

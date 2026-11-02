@@ -320,6 +320,8 @@ const RU_UI_SHARED = Object.freeze({
     'Create and select': 'Создать и выбрать',
     'Connections': 'Связи',
     'This action cannot be undone.': 'Это действие невозможно отменить.',
+    'Uploaded files are available until page reload.':
+        'Загруженные файлы доступны до перезагрузки страницы.',
     'Search people...': 'Поиск людей...',
     'Continue editing':'Продолжить редактирование',
     'Change': 'Изменить',
@@ -3608,11 +3610,17 @@ const RU_UI_ARCHIVE = {
     'Folder name':
         'Название папки',
 
+    'Name of new folder':
+        'Название новой папки',
+
     'e.g. Civil records':
         'Например, Акты гражданского состояния',
 
     'Create folder':
         'Создать папку',
+
+    'Create in':
+        'Создать в папке',
 
     'Search folders':
         'Поиск папок',
@@ -3657,6 +3665,15 @@ const RU_UI_ARCHIVE = {
     'Moving':
         'Перемещение',
 
+    'File to move':
+        'Перемещаемый файл',
+
+    'Files to move':
+        'Перемещаемые файлы',
+
+    'Folder to move':
+        'Перемещаемая папка',
+
     'Choose a folder':
         'Выберите папку',
 
@@ -3668,6 +3685,12 @@ const RU_UI_ARCHIVE = {
 
     'Move here':
         'Переместить сюда',
+
+    'Already in this folder':
+        'Уже находится в этой папке',
+
+    'Cannot move a folder into itself':
+        'Нельзя переместить папку в неё же',
 
     'Move undone.':
         'Перемещение отменено.',
@@ -3813,6 +3836,12 @@ const RU_UI_ARCHIVE = {
 
     'Files permanently deleted.':
         'Файлы удалены безвозвратно.',
+
+    'The file and all links to People, Events, Notes, Places, and Sources will be removed. Connected records will not be deleted.':
+        'Файл будет удалён вместе со всеми связями с людьми, событиями, заметками, местами и источниками. Сами связанные записи сохранятся.',
+
+    'The files and all links to People, Events, Notes, Places, and Sources will be removed. Connected records will not be deleted.':
+        'Файлы будут удалены вместе со всеми связями с людьми, событиями, заметками, местами и источниками. Сами связанные записи сохранятся.',
 
     'Delete folder permanently?':
         'Удалить папку безвозвратно?',
@@ -8811,9 +8840,9 @@ function translateDynamicPhrase(core)
     );
 
     repl(
-        /^(\d+)\s+recorded events$/i,
+        /^(\d+)\s+recorded events?$/i,
         (_, number) =>
-            `Записано событий: ${formatNumber(number)}`
+            `Записано ${translateCountPhrase(`${number} events`)}`
     );
 
     repl(
