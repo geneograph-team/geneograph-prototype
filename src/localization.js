@@ -256,8 +256,6 @@ const RU_UI_SHARED = Object.freeze({
     'Mark area': 'Отметить область',
     'Tag a person': 'Отметить человека',
     'Back to photo': 'Назад к фото',
-    'Search project people': 'Поиск людей в проекте',
-    'Name or date': 'Имя или дата',
     'Matching people': 'Найденные люди',
     'No people available to tag': 'Нет людей, которых можно отметить',
     'Face area for': 'Область лица для',

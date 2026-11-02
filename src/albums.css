@@ -4856,16 +4856,16 @@ button.albums-inspector-row-main:focus-visible {
 .albums-tag-people-modal .photo-people-search-head h3 { margin: 0; font-size: 16px; }
 .albums-tag-people-modal.is-tagging .photo-people-footer { justify-content: flex-end; }
 .albums-tag-people-modal .albums-search-people { width: 100%; margin-bottom: var(--space-3); }
-.albums-tag-people-modal .albums-unified-person-row { display: flex; align-items: stretch; min-width: 0; border: 1px solid var(--border-default); border-radius: 6px; }
+.albums-tag-people-modal .albums-unified-person-row { display: grid; grid-template-columns: minmax(0, 1fr) 40px; align-items: stretch; width: 100%; max-width: 100%; min-width: 0; border: 1px solid var(--border-default); border-radius: 6px; }
 .albums-tag-people-modal .albums-unified-person-row + .albums-unified-person-row { margin-top: 4px; }
 .albums-tag-people-modal .albums-unified-person-row.is-active { border-color: var(--brand-green-400); background: var(--surface-card-hover); }
 .albums-tag-people-modal .albums-unified-person-row.is-hovered { border-color: var(--brand-green-400); background: var(--surface-card-hover); }
-.albums-tag-people-modal .albums-unified-person-main { display: flex; align-items: center; gap: var(--space-2); flex: 1; min-width: 0; min-height: 52px; padding: var(--space-2); text-align: left; background: transparent; border: 0; color: var(--text-primary); cursor: pointer; }
-.albums-tag-people-modal .albums-unified-person-copy { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.albums-tag-people-modal .albums-unified-person-main { display: flex; align-items: center; gap: var(--space-2); width: 100%; min-width: 0; min-height: 52px; padding: var(--space-2); text-align: left; background: transparent; border: 0; color: var(--text-primary); cursor: pointer; }
+.albums-tag-people-modal .albums-unified-person-copy { display: flex; flex: 1 1 0; flex-direction: column; gap: 2px; min-width: 0; overflow: hidden; }
 .albums-tag-people-modal .albums-unified-person-copy strong,
 .albums-tag-people-modal .albums-unified-person-copy small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .albums-tag-people-modal .albums-unified-person-copy small { color: var(--text-secondary); }
-.albums-tag-people-modal .albums-unified-person-action { flex: 0 0 44px; border: 0; background: transparent; color: var(--text-secondary); cursor: pointer; }
+.albums-tag-people-modal .albums-unified-person-action { width: 40px; min-width: 0; border: 0; background: transparent; color: var(--text-secondary); cursor: pointer; }
 .albums-tag-people-modal .albums-unified-person-action svg { width: 18px; height: 18px; }
 .albums-tag-people-modal .albums-unified-person-action:hover { color: var(--text-primary); }
 .albums-tag-people-modal .albums-unified-person-main:focus-visible,

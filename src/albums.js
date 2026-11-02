@@ -7655,11 +7655,6 @@ function openUnifiedImagePeopleModal(photoId, { mode = 'tag', activePersonId = n
                 field
                 photo-people-search-field
               ">
-              <label
-                for="photoPeopleSearch">
-                ${escapeHtml(t('Search project people'))}
-              </label>
-
               <div
                 class="search-input">
                 ${icon.search}
@@ -7667,7 +7662,7 @@ function openUnifiedImagePeopleModal(photoId, { mode = 'tag', activePersonId = n
                 <input
                   id="photoPeopleSearch"
                   type="search"
-                  data-photo-people-search placeholder="${escapeHtml(t('Name or date'))}" autocomplete="off">
+                  data-photo-people-search aria-label="${escapeHtml(t('Search people'))}" placeholder="${escapeHtml(t('Search people...'))}" autocomplete="off">
               </div>
             </div>
 
