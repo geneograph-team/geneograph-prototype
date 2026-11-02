@@ -7847,6 +7847,16 @@ function renderArchiveSidebar()
             );
         });
 
+    sidebar.querySelectorAll('[data-archive-folder]').forEach(button =>
+    {
+        button.addEventListener('contextmenu', event =>
+        {
+            if (event.target.closest('input,[contenteditable="true"]')) return;
+            event.preventDefault();
+            openArchiveItemActionsPopover('folder', button.dataset.archiveFolder, button,
+                { x: event.clientX, y: event.clientY });
+        });
+    });
     localizeUI(
         sidebar
     );
@@ -7937,6 +7947,61 @@ function ensureArchiveVisibleSelection()
     }
 }
 
+let archiveSelectionAnchor = null;
+
+function archiveVisibleMainItemKeys(root)
+{
+    return [...root.querySelectorAll('[data-archive-folder-row], [data-archive-file-row]')]
+        .filter(row => row.getClientRects().length > 0)
+        .map(row => row.dataset.archiveFolderRow
+            ? `folder:${row.dataset.archiveFolderRow}`
+            : `file:${row.dataset.archiveFileRow}`);
+}
+
+function archiveSelectDesktopItem(root, type, id, event)
+{
+    const key = `${type}:${id}`;
+    const visible = archiveVisibleMainItemKeys(main.querySelector('.archive-shell') || root);
+    const targetIndex = visible.indexOf(key);
+    if (targetIndex < 0) return;
+    if (event.shiftKey || event.ctrlKey || event.metaKey)
+    {
+        resetArchiveFolderRowClick();
+        archiveLastFileRowClick = { fileId: null, at: 0 };
+    }
+
+    let selected;
+    if (event.shiftKey && archiveSelectionAnchor && visible.includes(archiveSelectionAnchor))
+    {
+        const anchorIndex = visible.indexOf(archiveSelectionAnchor);
+        selected = visible.slice(Math.min(anchorIndex, targetIndex), Math.max(anchorIndex, targetIndex) + 1);
+    }
+    else if (event.ctrlKey || event.metaKey)
+    {
+        selected = [
+            ...(state.archiveSelectedFolderIds || []).map(folderId => `folder:${folderId}`),
+            ...(state.archiveSelectedFileIds || []).map(fileId => `file:${fileId}`)
+        ].filter(item => visible.includes(item));
+        selected = selected.includes(key)
+            ? selected.filter(item => item !== key)
+            : [...selected, key];
+        archiveSelectionAnchor = key;
+    }
+    else
+    {
+        selected = [key];
+        archiveSelectionAnchor = key;
+    }
+
+    state.archiveSelectedFolderIds = selected.filter(item => item.startsWith('folder:')).map(item => item.slice(7));
+    state.archiveSelectedFileIds = selected.filter(item => item.startsWith('file:')).map(item => item.slice(5));
+    const inspected = selected.includes(key) ? key : selected.at(-1);
+    state.archiveSelectedFolderItemId = inspected?.startsWith('folder:') ? inspected.slice(7) : null;
+    state.archiveSelectedFileId = inspected?.startsWith('file:') ? inspected.slice(5) : null;
+    state.archiveInspectorCollapsed = false;
+    renderArchiveMain();
+    main.querySelector(`[data-archive-${type}-row="${CSS.escape(id)}"]`)?.focus({ preventScroll: true });
+}
 let archiveRenderedLocationKey = null;
 
 function renderArchiveMain()
@@ -7946,6 +8011,7 @@ function renderArchiveMain()
     if (archiveRenderedLocationKey !== null && locationKey !== archiveRenderedLocationKey)
     {
         archiveMobileSelectMode = false;
+        archiveSelectionAnchor = null;
         state.archiveSelectedFileIds = [];
         state.archiveSelectedFolderIds = [];
     }
@@ -8487,7 +8553,7 @@ function archiveBulkSelectionLabel()
 function renderArchiveSelectionBar(files)
 {
     const { folders, files: selectedFiles } = archiveSelectedBulkItems();
-    if (!folders.length && !selectedFiles.length) return '';
+    if (folders.length + selectedFiles.length < 2) return '';
     const allFavorite = [...folders, ...selectedFiles].every(item => item.favorite);
     return `<div class="archive-selection-bar"><strong>${escapeHtml(archiveBulkSelectionLabel())}</strong><div class="archive-selection-actions">
         <button class="button secondary" type="button" data-archive-selection-action="move">${escapeHtml(t('Move'))}</button>
@@ -8816,6 +8882,7 @@ function toggleArchiveFileSelection(
     state.archiveSelectedFileIds = [
         ...selectedIds
     ];
+    archiveSelectionAnchor = `file:${file.id}`;
 
     /*
         Match Albums: selecting through the checkbox
@@ -8839,6 +8906,7 @@ function toggleArchiveFolderSelection(folderId)
     if (selected.has(folderId)) selected.delete(folderId);
     else selected.add(folderId);
     state.archiveSelectedFolderIds = [...selected];
+    archiveSelectionAnchor = `folder:${folderId}`;
     state.archiveSelectedFolderItemId = folderId;
     state.archiveSelectedFileId = null;
     state.archiveInspectorCollapsed = false;
@@ -9198,38 +9266,37 @@ function renderArchiveMobileItems(files, folders, showPaths)
     </div>`;
 }
 
-function renderArchiveFileTiles(files, folders, showPaths, matchingCountByFolder)
+function renderArchiveFileTiles(files, folders)
 {
+    const bulkActive = (state.archiveSelectedFolderIds || []).length
+        + (state.archiveSelectedFileIds || []).length > 1;
     const folderTiles = archiveSortFoldersForTable(folders).map(folder => {
-        const checked = (state.archiveSelectedFolderIds || []).includes(folder.id);
-        const count = matchingCountByFolder.get(folder.id);
-        const itemCount = Number.isFinite(count) ? count
-            : archiveProjectFiles().filter(file => archiveFileFolderId(file) === folder.id).length
-                + archiveFolderChildren(folder.id).length;
+        const checked = bulkActive && (state.archiveSelectedFolderIds || []).includes(folder.id);
         return `<div class="archive-tile ${checked ? 'is-checked' : ''} ${state.archiveSelectedFolderItemId === folder.id ? 'selected-detail' : ''}"
             data-archive-folder-row="${escapeHtml(folder.id)}" tabindex="0" aria-label="${escapeHtml(folder.name)}">
-            <input class="albums-select-checkbox archive-tile-select" type="checkbox" data-archive-folder-checkbox="${escapeHtml(folder.id)}" ${checked ? 'checked' : ''} aria-label="${escapeHtml(t('Select'))}: ${escapeHtml(folder.name)}">
+            ${bulkActive ? `<input class="albums-select-checkbox archive-tile-select" type="checkbox" data-archive-folder-checkbox="${escapeHtml(folder.id)}" ${checked ? 'checked' : ''} aria-label="${escapeHtml(t('Select'))}: ${escapeHtml(folder.name)}">` : ''}
             <button class="archive-row-icon-button archive-tile-more" type="button" data-archive-row-actions="folder" data-archive-row-id="${escapeHtml(folder.id)}" aria-label="${escapeHtml(t('Folder actions'))}: ${escapeHtml(folder.name)}">${icon.more}</button>
             <div class="archive-tile-art">${archiveFileIcon({ kind: 'folder' })}</div>
-            <div class="archive-tile-copy"><strong title="${escapeHtml(folder.name)}">${escapeHtml(folder.name)}</strong>
-                <span>${itemCount} ${escapeHtml(t(Number.isFinite(count) ? (itemCount === 1 ? 'matching file' : 'matching files') : (itemCount === 1 ? 'item' : 'items')))}</span></div>
-            ${folder.favorite ? `<span class="archive-tile-favorite" aria-label="${escapeHtml(t('Favourite'))}">${icon.star}</span>` : ''}
+            <div class="archive-tile-copy">
+                <div class="archive-tile-name-row"><strong title="${escapeHtml(folder.name)}">${escapeHtml(folder.name)}</strong>
+                    ${folder.favorite ? `<span class="archive-tile-favorite" aria-label="${escapeHtml(t('Favourite'))}">${icon.star}</span>` : ''}</div>
+            </div>
         </div>`;
     }).join('');
     const fileTiles = files.map(file => {
-        const checked = state.archiveSelectedFileIds.includes(file.id);
+        const checked = bulkActive && (state.archiveSelectedFileIds || []).includes(file.id);
         const source = archiveFileKind(file) === 'img'
             ? file.previewUrl || file.thumbnailUrl || file.src : '';
         const art = `${archiveFileIcon(file)}${source ? `<img src="${escapeHtml(source)}" alt="" loading="lazy">` : ''}`;
-        const meta = showPaths ? archiveFolderPath(file.folderId)
-            : [archiveFileTypeLabel(file), file.size].filter(Boolean).join(' · ');
         return `<div class="archive-tile ${checked ? 'is-checked' : ''} ${state.archiveSelectedFileId === file.id ? 'selected-detail' : ''}"
             data-archive-file-row="${escapeHtml(file.id)}" tabindex="0" aria-label="${escapeHtml(file.name)}">
-            <input class="albums-select-checkbox archive-tile-select" type="checkbox" data-archive-file-checkbox="${escapeHtml(file.id)}" ${checked ? 'checked' : ''} aria-label="${escapeHtml(t('Select'))}: ${escapeHtml(file.name)}">
+            ${bulkActive ? `<input class="albums-select-checkbox archive-tile-select" type="checkbox" data-archive-file-checkbox="${escapeHtml(file.id)}" ${checked ? 'checked' : ''} aria-label="${escapeHtml(t('Select'))}: ${escapeHtml(file.name)}">` : ''}
             <button class="archive-row-icon-button archive-tile-more" type="button" data-archive-row-actions="file" data-archive-row-id="${escapeHtml(file.id)}" aria-label="${escapeHtml(t('File actions'))}: ${escapeHtml(file.name)}">${icon.more}</button>
             <div class="archive-tile-art">${art}</div>
-            <div class="archive-tile-copy"><strong title="${escapeHtml(file.name)}">${escapeHtml(file.name)}</strong><span>${escapeHtml(meta)}</span></div>
-            ${file.favorite ? `<span class="archive-tile-favorite" aria-label="${escapeHtml(t('Favourite'))}">${icon.star}</span>` : ''}
+            <div class="archive-tile-copy">
+                <div class="archive-tile-name-row"><strong title="${escapeHtml(file.name)}">${escapeHtml(file.name)}</strong>
+                    ${file.favorite ? `<span class="archive-tile-favorite" aria-label="${escapeHtml(t('Favourite'))}">${icon.star}</span>` : ''}</div>
+            </div>
         </div>`;
     }).join('');
     return `<div class="archive-tiles" aria-label="${escapeHtml(t('Archive files and folders'))}">
@@ -9237,7 +9304,6 @@ function renderArchiveFileTiles(files, folders, showPaths, matchingCountByFolder
         ${files.length ? `<section><h2>${escapeHtml(t('Files'))}</h2><div class="archive-tile-grid">${fileTiles}</div></section>` : ''}
     </div>`;
 }
-
 function renderArchiveEmpty(
     title,
     copy,
@@ -9400,7 +9466,7 @@ function renderArchiveFilesView()
                     ? renderArchiveImageView(files)
                     : hasRows
                     ? `${renderArchiveMobileItems(files, archiveSortFoldersForTable(folders), flatResults)}${state.archiveFileLayout === 'tiles'
-                        ? renderArchiveFileTiles(files, folders, flatResults, projection.matchingCountByFolder)
+                        ? renderArchiveFileTiles(files, folders)
                         : renderArchiveFileTableDesktop(files, folders, flatResults, projection.matchingCountByFolder)}`
                     : filtering
                         ? renderArchiveEmpty(
@@ -19615,7 +19681,8 @@ function openArchiveDeleteSourceConfirm(sourceId)
 function openArchiveItemActionsPopover(
     type,
     id,
-    anchor
+    anchor,
+    point = null
 )
 {
     if (
@@ -19843,13 +19910,15 @@ function openArchiveItemActionsPopover(
     document.body.appendChild(
         menu
     );
+    localizeUI(menu);
 
     /*
         Position after mounting so the actual
         menu dimensions are available.
       */
-    const rect =
-        anchor.getBoundingClientRect();
+    const rect = point
+        ? { left: point.x, right: point.x, top: point.y, bottom: point.y }
+        : anchor.getBoundingClientRect();
 
     const viewportMargin =
         12;
@@ -19859,35 +19928,20 @@ function openArchiveItemActionsPopover(
 
     const left =
         Math.min(
-            Math.max(
-                viewportMargin,
-                rect.right
-              - menu.offsetWidth
-            ),
-            Math.max(
-                viewportMargin,
-                window.innerWidth
-              - menu.offsetWidth
-              - viewportMargin
-            )
+            Math.max(viewportMargin, point ? point.x : rect.right - menu.offsetWidth),
+            Math.max(viewportMargin, window.innerWidth - menu.offsetWidth - viewportMargin)
         );
 
     const belowTop =
         rect.bottom
         + gap;
 
-    const top =
-        belowTop
-          + menu.offsetHeight
-          <= window.innerHeight
-            - viewportMargin
+    const top = point
+        ? Math.min(Math.max(viewportMargin, point.y), Math.max(viewportMargin,
+            window.innerHeight - menu.offsetHeight - viewportMargin))
+        : belowTop + menu.offsetHeight <= window.innerHeight - viewportMargin
             ? belowTop
-            : Math.max(
-                viewportMargin,
-                rect.top
-                - menu.offsetHeight
-                - gap
-            );
+            : Math.max(viewportMargin, rect.top - menu.offsetHeight - gap);
 
     menu.style.left =
         `${left}px`;
@@ -20080,7 +20134,7 @@ function openArchiveItemActionsPopover(
     );
 }
 
-function openArchiveMobileChoiceMenu(anchor, kind)
+function openArchiveMobileChoiceMenu(anchor, kind, point = null)
 {
     const wasOpen = anchor.getAttribute('aria-expanded') === 'true'
         && Boolean(document.getElementById('projectMenu'));
@@ -20092,16 +20146,18 @@ function openArchiveMobileChoiceMenu(anchor, kind)
     menu.setAttribute('role', 'menu');
     const { folders, files } = archiveSelectedBulkItems();
     const allFavorite = [...folders, ...files].every(item => item.favorite);
-    const bulkChoices = `${kind === 'bulk' ? `<button type="button" role="menuitem" data-archive-mobile-choice="move">${escapeHtml(t('Move'))}</button><button type="button" role="menuitem" data-archive-mobile-choice="favorite">${escapeHtml(t(allFavorite ? 'Remove from favourites' : 'Add to favourites'))}</button>` : ''}
+    const bulkChoices = `${(kind === 'bulk' || kind === 'bulk-context') ? `<button type="button" role="menuitem" data-archive-mobile-choice="move">${escapeHtml(t('Move'))}</button><button type="button" role="menuitem" data-archive-mobile-choice="favorite">${escapeHtml(t(allFavorite ? 'Remove from favourites' : 'Add to favourites'))}</button>` : ''}
         ${!folders.length ? `<button type="button" role="menuitem" data-archive-mobile-choice="links">${escapeHtml(t('Add links'))}</button>` : ''}
         <button class="danger" type="button" role="menuitem" data-archive-mobile-choice="delete">${escapeHtml(t('Delete permanently'))}</button>`;
     menu.innerHTML = kind === 'add'
         ? `<button type="button" role="menuitem" data-archive-mobile-choice="files">${escapeHtml(t('Add files'))}</button><button type="button" role="menuitem" data-archive-mobile-choice="folder">${escapeHtml(t('New folder'))}</button>`
         : bulkChoices;
     document.body.appendChild(menu);
-    const rect = anchor.getBoundingClientRect();
-    menu.style.left = `${Math.max(12, Math.min(rect.right - menu.offsetWidth, innerWidth - menu.offsetWidth - 12))}px`;
-    menu.style.top = `${rect.bottom + menu.offsetHeight + 8 < innerHeight ? rect.bottom + 6 : Math.max(12, rect.top - menu.offsetHeight - 6)}px`;
+    const rect = point ? { left: point.x, right: point.x, top: point.y, bottom: point.y } : anchor.getBoundingClientRect();
+    menu.style.left = `${Math.max(12, Math.min(point ? point.x : rect.right - menu.offsetWidth, innerWidth - menu.offsetWidth - 12))}px`;
+    menu.style.top = `${point
+        ? Math.max(12, Math.min(point.y, innerHeight - menu.offsetHeight - 12))
+        : rect.bottom + menu.offsetHeight + 8 < innerHeight ? rect.bottom + 6 : Math.max(12, rect.top - menu.offsetHeight - 6)}px`;
     menu.addEventListener('click', event => {
         const choice = event.target.closest('[data-archive-mobile-choice]')?.dataset.archiveMobileChoice;
         if (!choice) return;
@@ -21457,9 +21513,14 @@ function bindArchiveControls(root = main.querySelector('.archive-shell'))
                         )
                     )
                     {
-                        if (innerWidth > 900 && !event.shiftKey && !event.ctrlKey && !event.metaKey
-                            && archiveFileRowWasDoubleClick(row.dataset.archiveFileRow))
-                            openArchiveDocumentViewer(row.dataset.archiveFileRow);
+                        if (innerWidth > 900)
+                        {
+                            if (!event.shiftKey && !event.ctrlKey && !event.metaKey
+                                && archiveFileRowWasDoubleClick(row.dataset.archiveFileRow))
+                                openArchiveDocumentViewer(row.dataset.archiveFileRow);
+                            else runAfterArchiveFileEditGuard(() =>
+                                archiveSelectDesktopItem(root, 'file', row.dataset.archiveFileRow, event));
+                        }
                         else open();
                     }
                 }
@@ -21575,7 +21636,8 @@ function bindArchiveControls(root = main.querySelector('.archive-shell'))
                         return;
                     }
 
-                    selectArchiveFolderItem(folderId);
+                    runAfterArchiveFileEditGuard(() =>
+                        archiveSelectDesktopItem(root, 'folder', folderId, event));
                 }
             );
 
@@ -21614,6 +21676,32 @@ function bindArchiveControls(root = main.querySelector('.archive-shell'))
                 }
             );
         });
+    root.querySelectorAll('[data-archive-file-row], [data-archive-folder-row]').forEach(row =>
+    {
+        row.addEventListener('contextmenu', event =>
+        {
+            if (innerWidth <= 900 || event.target.closest('button,input,select,a,[contenteditable="true"]')) return;
+            event.preventDefault();
+            const type = row.dataset.archiveFolderRow ? 'folder' : 'file';
+            const id = row.dataset.archiveFolderRow || row.dataset.archiveFileRow;
+            const inSelection = type === 'folder'
+                ? (state.archiveSelectedFolderIds || []).includes(id)
+                : state.archiveSelectedFileIds.includes(id);
+            if (!inSelection)
+            {
+                archiveSelectDesktopItem(root, type, id,
+                    { shiftKey: false, ctrlKey: false, metaKey: false });
+            }
+            const anchor = main.querySelector(`[data-archive-${type}-row="${CSS.escape(id)}"]`);
+            if (!anchor) return;
+            const count = (state.archiveSelectedFolderIds || []).length + state.archiveSelectedFileIds.length;
+            const point = { x: event.clientX, y: event.clientY };
+            if (inSelection && count > 1)
+                openArchiveMobileChoiceMenu(anchor, 'bulk-context', point);
+            else
+                openArchiveItemActionsPopover(type, id, anchor, point);
+        });
+    });
     root.querySelectorAll('[data-archive-mobile-open-folder]').forEach(button => button.addEventListener('click', event =>
     {
         event.stopPropagation();
