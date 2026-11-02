@@ -2332,6 +2332,9 @@ const RU_UI_GENEO = {
     'Make board-only':
         'Сделать местом только на холсте',
 
+    'Keep this name on the board without a link to the project place.':
+        'Название останется на холсте, но связь с местом проекта исчезнет.',
+
     'Edit place object':
         'Изменить объект места',
 

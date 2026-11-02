@@ -16277,6 +16277,9 @@ function renderGeneographPlaceInspectorContent(
 {
     const resolved =
         resolveGeneographPlace(node);
+    const secondaryName = resolved.linked
+        ? placeSecondaryName(resolved.place)
+        : '';
 
     const content = `
         <div class="geneo-place-inspector-summary">
@@ -16286,43 +16289,48 @@ function renderGeneographPlaceInspectorContent(
 
           <div>
             <strong>
-              ${escapeHtml(resolved.name)}
-            </strong>
-
-            <span>
               ${
                     resolved.linked
                         ? t('Linked project place')
                         : t('Board-only place')
                 }
-            </span>
+            </strong>
+            ${secondaryName ? `<span title="${escapeHtml(secondaryName)}">${escapeHtml(secondaryName)}</span>` : ''}
           </div>
         </div>
 
-        ${resolved.linked ? `<div class="geneo-place-inspector-actions">
+        <div class="geneo-place-inspector-actions">
+                <button
+                  class="button secondary compact"
+                  type="button"
+                  data-geneo-edit-place="${escapeHtml(node.id)}">
+                  ${escapeHtml(t('Change place'))}
+                </button>
+                ${resolved.linked ? `
                 <button
                   class="geneo-image-source-link"
                   type="button"
                   data-geneo-open-place="${escapeHtml(node.id)}">
                   ${escapeHtml(t('Open in Places'))}
                 </button>
-
+                ` : ''}
+        </div>
+        ${resolved.linked ? `<div class="geneo-place-inspector-board-only">
                 <button
-                  class="button secondary"
+                  class="geneo-image-source-link"
                   type="button"
                   data-geneo-place-board-only="${escapeHtml(node.id)}">
                   ${escapeHtml(t('Make board-only'))}
                 </button>
+                <p>${escapeHtml(t('Keep this name on the board without a link to the project place.'))}</p>
             </div>` : ''}
       `;
 
     return renderGeneographInspectorSection({
         context: 'place',
         id: 'content',
-        title: t('Content'),
-        content,
-        actionHtml: `<button class="geneo-section-edit" type="button" data-geneo-edit-place="${escapeHtml(node.id)}" aria-label="${escapeHtml(t('Change place'))}">${icon.edit}<span>${escapeHtml(t('Edit'))}</span></button>`,
-        inlineAction: true
+        title: t('Place'),
+        content
     });
 }
 
