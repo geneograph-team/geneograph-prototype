@@ -1,0 +1,1611 @@
+/* People table identity cell */
+.person-cell {
+    min-width: 230px;
+
+    display: grid;
+    grid-template-columns:
+        auto minmax(0, 1fr);
+    align-items: center;
+    gap: var(--space-2);
+}
+
+.person-cell-copy {
+    min-width: 0;
+
+    display: grid;
+    align-content: center;
+    gap: 2px;
+}
+
+.person-cell-copy>strong,
+.person-cell-copy>span {
+    min-width: 0;
+    margin: 0;
+
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.person-cell-copy>strong {
+    color: var(--text-primary);
+    font-weight: 800;
+    line-height: 1.2;
+}
+
+.person-cell-copy>span {
+    color: var(--text-tertiary);
+    font-size: 12px;
+    line-height: 1.25;
+}
+
+.table-footer {
+    position: sticky;
+    bottom: 0;
+    z-index: 6;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
+    color: var(--text-secondary);
+    padding: 10px var(--space-2);
+    min-height: 48px;
+    font-size: 13px;
+    background: var(--surface-main);
+    border-top: 1px solid var(--border-default);
+}
+
+.pagination {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+}
+
+.page-button {
+    border: 0;
+    background: transparent;
+    color: var(--text-secondary);
+    border-radius: 7px;
+    min-width: 28px;
+    height: 28px;
+    display: grid;
+    place-items: center;
+}
+
+.page-button.active {
+    background: var(--surface-selected);
+    color: var(--brand-green-300);
+}
+
+.page-button:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+}
+
+.pagination-ellipsis {
+    min-width: 20px;
+
+    display: inline-grid;
+    place-items: center;
+
+    color:
+        var(--text-tertiary);
+}
+
+.people-table-footer-summary {
+    white-space: nowrap;
+}
+
+.people-rows-per-page {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+
+    white-space: nowrap;
+}
+
+.people-rows-per-page-label {
+    color: var(--text-secondary);
+    font-size: 13px;
+    font-weight: 400;
+}
+
+.people-rows-select-shell {
+    width: 82px;
+    height: 34px;
+    min-height: 34px;
+    max-height: 34px;
+
+    flex: 0 0 82px;
+
+    border:
+        1px solid var(--border-default);
+
+    border-radius:
+        var(--radius-sm);
+
+    background:
+        var(--surface-card);
+
+    transition:
+        border-color var(--ease),
+        background var(--ease),
+        box-shadow var(--ease);
+}
+
+.people-rows-select-shell #peopleRowsPerPage[hidden] { display:none; }
+.people-page-size-trigger { width:100%; height:100%; background:transparent; border:0; padding:0 32px 0 12px; color:var(--text-primary); font:inherit; font-size:13px; cursor:pointer; text-align:left; }
+.people-page-size-menu { min-width:100px; }
+.people-page-size-menu button { display:flex; justify-content:space-between; align-items:center; gap:16px; }
+.people-page-size-menu button[aria-checked=true] { background:var(--surface-card-hover); color:var(--brand-green-400); }
+.people-page-size-menu svg { width:16px; height:16px; }
+
+.people-rows-select-shell:hover {
+    border-color:
+        var(--border-strong);
+
+    background:
+        var(--surface-card-hover);
+}
+
+.people-rows-select-shell:focus-within {
+    border-color:
+        rgba(98,
+            217,
+            154,
+            0.5);
+
+    box-shadow:
+        0 0 0 2px rgba(47,
+            174,
+            116,
+            0.1);
+}
+
+.people-rows-select {
+    padding:
+        0 34px 0 12px;
+
+    border: 0;
+
+    outline: 0;
+
+    background:
+        transparent;
+
+    color:
+        var(--text-primary);
+
+    text-align:
+        left;
+
+    box-shadow:
+        none;
+}
+
+.people-rows-select:hover,
+.people-rows-select:focus {
+    border: 0;
+
+    outline: 0;
+
+    background:
+        transparent;
+
+    color:
+        var(--text-primary);
+
+    box-shadow:
+        none;
+}
+
+.people-rows-select option {
+    background-color:
+        var(--surface-card);
+
+    color:
+        var(--text-primary);
+}
+
+.people-rows-select-chevron {
+    right: 10px;
+
+    width: 14px;
+
+    color:
+        var(--text-secondary);
+}
+
+.people-rows-select-chevron svg {
+    width: 13px;
+    height: 13px;
+
+    display: block;
+
+    transform:
+        rotate(90deg);
+}
+
+.people-table-footer {
+    min-height: 50px;
+    padding-block: 8px;
+}
+
+@media (max-width: 760px) {
+    .people-table-footer {
+        justify-content: center;
+        flex-wrap: wrap;
+    }
+
+    .people-table-footer-summary {
+        width: 100%;
+        text-align: center;
+    }
+}
+
+.people-collapse-button,
+.person-sidebar-restore-button {
+    border: 1px solid transparent;
+    background: transparent;
+    color: var(--text-tertiary);
+    border-radius: var(--radius-sm);
+    width: 34px;
+    height: 34px;
+    display: inline-grid;
+    place-items: center;
+    font-size: 18px;
+}
+
+.people-collapse-button:hover,
+.person-sidebar-restore-button:hover {
+    background: rgba(255, 255, 255, .05);
+    color: var(--text-primary);
+    border-color: var(--border-default);
+}
+
+.people-hero {
+    position: relative;
+    padding: 10px;
+    min-height: 170px;
+    background: linear-gradient(90deg, var(--brand-green-700) 0%, var(--brand-green-900) 100%);
+    border-bottom: 1px solid rgba(255, 255, 255, .08);
+    overflow: hidden;
+    isolation: isolate;
+}
+
+.people-hero::after {
+    content: "";
+    position: absolute;
+    right: -52px;
+    bottom: 0px;
+    width: 260px;
+    height: 190px;
+    opacity: .14;
+    background: url("../../assets/covers/geneograph-cover-tree.png") bottom / contain no-repeat;
+    mix-blend-mode: screen;
+    filter: saturate(.72) brightness(.82);
+    pointer-events: none;
+    z-index: -1;
+}
+
+.people-hero-head {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--space-1);
+}
+
+.people-hero-main {
+    flex: 1;
+    min-width: 0;
+    display: grid;
+    grid-template-columns: 88px 1fr;
+    gap: var(--space-1);
+    align-items: start;
+}
+
+.people-photo {
+    width: 88px;
+    height: 104px;
+    border-radius: var(--radius-sm);
+    display: grid;
+    place-items: center;
+    font-size: 34px;
+    font-weight: 900;
+    color: var(--text-primary);
+    border: 1px solid rgba(255, 255, 255, .12);
+    background: linear-gradient(145deg, rgba(47, 174, 116, .55), rgba(16, 36, 27, .9));
+}
+
+.people-hero h2 {
+    margin: 0 0 8px;
+    font-size: 21px;
+    line-height: 1.12;
+    letter-spacing: -.02em;
+}
+
+.people-hero p {
+    margin: 0 0 10px;
+    color: var(--text-secondary);
+}
+
+.people-hero-copy {
+    min-width: 0;
+}
+
+.people-hero-copy h2 {
+    font-size: 20px;
+}
+
+.people-row-menu .danger {
+    color: #F2B3B3;
+}
+
+
+
+
+
+
+
+
+
+
+.facts-list {
+    display: grid;
+    gap: var(--space-2);
+}
+
+.fact-row {
+    border: 1px solid var(--border-default);
+    background: rgba(255, 255, 255, .025);
+    border-radius: var(--radius-sm);
+    padding: var(--space-3);
+    color: var(--text-secondary);
+}
+
+.fact-row strong {
+    display: block;
+    color: var(--text-primary);
+    margin-bottom: 4px;
+}
+
+.profile-hero {
+    --profile-hero-fact-text:
+        rgba(240, 248, 244, .76);
+    grid-column: 1 / -1;
+    position: relative;
+    isolation: isolate;
+
+    min-width: 0;
+    min-height: 178px;
+    padding: var(--space-5);
+
+    display: grid;
+    grid-template-columns:
+        minmax(0, 1fr) auto;
+    grid-template-areas:
+        "content actions";
+    align-items: center;
+    gap: var(--space-5);
+
+    overflow: hidden;
+
+    border:
+        1px solid rgba(255, 255, 255, .08);
+    border-radius: var(--radius-md);
+
+    background:
+        linear-gradient(90deg,
+            var(--brand-green-700) 0%,
+            var(--brand-green-900) 100%);
+}
+
+.profile-hero::after {
+    content: "";
+    position: absolute;
+    z-index: 0;
+    right: 200px;
+    bottom: 0;
+
+    width: 400px;
+    height: 270px;
+
+    background:
+        url("../../assets/covers/geneograph-cover-tree.png") bottom / contain no-repeat;
+
+    opacity: .26;
+    mix-blend-mode: screen;
+    filter:
+        saturate(.72) brightness(.82);
+
+    pointer-events: none;
+}
+
+.profile-hero-content {
+    grid-area: content;
+    position: relative;
+    z-index: 1;
+
+    min-width: 0;
+
+    display: grid;
+    grid-template-columns:
+        132px minmax(260px, 1fr);
+    grid-template-areas:
+        "photo identity"
+        "photo life"
+        "photo relation"
+        "photo tags";
+    align-items: start;
+    column-gap: var(--space-5);
+    row-gap: var(--space-3);
+}
+
+.profile-hero-content>.person-photo-control {
+    grid-area: photo;
+    align-self: center;
+}
+
+.profile-hero-copy {
+    grid-area: identity;
+    min-width: 0;
+}
+
+.profile-hero-copy h1 {
+    margin: 0;
+
+    overflow-wrap: anywhere;
+
+    font-size: 30px;
+    line-height: 1.1;
+    letter-spacing: -.025em;
+}
+
+.profile-hero-life {
+    grid-area: life;
+    min-width: 0;
+
+    display: grid;
+    grid-template-columns:
+        minmax(0, 1fr);
+    gap: 10px;
+}
+
+.profile-hero-life-item {
+    min-width: 0;
+
+    display: grid;
+    grid-template-columns:
+        max-content max-content minmax(0, 1fr);
+    align-items: baseline;
+    column-gap: 4px;
+    row-gap: 4px;
+}
+
+.profile-hero-life-label,
+.profile-hero-life-primary,
+.profile-hero-life-place {
+    color:
+        var(--profile-hero-fact-text);
+
+    font-size: 14px;
+    font-weight: 500;
+    line-height: 1.45;
+}
+
+.profile-hero-life-label {
+    min-width: 0;
+    white-space: nowrap;
+}
+
+.profile-hero-life-label::after {
+    content: ":";
+}
+
+.profile-hero-life-primary {
+    min-width: 0;
+
+    display: flex;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: 0;
+}
+
+.profile-hero-life-primary strong,
+.profile-hero-life-primary span {
+    color: inherit;
+    font: inherit;
+    font-size: inherit;
+    font-weight: inherit;
+    line-height: inherit;
+}
+
+.profile-hero-life-primary span::before {
+    content: " - ";
+    white-space: pre;
+}
+
+.profile-hero-life-place {
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+
+.profile-hero-life-place::before {
+    content: "-";
+    margin-right: 4px;
+}
+
+.profile-hero-relation {
+    grid-area: relation;
+
+    min-width: 0;
+    margin: 4px 0 0;
+
+    overflow-wrap: anywhere;
+
+    color: var(--text-secondary);
+
+    font-size: 13px;
+    line-height: 1.4;
+}
+
+.profile-hero-tags {
+    grid-area: tags;
+
+    min-width: 0;
+    margin-top: 2px;
+}
+
+.profile-hero-actions {
+    grid-area: actions;
+    position: relative;
+    z-index: 1;
+
+    min-width: 0;
+    padding-top: 34px;
+
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+
+    align-self: center;
+}
+
+.profile-hero-actions .button {
+    min-height: 44px;
+    white-space: nowrap;
+}
+
+.profile-back-link {
+    position: absolute;
+    z-index: 2;
+    top: var(--space-4);
+    right: var(--space-5);
+
+    min-height: 32px;
+    padding: 0;
+
+    border: 0;
+    background: transparent;
+    color: var(--text-secondary);
+
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+
+    font-weight: 600;
+}
+
+.profile-back-link-icon svg {
+    width: 16px;
+    height: 16px;
+    display: block;
+}
+
+.profile-back-link:hover {
+    color: var(--text-primary);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+}
+
+/*
+    Compact Profile hero keeps the regular hero layout.
+    Only the action buttons change into a vertical rail.
+*/
+@container people-profile (max-width: 1500px) {
+    .profile-command-hero .profile-hero-actions {
+        width: 260px;
+
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: var(--space-2);
+    }
+
+    .profile-command-hero .profile-hero-actions .button {
+        width: 100%;
+        min-width: 0;
+
+        justify-content: flex-start;
+
+        white-space: normal;
+        text-align: left;
+        line-height: 1.3;
+    }
+}
+
+/*
+    Narrow Profile hero:
+    actions move below the information and fill the width.
+*/
+@container people-profile (max-width: 760px) {
+    .profile-command-hero {
+        padding: var(--space-4);
+
+        grid-template-columns: minmax(0, 1fr);
+        grid-template-areas:
+            "navigation"
+            "content"
+            "actions";
+    }
+
+    .profile-command-hero .profile-back-link {
+        grid-area: navigation;
+        position: relative;
+        top: auto;
+        right: auto;
+
+        justify-self: start;
+    }
+
+    .profile-command-hero .profile-hero-content {
+        grid-template-columns:
+            96px minmax(0, 1fr);
+        column-gap: var(--space-4);
+    }
+
+    .profile-command-hero .profile-hero-photo {
+        --person-avatar-width: 96px;
+        --person-avatar-height: 96px;
+        --person-avatar-font-size: 30px;
+    }
+
+    .profile-command-hero .profile-hero-copy h1 {
+        font-size: 25px;
+    }
+
+    .profile-command-hero .profile-hero-life {
+        grid-template-columns: 1fr;
+        gap: var(--space-3);
+    }
+
+    .profile-command-hero .profile-hero-life-item {
+        grid-column: 1;
+    }
+
+    .profile-command-hero .profile-hero-actions {
+        width: 100%;
+    }
+
+    .profile-command-hero::after {
+        right: -100px;
+        opacity: .18;
+    }
+}
+
+@container people-profile (max-width: 520px) {
+    .profile-command-hero {
+        padding: var(--space-3);
+    }
+
+    .profile-command-hero .profile-hero-content {
+        grid-template-columns:
+            76px minmax(0, 1fr);
+        column-gap: var(--space-3);
+    }
+
+    .profile-command-hero .profile-hero-photo {
+        --person-avatar-width: 76px;
+        --person-avatar-height: 76px;
+        --person-avatar-font-size: 24px;
+    }
+
+    .profile-command-hero .profile-hero-copy h1 {
+        font-size: 22px;
+    }
+}
+
+@media (min-width: 1181px) and (max-width: 1280px) {
+    @container people-profile (min-width: 761px) {
+        .profile-command-hero .profile-hero-actions {
+            width: max-content;
+            max-width: 260px;
+            justify-self: end;
+        }
+    }
+}
+
+.profile-back-link-icon svg {
+    width: 16px;
+    height: 16px;
+    display: block;
+}
+
+.profile-back-link:hover {
+    color: var(--text-primary);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+}
+
+.profile-card,
+.profile-side-card {
+    border: 1px solid var(--border-default);
+    background: var(--surface-card);
+    border-radius: var(--radius-md);
+    overflow: hidden;
+    min-width: 0;
+}
+
+.profile-card h3,
+.profile-side-card h3 {
+    margin: 0;
+    padding: var(--space-3) var(--space-4);
+    border-bottom: 1px solid var(--border-default);
+    font-size: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
+}
+
+.profile-card h3 .section-title,
+.profile-side-card h3 .section-title {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+}
+
+.profile-card-body {
+    padding: var(--space-4);
+}
+
+@media (max-width: 1080px) {
+
+    .profile-edit-grid,
+    .profile-edit-grid.main,
+    .profile-death-fields {
+        grid-template-columns: 1fr;
+    }
+}
+
+.people-columns-button {
+    white-space: nowrap;
+    justify-content: center;
+    min-width: 110px;
+}
+
+.people-columns-button.active {
+    background: var(--surface-selected);
+    border-color: rgba(98, 217, 154, .32);
+    color: var(--brand-green-300);
+}
+
+.people-columns-popover {
+    position: fixed;
+    width: min(360px, calc(100vw - 24px));
+    z-index: 90;
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-lg);
+    background: rgba(26, 32, 31, .98);
+    box-shadow: var(--shadow-soft);
+    overflow: hidden;
+    display: grid;
+    grid-template-rows: auto minmax(0, 1fr) auto;
+}
+
+.people-columns-header {
+    padding: var(--space-4);
+    border-bottom: 1px solid var(--border-default);
+}
+
+.people-columns-header h3 {
+    margin: 0 0 4px;
+    font-size: 16px;
+}
+
+.people-columns-header p {
+    margin: 0;
+    color: var(--text-tertiary);
+    font-size: 13px;
+}
+
+.people-columns-list {
+    padding: 8px;
+    display: grid;
+    gap: 4px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-content: start;
+    overflow-y: auto;
+}
+
+.people-columns-footer {
+    border-top: 1px solid var(--border-default);
+    padding: var(--space-3);
+    display: flex;
+    justify-content: flex-end;
+}
+
+.people-columns-footer .button {
+    min-height: 36px;
+    letter-spacing: .01em;
+}
+
+.people-hero-copy h2 {
+    margin-bottom: 8px;
+}
+
+.people-hero-copy p {
+    margin-bottom: 8px;
+}
+
+@media (max-width: 1280px) {
+    .people-bulk-actions {
+        justify-content: flex-start;
+    }
+}
+
+@media (max-width: 1180px) {
+    .people-layout {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .people-person-sidebar {
+        display: none;
+    }
+}
+
+@container (max-width: 940px) {
+    .people-normal-toolbar .app-sort-trigger {
+        width: 44px;
+        padding: 0;
+        justify-content: center;
+    }
+
+    .people-normal-toolbar .app-sort-current,
+    .people-normal-toolbar .app-sort-chevron {
+        display: none;
+    }
+}
+
+@container (max-width: 800px) {
+    .people-normal-toolbar .people-filter-button {
+        width: 44px;
+        min-width: 44px;
+        padding: 0;
+    }
+
+    .people-normal-toolbar .people-filter-button > span:not(.people-filter-icon) {
+        display: none;
+    }
+}
+
+@container (max-width: 650px) {
+    .people-normal-toolbar .people-columns-button {
+        width: 44px;
+        min-width: 44px;
+        padding: 0;
+    }
+
+    .people-normal-toolbar .people-columns-button span {
+        display: none;
+    }
+}
+
+@container (max-width: 540px) {
+    .people-normal-toolbar #addPeoplePerson {
+        width: 44px;
+        min-width: 44px;
+        padding: 0;
+    }
+
+    .people-normal-toolbar #addPeoplePerson span {
+        display: none;
+    }
+}
+
+@media (max-width: 900px) {
+    .people-layout {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 900px) {
+    .people-mobile-search-trigger,
+    .people-mobile-search-close {
+        width: 40px;
+        min-width: 40px;
+        height: 40px;
+        padding: 0;
+        align-items: center;
+        justify-content: center;
+        border: 1px solid var(--border-default);
+        border-radius: var(--radius-sm);
+        background: var(--surface-card);
+        color: var(--text-primary);
+    }
+
+    .people-mobile-search-trigger {
+        display: inline-flex;
+    }
+
+    .people-normal-toolbar .people-search-field {
+        display: none;
+    }
+
+    #peopleColumnsButton {
+        display: none;
+    }
+}
+
+
+@media (max-width: 900px) {
+    .people-normal-toolbar {
+        width: 100%;
+        flex-wrap: nowrap;
+        min-width: 0;
+        gap: 6px;
+    }
+
+    .people-normal-toolbar .people-mobile-search-trigger,
+    .people-normal-toolbar .people-mobile-search-close,
+    .people-normal-toolbar .people-columns-button,
+    .people-normal-toolbar .people-filter-button,
+    .people-normal-toolbar .app-sort-trigger {
+        width: 40px;
+        min-width: 40px;
+        height: 44px;
+        padding: 0;
+    }
+
+    .people-normal-toolbar .people-mobile-search-trigger svg,
+    .people-normal-toolbar .people-mobile-search-close svg,
+    .people-normal-toolbar .people-columns-button svg,
+    .people-normal-toolbar .people-filter-button svg,
+    .people-normal-toolbar .app-sort-trigger svg,
+    .people-normal-toolbar #addPeoplePerson svg {
+        width: 18px;
+        height: 18px;
+        flex: 0 0 18px;
+        pointer-events: none;
+    }
+
+    .people-normal-toolbar .people-filter-button > *,
+    .people-normal-toolbar .people-columns-button > * {
+        pointer-events: none;
+    }
+
+    .people-normal-toolbar #addPeoplePerson {
+        flex: 0 0 auto;
+        width: auto;
+        min-width: 0;
+        height: 44px;
+        margin-left: 0;
+        padding-inline: 10px;
+        gap: 5px;
+        font-size: 13px;
+        white-space: nowrap;
+    }
+
+    .people-normal-toolbar #addPeoplePerson .people-add-person-full {
+        display: inline;
+    }
+
+    #modalBackdrop:has(.person-mobile-link-picker) {
+        padding: 8px;
+    }
+
+    .person-mobile-link-picker {
+        width: min(100%, calc(100vw - 16px));
+        height: min(760px, calc(100dvh - 16px));
+        max-height: calc(100dvh - 16px);
+    }
+
+    .people-table-wrap .people-table {
+        display: none;
+    }
+
+    .people-mobile-list {
+        display: grid;
+        gap: 8px;
+        padding: 8px;
+    }
+
+    .people-mobile-select-all {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        min-height: 36px;
+        color: var(--text-secondary);
+        font-size: 12px;
+    }
+
+    .people-mobile-row {
+        display: grid;
+        grid-template-columns: 24px 42px minmax(0, 1fr) 36px;
+        align-items: center;
+        gap: 8px;
+        min-width: 0;
+        padding: 10px;
+        border: 1px solid var(--border-default);
+        border-radius: var(--radius-sm);
+        background: var(--surface-card);
+    }
+
+    .people-mobile-row.is-previewed {
+        border-color: var(--brand-green-500);
+    }
+
+    .people-mobile-copy {
+        display: grid;
+        gap: 3px;
+        min-width: 0;
+    }
+
+    .people-mobile-copy strong {
+        overflow-wrap: anywhere;
+        white-space: normal;
+    }
+
+    .people-mobile-copy span,
+    .people-mobile-copy small {
+        color: var(--text-secondary);
+        overflow-wrap: anywhere;
+        white-space: normal;
+    }
+
+    .people-mobile-profile {
+        grid-column: 3 / 5;
+        justify-self: start;
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        min-height: 30px;
+        padding: 2px 0;
+        border: 0;
+        background: transparent;
+        color: var(--brand-green-300);
+        font: inherit;
+    }
+
+    .people-mobile-profile svg {
+        width: 16px;
+        height: 16px;
+    }
+}
+
+@media (min-width: 541px) and (max-width: 900px) {
+    .people-normal-toolbar .people-mobile-search-trigger {
+        display: none;
+    }
+
+    .people-normal-toolbar .people-search-field {
+        display: flex;
+        flex: 1 1 0;
+        width: auto;
+        min-width: 0;
+    }
+
+    .people-normal-toolbar.mobile-search-open .people-mobile-search-close {
+        display: none;
+    }
+}
+
+@media (max-width: 540px) {
+    .people-normal-toolbar {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr)) minmax(max-content, 1.55fr);
+    }
+
+    .people-normal-toolbar .people-mobile-search-trigger,
+    .people-normal-toolbar .people-filter-button,
+    .people-normal-toolbar .app-sort-field,
+    .people-normal-toolbar .app-sort-trigger,
+    .people-normal-toolbar #addPeoplePerson {
+        width: 100%;
+        min-width: 0;
+    }
+
+    .people-normal-toolbar .app-sort-field {
+        max-width: 100%;
+    }
+
+    .people-normal-toolbar.mobile-search-open {
+        grid-template-columns: minmax(0, 1fr) 44px;
+    }
+
+    .people-normal-toolbar.mobile-search-open > :not(.people-search-field, .people-mobile-search-close) {
+        display: none;
+    }
+
+    .people-normal-toolbar.mobile-search-open .people-search-field {
+        display: flex;
+        width: 100%;
+        min-width: 0;
+    }
+
+    .people-normal-toolbar.mobile-search-open .people-mobile-search-close {
+        display: inline-flex;
+        width: 100%;
+    }
+
+    .people-normal-toolbar #addPeoplePerson .people-add-person-full {
+        display: none;
+    }
+
+    .people-normal-toolbar #addPeoplePerson .people-add-person-compact {
+        display: inline;
+    }
+}
+
+@media (max-width: 540px) and (max-height: 600px) {
+    .person-mobile-link-picker .modal-header {
+        max-height: 132px;
+        overflow-y: auto;
+    }
+
+    .person-mobile-link-picker .modal-header .close-button {
+        position: sticky;
+        top: 0;
+        flex: 0 0 auto;
+    }
+}
+
+
+.profile-edit-card-state {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    min-height: 26px;
+    border-radius: 999px;
+    padding: 0 9px;
+    border: 1px solid rgba(255, 255, 255, .08);
+    background: rgba(255, 255, 255, .035);
+    color: var(--text-tertiary);
+    font-size: 12px;
+    font-weight: 900;
+    white-space: nowrap;
+}
+
+.profile-edit-card-state.editing {
+    color: var(--brand-green-300);
+    background: rgba(47, 174, 116, .12);
+    border-color: rgba(98, 217, 154, .24);
+}
+
+.profile-readonly-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: var(--space-4);
+    align-items: start;
+}
+
+.profile-info-block {
+    border: 1px solid rgba(255, 255, 255, .055);
+    background: rgba(255, 255, 255, .018);
+    border-radius: var(--radius-sm);
+    padding: var(--space-4);
+    display: grid;
+    gap: 10px;
+    min-width: 0;
+}
+
+.profile-info-block h4 {
+    margin: 0 0 2px;
+    color: var(--text-primary);
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: .08em;
+}
+
+.profile-partner-value {
+    display: grid;
+    gap: 3px;
+    min-width: 0;
+}
+
+.profile-partner-meta {
+    color: var(--text-secondary);
+    font-size: 13px;
+    line-height: 1.35;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.profile-partner-link {
+    border: 0;
+    background: transparent;
+    color: var(--text-primary);
+    padding: 0;
+    font: inherit;
+    font-weight: 900;
+    text-align: left;
+    cursor: pointer;
+    min-width: 0;
+}
+
+.profile-partner-link:hover,
+.profile-partner-link:focus-visible {
+    color: var(--brand-green-300);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    outline: none;
+}
+
+.profile-card-tabs {
+    flex: 0 0 auto;
+    display: grid;
+    grid-template-columns:
+        repeat(4, minmax(0, 1fr));
+    margin: 0;
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-sm);
+    background: var(--surface-input);
+    overflow: hidden;
+}
+
+.profile-card-tab {
+    min-width: 0;
+    min-height: 40px;
+    padding: 0 var(--space-2);
+    position: relative;
+    border: 0;
+    border-right: 1px solid var(--border-default);
+    background: transparent;
+    color: var(--text-tertiary);
+    font-weight: 900;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    cursor: pointer;
+}
+
+.profile-card-tab:last-child {
+    border-right: 0;
+}
+
+.profile-card-tab:hover,
+.profile-card-tab:focus-visible {
+    background: rgba(255, 255, 255, .035);
+    color: var(--text-primary);
+}
+
+.profile-card-tab.active {
+    background: var(--surface-card);
+    color: var(--text-primary);
+}
+
+.profile-card-tab.active::after {
+    content: "";
+    position: absolute;
+    right: 24%;
+    bottom: 5px;
+    left: 24%;
+    height: 2px;
+    border-radius: 999px;
+    background: var(--text-primary);
+}
+
+.profile-card-edit-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: var(--space-4);
+}
+
+.profile-card-edit-grid.two {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.profile-card-edit-grid .field.full {
+    grid-column: 1 / -1;
+}
+
+.people-full-profile-cta {
+    grid-column: 1 / -1;
+    justify-content: flex-start !important;
+    text-align: left !important;
+    padding-left: 16px !important;
+    min-height: 44px;
+}
+
+.person-profile .profile-main-edit-grid {
+    --profile-main-control-height: var(--control-height);
+    display: grid;
+    grid-template-columns: minmax(220px, 1fr) minmax(220px, 1fr) minmax(170px, .72fr);
+    gap: 20px 24px;
+    align-items: start;
+    width: 100%;
+    min-width: 0;
+}
+
+.person-profile .profile-main-edit-grid .field,
+.person-profile .profile-main-edit-grid .genealogy-date-field {
+    min-width: 0;
+}
+
+.person-profile .profile-main-edit-grid .field label,
+.person-profile .profile-main-edit-grid .genealogy-date-field>label {
+    display: block;
+    min-height: 18px;
+    margin-bottom: 8px;
+    color: var(--text-secondary);
+    font-weight: 800;
+    line-height: 1.2;
+}
+
+.person-profile .profile-main-edit-grid .genealogy-date-field>label {
+    margin-bottom: 0;
+}
+
+.person-profile .profile-main-edit-grid input,
+.person-profile .profile-main-edit-grid select,
+.person-profile .profile-main-edit-grid .add-person-status-button,
+.person-profile .profile-main-edit-grid .genealogy-date-type,
+.person-profile .profile-main-edit-grid .genealogy-date-input,
+.person-profile .profile-main-edit-grid .genealogy-date-details-button {
+    box-sizing: border-box;
+    width: 100%;
+    min-height: var(--profile-main-control-height);
+    height: var(--profile-main-control-height);
+    max-height: var(--profile-main-control-height);
+}
+
+.person-profile .profile-main-edit-grid .add-person-select-field,
+.person-profile .profile-main-edit-grid .profile-status-field {
+    position: relative;
+    z-index: 6;
+}
+
+.person-profile .profile-main-edit-grid .add-person-select,
+.person-profile .profile-main-edit-grid .add-person-status-button {
+    padding-right: 44px;
+}
+
+.person-profile .profile-main-edit-grid .add-person-select {
+    appearance: none;
+    -webkit-appearance: none;
+}
+
+.person-profile .profile-main-edit-grid .add-person-select-chevron,
+.person-profile .profile-main-edit-grid .add-person-status-chevron {
+    position: absolute;
+    right: 14px;
+    bottom: 0;
+    width: 20px;
+    height: var(--profile-main-control-height);
+    display: inline-grid;
+    place-items: center;
+    color: var(--text-secondary);
+    pointer-events: none;
+}
+
+.person-profile .profile-main-edit-grid .add-person-select-chevron svg,
+.person-profile .profile-main-edit-grid .add-person-status-chevron svg {
+    width: 16px;
+    height: 16px;
+    display: block;
+}
+
+.person-profile .profile-main-edit-grid .add-person-status-menu {
+    z-index: 180;
+}
+
+.person-profile .profile-main-edit-grid .genealogy-date-controls {
+    align-items: start;
+    min-width: 0;
+}
+
+.person-profile .profile-main-edit-grid .genealogy-date-inline-range {
+    --genealogy-date-type-column:
+    minmax(160px, 188px);
+
+    --genealogy-date-input-column:
+    minmax(0, 1fr);
+
+    --genealogy-date-column-gap:
+    var(--space-2);
+}
+
+.person-profile .profile-main-edit-grid .genealogy-date-details-button {
+    width: var(--control-icon-button-size);
+    min-width: var(--control-icon-button-size);
+    padding: 0;
+    place-self: start;
+}
+
+.person-profile .profile-main-edit-grid .genealogy-date-details-button svg {
+    width: 18px;
+    height: 18px;
+    display: block;
+}
+
+.person-profile .profile-field-gender {
+    grid-column: 1;
+    grid-row: 1;
+}
+
+.person-profile .profile-field-living {
+    grid-column: 2;
+    grid-row: 1;
+}
+
+.person-profile .profile-field-first {
+    grid-column: 1;
+    grid-row: 2;
+}
+
+.person-profile .profile-field-last {
+    grid-column: 2;
+    grid-row: 2;
+}
+
+.person-profile .profile-field-prefix {
+    grid-column: 3;
+    grid-row: 2;
+}
+
+.person-profile .profile-field-patronym {
+    grid-column: 1;
+    grid-row: 3;
+}
+
+.person-profile .profile-field-maiden {
+    grid-column: 2;
+    grid-row: 3;
+}
+
+.person-profile .profile-field-suffix {
+    grid-column: 3;
+    grid-row: 3;
+}
+
+.person-profile .profile-field-birth-date {
+    grid-column: 1;
+    grid-row: 4;
+}
+
+.person-profile .profile-field-birth-place {
+    grid-column: 2 / 4;
+    grid-row: 4;
+}
+
+.person-profile .profile-field-death-date {
+    grid-column: 1;
+    grid-row: 5;
+}
+
+.person-profile .profile-field-death-place {
+    grid-column: 2 / 4;
+    grid-row: 5;
+}
+
+.person-profile .profile-field-death-reason {
+    grid-column: 1;
+    grid-row: 6;
+}
+
+.person-profile .profile-field-burial-place {
+    grid-column: 2 / 4;
+    grid-row: 6;
+}
+
+.person-profile .profile-main-edit-grid.no-maiden .profile-field-maiden,
+.person-profile .profile-main-edit-grid:not(.has-maiden) .profile-field-maiden,
+.person-profile #profileInlineMaiden[hidden] {
+    display: none !important;
+}
+
+.person-profile .profile-death-fields-group {
+    display: contents;
+}
+
+.person-profile .profile-death-fields-group[hidden],
+.person-profile .profile-main-edit-grid:not(.is-deceased) .profile-field-death-date,
+.person-profile .profile-main-edit-grid:not(.is-deceased) .profile-field-death-place,
+.person-profile .profile-main-edit-grid:not(.is-deceased) .profile-field-death-reason,
+.person-profile .profile-main-edit-grid:not(.is-deceased) .profile-field-burial-place,
+.person-profile .profile-field-death-date[hidden],
+.person-profile .profile-field-death-place[hidden],
+.person-profile .profile-field-death-reason[hidden],
+.person-profile .profile-field-burial-place[hidden] {
+    display: none !important;
+}
+
+.person-profile .profile-card-edit-grid>.genealogy-date-field {
+    --genealogy-date-input-column:
+    minmax(220px, 1fr);
+}
+
+@media (max-width: 1180px) {
+    .person-profile .profile-main-edit-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .person-profile .profile-field-gender,
+    .person-profile .profile-field-living,
+    .person-profile .profile-field-first,
+    .person-profile .profile-field-last,
+    .person-profile .profile-field-prefix,
+    .person-profile .profile-field-patronym,
+    .person-profile .profile-field-maiden,
+    .person-profile .profile-field-suffix,
+    .person-profile .profile-field-birth-date,
+    .person-profile .profile-field-birth-place,
+    .person-profile .profile-field-death-date,
+    .person-profile .profile-field-death-place,
+    .person-profile .profile-field-death-reason,
+    .person-profile .profile-field-burial-place {
+        grid-column: 1;
+        grid-row: auto;
+    }
+}
+
+
+/* Profile → Other editing */
+
+.person-profile .profile-other-edit-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: start;
+}
+
+.person-profile .profile-other-religion {
+    grid-column: 1;
+    grid-row: 1;
+    min-width: 0;
+}
+
+.person-profile .profile-other-baptism-date {
+    grid-column: 2;
+    grid-row: 1;
+    min-width: 0;
+    --genealogy-date-type-column: minmax(104px, .8fr);
+    --genealogy-date-input-column: minmax(220px, 1fr);
+    --genealogy-date-column-gap: var(--space-2);
+}
+
+.person-profile .profile-other-baptism-place {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    min-width: 0;
+}
+
+.profile-edit-date-cell {
+    min-width: 0;
+}
+
+.profile-edit-date-cell .genealogy-date-field {
+    width: 100%;
+}
+
+.profile-edit-inline-actions {
+    margin-top: var(--space-4);
+    padding-top: var(--space-4);
+    border-top: 1px solid var(--border-default);
+    display: flex;
+    justify-content: flex-end;
+    gap: var(--space-2);
+}
+
+@media (max-width: 900px) {
+    .person-profile .profile-other-edit-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .person-profile .profile-other-religion,
+    .person-profile .profile-other-baptism-date,
+    .person-profile .profile-other-baptism-place {
+        grid-column: 1;
+        grid-row: auto;
+    }
+
+}
+

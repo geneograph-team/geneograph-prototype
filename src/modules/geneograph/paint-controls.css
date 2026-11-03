@@ -1,0 +1,802 @@
+/* Canonical Geneograph paint controls */
+.geneo-paint-row {
+    min-width: 0;
+    display: grid;
+    gap: 6px;
+}
+
+.geneo-paint-row-heading {
+    min-width: 0;
+    min-height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+}
+
+.geneo-paint-heading-copy {
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+}
+
+.geneo-paint-label {
+    min-width: 0;
+    overflow: hidden;
+    color: var(--text-secondary);
+    font-size: 12px;
+    font-weight: 700;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.geneo-paint-state {
+    flex: 0 0 auto;
+    padding: 2px 6px;
+    border: 1px solid var(--border-default);
+    border-radius: 999px;
+    background: rgba(255, 255, 255, .025);
+    color: var(--text-tertiary);
+    font-size: 10px;
+    font-weight: 800;
+    line-height: 1.2;
+}
+
+.geneo-paint-state[hidden] {
+    display: none;
+}
+
+.geneo-paint-controls {
+    min-width: 0;
+    display: grid;
+    grid-template-columns: 36px minmax(0, 1fr) 72px;
+    gap: 8px;
+    align-items: center;
+}
+
+.geneo-paint-controls.is-color-only {
+    grid-template-columns: 36px minmax(0, 1fr);
+}
+
+.geneo-paint-swatch,
+.geneo-paint-suggestions button {
+    position: relative;
+    overflow: hidden;
+    padding: 0;
+    border: 1px solid var(--border-strong);
+    background:
+        conic-gradient(#8A9692 25%,
+            #505B57 0 50%,
+            #8A9692 0 75%,
+            #505B57 0) 0 0 / 8px 8px;
+}
+
+.geneo-paint-swatch {
+    width: 36px;
+    height: 36px;
+    border-radius: 7px;
+}
+
+.geneo-paint-swatch>span {
+    position: absolute;
+    z-index: 1;
+    inset: 0;
+    background: var(--geneo-paint-rendered);
+}
+
+.geneo-paint-swatch:hover:not(:disabled) {
+    border-color: var(--brand-green-300);
+}
+
+.geneo-paint-swatch:disabled {
+    opacity: 1;
+    cursor: default;
+}
+
+.geneo-paint-row.is-none .geneo-paint-swatch>span {
+    opacity: .14;
+}
+
+.geneo-paint-row.is-none .geneo-paint-swatch::after {
+    content: "";
+    position: absolute;
+    z-index: 2;
+    top: 50%;
+    left: 50%;
+    width: 46px;
+    height: 2px;
+    border-radius: 999px;
+    background: var(--red);
+    box-shadow: 0 0 0 1px rgba(7, 16, 13, .55);
+    transform: translate(-50%, -50%) rotate(-45deg);
+    pointer-events: none;
+}
+
+.geneo-paint-swatch:focus-visible,
+.geneo-paint-action:focus-visible,
+.geneo-paint-popover button:focus-visible,
+.geneo-paint-popover input:focus-visible,
+.geneo-paint-sv:focus-visible {
+    outline: 2px solid var(--brand-green-300);
+    outline-offset: 2px;
+}
+
+.geneo-paint-hex,
+.geneo-paint-opacity-number input,
+.geneo-paint-popover-fields input {
+    min-width: 0;
+    width: 100%;
+    height: 36px;
+    border: 1px solid var(--border-default);
+    border-radius: 7px;
+    background: rgba(255, 255, 255, .025);
+    color: var(--text-primary);
+    padding: 0 10px;
+    font: inherit;
+    font-size: 12px;
+    font-variant-numeric: tabular-nums;
+    outline: 0;
+}
+
+.geneo-paint-hex:focus,
+.geneo-paint-opacity-number input:focus,
+.geneo-paint-popover-fields input:focus {
+    border-color: var(--brand-green-300);
+}
+
+.geneo-paint-hex.invalid,
+.geneo-paint-popover-fields input.invalid {
+    border-color: var(--red);
+    box-shadow:
+        0 0 0 1px color-mix(in srgb, var(--red) 45%, transparent);
+}
+
+.geneo-paint-opacity-number,
+.geneo-paint-percent-input {
+    min-width: 0;
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.geneo-paint-opacity-number input,
+.geneo-paint-percent-input input {
+    padding-right: 24px;
+}
+
+.geneo-paint-opacity-number>span,
+.geneo-paint-percent-input>span:last-child {
+    position: absolute;
+    right: 8px;
+    color: var(--text-tertiary);
+    font-size: 11px;
+    pointer-events: none;
+}
+
+.geneo-paint-action {
+    flex: 0 0 auto;
+    min-height: 26px;
+    padding: 0 7px;
+    border: 1px solid transparent;
+    border-radius: 6px;
+    background: transparent;
+    color: var(--text-tertiary);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    font-weight: 800;
+    line-height: 1;
+    white-space: nowrap;
+}
+
+.geneo-paint-action:hover {
+    border-color: var(--border-default);
+    background: var(--surface-card-hover);
+    color: var(--text-primary);
+}
+
+.geneo-paint-row.is-none .geneo-paint-action {
+    color: var(--brand-green-300);
+}
+
+.geneo-paint-row input:disabled {
+    opacity: .5;
+    cursor: not-allowed;
+}
+
+.geneo-appearance-group {
+    min-width: 0;
+    display: grid;
+    gap: 9px;
+}
+
+.geneo-appearance-group+.geneo-appearance-group {
+    padding-top: 13px;
+}
+
+.geneo-node-radius-row {
+    margin-top: 13px;
+}
+
+.geneo-rich-text-inspector-preview[role="button"] {
+    cursor: text;
+    border-radius: var(--radius-sm);
+}
+
+.geneo-rich-text-inspector-preview[role="button"]:hover {
+    background: var(--surface-card-hover);
+}
+
+.geneo-rich-text-inspector-preview[role="button"]:focus-visible {
+    outline: 2px solid var(--brand-green-300);
+    outline-offset: 2px;
+}
+
+.geneo-appearance-subfield {
+    min-width: 0;
+    margin-left: 0;
+}
+
+.common-select.geneo-pattern-select:disabled,
+.common-select.geneo-pattern-select:disabled:hover {
+    border-color: var(--border-default);
+    background: var(--surface-input);
+    color: var(--text-tertiary);
+    opacity: .55;
+    cursor: not-allowed;
+}
+
+.geneo-pattern-select:disabled+.common-select-chevron {
+    opacity: .45;
+}
+
+.geneo-paint-popover {
+    position: fixed;
+    z-index: 1007;
+    max-width: calc(100vw - 16px);
+    overflow: auto;
+    border: 1px solid var(--border-strong);
+    border-radius: 8px;
+    background: var(--surface-sidebar);
+    color: var(--text-primary);
+    box-shadow: 0 18px 46px rgba(0, 0, 0, .46);
+    animation: geneo-paint-open 110ms ease-out;
+}
+
+@keyframes geneo-paint-open {
+    from {
+        opacity: 0;
+        transform: translateY(3px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.geneo-paint-popover-header {
+    position: sticky;
+    z-index: 2;
+    top: 0;
+    min-height: 42px;
+    padding: 0 8px 0 12px;
+    border-bottom: 1px solid var(--border-default);
+    background: var(--surface-sidebar);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.geneo-paint-popover-header strong {
+    font-size: 13px;
+}
+
+.geneo-paint-popover-header button {
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    border: 0;
+    border-radius: 6px;
+    background: transparent;
+    color: var(--text-secondary);
+    display: grid;
+    place-items: center;
+}
+
+.geneo-paint-popover-header button:hover {
+    background: var(--surface-card-hover);
+    color: var(--text-primary);
+}
+
+.geneo-paint-popover-header svg {
+    width: 16px;
+    height: 16px;
+    display: block;
+}
+
+.geneo-paint-popover-body {
+    padding: 12px;
+    display: grid;
+    gap: 12px;
+}
+
+.geneo-paint-sv {
+    position: relative;
+    width: 100%;
+    height: 150px;
+    border: 1px solid rgba(255, 255, 255, .18);
+    border-radius: 7px;
+    overflow: hidden;
+    cursor: crosshair;
+    background:
+        linear-gradient(to top, #000, transparent),
+        linear-gradient(to right, #fff, transparent),
+        hsl(var(--geneo-hue) 100% 50%);
+    touch-action: none;
+}
+
+.geneo-paint-sv>span {
+    position: absolute;
+    width: 14px;
+    height: 14px;
+    border: 2px solid #fff;
+    border-radius: 50%;
+    box-shadow: 0 0 0 1px #07100D, 0 2px 6px rgba(0, 0, 0, .45);
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+}
+
+.geneo-paint-popover.is-none .geneo-paint-sv {
+    opacity: .48;
+    cursor: not-allowed;
+}
+
+.geneo-paint-slider-row {
+    display: grid;
+    grid-template-columns: 54px minmax(0, 1fr);
+    gap: 10px;
+    align-items: center;
+    color: var(--text-secondary);
+    font-size: 12px;
+    font-weight: 800;
+}
+
+.geneo-paint-slider-row input[type="range"] {
+    appearance: none;
+    width: 100%;
+    height: 14px;
+    margin: 0;
+    border: 1px solid rgba(255, 255, 255, .16);
+    border-radius: 999px;
+    background: linear-gradient(to right, #F00, #FF0, #0F0, #0FF, #00F, #F0F, #F00);
+}
+
+.geneo-paint-slider-row input[type="range"]::-webkit-slider-thumb {
+    appearance: none;
+    width: 16px;
+    height: 16px;
+    border: 2px solid #fff;
+    border-radius: 50%;
+    background: #101817;
+    box-shadow: 0 1px 5px rgba(0, 0, 0, .5);
+}
+
+.geneo-paint-slider-row input[type="range"]::-moz-range-thumb {
+    width: 13px;
+    height: 13px;
+    border: 2px solid #fff;
+    border-radius: 50%;
+    background: #101817;
+    box-shadow: 0 1px 5px rgba(0, 0, 0, .5);
+}
+
+.geneo-paint-slider-row input[type="range"].geneo-paint-alpha {
+    --geneo-paint-opacity: 100%;
+    --geneo-alpha-preview:
+        color-mix(in srgb,
+            var(--geneo-paint-color) var(--geneo-paint-opacity),
+            transparent);
+
+    background:
+        linear-gradient(to right,
+            transparent,
+            var(--geneo-paint-color)),
+        conic-gradient(#8A9692 25%,
+            #505B57 0 50%,
+            #8A9692 0 75%,
+            #505B57 0) 0 0 / 8px 8px;
+}
+
+.geneo-paint-slider-row input[type="range"].geneo-paint-alpha::-webkit-slider-thumb {
+    width: 18px;
+    height: 18px;
+    border: 2px solid #fff;
+    border-radius: 50%;
+    background:
+        linear-gradient(var(--geneo-alpha-preview),
+            var(--geneo-alpha-preview)),
+        conic-gradient(#8A9692 25%,
+            #505B57 0 50%,
+            #8A9692 0 75%,
+            #505B57 0) 0 0 / 6px 6px;
+    box-shadow:
+        0 0 0 1px rgba(7, 16, 13, .75),
+        0 2px 6px rgba(0, 0, 0, .5);
+}
+
+.geneo-paint-slider-row input[type="range"].geneo-paint-alpha::-moz-range-thumb {
+    width: 14px;
+    height: 14px;
+    border: 2px solid #fff;
+    border-radius: 50%;
+    background:
+        linear-gradient(var(--geneo-alpha-preview),
+            var(--geneo-alpha-preview)),
+        conic-gradient(#8A9692 25%,
+            #505B57 0 50%,
+            #8A9692 0 75%,
+            #505B57 0) 0 0 / 6px 6px;
+    box-shadow:
+        0 0 0 1px rgba(7, 16, 13, .75),
+        0 2px 6px rgba(0, 0, 0, .5);
+}
+
+.geneo-paint-popover-fields {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 96px;
+    gap: 10px;
+}
+
+.geneo-paint-popover-fields label {
+    min-width: 0;
+    display: grid;
+    gap: 5px;
+    color: var(--text-secondary);
+    font-size: 11px;
+    font-weight: 800;
+}
+
+.geneo-paint-suggestions {
+    display: grid;
+    grid-template-columns: repeat(8, minmax(0, 1fr));
+    gap: 6px;
+}
+
+.geneo-paint-suggestions button {
+    min-width: 0;
+    min-height: 30px;
+    aspect-ratio: 1;
+    border-radius: 6px;
+}
+
+.geneo-paint-suggestions button::after {
+    content: "";
+    position: absolute;
+    z-index: 0;
+    inset: 0;
+    background: var(--geneo-suggestion);
+}
+
+.geneo-paint-suggestions button::before {
+    content: "✓";
+    position: absolute;
+    z-index: 1;
+    inset: 0;
+    color: #fff;
+    display: grid;
+    place-items: center;
+    font-size: 13px;
+    font-weight: 900;
+    line-height: 1;
+    text-shadow:
+        0 1px 2px rgba(0, 0, 0, .9),
+        0 0 4px rgba(0, 0, 0, .55);
+    opacity: 0;
+    transform: scale(.78);
+    transition:
+        opacity var(--ease),
+        transform var(--ease);
+}
+
+.geneo-paint-suggestions button[aria-pressed="true"] {
+    border-color: var(--brand-green-300);
+    box-shadow:
+        inset 0 0 0 2px rgba(15, 20, 19, .78),
+        0 0 0 1px var(--brand-green-300);
+}
+
+.geneo-paint-suggestions button[aria-pressed="true"]::before {
+    opacity: 1;
+    transform: scale(1);
+}
+
+.geneo-paint-suggestions button:hover {
+    border-color: #fff;
+    transform: translateY(-1px);
+}
+
+.geneo-paint-suggestions button:disabled {
+    opacity: .45;
+    transform: none;
+    cursor: not-allowed;
+}
+
+.geneo-paint-popover-footer {
+    padding-top: 12px;
+    border-top: 1px solid var(--border-default);
+}
+
+.geneo-paint-none {
+    width: 100%;
+    min-height: 34px;
+    border: 1px solid var(--border-default);
+    border-radius: 6px;
+    background: transparent;
+    color: var(--text-secondary);
+    font-weight: 800;
+}
+
+.geneo-paint-none:hover {
+    background: var(--surface-card-hover);
+    color: var(--text-primary);
+}
+
+.geneo-contrast-warning {
+    margin: 0;
+    padding: 8px 9px;
+    border: 1px solid rgba(212, 170, 107, .28);
+    border-radius: 6px;
+    background: rgba(212, 170, 107, .08);
+    color: #E4C797;
+    display: grid;
+    grid-template-columns: 16px minmax(0, 1fr);
+    gap: 7px;
+    align-items: start;
+    font-size: 11px;
+    line-height: 1.4;
+}
+
+.geneo-contrast-warning[hidden] {
+    display: none;
+}
+
+.geneo-contrast-warning svg {
+    width: 16px;
+    height: 16px;
+}
+
+.geneo-layer-paint-status {
+    flex: 0 0 auto;
+    color: var(--text-tertiary);
+    font-size: 10px;
+    font-weight: 800;
+}
+
+.geneo-layer-paint-status svg { width: 12px; height: 12px; vertical-align: -2px; margin-right: 3px; }
+
+.geneo-layer-paint-status[hidden] {
+    display: none;
+}
+
+@media (max-width:480px) {
+    .geneo-paint-controls {
+        grid-template-columns: 36px minmax(0, 1fr) 68px;
+        gap: 7px;
+    }
+
+    .geneo-paint-controls.is-color-only {
+        grid-template-columns: 36px minmax(0, 1fr);
+    }
+
+    .geneo-paint-suggestions {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+
+    .geneo-paint-suggestions button {
+        min-height: 34px;
+    }
+
+    .geneo-paint-sv {
+        height: 132px;
+    }
+}
+
+.geneo-layer-panel {
+    min-width: 0;
+}
+
+.geneo-layer-panel-head {
+    display: grid;
+    grid-template-columns: 24px minmax(0, 1fr);
+    align-items: center;
+    padding-left: calc(var(--layer-depth, 0) * 18px);
+}
+
+.geneo-layer-panel-head .geneo-layer-row {
+    min-width: 0;
+    padding-left: 7px;
+}
+
+.geneo-layer-disclosure {
+    width: 24px;
+    height: 28px;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: var(--text-tertiary);
+    display: grid;
+    place-items: center;
+}
+
+.geneo-layer-disclosure svg {
+    width: 14px;
+    height: 14px;
+    transform: rotate(-90deg);
+    transition: transform var(--ease);
+}
+
+.geneo-layer-disclosure[aria-expanded="false"] svg {
+    transform: rotate(90deg);
+}
+
+.geneo-layer-row {
+    padding-left: calc(31px + var(--layer-depth, 0) * 18px);
+}
+
+.geneo-person-picker {
+    display: grid;
+    grid-template-columns:
+        repeat(auto-fill, minmax(150px, 1fr));
+    gap: 12px;
+    max-height: 480px;
+    overflow: auto;
+}
+
+.geneo-person-picker>button {
+    min-width: 0;
+    border: 1px solid var(--border-default);
+    background: var(--surface-card);
+    color: var(--text-primary);
+    border-radius: 8px;
+    padding: 10px;
+    display: grid;
+    grid-template-columns: 44px minmax(0, 1fr);
+    align-items: center;
+    gap: 8px;
+    text-align: left;
+}
+
+.geneo-person-picker>button:hover {
+    border-color: var(--brand-green-300);
+    background: var(--surface-card-hover);
+}
+
+.geneo-person-picker small {
+    display: block;
+    margin-top: 3px;
+    color: var(--text-tertiary);
+}
+
+.geneo-image-picker>button,
+.geneo-person-picker>button {
+    min-width: 0;
+    border: 1px solid var(--border-default);
+    background: var(--surface-card);
+    color: var(--text-primary);
+    border-radius: 8px;
+    padding: 10px;
+    display: grid;
+    gap: 8px;
+    text-align: left;
+}
+
+.geneo-image-picker>button:hover,
+.geneo-person-picker>button:hover {
+    border-color: var(--brand-green-300);
+    background: var(--surface-card-hover);
+}
+
+.geneo-person-picker>button {
+    grid-template-columns: 44px minmax(0, 1fr);
+    align-items: center;
+}
+
+.geneo-person-picker small {
+    display: block;
+    margin-top: 3px;
+    color: var(--text-tertiary);
+}
+
+@media (max-width: 900px) {
+    .geneo-editor-main,
+    .geneo-editor-main.inspector-collapsed {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .geneo-inspector {
+        position: absolute;
+        z-index: 50;
+        right: 0;
+        top: 0;
+        bottom: 0;
+        width: min(var(--inspector-width), 90vw);
+        min-width: 0;
+        box-shadow: -14px 0 36px rgba(0, 0, 0, .35);
+    }
+
+    .geneo-inspector.collapsed {
+        width: var(--inspector-collapsed-width);
+        min-width: var(--inspector-collapsed-width);
+    }
+}
+@media (max-width: 980px) {
+    body.mobile-details-open .geneo-editor-main .geneo-inspector {
+        padding-top: 0 !important;
+    }
+
+    body.mobile-details-open .geneo-inspector-header {
+        padding-right: 72px;
+    }
+
+    body.mobile-details-open:has(.geneo-inspector) #mobileDetailsClose {
+        top: 16px;
+        right: 16px;
+        width: 40px;
+        height: 40px;
+        min-height: 40px;
+        padding: 0;
+        justify-content: center;
+    }
+
+    body.mobile-details-open:has(.geneo-inspector) #mobileDetailsClose span {
+        display: none;
+    }
+}
+
+
+@media (min-width: 1180px) and (max-width: 1400px) {
+    .geneo-editor-toolbar:is([data-toolbar-density="narrow"], [data-toolbar-density="minimal"]) .geneo-tool-group .geneo-tool.active .geneo-tool-label {
+        display: none;
+    }
+
+    .geneo-editor-toolbar:is([data-toolbar-density="narrow"], [data-toolbar-density="minimal"]) .geneo-tool-group .geneo-tool.active {
+        width: 38px;
+        flex-basis: 38px;
+        padding: 0;
+        gap: 0;
+    }
+
+    .geneo-editor-toolbar:is([data-toolbar-density="narrow"], [data-toolbar-density="minimal"]) .geneo-tool-group {
+        width: 126px;
+        flex-basis: 126px;
+    }
+}
+
+.geneo-node.geneo-shadow-off,
+.geneo-node.geneo-shadow-off.has-paper-fill:hover {
+    box-shadow: none;
+}
+
+.geneo-node.geneo-shadow-off:is(.selected, :focus-visible),
+.geneo-node.geneo-shadow-off.has-paper-fill:is(.selected, :focus-visible) {
+    box-shadow: 0 0 0 2px var(--brand-green-300);
+}
+
+.geneo-node-text.geneo-shadow-on,
+.geneo-node-sticky.geneo-shadow-on:not(.has-paper-fill) {
+    box-shadow: 0 10px 28px rgba(0, 0, 0, .22);
+}
+
+.geneo-node-text.geneo-shadow-on:is(.selected, :focus-visible),
+.geneo-node-sticky.geneo-shadow-on:not(.has-paper-fill):is(.selected, :focus-visible) {
+    box-shadow: 0 0 0 2px var(--brand-green-300), 0 14px 34px rgba(0, 0, 0, .3);
+}
+
+.geneo-node-shape.geneo-shadow-on .geneo-shape-svg,
+.geneo-node-drawing.geneo-shadow-on .geneo-drawing-svg {
+    filter: drop-shadow(0 8px 10px rgba(0, 0, 0, .3));
+}

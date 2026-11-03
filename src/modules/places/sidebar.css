@@ -1,0 +1,386 @@
+.places-nav .badge {
+    margin-left: auto;
+}
+
+/*
+* Category contents sit four pixels below their labels.
+* Section-to-section spacing is handled above.
+*/
+
+.places-sidebar {
+    height: 100%;
+    min-height: 0;
+
+    padding-bottom:
+        var(--space-4);
+
+    display: flex;
+    flex-direction: column;
+
+    /*
+    * Match Albums section spacing.
+    */
+    gap:
+        var(--space-5);
+}
+
+.places-sidebar-section {
+    min-width: 0;
+}
+
+/*
+* The shared .side-section-title already supplies the same
+* title-to-content margin used by Albums.
+*/
+.places-sidebar .side-section-title {
+    margin:
+        var(--space-1) 0 var(--space-2);
+}
+
+.places-sidebar .places-country-tree {
+    margin: 0;
+    display: grid;
+    gap: 4px;
+}
+
+
+.places-country-group {
+    min-width: 0;
+}
+
+/* Country disclosure row */
+.places-country-row {
+    width: 100%;
+    min-width: 0;
+    min-height: 38px;
+    padding: 7px 8px;
+    border: 1px solid transparent;
+    border-radius: var(--radius-sm);
+    display: grid;
+    grid-template-columns:
+        minmax(0, 1fr) 18px;
+    align-items: center;
+    gap: var(--space-2);
+    background: transparent;
+    color: var(--text-secondary);
+    text-align: left;
+    cursor: pointer;
+    transition:
+        background var(--ease),
+        border-color var(--ease),
+        color var(--ease);
+}
+
+.places-country-row:hover {
+    background: rgba(255, 255, 255, .035);
+    color: var(--text-primary);
+}
+
+.places-country-row:focus-visible {
+    outline:
+        2px solid var(--brand-green-300);
+    outline-offset: 2px;
+}
+
+.places-country-row svg {
+    width: 16px;
+    height: 16px;
+
+    transition:
+        transform var(--ease);
+}
+
+.places-country-row[aria-expanded="true"] svg {
+    transform: rotate(90deg);
+}
+
+.places-country-row span {
+    min-width: 0;
+
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.places-country-children {
+    display: grid;
+    gap: 2px;
+
+    padding-left: 18px;
+}
+
+.places-country-children[hidden] {
+    display: none;
+}
+
+/*
+* Places and collections now follow the Albums sidebar-row pattern:
+* one wrapper owns the hover and active background, while the main
+* action and More action remain separate buttons inside that wrapper.
+*/
+.places-country-place {
+    width: 100%;
+    min-width: 0;
+    min-height: 44px;
+
+    display: flex;
+    align-items: center;
+
+    border:
+        1px solid transparent;
+
+    border-radius:
+        var(--radius-sm);
+
+    overflow: hidden;
+
+    transition:
+        background var(--ease),
+        border-color var(--ease),
+        color var(--ease);
+}
+
+.places-country-place:hover,
+.places-country-place:focus-within {
+    background:
+        rgba(255, 255, 255, .035);
+}
+
+.places-country-place.active {
+    background:
+        var(--surface-selected);
+
+    border-color:
+        rgba(98, 217, 154, .12);
+}
+
+/* Main place and collection actions */
+.places-country-place>button:first-child {
+    min-width: 0;
+    min-height: 42px;
+    flex: 1 1 auto;
+    padding:
+        0 var(--space-3);
+    border: 0;
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    background: transparent;
+    color: var(--text-secondary);
+    text-align: left;
+    font-weight: 400;
+    letter-spacing: .03em;
+    cursor: pointer;
+}
+
+.places-country-place>button:first-child:hover,
+.places-collection-link:hover {
+    color: var(--text-primary);
+}
+
+.places-country-place.active>button:first-child {
+    color: var(--text-primary);
+}
+
+.places-country-place>button:first-child svg {
+    width: 19px;
+    height: 19px;
+    flex: 0 0 19px;
+
+    color: var(--text-tertiary);
+}
+
+.places-country-place.active>button:first-child svg {
+    color: var(--brand-green-300);
+}
+
+.places-country-place span {
+    min-width: 0;
+
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/*
+* More is visually contained by the row, matching Albums.
+*/
+.places-row-more {
+    width: 34px;
+    height: 34px;
+    min-width: 34px;
+    flex: 0 0 34px;
+
+    margin: 0;
+
+    padding: 0;
+
+    border:
+        1px solid transparent;
+
+    border-radius:
+        var(--radius-sm);
+
+    display: inline-grid;
+    place-items: center;
+
+    background: transparent;
+    color: var(--text-tertiary);
+
+    line-height: 0;
+    opacity: 1;
+    cursor: pointer;
+
+    transition:
+        opacity var(--ease),
+        background var(--ease),
+        border-color var(--ease),
+        color var(--ease);
+}
+
+.places-row-more:hover,
+.places-row-more:focus-visible {
+    background:
+        var(--surface-card-hover);
+
+    border-color:
+        var(--border-default);
+
+    color:
+        var(--text-primary);
+}
+
+.places-row-more:focus-visible {
+    outline:
+        2px solid var(--brand-green-300);
+
+    outline-offset: -2px;
+}
+
+.places-row-more svg {
+    width: 17px;
+    height: 17px;
+    display: block;
+}
+
+.places-country-place .places-row-more {
+    margin-right: var(--space-2);
+    opacity: 0;
+}
+
+.places-list-row .places-row-more {
+    justify-self: center;
+}
+
+.places-country-place:hover .places-row-more,
+.places-country-place:focus-within .places-row-more,
+.places-country-place.active .places-row-more {
+    opacity: 1;
+}
+
+.places-sidebar-empty {
+    margin:
+        var(--space-1) var(--space-2) var(--space-3);
+}
+
+.places-page {
+    height: 100%;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    background: var(--surface-base);
+}
+
+.places-page-head {
+    flex: 0 0 auto;
+
+    padding:
+        var(--space-6) var(--space-6) var(--space-4);
+
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: var(--space-5);
+}
+
+.places-title {
+    min-width: 0;
+}
+
+.places-title p {
+    margin: 0;
+
+    color:
+        var(--text-tertiary);
+
+    font-size: 15px;
+    font-weight: 700;
+}
+
+.places-header-actions {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    flex-wrap: wrap;
+}
+
+/* Places saved-filter UI reuses People filter components. */
+
+.places-filterbar {
+    margin:
+        0 var(--space-6) var(--space-3);
+}
+
+.places-filter-popover {
+    width:
+        min(560px,
+            calc(100vw - 24px));
+
+    max-height:
+        calc(100vh - 24px);
+
+    overflow-y:
+        auto;
+}
+
+.places-filter-popover>.people-filter-grid {
+    padding:
+        var(--space-4);
+}
+
+.places-filter-error {
+    margin:
+        0;
+
+    padding:
+        0 var(--space-4) var(--space-3);
+
+    color:
+        var(--red);
+
+    font-size:
+        13px;
+
+    font-weight:
+        700;
+}
+
+.places-filter-error[hidden] {
+    display:
+        none;
+}
+
+.places-saved-filter-list {
+    display:
+        grid;
+
+    gap:
+        4px;
+}
+
+.places-saved-filter-modal {
+    width:
+        min(720px,
+            calc(100vw - 32px));
+}
+

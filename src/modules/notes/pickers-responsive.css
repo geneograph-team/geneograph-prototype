@@ -1,0 +1,126 @@
+/* Notes pickers and responsive views. */
+.notes-place-new-short,
+.notes-picker-label-short {
+    display: none;
+}
+
+@media (max-width: 900px) {
+    .notes-people-modal .photo-people-selected-chip {
+        min-height: 52px;
+        padding: 6px 10px;
+        gap: 8px;
+        border-color: rgba(98, 217, 154, .35);
+        background: var(--surface-selected);
+    }
+
+    .notes-people-modal .photo-people-selected-name {
+        font-size: 13px;
+    }
+
+    .notes-people-modal .photo-people-result {
+        min-height: 64px;
+        padding: 8px 10px;
+        grid-template-columns: 36px minmax(0, 1fr) 20px;
+        gap: 10px;
+    }
+
+    .notes-people-modal .photo-people-result-avatar {
+        width: 36px;
+        height: 36px;
+    }
+
+    .notes-people-modal .photo-people-selected-panel {
+        display: flex;
+        flex-direction: column;
+        flex: 0 0 auto;
+        max-height: min(36%, 180px);
+        overflow: hidden;
+    }
+
+    .notes-people-modal .photo-people-selected-list {
+        min-height: 0;
+        max-height: none;
+        overflow-y: auto;
+    }
+
+    .notes-places-modal .photo-people-search-field {
+        position: relative;
+    }
+
+    .notes-places-modal .notes-place-search-label {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        margin: -1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        white-space: nowrap;
+        border: 0;
+    }
+
+    .notes-places-modal .notes-place-search-toolbar,
+    #modalBackdrop .note-link-picker-modal .notes-related-toolbar {
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 8px;
+    }
+
+    .notes-places-modal .notes-place-search-toolbar .search-input,
+    .note-link-picker-modal .notes-related-toolbar .app-search-field {
+        width: 100%;
+        min-width: 0;
+    }
+
+    .notes-places-modal .notes-place-search-toolbar > .button,
+    .note-link-picker-modal .note-link-picker-toolbar-actions .button,
+    .note-link-picker-modal .notes-related-archived-toggle {
+        min-height: 44px;
+        padding-inline: 10px;
+        white-space: nowrap;
+    }
+
+    .note-link-picker-modal .note-link-picker-toolbar-actions {
+        width: auto;
+        flex-wrap: nowrap;
+    }
+}
+
+@media (max-width: 540px) {
+    .notes-places-modal .notes-place-search-toolbar > .button {
+        width: auto;
+    }
+
+    .notes-place-new-full,
+    .notes-picker-label-full {
+        display: none;
+    }
+
+    .notes-place-new-short,
+    .notes-picker-label-short {
+        display: inline;
+    }
+}
+
+@media (max-width: 540px) and (max-height: 600px) {
+    .notes-people-modal .photo-people-selected-panel {
+        max-height: min(34%, 132px);
+    }
+}
+
+@media (max-width: 400px) {
+    .notes-editor-header {
+        padding: 12px;
+    }
+
+    .notes-title-input {
+        font-size: 20px;
+    }
+
+    .notes-row-title {
+        display: -webkit-box;
+        -webkit-box-orient: vertical;
+        -webkit-line-clamp: 2;
+        white-space: normal;
+        overflow-wrap: anywhere;
+    }
+}

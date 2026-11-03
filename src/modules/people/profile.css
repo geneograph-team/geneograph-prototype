@@ -1,0 +1,958 @@
+/* =========================================================
+    People Profile — canonical component styles
+    ========================================================= */
+
+/* Profile page layout */
+
+.main.people-profile-main {
+    min-height: 0;
+    overflow: auto;
+}
+
+.person-profile {
+    --profile-primary-card-min-h: 408px;
+
+    --profile-connected-card-h: 276px;
+    --profile-connected-grid-h:
+        calc(var(--profile-connected-card-h) + var(--profile-connected-card-h) + var(--space-4));
+    container-name: people-profile;
+    container-type: inline-size;
+    min-height: 100%;
+    height: auto;
+    box-sizing: border-box;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto auto auto;
+    align-items: start;
+    gap: var(--space-4);
+    padding: 24px 28px 36px;
+    background: var(--surface-main);
+    overflow: visible;
+}
+
+.person-profile .profile-command-hero,
+.person-profile__top,
+.person-profile__bottom {
+    grid-column: 1 / -1;
+    min-width: 0;
+}
+
+.person-profile__top,
+.person-profile__bottom {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 390px;
+    align-items: stretch;
+    gap: var(--space-4);
+}
+
+.person-profile .profile-command-hero,
+.person-profile .profile-full-card,
+.person-profile .profile-family-slot,
+.person-profile .profile-connected-cube,
+.person-profile .profile-compact-timeline {
+    grid-area: auto;
+}
+
+/* Main Profile card */
+
+.person-profile .profile-full-card {
+    width: 100%;
+    min-width: 0;
+    height: var(--profile-primary-card-min-h);
+    min-height:
+        var(--profile-primary-card-min-h);
+    max-height: var(--profile-primary-card-min-h);
+    align-self: stretch;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+/* Keep repeated entries within the profile card in both modes. */
+.person-profile .profile-full-card.editing {
+    position: relative;
+    z-index: 20;
+    overflow: hidden;
+}
+
+.person-profile .profile-full-card .profile-card-body {
+    flex: 1 1 auto;
+    min-width: 0;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+    overflow: hidden;
+}
+
+/* Panels share a fixed viewport; each active panel scrolls independently. */
+.profile-card-panel-stack {
+    flex: 1 1 auto;
+    min-width: 0;
+    min-height: 0;
+    display: grid;
+    align-items: stretch;
+    overflow: hidden;
+}
+
+.profile-card-panel {
+    grid-area: 1 / 1;
+    min-width: 0;
+    align-self: stretch;
+    height: 100%;
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    visibility: hidden;
+    pointer-events: none;
+    user-select: none;
+    z-index: 0;
+}
+
+.profile-card-panel.active {
+    visibility: visible;
+    pointer-events: auto;
+    user-select: auto;
+    z-index: 1;
+}
+
+/* Read-only information grids */
+
+.repeatable-fact-entry {
+    min-width: 0;
+    padding: 16px 0;
+    container-type: inline-size;
+}
+.add-person-modal .repeatable-fact-entry {
+    padding: var(--space-5);
+}
+.add-person-modal .repeatable-fact-entry-head { margin-bottom: 0; }
+.repeatable-fact-list > [data-repeat-entries] {
+    display: grid;
+    gap: var(--space-4);
+}
+.person-profile .repeatable-fact-list > [data-repeat-entries] { gap: 0; }
+.person-profile .repeatable-fact-entry + .repeatable-fact-entry,
+.repeatable-fact-summary + .repeatable-fact-summary {
+    border-top: 1px solid var(--border);
+}
+.repeatable-fact-entry-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 12px;
+}
+.repeatable-fact-entry-head h4 { margin: 0; }
+.repeatable-fact-entry .add-person-fact-date-row.repeatable-fact-dates {
+    display: grid;
+    grid-column: 1 / -1;
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--space-4);
+}
+.repeatable-fact-entry .genealogy-date-field:not(.is-between) .genealogy-date-controls {
+    grid-template-columns: var(--genealogy-date-columns);
+}
+.repeatable-fact-entry .genealogy-date-field:not(.is-between) .genealogy-date-type-shell {
+    grid-column: auto;
+}
+@container (min-width: 640px) {
+    .repeatable-fact-entry .add-person-fact-date-row.repeatable-fact-dates { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@container (max-width: 260px) {
+    .repeatable-fact-entry .genealogy-date-field:not(.is-between) .genealogy-date-controls {
+        grid-template-columns: minmax(0, 1fr) var(--control-icon-button-size);
+    }
+    .repeatable-fact-entry .genealogy-date-field:not(.is-between) .genealogy-date-type-shell { grid-column: 1 / -1; }
+    .repeatable-fact-entry .genealogy-date-inline-range.is-between {
+        grid-template-columns: minmax(0, 1fr) var(--control-icon-button-size);
+        grid-template-rows: auto var(--control-height) auto var(--control-height) auto var(--control-height);
+    }
+    .repeatable-fact-entry .genealogy-date-inline-range.is-between > label { grid-column: 1 / -1; grid-row: 1; }
+    .repeatable-fact-entry .genealogy-date-inline-range.is-between .genealogy-date-type-shell { grid-column: 1 / -1; grid-row: 2; }
+    .repeatable-fact-entry .genealogy-date-inline-range.is-between .genealogy-date-range-cell:first-child > span { grid-column: 1; grid-row: 3; }
+    .repeatable-fact-entry .genealogy-date-inline-range.is-between [data-genealogy-date-input] { grid-column: 1; grid-row: 4; }
+    .repeatable-fact-entry .genealogy-date-inline-range.is-between .genealogy-date-details-button { grid-column: 2; grid-row: 4; }
+    .repeatable-fact-entry .genealogy-date-inline-range.is-between [data-genealogy-date-to-cell] > span { grid-column: 1; grid-row: 5; margin-top: 0; }
+    .repeatable-fact-entry .genealogy-date-inline-range.is-between [data-genealogy-date-input-to] { grid-column: 1; grid-row: 6; }
+}
+.repeatable-fact-list, .repeatable-fact-readonly { min-width: 0; }
+.repeatable-fact-add { margin-top: 12px; }
+.repeatable-fact-error { color: var(--danger, #ef8c8c); }
+.repeatable-fact-entry input { scroll-margin-top: 100px; }
+.person-profile .repeatable-fact-entry .add-person-fact-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+}
+.person-profile .repeatable-fact-entry .full { grid-column: 1 / -1; }
+@media (max-width: 540px) {
+    .repeatable-fact-dates { grid-template-columns: 1fr; }
+    .person-profile .repeatable-fact-entry .add-person-fact-grid { grid-template-columns: 1fr; }
+}
+
+.profile-readonly-grid.profile-readonly-grid-single {
+    grid-template-columns: 1fr;
+    align-items: stretch;
+}
+
+.profile-readonly-grid.profile-readonly-grid-tabbed.main {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    align-items: stretch;
+}
+
+.profile-readonly-grid.profile-readonly-grid-tabbed.main .profile-info-block {
+    align-content: start;
+    grid-auto-rows: max-content;
+}
+
+.profile-readonly-grid.profile-readonly-grid-tabbed.main .profile-info-row {
+    align-items: start;
+}
+
+/* Information key/value rows */
+
+.profile-info-row {
+    min-width: 0;
+    display: grid;
+    grid-template-columns: minmax(92px, .72fr) minmax(0, 1fr);
+    align-items: start;
+    gap: var(--space-3);
+    padding-bottom: 8px;
+    border-bottom: 1px solid rgba(255, 255, 255, .045);
+    color: var(--text-secondary);
+    font-size: 13px;
+}
+
+.profile-info-row:last-child {
+    padding-bottom: 0;
+    border-bottom: 0;
+}
+
+.profile-info-row>span:first-child {
+    color: var(--text-tertiary);
+    font-size: 12px;
+    font-weight: 800;
+}
+
+.profile-info-row>strong {
+    min-width: 0;
+    color: var(--text-primary);
+    line-height: 1.35;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.profile-info-row>small {
+    color: var(--text-tertiary);
+    line-height: 1.35;
+}
+
+/* Connected resources and Timeline */
+
+.person-profile__bottom {
+    align-items: start;
+}
+
+.profile-connected-card {
+    min-width: 0;
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-md);
+    background: var(--surface-card);
+    overflow: hidden;
+}
+
+.profile-connected-card>.profile-connected-head {
+    flex: 0 0 54px;
+    min-height: 54px;
+    margin: 0;
+    padding: 0 var(--space-4);
+    border-bottom: 1px solid var(--border-default);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
+    font-size: 16px;
+}
+
+.profile-connected-title {
+    min-width: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    color: var(--text-primary);
+    font-size: 16px;
+    font-weight: 900;
+}
+
+.profile-connected-icon {
+    width: 28px;
+    height: 28px;
+    flex: 0 0 28px;
+    display: inline-grid;
+    place-items: center;
+    color: var(--text-secondary);
+}
+
+.profile-connected-icon svg {
+    width: 24px;
+    height: 24px;
+    max-width: 24px;
+    max-height: 24px;
+    display: block;
+}
+
+.profile-resource-count {
+    min-width: 22px;
+    height: 22px;
+    padding: 0 7px;
+    border: 1px solid rgba(255, 255, 255, .07);
+    border-radius: 999px;
+    background: rgba(255, 255, 255, .04);
+    color: var(--text-tertiary);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    font-weight: 900;
+}
+
+.profile-connected-actions {
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: var(--space-1);
+    white-space: nowrap;
+}
+
+.profile-connected-action {
+    height: 34px;
+    min-height: 34px;
+    padding: 0 8px;
+    border: 1px solid transparent;
+    border-radius: var(--radius-sm);
+    background: transparent;
+    color: var(--brand-green-300);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    font-size: 13px;
+    line-height: 1;
+    font-weight: 900;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+.profile-connected-action svg {
+    width: 16px;
+    height: 16px;
+    max-width: 16px;
+    max-height: 16px;
+    flex: 0 0 16px;
+    display: block;
+}
+
+.profile-connected-action:hover,
+.profile-connected-action:focus-visible {
+    border-color: rgba(98, 217, 154, .18);
+    background: rgba(47, 174, 116, .09);
+    color: var(--text-primary);
+    text-decoration: none;
+}
+
+/* 2 × 2 resource grid */
+
+.person-profile .profile-connected-cube {
+    min-width: 0;
+    align-self: start;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-auto-rows:
+        var(--profile-connected-card-h);
+    gap: var(--space-4);
+    margin: 0;
+}
+
+.person-profile .profile-resource-card {
+    height: var(--profile-connected-card-h);
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+.profile-resource-card__body {
+    flex: 1 1 auto;
+    min-width: 0;
+    min-height: 0;
+    padding: var(--space-3) var(--space-4);
+    overflow: hidden;
+}
+
+.profile-resource-card__footer {
+    width: 100%;
+    flex: 0 0 44px;
+    min-height: 44px;
+    padding: 0 var(--space-4);
+    border: 0;
+    border-top: 1px solid var(--border-default);
+    background: rgba(11, 15, 14, .16);
+    color: var(--text-secondary);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
+    text-align: left;
+    font-size: 13px;
+    font-weight: 800;
+    cursor: pointer;
+    transition:
+        color var(--ease),
+        background var(--ease);
+}
+
+.profile-resource-card__footer svg {
+    width: 17px;
+    height: 17px;
+    flex: 0 0 17px;
+}
+
+.profile-resource-card__footer:hover,
+.profile-resource-card__footer:focus-visible {
+    background: rgba(255, 255, 255, .035);
+    color: var(--brand-green-300);
+}
+
+.profile-resource-empty {
+    height: 100%;
+    min-height: 0;
+    display: grid;
+    place-items: center;
+    padding: var(--space-4);
+    color: var(--text-tertiary);
+    text-align: center;
+    font-size: 13px;
+}
+
+/* Shared preview rows */
+
+.profile-resource-list {
+    height: 100%;
+    min-height: 0;
+    display: grid;
+    align-content: start;
+    gap: var(--space-1);
+}
+
+.profile-resource-row {
+    width: 100%;
+    min-width: 0;
+    min-height: 48px;
+    border: 1px solid transparent;
+    border-radius: var(--radius-sm);
+    background: transparent;
+    color: var(--text-secondary);
+    text-align: left;
+    cursor: pointer;
+    transition:
+        color var(--ease),
+        background var(--ease),
+        border-color var(--ease);
+}
+
+.profile-resource-row:hover,
+.profile-resource-row:focus-visible {
+    border-color: var(--border-default);
+    background: rgba(255, 255, 255, .035);
+    color: var(--text-primary);
+}
+
+.profile-resource-row strong {
+    min-width: 0;
+    color: var(--text-primary);
+    font-size: 13px;
+    line-height: 1.3;
+}
+
+.profile-resource-row small {
+    min-width: 0;
+    color: var(--text-tertiary);
+    font-size: 12px;
+    line-height: 1.3;
+}
+
+/* Photos */
+
+.profile-resource-card--photos .profile-resource-card__body {
+    padding-inline: var(--space-3);
+}
+
+.profile-photo-carousel {
+    height: 100%;
+    min-width: 0;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    align-items: center;
+    gap: var(--space-2);
+}
+
+.profile-photo-carousel.has-overflow {
+    grid-template-columns:
+        34px minmax(0, 1fr) 34px;
+}
+
+.profile-photo-track {
+    grid-column: 1;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    overflow-x: auto;
+    overflow-y: hidden;
+    scroll-snap-type: x mandatory;
+    scroll-behavior: smooth;
+    overscroll-behavior-inline: contain;
+    scrollbar-width: none;
+}
+
+.profile-photo-carousel.has-overflow .profile-photo-track {
+    grid-column: 2;
+}
+
+.profile-photo-track::-webkit-scrollbar {
+    display: none;
+}
+
+.profile-photo-thumb {
+    position: relative;
+    isolation: isolate;
+
+    width: 118px;
+    min-width: 118px;
+    height: 118px;
+    flex: 0 0 118px;
+
+    scroll-snap-align: start;
+
+    padding: 0;
+    border: 1px solid var(--border-default);
+    border-radius: 9px;
+
+    background: transparent;
+    color: inherit;
+
+    display: grid;
+    place-items: center;
+
+    overflow: hidden;
+
+    appearance: none;
+    cursor: pointer;
+
+    transition:
+        transform var(--ease),
+        border-color var(--ease);
+}
+
+.profile-photo-thumb:hover {
+    transform: translateY(-1px);
+    border-color: var(--border-strong);
+}
+
+.profile-photo-thumb:focus-visible {
+    transform: translateY(-1px);
+    border-color: var(--border-strong);
+
+    outline: 2px solid var(--text-tertiary);
+    outline-offset: 2px;
+}
+
+.profile-photo-carousel-button {
+    width: 34px;
+    height: 42px;
+    padding: 0;
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-sm);
+    background: var(--surface-input);
+    color: var(--text-secondary);
+    display: grid;
+    place-items: center;
+    cursor: pointer;
+}
+
+.profile-photo-carousel-button.previous {
+    grid-column: 1;
+}
+
+.profile-photo-carousel-button.next {
+    grid-column: 3;
+}
+
+.profile-photo-carousel-button svg {
+    width: 18px;
+    height: 18px;
+}
+
+.profile-photo-carousel-button:hover:not(:disabled),
+.profile-photo-carousel-button:focus-visible:not(:disabled) {
+    border-color: var(--border-strong);
+    color: var(--text-primary);
+}
+
+.profile-photo-carousel-button:disabled {
+    opacity: .35;
+    cursor: default;
+}
+
+/* Linked notes in the fixed-height resource card */
+
+.profile-resource-card--notes .profile-resource-card__body {
+    padding:
+        var(--space-3);
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+}
+
+/* Archive */
+
+.profile-resource-card--archive .profile-resource-card__body {
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-gutter: stable;
+}
+
+.profile-resource-card--archive .connected-file-list {
+    width: 100%;
+    min-width: 0;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    align-content: start;
+    gap: 0;
+}
+
+.profile-resource-card--archive .connected-file-item {
+    width: 100%;
+    min-width: 0;
+}
+
+.profile-resource-card--archive .connected-file-main {
+    width: 100%;
+    min-width: 0;
+}
+
+.profile-file-row {
+    padding: 5px 8px;
+    display: grid;
+    grid-template-columns: 38px minmax(0, 1fr);
+    align-items: center;
+    gap: var(--space-3);
+}
+
+/* Places */
+
+.profile-place-preview-row {
+    padding: 6px 9px;
+    display: grid;
+    align-content: center;
+    gap: 3px;
+}
+
+.profile-place-preview-title {
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.profile-place-preview-title strong {
+    min-width: 0;
+    flex: 1 1 auto;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.profile-place-coordinate-warning {
+    width: 16px;
+    height: 16px;
+    flex: 0 0 16px;
+    display: inline-grid;
+    place-items: center;
+    color: var(--amber);
+}
+
+.profile-place-coordinate-warning svg {
+    width: 14px;
+    height: 14px;
+    display: block;
+}
+
+.profile-place-preview-meta {
+    min-width: 0;
+    display: block;
+    overflow: hidden;
+    color: var(--text-tertiary);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* Timeline */
+
+.person-profile .profile-compact-timeline.profile-connected-card {
+    width: 100%;
+    height: var(--profile-connected-grid-h);
+    min-height: var(--profile-connected-grid-h);
+    max-height: var(--profile-connected-grid-h);
+    align-self: start;
+    display: flex;
+    flex-direction: column;
+}
+
+.profile-compact-timeline-list {
+    flex: 1 1 auto;
+    min-width: 0;
+    min-height: 0;
+    padding: var(--space-4);
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-gutter: stable;
+}
+
+.profile-compact-timeline-list>.timeline {
+    margin: 0;
+}
+
+.profile-compact-timeline-list .timeline-dot {
+    background: var(--surface-card);
+}
+
+.profile-compact-timeline-list>.panel-muted {
+    margin: 0;
+    padding: var(--space-2) 0;
+}
+
+/* Family card */
+
+/*
+* The Profile card determines the desktop grid-row height.
+* The Family slot fills that row without contributing its own
+* intrinsic height.
+*/
+.person-profile__top .profile-family-slot {
+    min-width: 0;
+    min-height: 0;
+    position: relative;
+    align-self: stretch;
+}
+
+.person-profile__top .profile-family-hub {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    min-height: 0;
+    max-height: none;
+    display: flex;
+    flex-direction: column;
+}
+
+/*
+* The shared .profile-side-card h3 rule supplies the heading
+* layout, border, font size, alignment, and spacing.
+*/
+.person-profile__top .profile-family-head {
+    flex: 0 0 54px;
+    min-height: 54px;
+    padding: 0 var(--space-4);
+}
+
+.person-profile .profile-family-title {
+    min-width: 0;
+}
+
+.person-profile .profile-family-title-icon {
+    width: 24px;
+    height: 24px;
+    flex: 0 0 24px;
+    display: inline-grid;
+    place-items: center;
+    color: var(--text-secondary);
+}
+
+.person-profile .profile-family-title-icon svg {
+    width: 24px;
+    height: 24px;
+    max-width: 24px;
+    max-height: 24px;
+    display: block;
+}
+
+.person-profile .profile-family-count {
+    min-width: 24px;
+    height: 24px;
+    padding: 0 8px;
+    border: 1px solid rgba(255, 255, 255, .07);
+    border-radius: 999px;
+    background: rgba(255, 255, 255, .04);
+    color: var(--text-tertiary);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    font-weight: 900;
+}
+
+.person-profile__top .profile-family-scroll {
+    flex: 1 1 auto;
+    height: auto;
+    min-height: 0;
+    max-height: none;
+    padding: var(--space-4);
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-gutter: stable;
+}
+
+.person-profile__top .profile-family-scroll .relationship-list {
+    gap: var(--space-4);
+}
+
+.person-profile__top .profile-family-scroll .panel-muted {
+    margin: 0;
+}
+
+/* Small Profile utilities */
+
+.profile-status-inline {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--text-primary);
+    font-weight: 900;
+    white-space: nowrap;
+}
+
+/* Responsive Profile layout */
+
+@media (max-width: 1420px) {
+    .profile-readonly-grid.profile-readonly-grid-tabbed.main {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 1280px) {
+    .profile-command-hero .profile-hero-life-item {
+        display: flex;
+        flex-wrap: wrap;
+    }
+
+    .profile-command-hero .profile-hero-life-label {
+        flex: 0 0 auto;
+    }
+
+    .profile-command-hero .profile-hero-life-primary,
+    .profile-command-hero .profile-hero-life-place {
+        flex: 0 1 auto;
+    }
+
+    .person-profile__top,
+    .person-profile__bottom {
+        grid-template-columns: 1fr;
+    }
+
+    .person-profile__top .profile-family-slot {
+        position: static;
+        min-height: 0;
+    }
+
+    .person-profile__top .profile-family-hub {
+        position: static;
+        inset: auto;
+        width: 100%;
+        height: auto;
+        min-height: 0;
+        max-height: none;
+    }
+
+    .person-profile__top .profile-family-scroll {
+        max-height: 360px;
+    }
+
+    .profile-readonly-grid.profile-readonly-grid-tabbed.main {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (min-width: 761px) and (max-width: 1280px) {
+    .person-profile {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        grid-template-rows: auto auto auto auto;
+    }
+
+    .person-profile__top,
+    .person-profile__bottom {
+        display: contents;
+    }
+
+    .person-profile .profile-command-hero,
+    .person-profile .profile-full-card,
+    .person-profile .profile-connected-cube {
+        grid-column: 1 / -1;
+    }
+
+    .person-profile .profile-full-card {
+        grid-row: 2;
+    }
+
+    .person-profile .profile-family-slot {
+        grid-column: 1;
+        grid-row: 3;
+    }
+
+    .person-profile .profile-compact-timeline {
+        grid-column: 2;
+        grid-row: 3;
+    }
+
+    .person-profile .profile-compact-timeline.profile-connected-card {
+        height: auto;
+        max-height: none;
+        align-self: stretch;
+    }
+
+    .person-profile .profile-connected-cube {
+        grid-row: 4;
+    }
+
+    .person-profile__top .profile-family-hub {
+        height: 100%;
+    }
+
+    .person-profile__top .profile-family-scroll {
+        max-height: none;
+    }
+}
+
+@media (max-width: 760px) {
+    .person-profile .profile-connected-cube {
+        grid-template-columns: 1fr;
+        grid-template-rows: none;
+    }
+
+    .person-profile .profile-resource-card {
+        height: auto;
+        min-height: var(--profile-connected-card-h);
+    }
+
+    .person-profile .profile-compact-timeline.profile-connected-card {
+        height: 520px;
+        min-height: 520px;
+        max-height: 520px;
+    }
+}

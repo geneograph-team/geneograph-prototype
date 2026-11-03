@@ -16,19 +16,21 @@ The original monolithic `index.html` has been split: the application now lives i
 - All scripts are classic (non-module) scripts sharing one global scope: top-level `const`/`let`/`function` declarations in one file are visible to all later files, so top-level identifiers must be unique across files.
 - Extracted JS files retain the original 4-space indentation of the former inline script block (code starts at column 4); match it when editing those files.
 - Key modules:
-  - `icons.js` — the `icon` dictionary of inline SVG strings.
-  - `runtime-config.js` — the `modules` list (Publish is temporarily disabled via a comment there), Places/MapTiler map config and places map runtime.
-  - `localization.js` — language support (`en`, `ru`), translations, storage keys.
-  - `sample-data.js` — the central `sampleData` object (Whiskerfield sample project).
-  - `seed-genealogy.js`, `seed-boards.js` — load-time mutations of `sampleData`; the Geneograph seed payload lives in `src/assets/boards/whiskerfield-tree-research.js`.
-  - `validation.js` — `validateSampleData()` sanity checks.
-  - `state-tree-core.js` — the central `state` object.
-  - `app-shell.js` — `render()`, the central module dispatcher.
-  - `projects-tree-layout.js`, `family-and-shared.js`, `people.js`, `albums.js`, `geneograph.js`, `archive.js`, `notes.js`, `places.js`, `publish.js` — per-module rendering and behavior.
-  - `shared-media.js`, `shared-actions.js` — shared media access and cross-module actions.
-  - `bootstrap.js` — global keyboard handling (Escape) and the initial `render()` call.
-- Stylesheets: `foundation.css` defines base styles and tokens; feature and shared stylesheets follow in the order shown in `src/index.html`. Check the actual cascade before changing selectors.
-- Sample photos, project covers, and other static media live in `src/assets/`.
+  - `core/icons.js` — the `icon` dictionary of inline SVG strings.
+  - `src/core/runtime-config.js` — the active module list and map configuration; Places map runtime lives in `src/modules/places/map-runtime.js`.
+  - `src/localization/` — ordered UI/data dictionaries and catalog; `localization/runtime.js` — language runtime (`en`, `ru`) and storage keys.
+  - `seed/sample-data.js` — the central `sampleData` object (Whiskerfield sample project).
+  - `seed/seed-genealogy.js`, `seed/seed-boards.js` — load-time mutations of `sampleData`; the Geneograph seed payload lives in `src/assets/boards/whiskerfield-tree-research.js`.
+  - `core/validation.js` — `validateSampleData()` sanity checks.
+  - `core/state-tree-core.js` — the central `state` object.
+  - `core/app-shell.js` — `render()`, the central module dispatcher.
+  - `src/modules/` — Projects, Family Tree, People, Geneograph, Albums, Archive, Notes, Places, and disabled Publish rendering, editors, and styles.
+  - `src/shared/` — cross-view media, relationships, date/place fields, pickers, and actions.
+  - Archive helpers and seed normalization load in the explicit order shown in `src/index.html`; Notes seed/model and shared Archive tagging pickers follow before bootstrap.
+  - `src/modules/geneograph/` — ordered board model, library, canvas, inspector, pickers, interaction, import/export, and split styles.
+  - `core/bootstrap.js` — global keyboard handling (Escape) and the initial `render()` call.
+- Stylesheets: `src/core/foundation.css` defines base tokens; feature and shared styles follow in the order shown in `src/index.html`. Check the cascade before changing selectors.
+- Static media live in `src/assets/photos/`, `documents/`, `covers/`, `ui/`, and `boards/`.
 
 ## OpenSpec Handoff
 
@@ -36,14 +38,14 @@ OpenSpec is initialized in this repository with Codex integration. Keep `openspe
 
 For substantive changes, inspect current behavior, create and validate one focused OpenSpec change, review its proposal before implementation, complete and test its tasks, then archive it after verification. Small, unambiguous fixes need not generate a large specification. Existing working-tree changes belong to the user; never discard them during setup.
 
-`Prototype_Design_Document.md` is the current product and engineering guide, not a backlog or an OpenSpec change. Verify its claims against code before promoting them to durable specs. For Geneograph sample-board work, `src/seed-boards.js` validates and installs the data-only asset in `src/assets/boards/`. The checked-in seed asset is a data-only `window.GENEO_SEED_BOARD_ASSETS.push(...)` script. Keep its board and project IDs valid and preserve direct `file://` loading when replacing it; no conversion tool is currently checked in.
+`Prototype_Design_Document.md` is the current product and engineering guide, not a backlog or an OpenSpec change. Verify its claims against code before promoting them to durable specs. For Geneograph sample-board work, `src/seed/seed-boards.js` validates and installs the data-only asset in `src/assets/boards/`. The checked-in seed asset is a data-only `window.GENEO_SEED_BOARD_ASSETS.push(...)` script. Keep its board and project IDs valid and preserve direct `file://` loading when replacing it; no conversion tool is currently checked in.
 
 ## Critical File-Handling Rule
 
 Several extracted files are still very large. **Never read them end-to-end.**
 
-- Large JS files include `geneograph.js`, `archive.js`, `localization.js`, `family-and-shared.js`, `albums.js`, `notes.js`, `places.js`, and `people.js`. Locate a symbol before reading a bounded range.
-- Largest CSS files: `notes-places.css`, `family-people.css`, `geneograph.css`, `archive.css`, `albums.css`, `foundation.css`.
+- Some JS files remain large. Locate the relevant symbol with `rg` and read only its bounded section.
+- CSS is split by owning component or workflow. Locate selectors with `rg` and inspect the actual cascade in `src/index.html`.
 - Use targeted `rg` searches (selectors, ids, class names, function names, `aria-` attributes) to locate the section you need.
 - Read only the relevant line ranges.
 - When editing, prefer narrow, surgical patches anchored on unique strings.
@@ -67,7 +69,7 @@ Several extracted files are still very large. **Never read them end-to-end.**
 ## Coding Conventions
 
 - No build step; Leaflet and Quill load from pinned CDNs, and local browser libraries live in `src/vendor/`. Do not add new runtime dependencies without asking.
-- JavaScript: Allman-style braces (opening brace on its own line), single quotes for strings, semicolons never omitted. Icons are inline SVG strings in the `icon` dictionary (`src/icons.js`) — reuse them rather than duplicating markup.
+- JavaScript: Allman-style braces (opening brace on its own line), single quotes for strings, semicolons never omitted. Icons are inline SVG strings in the `icon` dictionary (`src/core/icons.js`) — reuse them rather than duplicating markup.
 - CSS: design tokens are custom properties in `:root` (surface ramps `--surface-*`, brand greens `--brand-green-*`, text `--text-*`, borders, spacing `--space-*`, radii, `--shadow-soft`, `--ease`, scrollbar colors). Reuse tokens instead of hard-coded values. Dark theme via `color-scheme: dark`.
 - HTML: semantic elements (`section`, `figure`, `article`, `nav`), `aria-*` attributes, `role="status"`/`aria-live` for the toast. Explicit `width`/`height` on images, `loading="lazy"`/`decoding="async"` for non-critical images.
 
@@ -82,7 +84,7 @@ Several extracted files are still very large. **Never read them end-to-end.**
 ## CSS Ownership
 
 - Edit declarations in their owning feature or shared stylesheet. Merge superseded rules; do not append competing overrides or use `!important` merely to avoid reconciling an existing rule.
-- Put shared tokens and truly cross-module controls in `foundation.css`; keep module, state, and responsive rules with their owning feature. Shared resource-picker rules belong in `resource-picker.css`. Preserve the existing CSS load order while consolidating.
+- Put shared tokens and truly cross-module controls in `src/core/foundation.css`; keep module, state, and responsive rules with their owning feature. Shared resource-picker rules belong in `src/shared/resource-picker.css`. Preserve the CSS tag order.
 - Check English/Russian, desktop/phone widths, focus, and relevant modal states when changing shared or responsive styles.
 
 ## Accessibility Requirements

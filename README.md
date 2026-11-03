@@ -1,29 +1,18 @@
 # GeneoGraph Prototype
 
-This is a static, browser-based genealogy research prototype. Open `src/index.html`
-directly or serve `src/` as static files. There is no framework, package manager,
-build step, backend, or durable project database. The current root-based GitHub
-Pages configuration does not publish the application from `src/`.
+Static browser prototype for genealogy research. Open `src/index.html` directly or serve `src/` as static files. There is no framework, package manager, build step, backend, or durable project database. The current root-based GitHub Pages configuration does not publish the application from `src/`.
 
-## Source map
+## Source layout
 
-- `src/index.html` contains the application shell, CDN references, runtime map
-  configuration, and the ordered stylesheet and classic deferred script tags.
-  Script order matters because files share load-order-dependent globals.
-- `src/foundation.css` defines base styles and tokens. Edit module styles in their\n  owning stylesheet and shared controls in `foundation.css` or `resource-picker.css`.\n  Check the stylesheet order in `index.html` when changing the cascade.
-- `src/app-shell.js`, `state-tree-core.js`, and `bootstrap.js` handle rendering,
-  shared state, and startup. Feature files include `people.js`, `geneograph.js`,
-  `albums.js`, `archive.js`, `notes.js`, and `places.js`. Shared helpers and seed
-  data remain in `src/`; follow `index.html` to see their load order.
-- `src/assets/` holds the favicon, sample media and documents. The seeded board
-  script is in `src/assets/boards/`.
-- `src/vendor/` holds pinned local browser libraries, including `html-to-image`
-  with its source map, version note, and license. Leaflet and Quill load from
-  pinned CDNs.
-- `openspec/` contains project specifications and focused changes. See `AGENTS.md` and
-  `Prototype_Design_Document.md` for development and product guidance.
+- `src/index.html` is the application shell and authoritative load order for stylesheets and classic deferred scripts. Files share load-order-dependent globals; keep the board asset before its seed adapter and bootstrap last.
+- `src/core/` owns configuration, state, shell, validation, icons, bootstrap, and shared design tokens (`core/foundation.css`).
+- `src/modules/` groups Projects, Family Tree, People, Geneograph, Albums, Archive, Notes, Places, and disabled Publish behavior and styles by feature. `src/shared/` owns cross-view helpers and controls, including `shared/resource-picker.css`.
+- `src/seed/` holds sample records and load-time seed adapters. `src/localization/` holds ordered English/Russian dictionaries and the language runtime.
+- `src/assets/photos/`, `documents/`, `covers/`, and `ui/` hold static media. `src/assets/boards/whiskerfield-tree-research.js` registers the seeded board before `src/seed/seed-boards.js` loads.
+- `src/vendor/` holds pinned local browser libraries, including `html-to-image`. Leaflet and Quill load from pinned CDNs.
+
+See [the source map](docs/source-map.md) for dependency boundaries, [AGENTS.md](AGENTS.md) for coding rules, and [Prototype_Design_Document.md](Prototype_Design_Document.md) for current product context. `openspec/` contains verified specs and focused change folders.
 
 ## License
 
-Repository contents are licensed under the GNU GPL 3 unless otherwise
-specified. See [LICENSE.txt](./LICENSE.txt) and the bundled vendor licenses.
+Repository contents are licensed under GNU GPL 3 unless otherwise specified. See [LICENSE.txt](LICENSE.txt) and bundled vendor licenses.

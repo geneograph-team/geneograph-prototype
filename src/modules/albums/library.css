@@ -1,0 +1,2133 @@
+/* Albums module */
+body.mobile-surface-open:has(.albums-shell) .modal-backdrop.open {
+    z-index: 1006;
+}
+
+body.mobile-surface-open:has(.albums-shell) .menu-popover {
+    z-index: 1004;
+}
+
+.albums-shell {
+    height: 100%;
+    min-width: 0;
+
+    display: grid;
+    grid-template-columns:
+        minmax(0, 1fr) var(--inspector-width);
+
+    background:
+        var(--surface-main);
+
+    overflow: hidden;
+}
+
+.albums-shell.detail-collapsed {
+    grid-template-columns:
+        minmax(0, 1fr) var(--inspector-collapsed-width);
+}
+
+.albums-shell.no-detail {
+    grid-template-columns:
+        minmax(0, 1fr);
+}
+
+.albums-main {
+    min-width: 0;
+    min-height: 0;
+    padding: var(--space-6);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+    overflow: hidden;
+}
+
+.albums-header {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: var(--space-5);
+}
+
+.albums-title,
+.notes-browser-title {
+    min-width: 0;
+}
+
+.albums-title p,
+.notes-browser-subtitle {
+    margin: 0;
+    color: var(--text-tertiary);
+    font-size: 15px;
+    font-weight: 700;
+    line-height: 1.4;
+}
+
+.albums-header-actions,
+.albums-selection-actions,
+.albums-active-filterbar,
+.module-active-filterbar {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    flex-wrap: wrap;
+}
+
+.albums-toolbar,
+.archive-toolbar {
+    flex: 0 0 auto;
+    min-width: 0;
+    min-height: 44px;
+
+    padding: 0;
+
+    border: 0;
+    border-radius: 0;
+
+    background: transparent;
+
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-4);
+}
+
+.albums-toolbar-left,
+.archive-toolbar-left {
+    min-width: 0;
+    flex: 1 1 auto;
+
+    display: flex;
+    align-items: center;
+}
+
+.albums-mobile-add-photos,
+.albums-mobile-select-all,
+.albums-mobile-cell-label {
+    display: none;
+}
+
+.albums-add-label-short {
+    display: none;
+}
+
+.albums-toolbar-right,
+.archive-toolbar-right {
+    min-width: 0;
+    flex: 0 0 auto;
+    margin-left: auto;
+
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: var(--space-2);
+    flex-wrap: nowrap;
+}
+
+.albums-filter-button,
+.module-filter-button {
+    height: 44px;
+    min-height: 44px;
+    padding: 0 14px;
+
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-2);
+
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-sm);
+    background: var(--surface-card);
+    color: var(--text-secondary);
+
+    font: inherit;
+    font-size: 14px;
+    font-weight: 800;
+    line-height: 1;
+    white-space: nowrap;
+
+    cursor: pointer;
+
+    transition:
+        background var(--ease),
+        border-color var(--ease),
+        color var(--ease),
+        box-shadow var(--ease);
+}
+
+.albums-filter-button:hover,
+.module-filter-button:hover {
+    border-color: var(--border-strong);
+    background: var(--surface-card-hover);
+    color: var(--text-primary);
+}
+
+.albums-filter-button:focus-visible,
+.module-filter-button:focus-visible {
+    border-color: rgba(98, 217, 154, .55);
+    outline: 0;
+    box-shadow:
+        0 0 0 3px rgba(98, 217, 154, .1);
+}
+
+.albums-filter-button.active,
+.module-filter-button.active {
+    border-color: rgba(98, 217, 154, .38);
+    background: var(--surface-selected);
+    color: var(--brand-green-300);
+}
+
+.albums-filter-icon,
+.module-filter-icon {
+    width: 18px;
+    height: 18px;
+    flex: 0 0 18px;
+
+    display: grid;
+    place-items: center;
+}
+
+.albums-filter-icon svg,
+.module-filter-icon svg {
+    width: 18px;
+    height: 18px;
+    display: block;
+}
+
+.albums-filter-count,
+.module-filter-count {
+    min-width: 18px;
+    height: 18px;
+    padding: 0 5px;
+
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    border-radius: 999px;
+    background: var(--brand-green-500);
+    color: #10251a;
+
+    font-size: 10px;
+    font-weight: 900;
+    line-height: 1;
+}
+
+/* Albums-specific width only; shared Sort controls own the styling. */
+.albums-sort-field {
+    width: 190px;
+    min-width: 190px;
+}
+
+/* Shared toolbar buttons own size, border, hover, and active styling. */
+.albums-view-switch {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+}
+
+.albums-view-button {
+    flex: 0 0 auto;
+}
+
+.albums-view-button svg {
+    width: 22px;
+    height: 22px;
+}
+
+.albums-check svg,
+.albums-fav-button svg,
+.albums-card-more svg,
+.albums-row-more svg,
+.albums-list-favourite svg,
+.albums-album-more svg {
+    width: 17px;
+    height: 17px;
+    display: block;
+}
+
+.albums-active-filterbar,
+.module-active-filterbar,
+.albums-selection-bar {
+    flex: 0 0 auto;
+    min-height: 46px;
+
+    padding:
+        var(--space-2) var(--space-3);
+
+    border:
+        1px solid var(--border-default);
+
+    border-radius:
+        var(--radius-sm);
+
+    background:
+        var(--surface-card);
+}
+
+.albums-active-filterbar,
+.module-active-filterbar {
+    justify-content:
+        flex-start;
+}
+
+.albums-active-filterbar {
+    justify-content: flex-start;
+}
+
+.albums-selection-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
+}
+
+.albums-selection-copy {
+    flex: 0 0 auto;
+    color: var(--text-primary);
+    font-size: 13px;
+    font-weight: 900;
+}
+
+.albums-selection-actions {
+    justify-content: flex-end;
+}
+
+.albums-content {
+    flex: 1 1 auto;
+    min-width: 0;
+    min-height: 0;
+    padding-right: 2px;
+    overflow: auto;
+    overscroll-behavior: contain;
+    scrollbar-gutter: stable;
+}
+
+.albums-photo-action-menu {
+    width: min(210px, calc(100vw - 24px));
+    max-height: calc(100vh - 24px);
+    overflow-y: auto;
+}
+
+.albums-justified-grid {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+}
+
+.albums-justified-row {
+    min-width: 0;
+    width: 100%;
+    display: flex;
+    align-items: stretch;
+    gap: var(--space-3);
+}
+
+.albums-justified-row .album-photo-card {
+    width: var(--albums-card-width);
+    flex: 0 0 var(--albums-card-width);
+}
+
+.albums-justified-grid.is-measuring .albums-justified-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+}
+
+.albums-justified-grid.is-measuring .album-photo-card {
+    width: 100%;
+    min-width: 0;
+}
+
+.album-photo-card {
+    min-width: 0;
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-sm);
+    background: var(--surface-card);
+    display: grid;
+    grid-template-rows: var(--albums-row-preview-height, 184px) 116px;
+    overflow: hidden;
+    cursor: pointer;
+    transition: border-color .16s ease, background .16s ease, box-shadow .16s ease;
+}
+
+.album-photo-card:hover,
+.albums-list-row:not(.header):hover {
+    border-color: var(--border-strong);
+    background: var(--surface-card-hover);
+}
+
+.album-photo-card:focus-visible,
+.albums-list-row:focus-visible,
+.albums-album-main:focus-visible,
+.albums-album-more:focus-visible {
+    outline: 2px solid var(--brand-green-400);
+    outline-offset: 2px;
+}
+
+.album-photo-card.selected-detail,
+.albums-list-row.selected-detail {
+    border-color: rgba(98, 217, 154, .5);
+    box-shadow: inset 0 0 0 1px rgba(98, 217, 154, .2);
+}
+
+.album-photo-card.is-checked,
+.albums-list-row.is-checked {
+    background: var(--surface-selected);
+}
+
+.albums-thumb {
+    position: relative;
+    width: 100%;
+    height: var(--albums-row-preview-height, 184px);
+    min-height: 0;
+    overflow: hidden;
+    background: transparent;
+}
+
+/* Shared media thumbnail */
+.photo-thumbnail {
+    position: relative;
+
+    width: 100%;
+    height: 100%;
+    min-width: 0;
+    min-height: 0;
+
+    display: block;
+    overflow: hidden;
+
+    background: transparent;
+    color: var(--text-primary);
+}
+
+.photo-thumbnail .thumb-img {
+    position: absolute;
+    z-index: 2;
+    inset: 0;
+
+    width: 100%;
+    height: 100%;
+
+    display: block;
+    object-fit: cover;
+}
+
+.photo-thumbnail-fallback { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px; padding:8px; text-align:center; color:var(--text-secondary); font-size:12px; }
+.photo-thumbnail-fallback[hidden] { display:none; }
+.photo-thumbnail-fallback svg { width:24px; height:24px; flex:none; }
+
+
+/* Shared connected-photo preview */
+.connected-photo-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: var(--space-2);
+}
+
+.connected-photo-button {
+    position: relative;
+    isolation: isolate;
+
+    width: 100%;
+    min-width: 0;
+    aspect-ratio: 1;
+    padding: 0;
+
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-sm);
+    overflow: hidden;
+
+    background: transparent;
+    cursor: pointer;
+
+    transition:
+        border-color var(--ease),
+        background var(--ease);
+}
+
+.connected-photo-button:hover {
+    border-color: var(--border-strong);
+    background: transparent;
+}
+
+.connected-photo-button:focus-visible {
+    outline: 2px solid var(--brand-green-300);
+    outline-offset: 2px;
+}
+
+.connected-photo-button>.photo-thumbnail {
+    position: absolute;
+    inset: 0;
+}
+
+.person-connected-photo-item {
+    position: relative;
+    isolation: isolate;
+    min-width: 0;
+}
+
+.connected-photo-grid>.person-connected-photo-item {
+    aspect-ratio: 1;
+}
+
+.connected-photo-grid>.person-connected-photo-item>.connected-photo-button {
+    width: 100%;
+    height: 100%;
+    aspect-ratio: auto;
+}
+
+.profile-photo-item {
+    width: 118px;
+    min-width: 118px;
+    height: 118px;
+    flex: 0 0 118px;
+    scroll-snap-align: start;
+}
+
+.profile-photo-item>.profile-photo-thumb {
+    width: 100%;
+    min-width: 0;
+    height: 100%;
+    flex: 0 0 auto;
+    scroll-snap-align: none;
+}
+
+.person-connected-photo-item>.connected-photo-unlink {
+    z-index: 4;
+    top: 8px;
+    right: 8px;
+    width: 30px;
+    height: 30px;
+
+    border-color:
+        rgba(255, 255, 255, .18);
+
+    background:
+        rgba(8, 12, 11, .78);
+
+    color:
+        rgba(255, 255, 255, .94);
+
+    box-shadow:
+        0 2px 8px rgba(0, 0, 0, .34);
+
+    backdrop-filter:
+        blur(4px);
+
+    transform:
+        translateY(-2px) scale(.96);
+}
+
+.person-connected-photo-item>.connected-photo-unlink:hover,
+.person-connected-photo-item>.connected-photo-unlink:focus-visible {
+    border-color:
+        rgba(255, 140, 140, .58);
+
+    background:
+        rgba(112, 32, 32, .9);
+
+    color:
+        #fff;
+
+    box-shadow:
+        0 3px 10px rgba(0, 0, 0, .42);
+}
+
+.person-connected-photo-item:hover>.connected-photo-unlink,
+.person-connected-photo-item:focus-within>.connected-photo-unlink {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+    transform:
+        translateY(0) scale(1);
+}
+
+@media (hover: none) {
+    .person-connected-photo-item>.connected-photo-unlink {
+        opacity: 1;
+        visibility: visible;
+        pointer-events: auto;
+        transform: none;
+    }
+}
+
+/* Shared photo-preview containers */
+.profile-photo-thumb>.photo-thumbnail {
+    position: absolute;
+    inset: 0;
+}
+
+/* Canonical person-avatar system */
+.person-avatar {
+    --person-avatar-width: 45px;
+    --person-avatar-height: var(--person-avatar-width);
+    --person-avatar-radius: var(--radius-sm);
+    --person-avatar-font-size: 15px;
+
+    position: relative;
+    isolation: isolate;
+    width: var(--person-avatar-width);
+    min-width: var(--person-avatar-width);
+    height: var(--person-avatar-height);
+    min-height: var(--person-avatar-height);
+    flex: 0 0 var(--person-avatar-width);
+    padding: 0;
+    border: 1px solid rgba(255, 255, 255, .06);
+    border-radius: var(--person-avatar-radius);
+    background: linear-gradient(145deg, #45504b, #202827);
+    color: var(--text-primary);
+    display: grid;
+    place-items: center;
+    overflow: hidden;
+    font-size: var(--person-avatar-font-size);
+    font-weight: 900;
+    line-height: 1;
+}
+
+.person-avatar.avatar-green {
+    background: linear-gradient(145deg, #2d6b4d, #17231f);
+}
+
+.person-avatar.avatar-purple {
+    background: linear-gradient(145deg, #594688, #1d1c2c);
+}
+
+.person-avatar.avatar-amber {
+    background: linear-gradient(145deg, #7b6641, #262219);
+}
+
+.person-avatar.avatar-blue {
+    background: linear-gradient(145deg, #31566f, #17242d);
+}
+
+.person-avatar.has-photo {
+    background: transparent;
+}
+
+.person-avatar-initials {
+    width: 100%;
+    height: 100%;
+    display: grid;
+    place-items: center;
+    color: inherit;
+    font: inherit;
+    line-height: 1;
+}
+
+.person-avatar-viewport,
+.person-avatar-media,
+.person-avatar-media>.person-avatar-photo {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+}
+
+.person-avatar-viewport {
+    z-index: 1;
+    overflow: hidden;
+    border-radius: inherit;
+}
+
+.person-avatar-media {
+    transform-origin: center;
+    transform:
+        translate(var(--person-photo-shift-x, 0%),
+            var(--person-photo-shift-y, 0%)) scale(var(--person-photo-zoom, 1)) rotate(var(--person-photo-rotation, 0deg));
+}
+
+.person-avatar-media.has-face-region,
+.person-photo-region-preview {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    transform: none;
+}
+
+.person-avatar-media.has-face-region .photo-thumbnail,
+.person-photo-region-preview img {
+    position: absolute;
+    max-width: none;
+    max-height: none;
+}
+
+.person-avatar-media.has-face-region .photo-thumbnail .thumb-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.face-region-selector {
+    position: relative;
+    width: 100%;
+    overflow: hidden;
+    background: transparent;
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-sm);
+    touch-action: none;
+    user-select: none;
+    cursor: crosshair;
+}
+
+.person-photo-preview-avatar .person-photo-region-preview {
+    display: block;
+}
+
+.face-region-selector > img {
+    width: 100%;
+    height: 100%;
+    display: block;
+    object-fit: contain;
+    pointer-events: none;
+}
+
+.face-region-selector > .photo-thumbnail { width: 100%; height: 100%; }
+
+.person-photo-region-preview > .photo-thumbnail { width: 100%; height: 100%; }
+
+.face-region-box {
+    position: absolute;
+    border: 2px solid var(--brand-green-400);
+    box-shadow: 0 0 0 999px rgba(0, 0, 0, .35);
+    cursor: move;
+}
+
+.face-region-box:focus-visible {
+    outline: 2px solid white;
+    outline-offset: 2px;
+}
+
+.face-region-handle {
+    position: absolute;
+    right: -7px;
+    bottom: -7px;
+    width: 14px;
+    height: 14px;
+    border: 2px solid white;
+    border-radius: 50%;
+    background: var(--brand-green-500);
+    cursor: nwse-resize;
+}
+
+.tree-avatar {
+    --person-avatar-width:
+        var(--tree-avatar-size,
+            68px);
+
+    --person-avatar-font-size:
+        22px;
+}
+
+.small-avatar {
+    --person-avatar-width: 45px;
+    --person-avatar-font-size: 15px;
+}
+
+.connect-person-avatar,
+.match-row.is-possible-duplicate .small-avatar {
+    --person-avatar-width: 44px;
+    --person-avatar-radius: 9px;
+    --person-avatar-font-size: 12px;
+}
+
+.add-person-relationship-partner .small-avatar {
+    --person-avatar-width: 30px;
+    --person-avatar-font-size: 12px;
+}
+
+.tree-person-hero-photo {
+    --person-avatar-width: 96px;
+    --person-avatar-height: 112px;
+    --person-avatar-font-size: 32px;
+    border-color: rgba(255, 255, 255, .14);
+    background: linear-gradient(145deg, rgba(47, 174, 116, .50), rgba(16, 36, 27, .92));
+    box-shadow: 0 10px 26px rgba(0, 0, 0, .24);
+}
+
+.profile-hero-photo {
+    --person-avatar-width: 132px;
+    --person-avatar-font-size: 42px;
+    z-index: 1;
+    border-color: rgba(255, 255, 255, .12);
+    background: linear-gradient(145deg, rgba(47, 174, 116, .55), rgba(16, 36, 27, .9));
+}
+
+.person-photo-control {
+    position: relative;
+    width: max-content;
+    max-width: 100%;
+    display: inline-grid;
+    isolation: isolate;
+}
+
+.person-photo-edit-button {
+    position: absolute;
+    z-index: 4;
+    top: 6px;
+    right: 6px;
+    bottom: auto;
+    left: auto;
+
+    width: var(--control-height);
+    height: var(--control-height);
+    min-width: 0;
+    min-height: 0;
+    padding: 0;
+
+    border:
+        1px solid rgba(255, 255, 255, .22);
+    border-radius: var(--radius-sm);
+    background: rgba(8, 12, 10, .84);
+    color: var(--text-primary);
+
+    display: grid;
+    place-items: center;
+
+    opacity: 0;
+    pointer-events: none;
+    transform: scale(.92);
+
+    box-shadow:
+        0 4px 14px rgba(0, 0, 0, .34);
+
+    backdrop-filter: blur(8px);
+
+    transition:
+        opacity var(--ease),
+        transform var(--ease),
+        background var(--ease),
+        border-color var(--ease);
+}
+
+.person-photo-edit-button svg {
+    width: 18px;
+    height: 18px;
+    display: block;
+}
+
+.person-photo-control:hover .person-photo-edit-button,
+.person-photo-control:focus-within .person-photo-edit-button {
+    opacity: 1;
+    pointer-events: auto;
+    transform: scale(1);
+}
+
+.person-photo-edit-button:hover {
+    border-color:
+        rgba(98, 217, 154, .48);
+    background:
+        rgba(18, 29, 24, .94);
+    color: var(--brand-green-300);
+}
+
+.person-photo-edit-button:focus-visible {
+    opacity: 1;
+    pointer-events: auto;
+    transform: scale(1);
+    outline:
+        2px solid var(--brand-green-300);
+    outline-offset: 2px;
+}
+
+.person-photo-picker-modal {
+    width: min(980px, calc(100vw - 32px));
+    max-height: min(86vh, 780px);
+
+    overflow: hidden;
+
+    display: flex;
+    flex-direction: column;
+}
+
+.person-photo-picker-modal>.modal-header {
+    flex: 0 0 auto;
+}
+
+.person-photo-picker-body {
+    min-height: 0;
+    max-height: none;
+    flex: 1 1 auto;
+
+    overflow-x: hidden;
+    overflow-y: auto;
+
+    display: grid;
+    gap: var(--space-4);
+}
+
+.person-photo-picker-step {
+    color: var(--text-tertiary);
+    font-size: 11px;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: .06em;
+}
+
+.person-photo-picker-modal .modal-footer {
+    margin: var(--space-2) calc(0px - var(--space-6)) calc(0px - var(--space-6));
+    padding: var(--space-4) var(--space-6);
+    justify-content: space-between;
+    align-items: center;
+}
+
+.person-photo-picker-modal .modal-footer-actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: var(--space-3);
+}
+
+.person-photo-picker-modal > .modal-footer {
+    flex: 0 0 auto;
+    margin: 0;
+    border-top: 1px solid var(--border-default);
+    background: var(--surface-card);
+}
+
+.geneo-image-picker-modal>.geneo-image-picker-footer {
+    flex: 0 0 auto;
+
+    margin: 0;
+
+    padding:
+        var(--space-4) var(--space-6);
+
+    background:
+        var(--surface-card);
+
+    border-top:
+        1px solid var(--border-default);
+
+    box-shadow:
+        0 -10px 24px rgba(0, 0, 0, .14);
+}
+
+.geneo-image-picker-modal>.geneo-image-picker-footer[hidden] {
+    display: none;
+}
+
+.geneo-image-add-modal .person-photos-adder-upload-dropzone {
+    min-height: 240px;
+    text-align: left;
+}
+
+.geneo-image-add-modal.has-items .person-photos-adder-upload-dropzone {
+    min-height: 132px;
+}
+
+.geneo-image-add-modal .rp-upload-tile .photo-thumbnail {
+    width: 100%;
+    height: 100%;
+}
+
+.geneo-image-add-modal .rp-upload-remove {
+    z-index: 2;
+}
+
+.geneo-image-album-choice {
+    display: grid;
+    justify-items: start;
+    gap: var(--space-2);
+    margin-top: var(--space-2);
+    color: var(--text-secondary);
+}
+
+.geneo-image-album-choice label {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    cursor: pointer;
+}
+
+.geneo-image-album-choice select {
+    min-width: min(100%, 240px);
+    max-width: 100%;
+}
+
+.geneo-image-album-choice select[hidden] {
+    display: none;
+}
+
+.geneo-image-album-choice p {
+    margin: 0;
+    font-size: 13px;
+}
+
+.geneo-image-selected-uploads {
+    margin-top: var(--space-4);
+}
+
+.geneo-image-selected-uploads h3 {
+    margin: 0 0 var(--space-3);
+    font-size: 14px;
+}
+
+.person-photo-picker-tabs,
+.person-photo-scope-switch {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    padding: 3px;
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-sm);
+    background: var(--surface-input);
+}
+
+.person-photo-picker-tabs {
+    justify-self: start;
+}
+
+.person-photo-picker-tab,
+.person-photo-scope-button {
+    min-height: 36px;
+    padding: 0 var(--space-3);
+    border: 0;
+    border-radius: 5px;
+    background: transparent;
+    color: var(--text-secondary);
+    font-weight: 850;
+}
+
+.person-photo-picker-tab[aria-selected="true"],
+.person-photo-scope-button[aria-pressed="true"] {
+    background: var(--surface-selected);
+    color: var(--text-primary);
+    box-shadow: inset 0 0 0 1px rgba(98, 217, 154, .22);
+}
+
+.person-photo-picker-tab:focus-visible,
+.person-photo-scope-button:focus-visible,
+.person-photo-candidate:focus-visible,
+.person-photo-tool-button:focus-visible {
+    outline: 2px solid var(--brand-green-300);
+    outline-offset: 2px;
+}
+
+.person-photo-project-panel {
+    min-width: 0;
+    display: grid;
+    gap: var(--space-4);
+}
+
+.person-photo-project-controls {
+    min-width: 0;
+    padding-block: var(--space-1);
+
+    display: grid;
+    grid-template-columns:
+        minmax(260px, 1fr) max-content;
+    gap: var(--space-4);
+    align-items: center;
+}
+
+.person-photo-project-controls .search-input {
+    width: 100%;
+    height: 44px;
+    padding-inline: var(--space-4);
+    gap: 10px;
+}
+
+.person-photo-project-controls .search-input input {
+    min-width: 0;
+}
+
+.person-photo-scope-switch {
+    min-height: 44px;
+    padding: var(--space-1);
+    box-sizing: border-box;
+}
+
+.person-photo-scope-switch .person-photo-scope-button {
+    min-height: 36px;
+    padding-inline: var(--space-4);
+    white-space: nowrap;
+}
+
+.person-photo-project-results {
+    min-width: 0;
+}
+
+.person-photo-candidate-grid {
+    --person-photo-candidate-min:
+        240px;
+
+    min-width: 0;
+    width: 100%;
+
+    display: grid;
+    grid-template-columns:
+        repeat(auto-fill,
+            minmax(min(100%,
+                    var(--person-photo-candidate-min)),
+                1fr));
+    gap: var(--space-3);
+}
+
+.person-photo-candidate {
+    min-width: 0;
+    padding: 0;
+    width: 100%;
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-sm);
+    background: var(--surface-card);
+    color: var(--text-primary);
+    text-align: left;
+    overflow: hidden;
+    display: grid;
+    grid-template-rows: 124px auto;
+    transition: border-color var(--ease), background var(--ease), box-shadow var(--ease);
+}
+
+.person-photo-candidate:hover {
+    border-color: var(--border-strong);
+    background: var(--surface-card-hover);
+}
+
+.person-photo-candidate[aria-pressed="true"] {
+    border-color: var(--brand-green-500);
+    box-shadow: 0 0 0 1px rgba(47, 174, 116, .3);
+}
+
+.person-photo-candidate-preview {
+    position: relative;
+    min-width: 0;
+    overflow: hidden;
+    background: transparent;
+}
+
+.person-photo-candidate-preview>.photo-thumbnail {
+    position: absolute;
+    inset: 0;
+}
+
+.person-photo-candidate-copy {
+    min-width: 0;
+    padding: 10px;
+    display: grid;
+    gap: 4px;
+}
+
+.person-photo-candidate-copy strong,
+.person-photo-candidate-copy span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.person-photo-candidate-copy span {
+    color: var(--text-tertiary);
+    font-size: 12px;
+}
+
+.person-photo-current-badge,
+.person-photo-untagged-badge {
+    position: absolute;
+    z-index: 3;
+    top: 8px;
+    left: 8px;
+    min-height: 24px;
+    padding: 0 7px;
+    border-radius: 999px;
+    display: inline-flex;
+    align-items: center;
+    color: var(--text-primary);
+    background: rgba(8, 12, 10, .82);
+    font-size: 10px;
+    font-weight: 900;
+    backdrop-filter: blur(6px);
+}
+
+.person-photo-untagged-badge {
+    top: auto;
+    bottom: 8px;
+    color: var(--brand-green-200);
+}
+
+.person-photo-picker-notice {
+    padding: var(--space-3);
+    border: 1px solid rgba(98, 217, 154, .2);
+    border-radius: var(--radius-sm);
+    background: rgba(47, 174, 116, .08);
+    color: var(--text-secondary);
+}
+
+.person-photo-empty {
+    min-height: 220px;
+    display: grid;
+    place-items: center;
+    text-align: center;
+}
+
+.person-photo-empty>div {
+    max-width: 440px;
+    display: grid;
+    justify-items: center;
+    gap: var(--space-3);
+}
+
+.person-photo-empty-actions {
+    display: flex;
+    justify-content: center;
+    gap: var(--space-2);
+    flex-wrap: wrap;
+}
+
+.person-photo-upload-dropzone {
+    min-height: 270px;
+    padding: var(--space-5);
+    border: 1px dashed var(--border-strong);
+    border-radius: var(--radius-sm);
+    background: rgba(255, 255, 255, .018);
+    display: grid;
+    place-items: center;
+    text-align: center;
+    transition: border-color var(--ease), background var(--ease);
+}
+
+.person-photo-upload-dropzone.is-dragging {
+    border-color: var(--brand-green-500);
+    background: rgba(47, 174, 116, .08);
+}
+
+.person-photo-upload-prompt {
+    max-width: 440px;
+    display: grid;
+    justify-items: center;
+    gap: var(--space-2);
+}
+
+.person-photo-upload-prompt>svg {
+    width: 34px;
+    height: 34px;
+    color: var(--brand-green-300);
+}
+
+.person-photo-upload-prompt p {
+    margin: 0;
+    color: var(--text-secondary);
+}
+
+.person-photo-upload-preview {
+    width: min(100%, 520px);
+    display: grid;
+    grid-template-columns: 150px minmax(0, 1fr);
+    gap: var(--space-4);
+    align-items: center;
+    text-align: left;
+}
+
+.person-photo-upload-thumb {
+    position: relative;
+    height: 150px;
+    border-radius: var(--radius-sm);
+    overflow: hidden;
+}
+
+.person-photo-upload-thumb>.photo-thumbnail {
+    position: absolute;
+    inset: 0;
+}
+
+.person-photo-upload-copy {
+    min-width: 0;
+    display: grid;
+    gap: var(--space-2);
+}
+
+.person-photo-upload-copy strong {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.person-photo-upload-error {
+    color: var(--red);
+    font-size: 13px;
+    font-weight: 750;
+}
+
+/* Profile: additive Add photos modal */
+.person-photos-adder-body {
+    min-height: 0;
+}
+
+.person-photos-adder-project-controls {
+    grid-template-columns:
+        minmax(0, 1fr);
+}
+
+.person-photos-adder-project-controls .search-input {
+    width: 100%;
+}
+
+.person-photos-adder-candidate {
+    position: relative;
+}
+
+.person-photos-adder-candidate:disabled {
+    opacity: .62;
+    cursor: default;
+}
+
+.person-photos-adder-candidate:disabled:hover {
+    border-color:
+        var(--border-default);
+
+    background:
+        var(--surface-card);
+}
+
+.person-photos-adder-check {
+    position: absolute;
+    z-index: 4;
+    top: 8px;
+    right: 8px;
+
+    width: 26px;
+    height: 26px;
+
+    border:
+        1px solid rgba(255,
+            255,
+            255,
+            .2);
+
+    border-radius: 999px;
+
+    background:
+        var(--brand-green-500);
+
+    color: #07130e;
+
+    display: grid;
+    place-items: center;
+
+    box-shadow:
+        0 4px 14px rgba(0,
+            0,
+            0,
+            .28);
+}
+
+.person-photos-adder-check[hidden] {
+    display: none;
+}
+
+.person-photos-adder-check svg {
+    width: 16px;
+    height: 16px;
+    display: block;
+}
+
+.person-photos-adder-status-badge {
+    position: absolute;
+    z-index: 3;
+    bottom: 8px;
+    left: 8px;
+
+    min-height: 24px;
+    padding: 0 8px;
+
+    border-radius: 999px;
+
+    background:
+        rgba(8,
+            12,
+            10,
+            .84);
+
+    color:
+        var(--text-secondary);
+
+    display: inline-flex;
+    align-items: center;
+
+    font-size: 10px;
+    font-weight: 900;
+
+    backdrop-filter:
+        blur(6px);
+}
+
+.person-photos-adder-upload-panel {
+    min-width: 0;
+
+    display: grid;
+    gap: var(--space-4);
+}
+
+.person-photos-adder-upload-dropzone {
+    min-height: 220px;
+}
+
+.person-photos-adder-upload-dropzone.has-drafts {
+    min-height: 160px;
+}
+
+.upload-dropzone[role="button"] {
+    min-height: 144px;
+    padding: var(--space-5);
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-4);
+    border: 1px dashed var(--border-strong);
+    border-radius: var(--radius-sm);
+    background: rgba(255, 255, 255, .018);
+    text-align: left;
+    cursor: pointer;
+}
+.upload-dropzone .upload-dropzone-icon {
+    display: grid;
+    place-items: center;
+    flex: 0 0 32px;
+    color: var(--brand-green-300);
+}
+.upload-dropzone-icon svg { width: 32px; height: 32px; }
+.upload-dropzone-copy { display: grid; gap: var(--space-2); min-width: 0; line-height: 1.4; }
+.upload-dropzone-copy strong { color: var(--text-primary); font-size: 16px; }
+.upload-dropzone-copy > span { color: var(--text-secondary); font-size: 14px; }
+.upload-dropzone[role="button"]:hover,
+.upload-dropzone[role="button"].is-dragging,
+.upload-dropzone[role="button"].dragging { border-color: var(--brand-green-500); background: rgba(47, 174, 116, .08); }
+.upload-dropzone[role="button"]:focus-visible { outline: 2px solid var(--brand-green-300); outline-offset: 3px; }
+@media (max-width: 540px) {
+    .upload-dropzone[role="button"] { padding: var(--space-4); gap: var(--space-3); }
+}
+
+.person-photos-adder-upload-card {
+    position: relative;
+}
+
+.person-photos-adder-upload-remove {
+    position: absolute;
+    z-index: 4;
+    top: 8px;
+    right: 8px;
+
+    width: 30px;
+    height: 30px;
+    padding: 0;
+
+    border:
+        1px solid rgba(255,
+            255,
+            255,
+            .18);
+
+    border-radius: 999px;
+
+    background:
+        rgba(8,
+            12,
+            10,
+            .84);
+
+    color:
+        var(--text-primary);
+
+    display: grid;
+    place-items: center;
+
+    cursor: pointer;
+}
+
+.person-photos-adder-upload-remove:hover {
+    border-color:
+        var(--border-strong);
+
+    background:
+        var(--surface-card-hover);
+}
+
+.person-photos-adder-upload-remove:focus-visible {
+    outline:
+        2px solid var(--brand-green-300);
+
+    outline-offset: 2px;
+}
+
+.person-photos-adder-upload-remove svg {
+    width: 16px;
+    height: 16px;
+    display: block;
+}
+
+.person-photos-adder-upload-errors {
+    padding: var(--space-3);
+
+    border:
+        1px solid rgba(212,
+            107,
+            107,
+            .28);
+
+    border-radius:
+        var(--radius-sm);
+
+    background:
+        rgba(212,
+            107,
+            107,
+            .08);
+
+    color:
+        #f0b8b8;
+
+    display: grid;
+    gap: var(--space-2);
+
+    font-size: 13px;
+}
+
+.person-photos-adder-upload-errors ul {
+    margin: 0;
+    padding-left: var(--space-5);
+
+    display: grid;
+    gap: var(--space-1);
+}
+
+.person-photos-adder-footer {
+    align-items: center;
+    justify-content: space-between;
+}
+
+.person-photos-adder-modal>.person-photos-adder-footer {
+    position: relative;
+    z-index: 2;
+
+    flex: 0 0 auto;
+
+    margin: 0;
+    padding:
+        var(--space-4) var(--space-6);
+
+    border-top:
+        1px solid var(--border-default);
+
+    background:
+        var(--surface-card);
+
+    box-shadow:
+        0 -10px 24px rgba(0, 0, 0, .14);
+}
+
+.person-photos-adder-count {
+    color:
+        var(--text-tertiary);
+
+    font-size: 13px;
+    font-weight: 750;
+}
+.albums-photo-upload-notice {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin: 0 auto 0 0;
+    color: var(--text-secondary);
+    font-size: 12px;
+    line-height: 1.4;
+}
+
+.albums-photo-upload-notice > span:first-child {
+    display: inline-flex;
+    flex: 0 0 16px;
+    color: var(--warning, #d8b460);
+}
+
+.albums-photo-upload-notice svg {
+    width: 16px;
+    height: 16px;
+}
+
+.person-photos-adder-footer .modal-footer-actions { margin-left: auto; }
+
+.person-photos-adder-footer .button:disabled {
+    opacity: .48;
+    cursor: not-allowed;
+}
+
+@media (max-width: 620px) {
+    .person-photos-adder-footer {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .person-photos-adder-footer .modal-footer-actions {
+        justify-content: flex-end;
+    }
+}
+
+@media (max-width: 900px) {
+    .person-photos-adder-modal .person-photos-adder-body {
+        display: flex;
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .person-photos-adder-modal .person-photo-picker-tabs {
+        flex: 0 0 auto;
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        width: 100%;
+        box-sizing: border-box;
+    }
+
+    .person-photos-adder-modal .person-photo-picker-tab {
+        min-width: 0;
+        min-height: 44px;
+        white-space: nowrap;
+    }
+
+    .person-photos-adder-modal [role="tabpanel"] {
+        min-width: 0;
+        flex: 0 0 auto;
+    }
+
+    .person-photos-adder-upload-panel {
+        align-content: start;
+    }
+}
+
+@media (max-width: 540px) {
+    #modalBackdrop > .person-photos-adder-modal {
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+    }
+
+    #modalBackdrop > .person-photos-adder-modal .person-photos-adder-body {
+        flex: 1 1 auto;
+        min-height: 0;
+        overflow-y: auto;
+        overscroll-behavior: contain;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    #modalBackdrop > .person-photos-adder-modal .person-photos-adder-footer {
+        flex: 0 0 auto;
+        padding-bottom: max(var(--space-4), env(safe-area-inset-bottom));
+    }
+}
+
+
+.person-photo-adjust-layout {
+    --person-photo-adjust-size: 560px;
+
+    width: min(100%,
+            calc(var(--person-photo-adjust-size) + 220px + var(--space-5)));
+
+    margin-inline: auto;
+
+    display: grid;
+    grid-template-columns:
+        minmax(0, 1fr) 220px;
+    gap: var(--space-5);
+    align-items: start;
+    justify-content: center;
+}
+
+.person-photo-crop-column {
+    min-width: 0;
+    display: grid;
+    justify-items: center;
+    gap: var(--space-3);
+}
+
+.person-photo-crop-hint {
+    width: min(100%,
+            var(--person-photo-adjust-size));
+
+    margin: 0;
+    color: var(--text-tertiary);
+    font-size: 12px;
+    text-align: center;
+}
+
+.person-photo-tool-button {
+    min-width: 40px;
+    min-height: 40px;
+    padding: 0 var(--space-3);
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-sm);
+    background: var(--surface-input);
+    color: var(--text-secondary);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+}
+
+.person-photo-tool-button:hover {
+    background: var(--surface-card-hover);
+    color: var(--text-primary);
+}
+
+.person-photo-tool-button svg {
+    width: 17px;
+    height: 17px;
+    display: block;
+}
+
+.person-photo-preview-column {
+    min-width: 0;
+    display: grid;
+    gap: var(--space-4);
+}
+
+.person-photo-preview-card {
+    padding: var(--space-3);
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-sm);
+    background: var(--surface-card);
+    display: grid;
+    gap: var(--space-2);
+}
+
+.person-photo-preview-card strong {
+    font-size: 12px;
+}
+
+.person-photo-preview-avatar {
+    position: relative;
+    overflow: hidden;
+    margin: auto;
+    border: 1px solid rgba(255, 255, 255, .12);
+    background: transparent;
+}
+
+.person-photo-preview-avatar.tree {
+    width: 96px;
+    height: 112px;
+    border-radius: var(--radius-sm);
+}
+
+.person-photo-preview-avatar.profile {
+    width: 132px;
+    height: 132px;
+    border-radius: var(--radius-sm);
+}
+
+@media (max-width: 1180px) {
+    .tree-person-hero-photo {
+        --person-avatar-width: 88px;
+        --person-avatar-height: 104px;
+    }
+}
+
+@media (hover: none) {
+    .person-photo-edit-button {
+        top: 6px;
+        right: 6px;
+        bottom: auto;
+        left: auto;
+
+        opacity: 1;
+        pointer-events: auto;
+        transform: none;
+    }
+}
+
+@media (max-width: 760px) {
+    .person-photo-project-controls {
+        grid-template-columns: 1fr;
+        gap: var(--space-3);
+        align-items: stretch;
+    }
+
+    .person-photo-project-controls .search-input {
+        width: 100%;
+    }
+
+    .person-photo-scope-switch {
+        width: 100%;
+    }
+
+    .person-photo-scope-button {
+        min-width: 0;
+        flex: 1 1 0;
+    }
+
+    .person-photo-adjust-layout {
+        width: 100%;
+        grid-template-columns: 1fr;
+        justify-items: center;
+    }
+
+    .person-photo-preview-column {
+        grid-template-columns:
+            repeat(2,
+                minmax(0, 1fr));
+    }
+
+    .person-photo-upload-preview {
+        grid-template-columns: 1fr;
+        text-align: center;
+        justify-items: center;
+    }
+
+    .person-photo-upload-copy {
+        justify-items: center;
+    }
+}
+
+@media (max-width: 520px) {
+    .person-photo-picker-modal {
+        width:
+            calc(100vw - 16px);
+    }
+
+    .person-photo-picker-body {
+        padding:
+            var(--space-3);
+    }
+
+    .person-photo-candidate-grid {
+        --person-photo-candidate-min:
+            180px;
+    }
+
+    .person-photo-preview-column {
+        grid-template-columns:
+            1fr;
+    }
+}
+
+
+.albums-check,
+.albums-fav-button,
+.albums-card-more,
+.albums-row-more,
+.albums-list-favourite {
+    padding: 0;
+
+    border:
+        1px solid transparent;
+
+    background: transparent;
+    color: var(--text-tertiary);
+
+    display: inline-grid;
+    place-items: center;
+
+    line-height: 0;
+    flex: 0 0 auto;
+
+    transition:
+        background var(--ease),
+        border-color var(--ease),
+        color var(--ease),
+        opacity var(--ease);
+}
+
+.albums-check,
+.albums-fav-button {
+    position: absolute;
+    z-index: 3;
+    top: 10px;
+    width: 30px;
+    height: 30px;
+    border-color: rgba(255, 255, 255, .14);
+    border-radius: var(--radius-sm);
+    background: rgba(13, 17, 15, .76);
+    backdrop-filter: blur(8px);
+}
+
+.albums-check {
+    left: 10px;
+}
+
+.albums-fav-button {
+    right: 10px;
+}
+
+.albums-check:hover,
+.albums-fav-button:hover {
+    border-color: rgba(255, 255, 255, .26);
+    background: rgba(28, 35, 32, .9);
+    color: var(--text-primary);
+}
+
+.albums-check:focus-visible,
+.albums-fav-button:focus-visible,
+.albums-card-more:focus-visible,
+.albums-row-more:focus-visible,
+.albums-list-favourite:focus-visible {
+    outline:
+        2px solid var(--brand-green-300);
+
+    outline-offset: 2px;
+}
+
+.albums-check:active,
+.albums-fav-button:active,
+.albums-card-more:active,
+.albums-row-more:active,
+.albums-list-favourite:active {
+    border-color:
+        var(--border-strong);
+
+    background:
+        var(--surface-selected);
+}
+
+.albums-check[aria-pressed="true"] {
+    border-color: rgba(98, 217, 154, .55);
+    background: var(--brand-green-500);
+    color: #10251a;
+}
+
+.albums-fav-button.active {
+    color: #f1c96c;
+}
+
+.albums-card-body {
+    min-width: 0;
+    height: 116px;
+    padding: var(--space-3);
+
+    display: grid;
+    grid-template-rows:
+        1.25em 1.25em minmax(32px, 1fr);
+    gap: 5px;
+
+    overflow: hidden;
+}
+
+.albums-card-title {
+    min-width: 0;
+
+    display: block;
+    overflow: hidden;
+
+    color: var(--text-primary);
+    font-size: 14px;
+    font-weight: 900;
+    line-height: 1.25;
+
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.albums-card-people,
+.albums-card-footer>span {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.albums-card-footer {
+    align-self: end;
+}
+
+.albums-card-people {
+    color: var(--text-secondary);
+    font-size: 13px;
+    font-weight: 800;
+}
+
+.albums-card-footer {
+    min-height: 32px;
+    margin-top: auto;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 32px;
+    align-items: center;
+    gap: var(--space-2);
+    color: var(--text-tertiary);
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.albums-card-more,
+.albums-row-more,
+.albums-list-favourite {
+    width: 32px;
+    height: 32px;
+
+    border-radius:
+        var(--radius-sm);
+}
+
+.albums-card-more:hover,
+.albums-row-more:hover,
+.albums-list-favourite:hover,
+.albums-album-more:hover {
+    border-color:
+        var(--border-default);
+
+    background:
+        var(--surface-card-hover);
+
+    color:
+        var(--text-primary);
+}
+
+.albums-list-favourite {
+    place-self: center;
+
+    opacity: .55;
+
+    cursor: pointer;
+}
+
+.albums-list-favourite:hover,
+.albums-list-favourite:focus-visible,
+.albums-list-favourite.active {
+    opacity: 1;
+}
+
+.albums-list-favourite.active {
+    color: #f1c96c;
+}
+
+.albums-list-favourite-heading {
+    width: 32px;
+    height: 32px;
+
+    place-self: center;
+
+    display: grid;
+    place-items: center;
+
+    color:
+        var(--text-tertiary);
+}
+
+.albums-list-favourite-heading svg {
+    width: 15px;
+    height: 15px;
+    display: block;
+}
+
+.albums-list-favourite-spacer {
+    width: 32px;
+    height: 32px;
+
+    place-self: center;
+
+    display: block;
+}
+
+.albums-list {
+    min-width: 850px;
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-sm);
+    overflow: hidden;
+}
+
+.albums-list-row {
+    min-height: 64px;
+    padding: 7px var(--space-3);
+    border-bottom:
+        1px solid var(--border-default);
+
+    background:
+        var(--surface-card);
+
+    display: grid;
+    grid-template-columns:
+        34px 52px minmax(180px, 1.3fr) minmax(150px, 1fr) 130px minmax(140px, .8fr) 36px 36px;
+
+    align-items: center;
+    gap: var(--space-3);
+
+    color:
+        var(--text-secondary);
+
+    font-size: 13px;
+}
+
+.albums-list-row:last-child {
+    border-bottom: 0;
+}
+
+.albums-list-row.header {
+    min-height: 42px;
+    background: var(--surface-card);
+    color: var(--text-tertiary);
+    font-size: 11px;
+    font-weight: 900;
+    text-transform: uppercase;
+}
+
+.albums-select-checkbox {
+    width: 18px;
+    height: 18px;
+    margin: 0;
+    place-self: center;
+    accent-color: var(--brand-green-500);
+    cursor: pointer;
+}
+
+.albums-select-checkbox:focus-visible {
+    outline: 2px solid var(--brand-green-300);
+    outline-offset: 2px;
+}
+
+.albums-list-thumb {
+    width: 48px;
+    height: 48px;
+    border: 1px solid var(--border-default);
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.albums-list-title {
+    min-width: 0;
+    display: grid;
+    gap: 3px;
+}
+
+.albums-list-title strong,
+.albums-list-title span,
+.albums-list-row>span {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.albums-list-title strong {
+    color: var(--text-primary);
+    font-weight: 900;
+}
+
+.albums-list-title span {
+    color: var(--text-tertiary);
+    font-size: 11px;
+}
+
+.albums-empty {
+    min-height: 100%;
+    display: grid;
+    place-items: center;
+    padding: var(--space-6);
+}
+
+.albums-empty-card {
+    max-width: 430px;
+    text-align: center;
+    color: var(--text-tertiary);
+}
+
+.albums-empty-card>svg {
+    width: 40px;
+    height: 40px;
+    color: var(--text-tertiary);
+}
+
+.albums-empty-card h2 {
+    margin: var(--space-3) 0 var(--space-2);
+    color: var(--text-primary);
+    font-size: 20px;
+}
+
+.albums-empty-card p {
+    margin: 0 0 var(--space-4);
+    line-height: 1.55;
+}
+
