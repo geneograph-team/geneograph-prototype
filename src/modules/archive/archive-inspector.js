@@ -1027,7 +1027,7 @@ function renderArchiveFilePlaces(file, readOnly)
           ${readOnly ? '' : `<div class="relation-actions"><button class="relation-action-button" type="button" data-archive-unlink-owner-type="file" data-archive-unlink-owner-id="${escapeHtml(file.id)}" data-archive-unlink-type="place" data-archive-unlink-id="${escapeHtml(place.id)}" aria-label="${escapeHtml(t('Unlink') + ' ' + name)}" title="${escapeHtml(t('Unlink'))}">${icon.unlink}</button></div>`}
         </div>`;
       }).join('')}
-      ${legacyText ? `<div class="archive-legacy-place"><span>${escapeHtml(legacyText)}</span><small>${escapeHtml(t('Place name not linked to a project place'))}</small>${readOnly ? '' : `<button class="link" type="button" data-archive-resolve-file-place="${escapeHtml(file.id)}">${escapeHtml(t('Find place'))}</button>`}</div>` : ''}
+      ${legacyText ? `<div class="archive-legacy-place"><span>${escapeHtml(legacyText)}</span><small>${escapeHtml(t('Place name not linked to a project place'))}</small>${readOnly ? '' : `<button class="panel-action" type="button" data-archive-resolve-file-place="${escapeHtml(file.id)}">${escapeHtml(t('Find place'))}</button>`}</div>` : ''}
     </div>`;
 }
 
@@ -1366,7 +1366,7 @@ function renderArchiveSourceSectionAction(
 
     return `
         <button
-          class="link"
+          class="panel-action"
           type="button"
           data-archive-add-connection="${escapeHtml(
                 entityType
@@ -2068,7 +2068,7 @@ function renderArchiveSourceDetails(
                             ? `
                         <a
                           class="
-                            link
+                            text-action
                             archive-source-url
                           "
                           href="${escapeHtml(
@@ -2377,7 +2377,7 @@ function renderArchiveFileInspector(
                 file,
                 editing
             ),
-            editing ? '' : `<button class="link" type="button" id="archiveEditFile">${renderPanelButtonLabel(icon.edit, 'Edit')}</button>`
+            editing ? '' : `<button class="panel-action" type="button" id="archiveEditFile">${renderPanelButtonLabel(icon.edit, 'Edit')}</button>`
         )}
 
         ${renderArchiveFileSection(
@@ -2460,7 +2460,7 @@ function renderArchiveFileInspector(
             'places',
             'Places',
             renderArchiveFilePlaces(file, editing),
-            editing ? '' : `<button class="link" type="button" data-archive-add-file-place="${escapeHtml(file.id)}">${renderPanelButtonLabel(icon.plus, 'Add places')}</button>`,
+            editing ? '' : `<button class="panel-action" type="button" data-archive-add-file-place="${escapeHtml(file.id)}">${renderPanelButtonLabel(icon.plus, 'Add places')}</button>`,
             `${placeCount} ${placeCount === 1 ? 'place' : 'places'}`
         )}
 
@@ -2751,7 +2751,7 @@ function renderArchiveSourceInspector()
             'details',
             'Source details',
             renderArchiveSourceDetails(source, categoryLabel),
-            state.archiveSourceEditingId === source.id ? '' : `<button class="link" type="button" data-archive-edit-source-details="${escapeHtml(source.id)}">${renderPanelButtonLabel(icon.edit, 'Edit')}</button>`
+            state.archiveSourceEditingId === source.id ? '' : `<button class="panel-action" type="button" data-archive-edit-source-details="${escapeHtml(source.id)}">${renderPanelButtonLabel(icon.edit, 'Edit')}</button>`
         )}
 
         ${renderArchiveSourceConnectionSection(source, 'person')}

@@ -50,17 +50,6 @@
     white-space: nowrap;
 }
 
-.places-route-toolbar-button.active {
-    border-color:
-        rgba(98, 217, 154, .35);
-
-    background:
-        var(--surface-selected);
-
-    color:
-        var(--text-primary);
-}
-
 .places-route-popover {
     width: min(400px, calc(100vw - 24px));
     min-width: 0;
@@ -1852,7 +1841,7 @@
     right: 36px;
 }
 
-.places-inspector-section-action .link {
+.places-inspector-section-action .panel-action {
     min-height: 30px;
     padding: 4px 7px;
 }

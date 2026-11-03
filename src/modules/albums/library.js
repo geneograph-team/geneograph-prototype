@@ -1158,7 +1158,7 @@ function renderAlbumsSidebar()
             </p>
 
             <button
-              class="link tip-link"
+              class="text-action tip-link"
               type="button"
               data-toast="More photo organization guidance will be added later.">
 

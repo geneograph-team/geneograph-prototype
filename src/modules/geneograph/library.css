@@ -442,8 +442,13 @@
     min-width: 0;
 }
 
+.geneo-collection-search-row :is(.app-search-field, .button) {
+    background: var(--surface-input);
+}
+
 .geneo-collection-new-button {
     white-space: nowrap;
+    height: var(--control-height);
     min-height: var(--control-height);
 }
 

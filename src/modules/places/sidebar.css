@@ -348,6 +348,10 @@
         var(--space-4);
 }
 
+.people-filter-field.field label {
+    margin-bottom: 0;
+}
+
 .places-filter-error {
     margin:
         0;

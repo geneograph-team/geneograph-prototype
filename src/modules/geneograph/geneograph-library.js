@@ -1051,6 +1051,7 @@ function renderGeneographCollectionChooser({
               <div
                 class="
                   search-input
+                  app-search-field
                 ">
 
                 ${icon.search}
@@ -1066,7 +1067,7 @@ function renderGeneographCollectionChooser({
             </div>
 
             <button
-              class="button secondary compact geneo-collection-new-button"
+              class="button secondary geneo-collection-new-button"
               type="button"
               data-geneo-inline-collection-toggle
               aria-label="New collection"

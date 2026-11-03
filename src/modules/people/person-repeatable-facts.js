@@ -151,7 +151,7 @@ function renderRepeatableFactReadOnly(person, tag)
         if (tag === 'FACT') fields.push(['Date or period', formatGenealogyDateLabel(record.date)]);
         else fields.push(['Start date', formatGenealogyDateLabel(record.fromDate || record.date)], ['End date', formatGenealogyDateLabel(record.toDate)]);
         fields.push(['Notes', record.notes]);
-        const edit = tag === 'FACT' ? `<button class="link" type="button" data-person-attribute-edit="${escapeHtml(record.id)}" data-person-id="${escapeHtml(person.id)}">${icon.edit}${escapeHtml(t('Edit fact'))}</button>` : '';
+        const edit = tag === 'FACT' ? `<button class="panel-action" type="button" data-person-attribute-edit="${escapeHtml(record.id)}" data-person-id="${escapeHtml(person.id)}">${icon.edit}${escapeHtml(t('Edit fact'))}</button>` : '';
         return `<section class="profile-info-block repeatable-fact-summary"><h4 ${tag === 'FACT' ? 'data-user-content' : ''}>${escapeHtml(tag === 'FACT' ? record.type || t('Custom fact') : t(repeatableFactLabel(tag)))}</h4>${fields.filter(([, value]) => value).map(([label, value]) => renderProfileInfoRow(label, value)).join('')}${edit}</section>`;
     }).join('')}</div>`;
 }

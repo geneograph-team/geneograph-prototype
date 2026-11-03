@@ -344,7 +344,7 @@ function renderGeneographPlacePickerModal({
             </div>
 
             <div class="rp-toolbar geneo-place-picker-toolbar">
-              <label class="rp-search geneo-place-picker-search" for="geneoPlacePickerSearch">
+              <label class="app-search-field rp-search geneo-place-picker-search" for="geneoPlacePickerSearch">
                 ${icon.search}
                 <input
                   id="geneoPlacePickerSearch"
@@ -359,9 +359,6 @@ function renderGeneographPlacePickerModal({
                   data-geneo-place-picker-search
                   autofocus>
               </label>
-              <button class="button secondary" type="button" data-geneo-place-browse>
-                ${icon.folder}<span>${escapeHtml(t('Browse'))}</span>
-              </button>
             </div>
 
             <nav class="rp-path" aria-label="${escapeHtml(t('Location'))}">
@@ -827,13 +824,6 @@ function openGeneographPlaceModal(
             scheduleMapSearch();
         }
     );
-
-    form.querySelector('[data-geneo-place-browse]')?.addEventListener('click', () =>
-    {
-        searchInput.value = '';
-        searchInput.dispatchEvent(new Event('input', { bubbles: true }));
-        searchInput.focus();
-    });
 
     searchInput.addEventListener('keydown', event =>
     {
@@ -4033,7 +4023,6 @@ function resetGeneographImagePickerState()
         addView: 'results',
         albumScopeId: '',
         imageSort: 'name',
-        imageFavoriteOnly: false,
         search: '',
         selectedProjectPhotoIds: [],
         uploadDrafts: [],
@@ -4531,7 +4520,6 @@ function renderGeneographAddImageResults()
     let photos = getProjectPhotos(projectId).filter(photo => !photo.deletedAt);
     if (picker.addView === 'selected') photos = photos.filter(photo => selected.has(photo.id));
     if (picker.albumScopeId) photos = photos.filter(photo => (photo.albumIds || []).includes(picker.albumScopeId));
-    if (picker.imageFavoriteOnly) photos = photos.filter(photo => photo.favorite);
     const query = picker.search.trim().toLowerCase();
     if (query) photos = photos.filter(photo => photoSearchText(photo).includes(query));
     photos.sort((a, b) => picker.imageSort === 'updated'
@@ -4587,10 +4575,8 @@ function renderGeneographAddImageModal({ focusSelector = '' } = {})
       </header>
       <div class="rp-toolbar">
         <button type="button" class="button secondary" data-geneo-image-browse>${icon.folder}<span>${text('Browse', 'Обзор')}</span></button>
-        <label class="rp-search">${icon.search}<input type="search" data-geneo-image-search
+        <label class="app-search-field rp-search">${icon.search}<input type="search" data-geneo-image-search
           value="${escapeHtml(picker.search)}" aria-label="${text('Search', 'Поиск')}" placeholder="${text('Search', 'Поиск')}"></label>
-        <button type="button" class="icon-button ${picker.imageFavoriteOnly ? 'is-active' : ''}"
-          data-geneo-image-filter aria-label="${text('Show favorites', 'Показать избранное')}" title="${text('Show favorites', 'Показать избранное')}">${icon.filter || icon.settings}</button>
         <div class="rp-sort">${icon.sortLines}<select data-geneo-image-sort aria-label="${text('Sort', 'Сортировка')}">
           <option value="name" ${picker.imageSort === 'name' ? 'selected' : ''}>${text('Name', 'Название')}</option>
           <option value="updated" ${picker.imageSort === 'updated' ? 'selected' : ''}>${text('Recently updated', 'Недавно изменённые')}</option>
@@ -4619,6 +4605,7 @@ function renderGeneographAddImageModal({ focusSelector = '' } = {})
       </footer>
     </section>`);
     bindGeneographImagePickerModal();
+    rpEnhanceSortControl(modalBackdrop.querySelector('.geneo-image-add-modal'), '[data-geneo-image-sort]');
     bindGeneographAddImageModal();
     if (focusSelector) requestAnimationFrame(() => modalBackdrop.querySelector(focusSelector)?.focus());
 }
@@ -5663,11 +5650,6 @@ function bindGeneographAddImageModal()
             if (picker.mode === 'replace') picker.sourceTab = 'project';
             renderGeneographImagePickerModal({ focusSelector: '[data-geneo-image-search]' });
         }));
-    modalBackdrop.querySelector('[data-geneo-image-filter]')?.addEventListener('click', () =>
-    {
-        picker.imageFavoriteOnly = !picker.imageFavoriteOnly;
-        renderGeneographImagePickerModal({ focusSelector: '[data-geneo-image-filter]' });
-    });
     modalBackdrop.querySelector('[data-geneo-image-sort]')?.addEventListener('change', event =>
     {
         picker.imageSort = event.target.value;

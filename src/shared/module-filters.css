@@ -157,9 +157,8 @@
 }
 
 .shared-filter-boolean-control:focus-within {
-    border-color: var(--brand-green-500);
-    outline: var(--control-focus-width) solid var(--control-focus-color);
-    outline-offset: 2px;
+    border-color: var(--control-field-focus-color);
+    outline: none;
 }
 
 .shared-filter-boolean-control input {
@@ -264,9 +263,8 @@
 }
 
 .shared-filter-combobox-input:focus-within {
-    border-color: var(--brand-green-500);
-    outline: var(--control-focus-width) solid var(--control-focus-color);
-    outline-offset: 2px;
+    border-color: var(--control-field-focus-color);
+    outline: none;
 }
 
 .shared-filter-combobox-input>svg {
@@ -520,10 +518,9 @@
         var(--surface-card-hover);
 }
 
-.shared-filter-year-input:focus-visible {
-    border-color: var(--brand-green-500);
-    outline: var(--control-focus-width) solid var(--control-focus-color);
-    outline-offset: 2px;
+.shared-filter-year-input:focus {
+    border-color: var(--control-field-focus-color);
+    outline: none;
 }
 
 .shared-filter-year-input[aria-invalid="true"] {

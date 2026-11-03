@@ -272,7 +272,7 @@ function renderNotesSidebar()
               </p>
 
               <button
-                class="link tip-link"
+                class="text-action tip-link"
                 type="button"
                 data-notes-tip>
                 <span class="tip-link-text">
@@ -2201,7 +2201,7 @@ function renderNoteCollectionsSection(
 
         action: `
           <button
-            class="link"
+            class="panel-action"
             type="button"
             id="notesManageCollections"
             aria-label="Add to collection">
@@ -2307,7 +2307,7 @@ function renderNoteChecklistSection(
 
         action: `
           <button
-            class="link"
+            class="panel-action"
             type="button"
             id="notesAddChecklistItem">
             ${renderPanelButtonLabel(
@@ -3147,7 +3147,7 @@ function renderNoteLinkedEntitySection(
 
         action: `
           <button
-            class="link"
+            class="panel-action"
             type="button"
             data-note-manage-links="${escapeHtml(
                 type
@@ -3497,7 +3497,7 @@ function renderNoteRelatedSection(
 
         action: `
           <button
-            class="link"
+            class="panel-action"
             type="button"
             id="notesManageRelated">
 

@@ -301,7 +301,7 @@ function renderPlaceFilterFields(
             .join('');
 
     return `
-        <div class="people-filter-field full">
+        <div class="people-filter-field field full">
           <label for="${prefix}-person">
             Person
           </label>
@@ -318,7 +318,7 @@ function renderPlaceFilterFields(
           </select>
         </div>
 
-        <div class="people-filter-field">
+        <div class="people-filter-field field">
           <label for="${prefix}-surname">
             Surname
           </label>
@@ -335,7 +335,7 @@ function renderPlaceFilterFields(
           </select>
         </div>
 
-        <div class="people-filter-field">
+        <div class="people-filter-field field">
           <label for="${prefix}-event-type">
             Event type
           </label>
@@ -352,7 +352,7 @@ function renderPlaceFilterFields(
           </select>
         </div>
 
-        <div class="people-filter-field">
+        <div class="people-filter-field field">
           <label for="${prefix}-year-from">
             Year from
           </label>
@@ -371,7 +371,7 @@ function renderPlaceFilterFields(
             data-place-filter-input="yearFrom">
         </div>
 
-        <div class="people-filter-field">
+        <div class="people-filter-field field">
           <label for="${prefix}-year-to">
             Year to
           </label>
@@ -390,7 +390,7 @@ function renderPlaceFilterFields(
             data-place-filter-input="yearTo">
         </div>
 
-        <div class="people-filter-field">
+        <div class="people-filter-field field">
           <label for="${prefix}-country">
             Country
           </label>
@@ -407,7 +407,7 @@ function renderPlaceFilterFields(
           </select>
         </div>
 
-        <div class="people-filter-field">
+        <div class="people-filter-field field">
           <label for="${prefix}-mapped">
             Map status
           </label>
@@ -738,7 +738,7 @@ function renderPlacesActiveFilters()
 
           <span class="active-filter-actions">
             <button
-              class="link"
+              class="text-action"
               type="button"
               id="placesClearFilters">
               Clear all

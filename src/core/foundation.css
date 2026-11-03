@@ -32,6 +32,7 @@
     --control-height: 42px;
     --control-focus-color: var(--brand-green-300);
     --control-focus-width: 2px;
+    --control-field-focus-color: var(--brand-green-600);
     --select-chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8'%3E%3Cpath d='m1 1 5 5 5-5' fill='none' stroke='%23B8C0BD' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
     --control-icon-button-size: var(--control-height);
     --search-field-max-width: 460px;
@@ -601,15 +602,6 @@ button {
 
 .tip-card p {
     margin: 0 0 var(--space-4);
-}
-
-.link {
-    color: var(--brand-green-300);
-    text-decoration: underline;
-    text-underline-offset: 3px;
-    background: none;
-    border: 0;
-    padding: 0;
 }
 
 .tip-link {
@@ -3770,7 +3762,9 @@ body.mobile-details-open .geneo-inspector [data-geneo-inspector-toggle] {
 .genealogy-calendar[hidden] { display: none; }
 .genealogy-calendar-nav { display: grid; grid-template-columns: 36px minmax(0, 1fr) 72px 36px; align-items: center; gap: 6px; margin: 4px 0 10px; }
 .genealogy-calendar-nav.has-endpoint { grid-template-columns: 72px 36px minmax(0, 1fr) 72px 36px; }
-.genealogy-calendar-nav input, .genealogy-calendar-nav select { min-width: 0; width: 100%; min-height: 36px; background: var(--surface-input); color: var(--text-primary); border: 1px solid var(--border-default); border-radius: var(--radius-sm); padding: 6px; }
+.genealogy-calendar-nav :is(input, select) { min-width: 0; width: 100%; }
+.genealogy-calendar-nav.field select:not(.common-select):not(.add-person-select) { padding: 0 18px 0 6px; background-position: calc(100% - 4px) center; }
+.genealogy-calendar-nav.field input { padding-inline: 6px; }
 .genealogy-calendar-nav [hidden] { display: none; }
 .genealogy-calendar-nav .icon-button { width: 36px; height: 36px; display: grid; place-items: center; padding: 0; border: 1px solid var(--border-strong); border-radius: 6px; background: var(--surface-input); color: var(--text-secondary); cursor: pointer; }
 .genealogy-calendar-nav .icon-button:hover { color: var(--text-primary); background: var(--surface-selected); }
@@ -3781,7 +3775,7 @@ body.mobile-details-open .geneo-inspector [data-geneo-inspector-toggle] {
 .genealogy-calendar-days button { height: 38px; min-width: 0; border: 1px solid transparent; border-radius: 4px; background: transparent; color: var(--text-primary); cursor: pointer; }
 .genealogy-calendar-days button:hover { background: var(--surface-selected); }
 .genealogy-calendar-days button:focus-visible { outline: 2px solid var(--brand-green-500); outline-offset: -2px; }
-.genealogy-calendar-nav :is(button, input, select):focus-visible { outline: 2px solid var(--brand-green-500); outline-offset: 2px; }
+.genealogy-calendar-nav button:focus-visible { outline: 2px solid var(--brand-green-500); outline-offset: 2px; }
 @media (max-width: 600px) {
     .genealogy-date-popover { width: min(520px, calc(100vw - 8px)); }
     .genealogy-date-popover .genealogy-date-parts-row { grid-template-columns: minmax(44px, .55fr) minmax(0, 1.4fr) minmax(60px, .8fr); gap: 6px; }
@@ -3789,7 +3783,7 @@ body.mobile-details-open .geneo-inspector [data-geneo-inspector-toggle] {
     .genealogy-calendar-nav { gap: 4px; grid-template-columns: 36px minmax(0, 1fr) 52px 36px; }
     .genealogy-calendar-nav.has-endpoint { grid-template-columns: 56px 32px minmax(0, 1fr) 48px 32px; }
     .genealogy-calendar-nav.has-endpoint .icon-button { width: 32px; }
-    .genealogy-calendar-nav select, .genealogy-calendar-nav input { padding-inline: 4px; font-size: 12px; }
+    .genealogy-calendar-nav :is(select, input) { font-size: 12px; }
     .genealogy-date-popover .genealogy-date-actions { gap: 6px; }
     .genealogy-calendar-days button { min-height: 44px; }
 }
@@ -3818,6 +3812,10 @@ body.mobile-details-open .geneo-inspector [data-geneo-inspector-toggle] {
     min-width: 0;
 }
 
+.genealogy-date-parts-row .genealogy-date-part-field.field input {
+    padding-inline: 6px;
+}
+
 .genealogy-date-parts-row select,
 .genealogy-date-parts-row input {
     width: 100%;
@@ -3829,23 +3827,11 @@ body.mobile-details-open .geneo-inspector [data-geneo-inspector-toggle] {
     min-width: 0;
 }
 
-.genealogy-date-part-field label {
+.genealogy-date-part-field.field label {
     margin: 0;
     color: var(--text-secondary);
     font-size: 12px;
     font-weight: 800;
-}
-
-.genealogy-date-part-field input,
-.genealogy-date-part-field select {
-    width: 100%;
-    min-height: 38px;
-    border: 1px solid var(--border-default);
-    background: var(--surface-input);
-    color: var(--text-primary);
-    border-radius: var(--radius-sm);
-    padding: 9px 10px;
-    outline: 0;
 }
 
 .genealogy-date-second-date[hidden],

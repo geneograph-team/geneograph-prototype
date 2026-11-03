@@ -1349,7 +1349,6 @@ function openAddToAlbumModal()
                     class="
                       button
                       secondary
-                      compact
                       album-picker-new-button
                     "
                     type="button"
@@ -1521,8 +1520,7 @@ function openAddToAlbumModal()
 
         if (createMode)
         {
-            countElement.textContent =
-                t('Create a new album');
+            countElement.textContent = '';
 
             footerActions.innerHTML = `
             <button

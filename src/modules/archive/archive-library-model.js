@@ -78,7 +78,7 @@ function renderArchiveFileSectionAction(
 
     return `
         <button
-          class="link"
+          class="text-action"
           type="button"
           ${attribute}>
 

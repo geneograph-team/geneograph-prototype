@@ -1678,7 +1678,7 @@ function renderPeopleActiveFilters()
 
           <span class="active-filter-actions">
             <button
-              class="link"
+              class="text-action"
               type="button"
               id="peopleClearFilters">
               Clear all

@@ -62,7 +62,7 @@
 .gr-global-columns { z-index: 2; margin: -10px 0 8px; border-bottom: 1px solid var(--border-default); }
 .geneo-family-review .common-select-shell { display: block; position: relative; min-width: 0; }
 .geneo-family-review .common-select { appearance: none; box-sizing: border-box; display: block; width: 100%; min-width: 0; min-height: 38px; padding: 8px 34px 8px 10px; border: 1px solid var(--border-default); border-radius: 6px; background: var(--surface-input); color: var(--text-primary); font-size: 13px; line-height: 1.4; text-overflow: ellipsis; cursor: pointer; }
-.geneo-family-review .common-select:hover { border-color: var(--text-secondary); }
+.geneo-family-review .common-select:hover:not(:focus) { border-color: var(--text-secondary); }
 .geneo-family-review .common-select-chevron { display: grid; place-items: center; position: absolute; right: 10px; top: 50%; width: 14px; height: 14px; margin: 0; transform: translateY(-50%) rotate(90deg); pointer-events: none; color: var(--text-secondary); }
 .geneo-family-review .common-select-chevron svg { width: 14px; height: 14px; transform: none; }
 .gr-relative-config > .common-select-shell { flex: 1; max-width: 210px; }

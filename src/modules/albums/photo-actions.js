@@ -399,7 +399,7 @@ function openUnifiedImagePeopleModal(photoId, { mode = 'tag', activePersonId = n
                 photo-people-search-field
               ">
               <div
-                class="search-input">
+                class="search-input app-search-field">
                 ${icon.search}
 
                 <input

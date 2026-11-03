@@ -90,7 +90,7 @@ function renderAlbumsActiveFilterbar()
 
           <span class="active-filter-actions">
             <button
-              class="link"
+              class="text-action"
               type="button"
               id="albumsClearFilters">
               Clear all
@@ -302,7 +302,7 @@ function openAlbumsFilterPopover(
           ">
 
           <button
-            class="link"
+            class="text-action"
             type="button"
             data-albums-filter-reset>
             Clear filters

@@ -988,7 +988,7 @@ function renderProfileResourceCard({
                     ? `
                 <span class="profile-connected-actions">
                   <button
-                    class="profile-connected-action"
+                    class="panel-action profile-connected-action"
                     type="button"
                     ${
                         addAction
@@ -1317,7 +1317,7 @@ function renderProfileCompactTimeline(person)
 
             <span class="profile-connected-actions">
               <button
-                class="profile-connected-action"
+                class="panel-action profile-connected-action"
                 type="button"
                 data-profile-add-fact>
                 ${icon.plus}

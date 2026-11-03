@@ -366,7 +366,6 @@ function openNoteCollectionsModal(
                     class="
                       button
                       secondary
-                      compact
                       album-picker-new-button
                     "
                     type="button"
@@ -530,8 +529,7 @@ function openNoteCollectionsModal(
 
         if (createMode)
         {
-            countElement.textContent =
-                'Create a new collection';
+            countElement.textContent = '';
 
             footerActions.innerHTML = `
             <button

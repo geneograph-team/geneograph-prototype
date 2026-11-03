@@ -292,36 +292,10 @@
 }
 
 .tree-person-picker-search {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    margin: 4px 4px 8px;
-    padding: 0 10px;
-    min-height: 42px;
-    border: 1px solid var(--border-default);
-    border-radius: 6px;
-    background: var(--surface-input);
-}
-
-.tree-person-picker-search:focus-within {
-    border-color: var(--brand-green-300);
-}
-
-.tree-person-picker-search svg {
-    width: 16px;
-    height: 16px;
-    color: var(--text-tertiary);
+    width: auto;
+    max-width: none;
     flex: none;
-}
-
-.tree-person-picker-search input {
-    flex: 1;
-    min-width: 0;
-    border: 0;
-    outline: 0;
-    background: transparent;
-    color: var(--text-primary);
-    font: inherit;
+    margin: 4px 4px 8px;
 }
 
 .tree-person-picker-results {

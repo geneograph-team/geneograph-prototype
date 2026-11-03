@@ -649,7 +649,7 @@ function openPlaceSavedFilterModal({
 
                   <button
                     class="
-                      link
+                      panel-action
                       people-saved-view-clear
                     "
                     type="button"
@@ -1564,6 +1564,7 @@ function renderPlacesMain()
                 <div class="places-toolbar-right">
                   <button
                     class="
+                      button
                       people-filter-button
                       places-filter-button
                       ${
@@ -1641,7 +1642,7 @@ function renderPlacesMain()
                         <button
                           class="
                             button
-                            secondary
+                            people-filter-button
                             places-route-toolbar-button
                             ${routeIsShown ? 'active' : ''}
                           "

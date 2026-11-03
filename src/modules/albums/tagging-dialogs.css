@@ -121,6 +121,11 @@
     text-align: left;
 }
 
+.albums-tag-people-modal .photo-people-search-field .app-search-field {
+    width: 100%;
+    background: var(--surface-input);
+}
+
 .photo-people-selected-panel,
 .photo-people-results-panel {
     display: grid;

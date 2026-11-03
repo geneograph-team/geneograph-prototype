@@ -296,7 +296,7 @@ function openPeopleFilterPopover(
           ">
 
           <button
-            class="link"
+            class="text-action"
             type="button"
             data-people-filter-reset>
             Clear filters
@@ -685,7 +685,7 @@ function openPeopleSavedViewModal({
                   </div>
 
                   <button
-                    class="link people-saved-view-clear"
+                    class="text-action people-saved-view-clear"
                     type="button"
                     data-people-saved-view-clear>
                     Clear filters

@@ -1301,7 +1301,7 @@ function renderAlbumsDetailPane()
             ? ''
             : `
             <button
-              class="link"
+              class="panel-action"
               type="button"
               id="albumsTagPeople">
 
@@ -1317,7 +1317,7 @@ function renderAlbumsDetailPane()
             ? ''
             : `
             <button
-              class="link"
+              class="panel-action"
               type="button"
               id="albumsLinkAlbum">
 
@@ -1333,7 +1333,7 @@ function renderAlbumsDetailPane()
             ? ''
             : `
             <button
-              class="link"
+              class="panel-action"
               type="button"
               id="albumsManagePhotoNotes">
 
@@ -1349,7 +1349,7 @@ function renderAlbumsDetailPane()
             ? ''
             : `
             <button
-              class="link"
+              class="panel-action"
               type="button"
               id="albumsManagePhotoSources">
 
@@ -1390,7 +1390,7 @@ function renderAlbumsDetailPane()
                     photo,
                     editing
                 ),
-                editing ? '' : `<button class="link" type="button" id="albumsEditPhoto">${renderPanelButtonLabel(icon.edit, 'Edit')}</button>`
+                editing ? '' : `<button class="panel-action" type="button" id="albumsEditPhoto">${renderPanelButtonLabel(icon.edit, 'Edit')}</button>`
             )}
 
           ${renderAlbumsDetailSection(

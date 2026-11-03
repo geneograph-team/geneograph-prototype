@@ -637,7 +637,7 @@ function openTreePersonPicker(anchor)
     picker.className = 'menu-popover tree-person-picker';
     picker.setAttribute('role', 'dialog');
     picker.setAttribute('aria-label', t('Find person'));
-    picker.innerHTML = `<div class="tree-person-picker-search">${icon.search}<input type="search" placeholder="${escapeHtml(t('Find person'))}" aria-label="${escapeHtml(t('Find person'))}" aria-controls="treePersonPickerResults" aria-expanded="true" aria-autocomplete="list" role="combobox"></div><div class="tree-person-picker-results" id="treePersonPickerResults" role="listbox" aria-label="${escapeHtml(t('Search results'))}"></div>`;
+    picker.innerHTML = `<div class="app-search-field tree-person-picker-search">${icon.search}<input type="search" placeholder="${escapeHtml(t('Find person'))}" aria-label="${escapeHtml(t('Find person'))}" aria-controls="treePersonPickerResults" aria-expanded="true" aria-autocomplete="list" role="combobox"></div><div class="tree-person-picker-results" id="treePersonPickerResults" role="listbox" aria-label="${escapeHtml(t('Search results'))}"></div>`;
     document.body.appendChild(picker);
     if (window.innerWidth <= 900) mountMobileChoiceSheet(picker, anchor, t('Find person'));
     else

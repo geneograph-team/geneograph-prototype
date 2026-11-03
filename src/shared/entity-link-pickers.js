@@ -685,7 +685,7 @@ function openPeopleLinkModal({
             .map(id => ({ name: personName(getPerson(id)), region: regions[id] }));
         workspace.innerHTML = `<div class="archive-person-area-heading">
             <strong>${escapeHtml(t('Mark area in image'))}</strong>
-            ${activePerson ? `<button class="link" type="button" data-archive-person-area-clear ${regions[activeAreaPersonId] ? '' : 'disabled'}>${escapeHtml(t('Clear area'))}</button>` : ''}
+            ${activePerson ? `<button class="panel-action" type="button" data-archive-person-area-clear ${regions[activeAreaPersonId] ? '' : 'disabled'}>${escapeHtml(t('Clear area'))}</button>` : ''}
           </div>
           ${activePerson ? `<label class="archive-person-area-choice"><span>${escapeHtml(t('Person'))}</span>
             <span class="common-select-shell"><select class="common-select" data-archive-person-area-person>${[...selectedIds].map(id => `<option value="${escapeHtml(id)}" ${id === activeAreaPersonId ? 'selected' : ''}>${escapeHtml(personName(getPerson(id)))}</option>`).join('')}</select><span class="common-select-chevron" aria-hidden="true">${icon.chevron}</span></span></label>` : `<p>${escapeHtml(t('Choose a person to mark an area.'))}</p>`}

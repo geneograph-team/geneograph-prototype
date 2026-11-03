@@ -328,39 +328,9 @@
 }
 
 .profile-connected-action {
-    height: 34px;
     min-height: 34px;
     padding: 0 8px;
-    border: 1px solid transparent;
-    border-radius: var(--radius-sm);
-    background: transparent;
-    color: var(--brand-green-300);
-    display: inline-flex;
-    align-items: center;
     justify-content: center;
-    gap: 6px;
-    font-size: 13px;
-    line-height: 1;
-    font-weight: 900;
-    text-decoration: none;
-    cursor: pointer;
-}
-
-.profile-connected-action svg {
-    width: 16px;
-    height: 16px;
-    max-width: 16px;
-    max-height: 16px;
-    flex: 0 0 16px;
-    display: block;
-}
-
-.profile-connected-action:hover,
-.profile-connected-action:focus-visible {
-    border-color: rgba(98, 217, 154, .18);
-    background: rgba(47, 174, 116, .09);
-    color: var(--text-primary);
-    text-decoration: none;
 }
 
 /* 2 × 2 resource grid */

@@ -763,7 +763,7 @@ function renderFamilyTreePersonHero(
                     ? `<span class="tree-focus-status" aria-label="Current focus person">${icon.focus}<span>Current focus</span></span>`
                     : ''}
               <button
-                class="tree-person-hero-profile"
+                class="text-action tree-person-hero-profile"
                 type="button"
                 data-tree-view-profile="${escapeHtml(person.id)}"
                 aria-label="View ${escapeHtml(person.name)} profile">
@@ -1056,7 +1056,7 @@ function renderPersonSidebar(
             '',
             timelineContent,
             `<button
-            class="link"
+            class="panel-action"
             type="button"
             data-person-add-fact>
             ${renderPanelButtonLabel(
@@ -1071,7 +1071,7 @@ function renderPersonSidebar(
             'Relationships',
             translateCountPhrase(`${relationshipsCount} ${relationshipsCount === 1 ? 'connection' : 'connections'}`),
             relationshipsContent,
-            `<button class="link" type="button" data-manage-relationships="${escapeHtml(person.id)}" aria-label="${escapeHtml(t('Edit'))}" title="${escapeHtml(t('Edit'))}">${renderPanelButtonLabel(icon.edit, 'Edit')}</button>`,
+            `<button class="panel-action" type="button" data-manage-relationships="${escapeHtml(person.id)}" aria-label="${escapeHtml(t('Edit'))}" title="${escapeHtml(t('Edit'))}">${renderPanelButtonLabel(icon.edit, 'Edit')}</button>`,
             { inlineAction: true }
         )}
         ${renderInspectorSection(
@@ -1083,7 +1083,7 @@ function renderPersonSidebar(
             photosContent,
             `
             <button
-              class="link"
+              class="panel-action"
               type="button"
               data-person-add-photos="${
                     escapeHtml(person.id)
@@ -1117,7 +1117,7 @@ function renderPersonSidebar(
             archiveContent,
             `
             <button
-              class="link"
+              class="panel-action"
               type="button"
               data-person-add-files="${escapeHtml(
                     person.id
@@ -1152,7 +1152,7 @@ function renderPersonSidebar(
             notesContent,
             `
             <button
-              class="link"
+              class="panel-action"
               type="button"
               data-person-add-note="${escapeHtml(
                     person.id
@@ -1186,7 +1186,7 @@ function renderPersonSidebar(
             centralPerson
                 ? `
               <button
-                class="link"
+                class="panel-action"
                 type="button"
                 data-person-manage-sources="${escapeHtml(
                     centralPerson.id
@@ -1493,7 +1493,7 @@ function renderTimelineItem(
                 event,
                 personId
             )}
-            ${event.editTarget ? `<button type="button" class="link timeline-edit-fact" data-timeline-edit-fact="${escapeHtml(event.id)}" data-timeline-person="${escapeHtml(personId)}" aria-label="${escapeHtml(`${t(event.type === 'childBirth' ? "Edit child's birth" : 'Edit fact')}: ${getPersonDisplayName(event.editTarget.personId)}`)}" ${expanded ? '' : 'hidden'}>${icon.edit}${escapeHtml(t('Edit'))}</button>` : ''}
+            ${event.editTarget ? `<button type="button" class="panel-action timeline-edit-fact" data-timeline-edit-fact="${escapeHtml(event.id)}" data-timeline-person="${escapeHtml(personId)}" aria-label="${escapeHtml(`${t(event.type === 'childBirth' ? "Edit child's birth" : 'Edit fact')}: ${getPersonDisplayName(event.editTarget.personId)}`)}" ${expanded ? '' : 'hidden'}>${icon.edit}${escapeHtml(t('Edit'))}</button>` : ''}
           </div>
 
           <div
@@ -1537,9 +1537,9 @@ function renderTimelineItem(
             ${files.length || sources.length ? `<span class="timeline-evidence-summary">${files.length ? timelineEvidenceCount(files.length, 'file', 'files', ['файл', 'файла', 'файлов']) : ''}${files.length && sources.length ? ' · ' : ''}${sources.length ? timelineEvidenceCount(sources.length, 'citation', 'citations', ['источник', 'источника', 'источников']) : ''}</span>` : ''}
           </div>
             <div id="${panelId}" class="timeline-evidence" ${expanded ? '' : 'hidden'}>
-              <div class="timeline-evidence-heading"><strong>Evidence files</strong><button type="button" class="link" data-event-add-file="${escapeHtml(event.id)}" data-event-project="${escapeHtml(event.projectId)}">${icon.plus} Add file</button></div>
-              ${files.length ? files.map(file => `<div class="timeline-evidence-row"><span class="timeline-evidence-file-icon" aria-hidden="true">${icon.file}</span>${archiveCanViewFile(file) ? `<button type="button" class="link timeline-evidence-name" data-user-content data-event-open-file="${escapeHtml(file.id)}" title="${escapeHtml(file.name)}" aria-label="${escapeHtml(file.name)}">${escapeHtml(file.name)}</button>` : `<span class="timeline-evidence-name" data-user-content tabindex="0" title="${escapeHtml(file.name)}">${escapeHtml(file.name)}</span>`}<button type="button" class="relation-action-button" data-event-unlink-file="${escapeHtml(file.id)}" data-event-id="${escapeHtml(event.id)}" aria-label="Unlink ${escapeHtml(file.name)}" title="${escapeHtml(state.language === 'ru' ? 'Убрать связь' : 'Unlink file')}">${icon.close}</button></div>`).join('') : '<span class="timeline-evidence-empty">No files linked</span>'}
-              <div class="timeline-evidence-heading"><strong>Citations</strong><button type="button" class="link" data-event-manage-sources="${escapeHtml(event.id)}" data-event-source-project="${escapeHtml(event.projectId)}">${icon.plus} Add source</button></div>
+              <div class="timeline-evidence-heading"><strong>Evidence files</strong><button type="button" class="panel-action" data-event-add-file="${escapeHtml(event.id)}" data-event-project="${escapeHtml(event.projectId)}">${icon.plus} Add file</button></div>
+              ${files.length ? files.map(file => `<div class="timeline-evidence-row"><span class="timeline-evidence-file-icon" aria-hidden="true">${icon.file}</span>${archiveCanViewFile(file) ? `<button type="button" class="text-action timeline-evidence-name" data-user-content data-event-open-file="${escapeHtml(file.id)}" title="${escapeHtml(file.name)}" aria-label="${escapeHtml(file.name)}">${escapeHtml(file.name)}</button>` : `<span class="timeline-evidence-name" data-user-content tabindex="0" title="${escapeHtml(file.name)}">${escapeHtml(file.name)}</span>`}<button type="button" class="relation-action-button" data-event-unlink-file="${escapeHtml(file.id)}" data-event-id="${escapeHtml(event.id)}" aria-label="Unlink ${escapeHtml(file.name)}" title="${escapeHtml(state.language === 'ru' ? 'Убрать связь' : 'Unlink file')}">${icon.close}</button></div>`).join('') : '<span class="timeline-evidence-empty">No files linked</span>'}
+              <div class="timeline-evidence-heading"><strong>Citations</strong><button type="button" class="panel-action" data-event-manage-sources="${escapeHtml(event.id)}" data-event-source-project="${escapeHtml(event.projectId)}">${icon.plus} Add source</button></div>
               ${sources.length ? sources.map(source => `<div class="timeline-evidence-row"><span class="timeline-evidence-file-icon" aria-hidden="true">${icon.archive}</span><span class="timeline-evidence-name" data-user-content tabindex="0" title="${escapeHtml(source.title || 'Untitled source')}">${escapeHtml(source.title || 'Untitled source')}</span><button type="button" class="relation-action-button" data-event-unlink-source="${escapeHtml(source.id)}" data-event-id="${escapeHtml(event.id)}" data-event-project="${escapeHtml(event.projectId)}" aria-label="Unlink ${escapeHtml(source.title || 'source')}" title="${escapeHtml(state.language === 'ru' ? 'Убрать связь' : 'Unlink source')}">${icon.close}</button></div>`).join('') : '<span class="timeline-evidence-empty">No citations linked</span>'}
             </div>
         </div>

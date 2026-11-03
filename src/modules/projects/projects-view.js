@@ -21,7 +21,7 @@ function renderStartup()
         <div class="tip-card">
           <div class="tip-title">${icon.tip} Tip of the day</div>
           <p>${escapeHtml(t('Start a project to keep your family history and research together.'))}</p>
-          <button class="link tip-link" type="button" data-toast="Learning center is outside this prototype.">
+          <button class="text-action tip-link" type="button" data-toast="Learning center is outside this prototype.">
             <span class="tip-link-text">Learn more</span>
             <span class="tip-link-icon" aria-hidden="true">${icon.openlink}</span>
           </button>
@@ -580,7 +580,7 @@ function renderOpenProjectBody()
         <div class="overview-grid">
           <div class="panel activity-panel"><h2>Recent activity</h2><div class="panel-body">${renderActivityRows(4)}
             <div class="project-activity-footer">
-              <button class="link project-overview-link" type="button" data-open-side-main="activity">
+              <button class="text-action project-overview-link" type="button" data-open-side-main="activity">
                 <span class="project-overview-link-text">View all</span>
                 <span class="project-overview-link-icon" aria-hidden="true">${icon.openlink}</span>
               </button>
@@ -1277,7 +1277,7 @@ function renderStartupRecentActivityCard()
 
 function renderOfflineProjectsCard()
 {
-    return `<div class="right-card offline-project-card"><div class="offline-card-titlebar"><h2>Sync status</h2><button class="link" type="button" data-toast="Cloud sync is optional. Your current projects are stored locally.">Sync now</button></div><div class="offline-card-body">
+    return `<div class="right-card offline-project-card"><div class="offline-card-titlebar"><h2>Sync status</h2><button class="text-action is-inactive" type="button" disabled>Sync now</button></div><div class="offline-card-body">
         <div class="offline-card-main"><div class="sync-icon offline-icon">${icon.syncoffline}</div><div><strong>All files are stored locally</strong><span>Your projects, photos, archive files, notes, and boards stay on this device.</span></div></div>
         <div class="offline-card-footer"><span>Enable cloud sync to protect your files.</span></div>
       </div></div>`;
@@ -1349,10 +1349,10 @@ function renderOpenProjectInsightsCard(project)
 function renderOpenProjectOfflineCard(project)
 {
     return `<div class="right-card offline-project-card">
-        <div class="offline-card-titlebar"><h2>Sync status</h2><button class="link" type="button" data-toast="Cloud sync is optional. This project is currently stored locally.">Sync now</button></div>
+        <div class="offline-card-titlebar"><h2>Sync status</h2><button class="text-action is-inactive" type="button" disabled>Sync now</button></div>
         <div class="offline-card-body">
           <div class="offline-card-main"><div class="sync-icon offline-icon">${icon.syncoffline}</div><div><strong>Offline project</strong><span>Cloud backup is disabled. Project files, photos, archive files, notes, and boards stay on this device.</span></div></div>
-        <button class="offline-card-learn link project-overview-link" type="button" data-toast="Cloud backup help is a placeholder for a later flow.">
+        <button class="offline-card-learn text-action project-overview-link" type="button" data-toast="Cloud backup help is a placeholder for a later flow.">
           <span class="project-overview-link-text">Learn more about cloud backup</span>
           <span class="project-overview-link-icon" aria-hidden="true">${icon.openlink}</span>
         </button>

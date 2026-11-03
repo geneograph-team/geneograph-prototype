@@ -2861,7 +2861,7 @@ function openArchiveFilterPopover(
 
         <div class="shared-filter-panel-footer">
           <button
-            class="link"
+            class="text-action"
             type="button"
             data-archive-filter-reset>
 
@@ -3264,7 +3264,7 @@ function renderArchiveActiveFilterbar()
             ">
 
             <button
-              class="link"
+              class="text-action"
               type="button"
               id="archiveClearFilters">
 

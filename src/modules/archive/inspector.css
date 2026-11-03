@@ -369,7 +369,7 @@
 
 .archive-legacy-place span { min-width: 0; overflow-wrap: anywhere; }
 .archive-legacy-place small { color: var(--text-tertiary); }
-.archive-legacy-place .link { margin-left: auto; }
+.archive-legacy-place .panel-action { margin-left: auto; }
 
 .archive-file-form-grid input,
 .archive-file-form-grid select {

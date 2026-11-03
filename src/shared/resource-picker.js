@@ -85,6 +85,7 @@ function rpInitMembershipPicker(modal)
     const toolbar = document.createElement('div');
     toolbar.className = 'membership-picker-toolbar';
     browse.prepend(toolbar);
+    search.querySelector('.search-input')?.classList.add('app-search-field');
     toolbar.append(search, browse.querySelector('.album-picker-new-button'));
     browse.querySelector('.album-picker-results-head')?.remove();
     const heading = modal.querySelector('.modal-header h2');
@@ -152,6 +153,58 @@ function rpConfirmDiscard({ title, message, notice = '', onDiscard })
     });
 }
 
+function rpEnhanceSortControl(root, selector)
+{
+    const sortSelect = root.querySelector(selector);
+    const sortControl = sortSelect.closest('.rp-sort') || document.createElement('div');
+    if (!sortControl.isConnected) sortSelect.before(sortControl);
+    sortSelect.remove();
+    sortControl.className = 'rp-sort';
+    sortControl.innerHTML = `${icon.sortLines}<span class="rp-sort-chevron" aria-hidden="true">${icon.chevron}</span>`;
+    sortControl.append(sortSelect);
+    sortSelect.hidden = true;
+    const sortTrigger = document.createElement('button');
+    sortTrigger.type = 'button';
+    sortTrigger.className = 'rp-sort-trigger';
+    sortTrigger.setAttribute('aria-haspopup', 'menu');
+    sortTrigger.setAttribute('aria-expanded', 'false');
+    sortControl.append(sortTrigger);
+    const updateLabel = () =>
+    {
+        sortTrigger.textContent = sortSelect.selectedOptions[0]?.textContent || '';
+        sortTrigger.setAttribute('aria-label', `${rpText('Sort', 'Сортировка')}: ${sortTrigger.textContent}`);
+    };
+    sortSelect.addEventListener('change', updateLabel);
+    updateLabel();
+    sortTrigger.addEventListener('click', () =>
+    {
+        if (sortTrigger.getAttribute('aria-expanded') === 'true') { closeMenu(); return; }
+        closeMenu();
+        const menu = document.createElement('div');
+        menu.id = 'projectMenu';
+        menu.className = 'menu-popover rp-sort-menu';
+        menu.setAttribute('role', 'menu');
+        menu.setAttribute('aria-label', rpText('Sort', 'Сортировка'));
+        menu.innerHTML = [...sortSelect.options].filter(option => !option.hidden).map(option => `<button type="button" role="menuitemradio" aria-checked="${option.selected}" data-sort-value="${option.value}"><span>${escapeHtml(option.textContent)}</span><span aria-hidden="true">${option.selected ? icon.check : ''}</span></button>`).join('');
+        modalBackdrop.append(menu);
+        const rect = sortTrigger.getBoundingClientRect();
+        menu.style.left = `${Math.max(12, Math.min(rect.left, innerWidth - menu.offsetWidth - 12))}px`;
+        menu.style.top = `${rect.bottom + menu.offsetHeight + 6 < innerHeight ? rect.bottom + 6 : Math.max(12, rect.top - menu.offsetHeight - 6)}px`;
+        menu.addEventListener('click', event =>
+        {
+            const option = event.target.closest('[data-sort-value]');
+            if (!option) return;
+            sortSelect.value = option.dataset.sortValue;
+            sortSelect.dispatchEvent(new Event('change', { bubbles: true }));
+            closeMenu();
+            sortTrigger.focus({ preventScroll: true });
+        });
+        bindMenuLifecycle(sortTrigger);
+        menu.querySelector('[aria-checked="true"]')?.focus();
+    });
+    return sortTrigger;
+}
+
 function openResourcePicker(adapter, options = {})
 {
     const esc = escapeHtml;
@@ -178,51 +231,13 @@ function openResourcePicker(adapter, options = {})
     const button = (action, contents, label, extra = '') => `<button type="button" class="icon-button" data-rp-action="${action}" aria-label="${esc(label)}" title="${esc(label)}" ${extra}>${contents || ''}</button>`;
     (options.modalOpener || openModal)(`<section class="modal resource-picker" role="dialog" aria-modal="true" data-resource-picker="${adapter.kind}" aria-label="${esc(title)}">
         <header class="modal-header"><div><h2 tabindex="-1" data-rp-heading>${esc(title)}</h2>${adapter.subtitle ? `<p title="${esc(adapter.subtitle)}">${esc(adapter.subtitle)}</p>` : ''}</div>${button('close', icon.close, rpText('Close', 'Закрыть'))}</header>
-        <div class="rp-toolbar"><button type="button" class="button secondary" data-rp-action="browse">${icon.folder || ''}<span>${rpText('Browse', 'Обзор')}</span></button><label class="rp-search">${icon.search}<input type="search" data-rp-search aria-label="${esc(rpText('Search', 'Поиск'))}" placeholder="${esc(rpText('Search', 'Поиск'))}"></label>${button('filters', icon.filter || icon.settings, rpText('Filters', 'Фильтры'))}<select data-rp-sort aria-label="${esc(rpText('Sort', 'Сортировка'))}"><option value="name">${rpText('Name', 'Название')}</option><option value="updated">${rpText('Recently updated', 'Недавно изменённые')}</option>${adapter.kind === 'photos' ? `<option value="date">${rpText('Photo date', 'Дата фотографии')}</option>` : ''}<option value="relevance" hidden>${rpText('Relevance', 'По совпадению')}</option></select><button type="button" class="button secondary rp-create" data-rp-action="create">${icon.plus}<span>${labels[adapter.kind][1]}</span></button></div>
+        <div class="rp-toolbar"><button type="button" class="button secondary" data-rp-action="browse">${icon.folder || ''}<span>${rpText('Browse', 'Обзор')}</span></button><label class="app-search-field rp-search">${icon.search}<input type="search" data-rp-search aria-label="${esc(rpText('Search', 'Поиск'))}" placeholder="${esc(rpText('Search', 'Поиск'))}"></label>${button('filters', icon.filter || icon.settings, rpText('Filters', 'Фильтры'))}<select data-rp-sort aria-label="${esc(rpText('Sort', 'Сортировка'))}"><option value="name">${rpText('Name', 'Название')}</option><option value="updated">${rpText('Recently updated', 'Недавно изменённые')}</option>${adapter.kind === 'photos' ? `<option value="date">${rpText('Photo date', 'Дата фотографии')}</option>` : ''}<option value="relevance" hidden>${rpText('Relevance', 'По совпадению')}</option></select><button type="button" class="button secondary rp-create" data-rp-action="create">${icon.plus}<span>${labels[adapter.kind][1]}</span></button></div>
         <nav class="rp-path" aria-label="${esc(rpText('Location', 'Расположение'))}"></nav><div class="rp-error" role="alert" hidden></div>
         <div class="rp-content" tabindex="-1"></div>
         <footer class="modal-footer"><div class="rp-selection-summary"><button type="button" class="rp-selected" data-rp-action="selected"></button><span data-rp-changes></span></div><div class="rp-footer-actions"><button type="button" class="button secondary" data-rp-action="close">${rpText('Cancel', 'Отмена')}</button><button type="button" class="button primary" data-rp-action="save">${rpText('Save changes', 'Сохранить изменения')}</button><button type="button" class="button primary" data-rp-action="preview-transfer" hidden></button><button type="button" class="button secondary" data-rp-action="results" hidden>${rpText('Done', 'Готово')}</button></div><span class="sr-only" data-rp-live aria-live="polite"></span></footer>
     </section>`);
     const root = modalBackdrop.querySelector('[data-resource-picker]');
-    const sortSelect = root.querySelector('[data-rp-sort]');
-    const sortControl = document.createElement('div');
-    sortControl.className = 'rp-sort';
-    sortSelect.before(sortControl);
-    sortControl.innerHTML = `${icon.sortLines}<span class="rp-sort-chevron" aria-hidden="true">${icon.chevron}</span>`;
-    sortControl.append(sortSelect);
-    sortSelect.hidden = true;
-    const sortTrigger = document.createElement('button');
-    sortTrigger.type = 'button';
-    sortTrigger.className = 'rp-sort-trigger';
-    sortTrigger.setAttribute('aria-haspopup', 'menu');
-    sortTrigger.setAttribute('aria-expanded', 'false');
-    sortControl.append(sortTrigger);
-    sortTrigger.addEventListener('click', () =>
-    {
-        if (sortTrigger.getAttribute('aria-expanded') === 'true') { closeMenu(); return; }
-        closeMenu();
-        const menu = document.createElement('div');
-        menu.id = 'projectMenu';
-        menu.className = 'menu-popover rp-sort-menu';
-        menu.setAttribute('role', 'menu');
-        menu.setAttribute('aria-label', rpText('Sort', 'Сортировка'));
-        menu.innerHTML = [...sortSelect.options].filter(option => !option.hidden).map(option => `<button type="button" role="menuitemradio" aria-checked="${option.selected}" data-sort-value="${option.value}"><span>${esc(option.textContent)}</span><span aria-hidden="true">${option.selected ? icon.check : ''}</span></button>`).join('');
-        modalBackdrop.append(menu);
-        const rect = sortTrigger.getBoundingClientRect();
-        menu.style.left = `${Math.max(12, Math.min(rect.left, innerWidth - menu.offsetWidth - 12))}px`;
-        menu.style.top = `${rect.bottom + menu.offsetHeight + 6 < innerHeight ? rect.bottom + 6 : Math.max(12, rect.top - menu.offsetHeight - 6)}px`;
-        menu.addEventListener('click', event =>
-        {
-            const option = event.target.closest('[data-sort-value]');
-            if (!option) return;
-            sortSelect.value = option.dataset.sortValue;
-            sortSelect.dispatchEvent(new Event('change', { bubbles: true }));
-            closeMenu();
-            sortTrigger.focus({ preventScroll: true });
-        });
-        bindMenuLifecycle(sortTrigger);
-        menu.querySelector('[aria-checked="true"]')?.focus();
-    });
+    const sortTrigger = rpEnhanceSortControl(root, '[data-rp-sort]');
     root.querySelector('[data-rp-action="filters"]').setAttribute('aria-haspopup', 'dialog');
     root.querySelector('[data-rp-action="filters"]').setAttribute('aria-expanded', 'false');
     session.root = root;
