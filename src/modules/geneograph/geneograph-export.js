@@ -55,22 +55,16 @@ function geneoPngRequiredPhotos(board, visibleNodes)
         {
             const model = geneoPersonCardViewModel(node, board.diagram);
             if (!model.showPhoto || !model.person) return;
-            const person = model.person;
-            const linked = person.treePersonId
-                ? getPerson(person.treePersonId)
-                : null;
-            const photoId = person.photoId || linked?.primaryPhotoId;
-            if (!photoId) return;
-            const photo = getPhoto(photoId, { projectId: board.projectId });
-            if (!photo || photo.deletedAt)
-            {
-                throw geneoPngAssetError(`person ${node.id}, photo ${photoId}`, 'resolve');
-            }
+            const avatar = geneoPersonAvatarModel(model.person);
+            const photo = getPhoto(avatar.primaryPhotoId, { projectId: board.projectId })
+                || avatar.embeddedPhoto;
+            if (!photo || photo.deletedAt) return;
+            const label = `person ${node.id}, photo ${avatar.primaryPhotoId || model.person.photoAssetId}`;
             if (!photo.src)
             {
-                throw geneoPngAssetError(`person ${node.id}, photo ${photoId}`, 'resolve');
+                throw geneoPngAssetError(label, 'resolve');
             }
-            photos.set(String(photo.src), `person ${node.id}, photo ${photoId}`);
+            photos.set(String(photo.src), label);
         }
     });
 

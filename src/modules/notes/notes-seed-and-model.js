@@ -584,7 +584,8 @@ sampleData.notes = (() =>
             ],
 
             relatedNoteIds: [
-                'note-silver-profile-checklist'
+                'note-silver-profile-checklist',
+                'note-meowbridge-transcription'
             ],
 
             createdAt:

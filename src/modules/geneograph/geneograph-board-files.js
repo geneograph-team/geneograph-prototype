@@ -162,6 +162,7 @@ async function buildGeneographBoardFile(board = selectedGeneographBoard())
     }
     for (const person of diagram.people)
     {
+        if (person.photoAssetId && assetById.has(person.photoAssetId)) continue;
         const treePerson = person.treePersonId ? getPerson(person.treePersonId) : null;
         const photoId = person.photoId || treePerson?.primaryPhotoId;
         if (photoId) person.photoAssetId = await embedProjectPhoto(photoId);
