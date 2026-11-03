@@ -248,12 +248,12 @@ function projectCoverStyleAttribute(
     {
         const safeSource = projectCoverCssUrl(imageSource);
         const point = normalizeProjectCoverPosition(position);
-        return `--cover:url('${safeSource}');background-size:cover;background-position:${point.x}% ${point.y}%;`;
+        return `--cover:url('${safeSource}');background-color:var(--surface-card);background-size:cover;background-position:${point.x}% ${point.y}%;`;
     }
 
     if (normalizedCover === 'photo') return projectCoverStyleAttribute('paper');
 
-    return `--cover:url('${projectCoverCssUrl('assets/covers/full-tree-project-cover.png')}');background-color:#fff;background-size:contain;background-position:center;`;
+    return `--cover:url('${projectCoverCssUrl('assets/covers/full-tree-project-cover.png')}');background-color:var(--surface-card);background-size:contain;background-position:center;`;
 }
 
 function updateProjectCoverPreview(
@@ -1296,7 +1296,7 @@ function openProjectCoverModal(
                 }">
             </div>
 
-            <button class="project-cover-reset" type="button" data-project-cover-reset hidden>Reset position</button>
+
 
             <div
               class="project-cover-options"
@@ -1331,7 +1331,7 @@ function openProjectCoverModal(
                         ? 'true'
                         : 'false'
                 }">
-                Full tree
+                Family tree
               </button>
 
               <button
@@ -1339,7 +1339,7 @@ function openProjectCoverModal(
                 type="button"
                 data-project-cover-choice="golden-tree"
                 aria-pressed="${selectedCover === 'golden-tree'}">
-                Family tree
+                Ancestry
               </button>
 
               <button
@@ -1361,6 +1361,7 @@ function openProjectCoverModal(
           </div>
 
           <div class="modal-footer">
+            <button class="project-cover-reset project-cover-modal-reset" type="button" data-project-cover-reset hidden>Reset position</button>
             <button
               class="button secondary"
               type="button"

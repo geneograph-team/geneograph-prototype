@@ -775,14 +775,13 @@ function renderProjectSettings(project)
             </div>
           </section>
           <section class="project-settings-section project-settings-card project-settings-cover-card">
-            <h3>Cover image</h3>
+            <div class="project-settings-cover-heading"><h3>Cover image</h3><button class="project-cover-reset" type="button" id="projectCoverReset" hidden>Reset position</button></div>
             <div class="project-settings-section-body">
               <div class="project-cover-preview ${coverStyle === 'tree' ? 'tree' : ''}" id="projectCoverPreview" style="${coverStyleAttr}" role="group" aria-label="Drag to position cover; use arrow keys to adjust"></div>
-              <button class="project-cover-reset" type="button" id="projectCoverReset" hidden>Reset position</button>
               <div class="project-cover-options" role="group" aria-label="Cover style">
                 <button class="project-cover-option ${coverStyle === 'paper' ? 'active' : ''}" type="button" data-cover-style="paper">Archival paper</button>
-                <button class="project-cover-option ${coverStyle === 'tree' ? 'active' : ''}" type="button" data-cover-style="tree">Full tree</button>
-                <button class="project-cover-option ${coverStyle === 'golden-tree' ? 'active' : ''}" type="button" data-cover-style="golden-tree">Family tree</button>
+                <button class="project-cover-option ${coverStyle === 'tree' ? 'active' : ''}" type="button" data-cover-style="tree">Family tree</button>
+                <button class="project-cover-option ${coverStyle === 'golden-tree' ? 'active' : ''}" type="button" data-cover-style="golden-tree">Ancestry</button>
                 <button class="project-cover-option ${coverStyle === 'photo' ? 'active' : ''}" type="button" data-cover-photo>Photo</button>
               </div>
             </div>

@@ -807,6 +807,7 @@ const RU_UI_PROJECTS = Object.freeze({
     'Reset position': 'Сбросить положение',
     'Drag to position cover; use arrow keys to adjust': 'Перетащите обложку или используйте клавиши со стрелками для настройки положения',
     'Family tree': 'Семейное древо',
+    'Ancestry': 'Родословная',
     'Project cover updated.': 'Обложка проекта обновлена.',
     'Delete project?': 'Удалить проект?',
     'Delete {project} and all people, relationships, media, and research records owned by this project.': 'Удалить проект {project} и все принадлежащие ему записи о людях, родственных связях, медиафайлах и исследованиях.',
