@@ -1757,4 +1757,3 @@ function projectNotifications(projectId = currentProjectId())
         notification.projectId === projectId
     );
 }
-

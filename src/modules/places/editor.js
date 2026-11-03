@@ -1100,7 +1100,6 @@ function renderPlaceEditorModal(draft)
                       ${icon.copy}
                     </button>
                   </div>
-
                   <span
                     class="place-coordinate-error"
                     id="placeCoordinateError"
@@ -1677,3 +1676,12 @@ function openDeletePlaceModal(placeId, { returnToEditor = false } = {})
     });
 }
 
+
+-                  <span
+-                    class="place-coordinate-error"
+-                    id="placeCoordinateError"
+-                    role="alert"
+-                    aria-live="polite"></span>
++                  ${coordinateState.error
++                    ? `<span class="place-coordinate-error" id="placeCoordinateError" role="alert" aria-live="polite">${escapeHtml(coordinateState.error)}</span>`
++                    : ''}

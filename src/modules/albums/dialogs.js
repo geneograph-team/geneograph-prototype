@@ -218,13 +218,6 @@ function openEditAlbumModal()
 
             <div class="modal-footer">
               <button
-                class="button danger"
-                type="button"
-                id="deleteAlbumButton">
-                Delete album
-              </button>
-
-              <button
                 class="button secondary"
                 type="button"
                 data-close>
@@ -286,16 +279,6 @@ function openEditAlbumModal()
                     'Album updated.'
                 );
             }
-        );
-
-    modalBackdrop
-        .querySelector('#deleteAlbumButton')
-        ?.addEventListener(
-            'click',
-            () =>
-                openDeleteAlbumConfirm(
-                    album.id
-                )
         );
 }
 
