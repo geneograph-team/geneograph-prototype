@@ -78,7 +78,7 @@ function renderArchiveFileSectionAction(
 
     return `
         <button
-          class="text-action"
+          class="panel-action"
           type="button"
           ${attribute}>
 
