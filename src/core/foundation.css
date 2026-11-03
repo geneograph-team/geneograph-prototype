@@ -30,6 +30,9 @@
     --sidebar-w: 292px;
     --right-w: 320px;
     --control-height: 42px;
+    --control-focus-color: var(--brand-green-300);
+    --control-focus-width: 2px;
+    --select-chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8'%3E%3Cpath d='m1 1 5 5 5-5' fill='none' stroke='%23B8C0BD' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
     --control-icon-button-size: var(--control-height);
     --search-field-max-width: 460px;
     --inspector-width: 450px;
@@ -470,66 +473,6 @@ button {
     font-weight: 700;
 }
 
-.button-stack {
-    display: grid;
-    gap: var(--space-3);
-}
-
-.button {
-    min-height: 44px;
-    border-radius: var(--radius-sm);
-    border: 1px solid var(--border-default);
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: var(--space-3);
-    padding: 0 var(--space-4);
-    font-weight: 800;
-    letter-spacing: .04em;
-    transition: background var(--ease), border-color var(--ease), transform var(--ease), color var(--ease);
-}
-
-.button.primary {
-    background: var(--brand-green-500);
-    border-color: rgba(98, 217, 154, .35);
-    color: #06110D;
-}
-
-.button.primary:hover {
-    transform: translateY(-1px);
-    filter: brightness(1.04);
-}
-
-.button.secondary {
-    background: #222927;
-    color: var(--text-primary);
-}
-
-.button.secondary:hover,
-.button.ghost:hover,
-.toolbar-button:hover,
-.project-more:hover {
-    background: var(--surface-card-hover);
-    border-color: var(--border-strong);
-}
-
-.button.ghost {
-    background: transparent;
-    color: var(--text-secondary);
-}
-
-.button.full {
-    width: 100%;
-    justify-content: flex-start;
-    padding-left: var(--space-7, 28px);
-}
-
-.button.danger {
-    color: #F2B3B3;
-    border-color: rgba(212, 107, 107, .35);
-    background: rgba(212, 107, 107, .08);
-}
-
 .side-section-title {
     margin: var(--space-1) 0 var(--space-2);
     color: var(--text-tertiary);
@@ -761,113 +704,6 @@ button {
     align-items: center;
     gap: var(--space-3);
     min-width: 0;
-}
-
-.app-search-field {
-    width: var(--search-field-max-width);
-    max-width: 100%;
-    flex: 0 1 var(--search-field-max-width);
-    height: 44px;
-    min-width: 0;
-    box-sizing: border-box;
-    border: 1px solid var(--border-default);
-    border-radius: var(--radius-sm);
-    background: var(--surface-card);
-    display: flex;
-    align-items: center;
-    gap: var(--space-3);
-    padding: 0 var(--space-3);
-    color:
-        var(--text-tertiary);
-    transition:
-        border-color var(--ease),
-        background var(--ease);
-}
-
-.app-search-field:hover {
-    border-color:
-        var(--border-strong);
-}
-
-.app-search-field:focus-within {
-    border-color:
-        var(--border-strong);
-}
-
-.app-search-field>svg {
-    width:
-        21px;
-    height:
-        21px;
-    flex:
-        0 0 21px;
-}
-
-.app-search-field input {
-    width:
-        100%;
-    min-width:
-        0;
-    padding:
-        0;
-    border:
-        0;
-    outline:
-        0;
-    background:
-        transparent;
-    color:
-        var(--text-primary);
-    font:
-        inherit;
-}
-
-.app-search-field input::placeholder {
-    color:
-        var(--text-tertiary);
-}
-
-.app-search-field input::-webkit-search-cancel-button {
-    cursor:
-        pointer;
-}
-
-.select {
-    height: 44px;
-    min-width: 215px;
-    border-radius: var(--radius-sm);
-    border: 1px solid var(--border-default);
-    background: var(--surface-card);
-    color: var(--text-secondary);
-    padding: 0 42px 0 var(--space-4);
-    appearance: none;
-    background-image: var(--select-chevron);
-    background-position: calc(100% - 20px) center;
-    background-size: 12px 7px;
-    background-repeat: no-repeat;
-}
-
-.toolbar-button {
-    width: 52px;
-    height: 44px;
-    border: 1px solid var(--border-default);
-    background: var(--surface-card);
-    color: var(--text-secondary);
-    border-radius: var(--radius-sm);
-    display: grid;
-    place-items: center;
-    transition: background var(--ease), border-color var(--ease), color var(--ease);
-}
-
-.toolbar-button svg {
-    width: 22px;
-    height: 22px;
-}
-
-.toolbar-button.active {
-    background: var(--surface-selected);
-    border-color: rgba(98, 217, 154, .35);
-    color: var(--text-primary);
 }
 
 .section-heading {
@@ -3151,36 +2987,9 @@ button.app-chip:disabled,
     filter: none;
 }
 
-.close-button {
-    width: 36px;
-    height: 36px;
-    padding: 0;
-    border-radius: 9px;
-    border: 1px solid var(--border-default);
-    background: transparent;
-    color: var(--text-secondary);
-    display: inline-grid;
-    place-items: center;
-    line-height: 1;
-    flex: 0 0 36px;
-}
-
-.close-button:hover {
-    background: var(--surface-card-hover);
-    color: var(--text-primary);
-}
-
 .form-grid {
     display: grid;
     gap: var(--space-4);
-}
-
-.field label,
-.field legend {
-    display: block;
-    color: var(--text-secondary);
-    font-weight: 800;
-    margin-bottom: var(--space-2);
 }
 
 /* Shared mobile drawer, inspector, and modal shell. */
@@ -3639,119 +3448,10 @@ body.mobile-details-open .geneo-inspector [data-geneo-inspector-toggle] {
     line-height: 1.5;
     letter-spacing: 0;
 }
-.field input,
-.field select,
-.compact-select,
-.common-select-shell,
-.common-select,
-.add-person-select,
-.add-person-status-button,
-.genealogy-date-type,
-.genealogy-date-input,
-.genealogy-date-details-button {
-    box-sizing: border-box;
-    height: var(--control-height);
-    min-height: var(--control-height);
-    max-height: var(--control-height);
-}
-
-.common-select-shell {
-    position: relative;
-    display: block;
-    width: 100%;
-    min-width: 0;
-    height: var(--control-height);
-    min-height: var(--control-height);
-    max-height: var(--control-height);
-}
-
-.common-select {
-    display: block;
-    width: 100%;
-    height: var(--control-height);
-    min-height: var(--control-height);
-    max-height: var(--control-height);
-    border: 1px solid var(--border-default);
-    border-radius: var(--radius-sm);
-    background: var(--surface-input);
-    color: var(--text-secondary);
-    padding: 0 42px 0 var(--space-3);
-    box-sizing: border-box;
-    appearance: none;
-    -webkit-appearance: none;
-    background-image: none;
-    cursor: pointer;
-}
-
-.common-select:hover {
-    background: var(--surface-card-hover);
-    border-color: var(--border-strong);
-    color: var(--text-primary);
-}
-
-.common-select:focus {
-    outline: 0;
-    border-color: var(--brand-green-500);
-    color: var(--text-primary);
-}
-
-.common-select-chevron {
-    position: absolute;
-    top: 0;
-    right: 14px;
-    bottom: 0;
-    z-index: 2;
-    width: 18px;
-    height: auto;
-    display: grid;
-    place-items: center;
-    color: var(--text-tertiary);
-    pointer-events: none;
-}
-
-.common-select-chevron svg {
-    width: 16px;
-    height: 16px;
-    display: block;
-    transform: rotate(90deg);
-}
-
-.common-select-shell:hover .common-select-chevron,
-.common-select-shell:focus-within .common-select-chevron {
-    color: var(--text-primary);
-}
-
 .genealogy-date-field.has-error .common-select {
     border-color: rgba(255, 111, 111, .65);
 }
 
-
-.field input {
-    width: 100%;
-    height: var(--control-height);
-    min-height: var(--control-height);
-    max-height: var(--control-height);
-    border: 1px solid var(--border-default);
-    background: var(--surface-input);
-    color: var(--text-primary);
-    border-radius: var(--radius-sm);
-    padding: 0 var(--space-3);
-    outline: 0;
-    box-sizing: border-box;
-}
-
-.field textarea {
-    width: 100%;
-    min-height: 104px;
-    border: 1px solid var(--border-default);
-    background: var(--surface-input);
-    color: var(--text-primary);
-    border-radius: var(--radius-sm);
-    padding: var(--space-3);
-    outline: 0;
-    box-sizing: border-box;
-    resize: vertical;
-}
 
 .notes-collection-form .field input,
 .notes-collection-form .field textarea {
@@ -4472,19 +4172,6 @@ body.mobile-details-open .geneo-inspector [data-geneo-inspector-toggle] {
     grid-column: 1 / -1;
 }
 
-.project-settings-form .field input,
-.project-settings-form .field textarea,
-.project-settings-form .field select {
-    width: 100%;
-    min-height: 42px;
-    border: 1px solid var(--border-default);
-    background: var(--surface-input);
-    color: var(--text-primary);
-    border-radius: var(--radius-sm);
-    padding: 11px 12px;
-    outline: 0;
-}
-
 .project-settings-form .field textarea {
     min-height: 92px;
     resize: vertical;
@@ -4633,32 +4320,12 @@ body.mobile-details-open .geneo-inspector [data-geneo-inspector-toggle] {
 }
 
 .project-settings-field label {
-    color: var(--text-secondary);
-    font-weight: 800;
+    margin-bottom: 0;
     font-size: 13px;
-}
-
-.project-settings-field input,
-.project-settings-field textarea,
-.project-settings-field select {
-    width: 100%;
-    min-height: 42px;
-    border: 1px solid var(--border-default);
-    background: var(--surface-input);
-    color: var(--text-primary);
-    border-radius: var(--radius-sm);
-    padding: 10px 12px;
-    outline: 0;
 }
 
 .project-settings-select-field {
     position: relative;
-}
-
-.project-settings-select-field select {
-    appearance: none;
-    -webkit-appearance: none;
-    padding-right: 44px;
 }
 
 .project-settings-select-chevron {
@@ -4691,13 +4358,6 @@ body.mobile-details-open .geneo-inspector [data-geneo-inspector-toggle] {
 .project-settings-field textarea {
     min-height: 104px;
     resize: vertical;
-}
-
-.project-settings-field input:focus,
-.project-settings-field textarea:focus,
-.project-settings-field select:focus {
-    border-color: rgba(98, 217, 154, .45);
-    box-shadow: 0 0 0 1px rgba(47, 174, 116, .12);
 }
 
 .project-cover-preview {

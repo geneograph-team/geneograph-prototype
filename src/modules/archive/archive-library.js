@@ -2842,7 +2842,7 @@ function openArchiveFilterPopover(
           </div>
 
           <button
-            class="shared-filter-panel-close"
+            class="control-icon-button shared-filter-panel-close"
             type="button"
             aria-label="Close"
             data-archive-filter-close>

@@ -53,19 +53,6 @@
     border-radius: var(--radius-xs);
     background: transparent;
     color: var(--text-tertiary);
-    display: grid;
-    place-items: center;
-    cursor: pointer;
-}
-
-.shared-filter-panel-close:hover {
-    background: var(--surface-card-hover);
-    color: var(--text-primary);
-}
-
-.shared-filter-panel-close:focus-visible {
-    outline: 2px solid var(--brand-green-400);
-    outline-offset: 1px;
 }
 
 .shared-filter-panel-close svg {
@@ -170,11 +157,9 @@
 }
 
 .shared-filter-boolean-control:focus-within {
-    border-color:
-        rgba(98, 217, 154, .55);
-
-    box-shadow:
-        0 0 0 3px rgba(98, 217, 154, .1);
+    border-color: var(--brand-green-500);
+    outline: var(--control-focus-width) solid var(--control-focus-color);
+    outline-offset: 2px;
 }
 
 .shared-filter-boolean-control input {
@@ -279,9 +264,9 @@
 }
 
 .shared-filter-combobox-input:focus-within {
-    border-color: rgba(98, 217, 154, .55);
-    box-shadow:
-        0 0 0 3px rgba(98, 217, 154, .1);
+    border-color: var(--brand-green-500);
+    outline: var(--control-focus-width) solid var(--control-focus-color);
+    outline-offset: 2px;
 }
 
 .shared-filter-combobox-input>svg {
@@ -536,11 +521,9 @@
 }
 
 .shared-filter-year-input:focus-visible {
-    border-color:
-        rgba(98, 217, 154, .55);
-
-    box-shadow:
-        0 0 0 3px rgba(98, 217, 154, .1);
+    border-color: var(--brand-green-500);
+    outline: var(--control-focus-width) solid var(--control-focus-color);
+    outline-offset: 2px;
 }
 
 .shared-filter-year-input[aria-invalid="true"] {
@@ -741,7 +724,6 @@
 .people-columns-option input {
     width: 18px;
     height: 18px;
-    accent-color: var(--brand-green-500);
     position: static !important;
     opacity: 1 !important;
     pointer-events: auto !important;
@@ -935,12 +917,5 @@
     width: 18px;
     height: 18px;
     margin: 0;
-    accent-color: var(--brand-green-500);
     cursor: pointer;
 }
-
-.people-select-checkbox:focus-visible {
-    outline: 2px solid var(--brand-green-300);
-    outline-offset: 2px;
-}
-

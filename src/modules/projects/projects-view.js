@@ -758,14 +758,14 @@ function renderProjectSettings(project)
             <h3>Project identity</h3>
             <div class="project-settings-section-body project-settings-identity-body">
               <div class="project-settings-form project-settings-identity-form">
-                <div class="project-settings-field"><label for="settingsProjectName">Project name</label>
+                <div class="field project-settings-field"><label for="settingsProjectName">Project name</label>
                 <input
                   id="settingsProjectName"
                   value="${escapeHtml(
                         localizedTitle
                     )}">
                   </div>
-                <div class="project-settings-field project-settings-description-field"><label for="settingsProjectDescription">Project description</label>
+                <div class="field project-settings-field project-settings-description-field"><label for="settingsProjectDescription">Project description</label>
                 <textarea
                   id="settingsProjectDescription">${escapeHtml(
                         localizedDescription
@@ -820,18 +820,18 @@ function renderProjectSettings(project)
           <div class="project-settings-section-heading"><h3>Data and privacy</h3><span class="project-settings-coming-later">Coming later</span></div>
           <div class="project-settings-section-body">
             <div class="project-privacy-grid">
-              <div class="project-settings-field project-settings-select-field">
+              <div class="field project-settings-field project-settings-select-field">
                 <label for="settingsLivingProtection">Living-person protection</label>
-                <select id="settingsLivingProtection" disabled>
+                <select class="common-select" id="settingsLivingProtection" disabled>
                   <option selected>On</option>
                   <option>Off</option>
                 </select>
                 <span class="project-settings-select-chevron" aria-hidden="true">${icon.chevron}</span>
               </div>
 
-              <div class="project-settings-field project-settings-select-field">
+              <div class="field project-settings-field project-settings-select-field">
                 <label for="settingsPublishLiving">Publish living people</label>
-                <select id="settingsPublishLiving" disabled>
+                <select class="common-select" id="settingsPublishLiving" disabled>
                   <option selected>Hide by default</option>
                   <option>Anonymize names</option>
                   <option>Include with warning</option>
@@ -839,18 +839,18 @@ function renderProjectSettings(project)
                 <span class="project-settings-select-chevron" aria-hidden="true">${icon.chevron}</span>
               </div>
 
-              <div class="project-settings-field project-settings-select-field">
+              <div class="field project-settings-field project-settings-select-field">
                 <label for="settingsPrivateNotes">Private notes in exports</label>
-                <select id="settingsPrivateNotes" disabled>
+                <select class="common-select" id="settingsPrivateNotes" disabled>
                   <option selected>Exclude by default</option>
                   <option>Include with warning</option>
                 </select>
                 <span class="project-settings-select-chevron" aria-hidden="true">${icon.chevron}</span>
               </div>
 
-              <div class="project-settings-field project-settings-select-field">
+              <div class="field project-settings-field project-settings-select-field">
                 <label for="settingsDateFormat">Date format</label>
-                <select id="settingsDateFormat" disabled>
+                <select class="common-select" id="settingsDateFormat" disabled>
                   <option selected>
                     DD MMM YYYY
                   </option>

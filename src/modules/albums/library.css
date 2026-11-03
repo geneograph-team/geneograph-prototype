@@ -2059,14 +2059,9 @@ body.mobile-surface-open:has(.albums-shell) .menu-popover {
     height: 18px;
     margin: 0;
     place-self: center;
-    accent-color: var(--brand-green-500);
     cursor: pointer;
 }
 
-.albums-select-checkbox:focus-visible {
-    outline: 2px solid var(--brand-green-300);
-    outline-offset: 2px;
-}
 
 .albums-list-thumb {
     width: 48px;

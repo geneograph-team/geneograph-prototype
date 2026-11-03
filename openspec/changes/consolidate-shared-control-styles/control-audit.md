@@ -1,0 +1,7 @@
+# Control audit
+
+Baseline before migration (2026-11-03): CSS loads `core/foundation.css` before all module styles. It already owns `.button` variants, `.select`, `.app-search-field`, `.field` labels/inputs, and `.common-select`. `shared/relationship-forms.css` repeats select visuals in `.add-person-select` and owns the distinct Living status widget. `shared/module-filters.css` and `shared/resource-picker.css` add filter and picker field treatments. Module styles contain additional button and field focus variants. Some native selects still lack a shared opt-in class, so browser defaults appear.
+
+Representative checks: Projects settings fields and disabled privacy selects; People add-person gender select and Living status; Family Tree controls; Albums and Archive resource pickers and checkboxes; Notes search and editor; Places filters; Geneograph inspector and canvas tools. Compare normal, hover, keyboard focus, disabled, checked/mixed states in English and Russian at desktop and phone widths. Canvas handles, image region tools, and specialized map controls remain module-owned.
+
+Shared target: token-backed 2px green keyboard focus outline, consistent control height, border, radius, surface, text, hover, and disabled treatment. Layout width and feature-specific states remain at the owning module.

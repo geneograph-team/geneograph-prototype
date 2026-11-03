@@ -275,7 +275,7 @@ function openAlbumsFilterPopover(
 
           <button
             class="
-              shared-filter-panel-close
+              control-icon-button shared-filter-panel-close
             "
             type="button"
             aria-label="Close"

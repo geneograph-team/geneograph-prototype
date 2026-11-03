@@ -2022,7 +2022,7 @@ function renderNoteEditorContent(
                 </span>
 
                 <button
-                  class="notes-icon-button ${
+                  class="control-icon-button notes-icon-button ${
                         note.favorite
                             ? 'active'
                             : ''
@@ -2044,7 +2044,7 @@ function renderNoteEditorContent(
                 </button>
 
                 <button
-                  class="notes-icon-button"
+                  class="control-icon-button notes-icon-button"
                   type="button"
                   id="notesEditorMenuButton"
                   aria-haspopup="menu"

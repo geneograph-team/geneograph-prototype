@@ -2201,18 +2201,6 @@ body.mobile-person-details-open .relative-popover-body {
     grid-row: 1;
 }
 
-.compact-select {
-    height: var(--control-height);
-    min-height: var(--control-height);
-    max-height: var(--control-height);
-    border: 1px solid var(--border-default);
-    background: var(--surface-card);
-    color: var(--text-secondary);
-    border-radius: var(--radius-sm);
-    padding: 0 var(--space-3);
-    box-sizing: border-box;
-}
-
 .fact-buttons {
     display: flex;
     flex-wrap: wrap;
@@ -2441,40 +2429,10 @@ body.mobile-person-details-open .relative-popover-body {
 .checkbox-row input {
     width: 22px;
     height: 22px;
-    accent-color: var(--brand-green-500);
 }
 
 .add-person-select-field {
     position: relative;
-}
-
-.add-person-select {
-    width: 100%;
-    height: var(--control-height);
-    min-height: var(--control-height);
-    max-height: var(--control-height);
-    border: 1px solid var(--border-default);
-    border-radius: var(--radius-sm);
-    background: var(--surface-input);
-    color: var(--text-secondary);
-    padding: 0 42px 0 var(--space-3);
-    box-sizing: border-box;
-    appearance: none;
-    -webkit-appearance: none;
-    background-image: none;
-    cursor: pointer;
-}
-
-.add-person-select:hover {
-    background: var(--surface-card-hover);
-    border-color: var(--border-strong);
-    color: var(--text-primary);
-}
-
-.add-person-select:focus {
-    outline: 0;
-    border-color: var(--brand-green-500);
-    color: var(--text-primary);
 }
 
 .add-person-select-chevron {
@@ -2528,6 +2486,7 @@ body.mobile-person-details-open .relative-popover-body {
     position: relative;
 }
 
+/* Living status is a custom listbox: its status dot and card surface are intentional. */
 .add-person-status-button {
     width: 100%;
     height: var(--control-height);
@@ -2545,6 +2504,11 @@ body.mobile-person-details-open .relative-popover-body {
     font-weight: 700;
     text-align: left;
     transition: background var(--ease), border-color var(--ease), color var(--ease);
+}
+
+.add-person-status-button:focus-visible {
+    outline: var(--control-focus-width) solid var(--control-focus-color);
+    outline-offset: 2px;
 }
 
 .add-person-status-button:hover,

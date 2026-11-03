@@ -29,7 +29,7 @@ The original monolithic `index.html` has been split: the application now lives i
   - Archive helpers and seed normalization load in the explicit order shown in `src/index.html`; Notes seed/model and shared Archive tagging pickers follow before bootstrap.
   - `src/modules/geneograph/` — ordered board model, library, canvas, inspector, pickers, interaction, import/export, and split styles.
   - `core/bootstrap.js` — global keyboard handling (Escape) and the initial `render()` call.
-- Stylesheets: `src/core/foundation.css` defines base tokens; feature and shared styles follow in the order shown in `src/index.html`. Check the cascade before changing selectors.
+- Stylesheets: `src/core/foundation.css` defines base tokens and resets; `src/shared/controls.css` owns reusable control appearance and loads immediately after foundation. Feature and other shared styles follow in the order shown in `src/index.html`. Check the cascade before changing selectors.
 - Static media live in `src/assets/photos/`, `documents/`, `covers/`, `ui/`, and `boards/`.
 
 ## OpenSpec Handoff
@@ -84,7 +84,7 @@ Several extracted files are still very large. **Never read them end-to-end.**
 ## CSS Ownership
 
 - Edit declarations in their owning feature or shared stylesheet. Merge superseded rules; do not append competing overrides or use `!important` merely to avoid reconciling an existing rule.
-- Put shared tokens and truly cross-module controls in `src/core/foundation.css`; keep module, state, and responsive rules with their owning feature. Shared resource-picker rules belong in `src/shared/resource-picker.css`. Preserve the CSS tag order.
+- Put shared tokens and resets in `src/core/foundation.css`; put reusable button, icon-button, field, select, checkbox, label, and focus appearance in `src/shared/controls.css`. Use existing opt-in classes (`.button`, `.control-icon-button`, `.field`, `.select`, `.common-select`, `.compact-select`, `.checkbox-row`) where applicable. Feature styles own layout, dimensions, and named exceptions such as Living status. Reconcile shared rules directly instead of adding module overrides. Shared resource-picker layout belongs in `src/shared/resource-picker.css`. Preserve the CSS tag order.
 - Check English/Russian, desktop/phone widths, focus, and relevant modal states when changing shared or responsive styles.
 
 ## Accessibility Requirements

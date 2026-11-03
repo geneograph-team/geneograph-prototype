@@ -1,0 +1,394 @@
+/* Shared control appearance. Feature layout stays in owning stylesheets. */
+
+.button-stack {
+    display: grid;
+    gap: var(--space-3);
+}
+
+.button {
+    min-height: 44px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border-default);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-3);
+    padding: 0 var(--space-4);
+    font-weight: 800;
+    letter-spacing: .04em;
+    transition: background var(--ease), border-color var(--ease), transform var(--ease), color var(--ease);
+}
+
+.button.primary {
+    background: var(--brand-green-500);
+    border-color: rgba(98, 217, 154, .35);
+    color: #06110D;
+}
+
+.button.primary:hover {
+    transform: translateY(-1px);
+    filter: brightness(1.04);
+}
+
+.button.secondary {
+    background: #222927;
+    color: var(--text-primary);
+}
+
+.button.secondary:hover,
+.button.ghost:hover,
+.toolbar-button:hover,
+.project-more:hover {
+    background: var(--surface-card-hover);
+    border-color: var(--border-strong);
+}
+
+.button.ghost {
+    background: transparent;
+    color: var(--text-secondary);
+}
+
+.button.full {
+    width: 100%;
+    justify-content: flex-start;
+    padding-left: var(--space-7, 28px);
+}
+
+.button.danger {
+    color: #F2B3B3;
+    border-color: rgba(212, 107, 107, .35);
+    background: rgba(212, 107, 107, .08);
+}
+
+.app-search-field {
+    width: var(--search-field-max-width);
+    max-width: 100%;
+    flex: 0 1 var(--search-field-max-width);
+    height: var(--control-height);
+    min-width: 0;
+    box-sizing: border-box;
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-sm);
+    background: var(--surface-card);
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    padding: 0 var(--space-3);
+    color:
+        var(--text-tertiary);
+    transition:
+        border-color var(--ease),
+        background var(--ease);
+}
+
+.app-search-field:hover {
+    border-color:
+        var(--border-strong);
+}
+
+.app-search-field:focus-within {
+    border-color: var(--brand-green-500);
+    outline: var(--control-focus-width) solid var(--control-focus-color);
+    outline-offset: 2px;
+}
+
+.app-search-field>svg {
+    width:
+        21px;
+    height:
+        21px;
+    flex:
+        0 0 21px;
+}
+
+.app-search-field input {
+    width:
+        100%;
+    min-width:
+        0;
+    padding:
+        0;
+    border:
+        0;
+    outline:
+        0;
+    background:
+        transparent;
+    color:
+        var(--text-primary);
+    font:
+        inherit;
+}
+
+.app-search-field input::placeholder {
+    color:
+        var(--text-tertiary);
+}
+
+.app-search-field input::-webkit-search-cancel-button {
+    cursor:
+        pointer;
+}
+
+.select {
+    height: var(--control-height);
+    min-width: 215px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border-default);
+    background: var(--surface-card);
+    color: var(--text-secondary);
+    padding: 0 42px 0 var(--space-4);
+    appearance: none;
+    background-image: var(--select-chevron);
+    background-position: calc(100% - 20px) center;
+    background-size: 12px 7px;
+    background-repeat: no-repeat;
+}
+
+.toolbar-button {
+    width: 52px;
+    height: 44px;
+    border: 1px solid var(--border-default);
+    background: var(--surface-card);
+    color: var(--text-secondary);
+    border-radius: var(--radius-sm);
+    display: grid;
+    place-items: center;
+    transition: background var(--ease), border-color var(--ease), color var(--ease);
+}
+
+.toolbar-button svg {
+    width: 22px;
+    height: 22px;
+}
+
+.toolbar-button.active {
+    background: var(--surface-selected);
+    border-color: rgba(98, 217, 154, .35);
+    color: var(--text-primary);
+}
+
+.field label,
+.field legend {
+    display: block;
+    color: var(--text-secondary);
+    font-weight: 800;
+    margin-bottom: var(--space-2);
+}
+
+.close-button {
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    border-radius: 9px;
+    border: 1px solid var(--border-default);
+    background: transparent;
+    color: var(--text-secondary);
+    display: inline-grid;
+    place-items: center;
+    line-height: 1;
+    flex: 0 0 36px;
+}
+
+.close-button:hover {
+    background: var(--surface-card-hover);
+    color: var(--text-primary);
+}
+
+.field input,
+.field select,
+.compact-select,
+.common-select-shell,
+.common-select,
+.add-person-select,
+.add-person-status-button,
+.genealogy-date-type,
+.genealogy-date-input,
+.genealogy-date-details-button {
+    box-sizing: border-box;
+    height: var(--control-height);
+    min-height: var(--control-height);
+    max-height: var(--control-height);
+}
+
+.common-select-shell {
+    position: relative;
+    display: block;
+    width: 100%;
+    min-width: 0;
+    height: var(--control-height);
+    min-height: var(--control-height);
+    max-height: var(--control-height);
+}
+
+.compact-select {
+    height: var(--control-height);
+    min-height: var(--control-height);
+    max-height: var(--control-height);
+    border: 1px solid var(--border-default);
+    background: var(--surface-card);
+    color: var(--text-secondary);
+    border-radius: var(--radius-sm);
+    padding: 0 var(--space-3);
+    box-sizing: border-box;
+}
+
+.common-select,
+.add-person-select {
+    display: block;
+    width: 100%;
+    height: var(--control-height);
+    min-height: var(--control-height);
+    max-height: var(--control-height);
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-sm);
+    background: var(--surface-input);
+    color: var(--text-secondary);
+    padding: 0 42px 0 var(--space-3);
+    box-sizing: border-box;
+    appearance: none;
+    -webkit-appearance: none;
+    background-image: none;
+    cursor: pointer;
+}
+
+.common-select:hover,
+.add-person-select:hover {
+    background: var(--surface-card-hover);
+    border-color: var(--border-strong);
+    color: var(--text-primary);
+}
+
+.common-select:focus,
+.add-person-select:focus {
+    outline: 0;
+    border-color: var(--brand-green-500);
+    color: var(--text-primary);
+}
+
+.common-select-chevron {
+    position: absolute;
+    top: 0;
+    right: 14px;
+    bottom: 0;
+    z-index: 2;
+    width: 18px;
+    height: auto;
+    display: grid;
+    place-items: center;
+    color: var(--text-tertiary);
+    pointer-events: none;
+}
+
+.common-select-chevron svg {
+    width: 16px;
+    height: 16px;
+    display: block;
+    transform: rotate(90deg);
+}
+
+.common-select-shell:hover .common-select-chevron,
+.common-select-shell:focus-within .common-select-chevron {
+    color: var(--text-primary);
+}
+
+.field input {
+    width: 100%;
+    height: var(--control-height);
+    min-height: var(--control-height);
+    max-height: var(--control-height);
+    border: 1px solid var(--border-default);
+    background: var(--surface-input);
+    color: var(--text-primary);
+    border-radius: var(--radius-sm);
+    padding: 0 var(--space-3);
+    outline: 0;
+    box-sizing: border-box;
+}
+
+.field textarea {
+    width: 100%;
+    min-height: 104px;
+    border: 1px solid var(--border-default);
+    background: var(--surface-input);
+    color: var(--text-primary);
+    border-radius: var(--radius-sm);
+    padding: var(--space-3);
+    outline: 0;
+    box-sizing: border-box;
+    resize: vertical;
+}
+
+.field select:not(.common-select):not(.add-person-select),
+.compact-select:not(.common-select):not(.add-person-select) {
+    width: 100%;
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-sm);
+    background-color: var(--surface-input);
+    color: var(--text-secondary);
+    padding: 0 42px 0 var(--space-3);
+    appearance: none;
+    background-image: var(--select-chevron);
+    background-position: calc(100% - 16px) center;
+    background-size: 12px 7px;
+    background-repeat: no-repeat;
+}
+
+/* Shared field and dropdown states. Unique controls keep their own layout. */
+:is(.field input, .field textarea, .field select, .common-select, .add-person-select, .compact-select, .select):hover:not(:disabled) {
+    border-color: var(--border-strong);
+}
+
+:is(.field input, .field textarea, .field select, .common-select, .add-person-select, .compact-select, .select):focus-visible {
+    outline: var(--control-focus-width) solid var(--control-focus-color);
+    outline-offset: 2px;
+    border-color: var(--brand-green-500);
+}
+
+.field select:not(.common-select):not(.add-person-select):focus-visible,
+.compact-select:not(.common-select):not(.add-person-select):focus-visible {
+    border-color: var(--brand-green-500);
+}
+
+
+
+:is(.field input, .field textarea, .field select, .common-select, .add-person-select, .compact-select, .select):disabled {
+    opacity: .55;
+    cursor: not-allowed;
+}
+
+
+/* Opt-in icon button visuals; size and active state belong to the feature. */
+.control-icon-button {
+    display: inline-grid;
+    place-items: center;
+    padding: 0;
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-sm);
+    background: var(--surface-card);
+    color: var(--text-secondary);
+    transition: background var(--ease), border-color var(--ease), color var(--ease);
+}
+
+.control-icon-button:hover {
+    border-color: var(--border-strong);
+    background: var(--surface-card-hover);
+    color: var(--text-primary);
+}
+
+.control-icon-button:focus-visible {
+    outline: var(--control-focus-width) solid var(--control-focus-color);
+    outline-offset: 2px;
+}
+
+/* Reusable checkbox accent and keyboard focus; each view owns dimensions. */
+:is(.checkbox-row, .people-columns-option, .notes-checklist-row) input[type="checkbox"],
+:is(.albums-select-checkbox, .people-select-checkbox) {
+    accent-color: var(--brand-green-500);
+}
+
+:is(.checkbox-row, .people-columns-option, .notes-checklist-row) input[type="checkbox"]:focus-visible,
+:is(.albums-select-checkbox, .people-select-checkbox):focus-visible {
+    outline: var(--control-focus-width) solid var(--control-focus-color);
+    outline-offset: 2px;
+}
