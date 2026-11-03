@@ -1394,21 +1394,6 @@ function renderAlbumsDetailPane()
             )}
 
           ${renderAlbumsDetailSection(
-                'people',
-                'People',
-                renderAlbumsPhotoPeople(
-                    photo,
-                    actionsLocked
-                ),
-                peopleAction,
-                `${peopleCount} ${
-                    peopleCount === 1
-                        ? 'person'
-                        : 'people'
-                }`
-            )}
-
-          ${renderAlbumsDetailSection(
                 'albums',
                 'Albums',
                 renderAlbumsPhotoAlbums(
@@ -1420,6 +1405,21 @@ function renderAlbumsDetailPane()
                     albumCount === 1
                         ? 'album'
                         : 'albums'
+                }`
+            )}
+
+          ${renderAlbumsDetailSection(
+                'people',
+                'People',
+                renderAlbumsPhotoPeople(
+                    photo,
+                    actionsLocked
+                ),
+                peopleAction,
+                `${peopleCount} ${
+                    peopleCount === 1
+                        ? 'person'
+                        : 'people'
                 }`
             )}
 

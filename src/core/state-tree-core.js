@@ -180,8 +180,8 @@ const state = {
     albumsDetailDraft: null,
     albumsDetailSections: {
         details: true,
-        people: true,
         albums: true,
+        people: false,
         notes: false,
         sources: false,
         metadata: false
@@ -247,6 +247,7 @@ const state = {
         people: false,
         events: false,
         notes: false,
+        places: false,
         metadata: false,
         'source-details': true,
         'source-file': true,
