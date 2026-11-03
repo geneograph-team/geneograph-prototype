@@ -59,10 +59,10 @@ function rpCreateNoteForm(session, projectId)
             <div class="modal-header"><h2 id="rpNoteCreateTitle">${label('Create note', 'Создать заметку')}</h2>
               <button type="button" class="close-button" data-close aria-label="${label('Close', 'Закрыть')}">${icon.close}</button></div>
             <div class="modal-body form-grid" style="display:flex;flex-direction:column;min-height:0">
-              <div class="field"><label for="rpNoteTitle">${label('Title', 'Название')}</label><input class="input" id="rpNoteTitle" name="title" required maxlength="500" autocomplete="off"></div>
+              <div class="field"><label for="rpNoteTitle">${label('Title', 'Название')}</label><input class="input" id="rpNoteTitle" name="title" required maxlength="500" placeholder="Untitled note" autocomplete="off"></div>
               <div class="field rp-note-body-field" style="display:flex;flex:1;flex-direction:column;min-height:0"><label for="rpNoteBody">${label('Note body', 'Текст заметки')}</label>
                 ${typeof window.Quill === 'function' ? renderRichTextToolbar({ id: 'rpNoteToolbar', ariaLabel: rpText('Note formatting', 'Форматирование заметки') }) : ''}
-                <div data-rp-note-rich hidden style="flex:1;min-height:180px"></div><textarea class="input" style="flex:1" id="rpNoteBody" name="body" rows="10"></textarea></div>
+                <div data-rp-note-rich hidden style="flex:1;min-height:180px"></div><textarea class="input" style="flex:1" id="rpNoteBody" name="body" rows="10" placeholder="Start writing..."></textarea></div>
               <p data-rp-note-error role="alert" hidden></p>
             </div>
             <div class="modal-footer"><button type="button" class="button secondary" data-close>${label('Cancel', 'Отмена')}</button>
@@ -77,7 +77,7 @@ function rpCreateNoteForm(session, projectId)
         {
             const host = root.querySelector('[data-rp-note-rich]');
             host.hidden = false;
-            editor = new window.Quill(host, { theme: 'snow', modules: { toolbar: root.querySelector('#rpNoteToolbar') } });
+            editor = new window.Quill(host, { theme: 'snow', placeholder: 'Start writing...', modules: { toolbar: root.querySelector('#rpNoteToolbar') } });
             editor.root.setAttribute('aria-label', rpText('Note body', 'Текст заметки'));
             body.hidden = true;
         }

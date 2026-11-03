@@ -310,6 +310,18 @@
     border-radius:0 0 8px 8px;
 }
 
+.resource-picker-editor-modal [data-rp-note-rich] .ql-editor.ql-blank::before
+{
+    color:var(--text-tertiary);
+    font-style:normal;
+    opacity:1;
+}
+
+.resource-picker-editor-modal [data-rp-note-rich]:focus-within .ql-editor.ql-blank::before
+{
+    color:var(--text-secondary);
+}
+
 .resource-picker-editor-modal #rpNoteToolbar
 {
     margin:0;
