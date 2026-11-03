@@ -932,6 +932,12 @@ function navigateToProjectModule(
             !== 'Archive'
         );
 
+    if (state.activeModule === 'Projects' && state.openSide === 'settings')
+    {
+        runAfterProjectSettingsGuard(() => navigateToProjectModuleCommit(projectId, moduleName));
+        return true;
+    }
+
     if (
         leavingCurrentArchive
     )

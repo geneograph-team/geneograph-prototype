@@ -2323,7 +2323,7 @@ button {
     background:
         radial-gradient(circle at 86% 24%, rgba(47, 174, 116, .18), transparent 30%),
         linear-gradient(120deg, rgba(15, 82, 50, .92), rgba(12, 38, 28, .75) 48%, rgba(12, 17, 16, .9));
-    border: 1px solid rgba(98, 217, 154, .13);
+    border: 1px solid var(--border-default);
     position: relative;
     overflow: hidden;
 }
@@ -5074,13 +5074,27 @@ body.mobile-details-open .geneo-inspector [data-geneo-inspector-toggle] {
 }
 
 .project-settings-page-actions {
-    min-height: 64px;
+    position: sticky;
+    bottom: var(--space-3);
+    z-index: 5;
+    width: max-content;
+    max-width: 100%;
+    min-height: 0;
+    margin-left: auto;
     border: 1px solid var(--border-default);
-    background: rgba(21, 26, 26, .88);
+    background: var(--surface-card);
     border-radius: var(--radius-sm);
-    padding: var(--space-3);
-    justify-content: space-between;
-    box-shadow: 0 -10px 32px rgba(0, 0, 0, .18);
+    padding: var(--space-2);
+    justify-content: flex-end;
+    box-shadow: var(--shadow-soft);
+}
+
+.project-settings-page-actions[hidden] {
+    display: none;
+}
+
+.project-settings-discard-modal .modal-footer {
+    flex-wrap: wrap;
 }
 
 @media (max-width: 1180px) {

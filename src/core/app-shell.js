@@ -237,21 +237,41 @@ function openMobileSurface(kind)
         {
             const destination = button.dataset.mobileDestination;
             closeMobileSurface(false);
-            if (destination === 'library')
-            {
-                if (state.activeModule === 'Family Tree') captureTreeCanvasScroll(currentProjectId());
-                if (state.activeModule === 'Geneograph' && state.geneoView === 'board') captureGeneographViewport();
-                state.projectOpen = false;
-                state.currentProjectId = null;
-                state.activeModule = 'Projects';
-                render();
-            }
-            else navigateToProjectModule(currentProjectId(), destination === 'overview' ? 'Projects' : destination);
-            requestAnimationFrame(() =>
+            const focusDestination = () => requestAnimationFrame(() =>
             {
                 main.tabIndex = -1;
                 main.focus({ preventScroll: true });
             });
+            if (destination === 'library')
+            {
+                if (state.activeModule === 'Family Tree') captureTreeCanvasScroll(currentProjectId());
+                if (state.activeModule === 'Geneograph' && state.geneoView === 'board') captureGeneographViewport();
+                runAfterProjectSettingsGuard(() =>
+                {
+                    state.projectOpen = false;
+                    state.currentProjectId = null;
+                    state.activeModule = 'Projects';
+                    render();
+                    focusDestination();
+                });
+            }
+            else
+            {
+                const moduleName = destination === 'overview' ? 'Projects' : destination;
+                if (state.activeModule === 'Projects' && state.openSide === 'settings')
+                {
+                    runAfterProjectSettingsGuard(() =>
+                    {
+                        navigateToProjectModuleCommit(currentProjectId(), moduleName);
+                        focusDestination();
+                    });
+                }
+                else
+                {
+                    navigateToProjectModule(currentProjectId(), moduleName);
+                    focusDestination();
+                }
+            }
         }));
         drawer.querySelector('[data-mobile-close]').focus();
     }
@@ -530,7 +550,8 @@ function appNavigationGo(direction)
         }
         finally { appNavigation.restoring = false; appNavigationUpdateControls(); }
     };
-    if (state.activeModule === 'Archive') runAfterArchiveFileEditGuard(commit);
+    if (state.activeModule === 'Projects' && state.openSide === 'settings') runAfterProjectSettingsGuard(commit);
+    else if (state.activeModule === 'Archive') runAfterArchiveFileEditGuard(commit);
     else commit();
 }
 
@@ -902,10 +923,13 @@ function activateTopbarNotification(id)
     closeTopbarPopover();
     if (item.openSide)
     {
-        state.activeModule = 'Projects';
-        state.openSide = item.openSide;
-        persistProjectContinuation({ projectId: currentProjectId(), module: 'Projects', openedAt: new Date().toISOString() });
-        render();
+        runAfterProjectSettingsGuard(() =>
+        {
+            state.activeModule = 'Projects';
+            state.openSide = item.openSide;
+            persistProjectContinuation({ projectId: currentProjectId(), module: 'Projects', openedAt: new Date().toISOString() });
+            render();
+        });
         return;
     }
     if (item.module && state.projectOpen)

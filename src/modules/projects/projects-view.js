@@ -451,15 +451,20 @@ function renderOpenProject()
       `;
     sidebar.querySelector('#backToProjects').addEventListener('click', () =>
     {
-        projectSettingsDraft = null;
-        state.projectOpen = false; state.currentProjectId = null; state.activeModule = 'Projects'; render();
+        runAfterProjectSettingsGuard(() =>
+        {
+            state.projectOpen = false; state.currentProjectId = null; state.activeModule = 'Projects'; render();
+        });
     });
     sidebar.querySelectorAll('[data-open-side]').forEach(button => button.addEventListener('click', () =>
     {
-        if (button.dataset.openSide !== 'settings') projectSettingsDraft = null;
-        state.openSide = button.dataset.openSide;
-        persistProjectContinuation({ projectId: project.id, module: 'Projects', openedAt: new Date().toISOString() });
-        renderOpenProject();
+        if (button.dataset.openSide === state.openSide) return;
+        runAfterProjectSettingsGuard(() =>
+        {
+            state.openSide = button.dataset.openSide;
+            persistProjectContinuation({ projectId: project.id, module: 'Projects', openedAt: new Date().toISOString() });
+            renderOpenProject();
+        });
     }));
 
     if (state.openSide === 'settings')
@@ -639,6 +644,73 @@ function captureProjectSettingsFields()
     projectSettingsDraft.description = main.querySelector('#settingsProjectDescription')?.value ?? projectSettingsDraft.description;
 }
 
+function projectSettingsHasUnsavedChanges()
+{
+    if (!state.projectOpen || state.activeModule !== 'Projects' || state.openSide !== 'settings' || !projectSettingsDraft) return false;
+    const project = currentProject();
+    if (!project || project.id !== projectSettingsDraft.projectId) return false;
+    captureProjectSettingsFields();
+    const draft = projectSettingsDraft;
+    const savedPosition = normalizeProjectCoverPosition(project.coverPosition);
+    const draftPosition = normalizeProjectCoverPosition(draft.coverSelection.position);
+    return draft.name !== localizedDataFieldValue(project.name)
+        || draft.description !== localizedDataFieldValue(project.desc)
+        || draft.cover !== resolvedProjectCoverStyle(project)
+        || (draft.cover === 'photo' && (draft.coverSelection.photoId || '') !== (project.coverPhotoId || ''))
+        || (draft.cover === 'photo' && (draft.coverSelection.imageSrc || '') !== (project.coverImageSrc || ''))
+        || (draft.cover === 'photo' && Boolean(draft.coverSelection.uploadDraft))
+        || draftPosition.x !== savedPosition.x
+        || draftPosition.y !== savedPosition.y;
+}
+
+function projectSettingsBeforeUnload(event)
+{
+    if (!projectSettingsHasUnsavedChanges()) return;
+    event.preventDefault();
+    event.returnValue = '';
+}
+
+function updateProjectSettingsDirtyState()
+{
+    const dirty = projectSettingsHasUnsavedChanges();
+    const actions = main.querySelector('.project-settings-page-actions');
+    if (actions) actions.hidden = !dirty;
+    window.removeEventListener('beforeunload', projectSettingsBeforeUnload);
+    if (dirty) window.addEventListener('beforeunload', projectSettingsBeforeUnload);
+}
+
+function runAfterProjectSettingsGuard(commit)
+{
+    if (!projectSettingsHasUnsavedChanges())
+    {
+        projectSettingsDraft = null;
+        updateProjectSettingsDirtyState();
+        commit();
+        return;
+    }
+    openModal(`<div class="modal project-settings-discard-modal" role="dialog" aria-modal="true" aria-labelledby="projectSettingsDiscardTitle">
+        <div class="modal-header"><h2 id="projectSettingsDiscardTitle">${escapeHtml(t('Unsaved project settings'))}</h2></div>
+        <div class="modal-body"><p>${escapeHtml(t('Save your project settings before leaving?'))}</p></div>
+        <div class="modal-footer">
+          <button class="button secondary" type="button" data-close>${escapeHtml(t('Keep editing'))}</button>
+          <button class="button danger" type="button" data-project-settings-discard>${escapeHtml(t('Discard and leave'))}</button>
+          <button class="button primary" type="button" data-project-settings-save-leave>${escapeHtml(t('Save and leave'))}</button>
+        </div></div>`);
+    modalBackdrop.querySelector('[data-project-settings-discard]')?.addEventListener('click', () =>
+    {
+        closeModal({ force: true });
+        projectSettingsDraft = null;
+        updateProjectSettingsDirtyState();
+        commit();
+    });
+    modalBackdrop.querySelector('[data-project-settings-save-leave]')?.addEventListener('click', () =>
+    {
+        closeModal({ force: true });
+        if (saveProjectSettings()) commit();
+    });
+    modalBackdrop.querySelector('[data-close]')?.focus();
+}
+
 function renderProjectSettings(project)
 {
     const draft = getProjectSettingsDraft(project);
@@ -795,7 +867,7 @@ function renderProjectSettings(project)
             </div>
           </div>
         </section>
-        <div class="project-settings-actions project-settings-page-actions"><button class="button secondary" type="button" id="resetProjectSettings">Reset changes</button><button class="button primary" type="button" id="saveProjectSettings">Save changes</button></div>
+        <div class="project-settings-actions project-settings-page-actions" hidden><button class="button secondary" type="button" id="resetProjectSettings">Reset changes</button><button class="button primary" type="button" id="saveProjectSettings">Save changes</button></div>
       </div>`;
 }
 
@@ -804,7 +876,10 @@ function bindProjectSettingsControls()
 {
     if (state.openSide !== 'settings') return;
     main.querySelector('#saveProjectSettings')?.addEventListener('click', saveProjectSettings);
-    main.querySelector('#resetProjectSettings')?.addEventListener('click', () => { projectSettingsDraft = null; renderOpenProject(); });
+    main.querySelector('#resetProjectSettings')?.addEventListener('click', () => { projectSettingsDraft = null; updateProjectSettingsDirtyState(); renderOpenProject(); });
+    main.querySelectorAll('#settingsProjectName, #settingsProjectDescription').forEach(control =>
+        control.addEventListener('input', updateProjectSettingsDirtyState));
+    updateProjectSettingsDirtyState();
     main.querySelector('#viewProjectFolder')?.addEventListener('click', () => showToast('Opening a project folder is not available yet.'));
     main.querySelector('#moveProjectLocation')?.addEventListener('click', openMoveProjectModal);
     main.querySelector('#createProjectBackup')?.addEventListener('click', () => showToast('Creating a local backup is not available yet.'));
@@ -818,6 +893,7 @@ function bindProjectSettingsControls()
             if (!projectSettingsDraft || !coverPreview?.isConnected) return;
             projectSettingsDraft.coverSelection.position = position;
             updateProjectCoverPreview(coverPreview, projectSettingsDraft.cover, projectSettingsCoverSource(projectSettingsDraft), position);
+            updateProjectSettingsDirtyState();
         },
         resetButton: main.querySelector('#projectCoverReset')
     });
@@ -878,8 +954,8 @@ function saveProjectSettings()
         showToast(
             'Project name cannot be empty.'
         );
-
-        return;
+        nameControl?.focus();
+        return false;
     }
 
     const draft = projectSettingsDraft;
@@ -888,7 +964,8 @@ function saveProjectSettings()
         if (!commitProjectCoverSelection(project.id, draft.coverSelection))
         {
             showToast('Choose a cover photo before saving.');
-            return;
+            main.querySelector('[data-cover-photo]')?.focus();
+            return false;
         }
     }
     else setProjectCover(project.id, draft.cover, { position: draft.coverSelection.position });
@@ -901,12 +978,13 @@ function saveProjectSettings()
     project.desc = description;
 
     projectSettingsDraft = null;
-
+    updateProjectSettingsDirtyState();
     renderOpenProject();
 
     showToast(
         'Project settings saved.'
     );
+    return true;
 }
 
 function openMoveProjectModal()
