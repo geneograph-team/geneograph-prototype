@@ -249,7 +249,7 @@
                 && (!values.person || getPhotoPeople(photo).some(person => person.id === values.person))
                 && rpPhotoMatchesDates(photo, values),
             dateValue: photo => photoDateModel(photo).sortDate || '',
-            describe: photo => ({ title: adapter.name(photo), description: photo.caption || '', meta: [photo.filename, photo.placeText].filter(Boolean).join(' · '), imageHtml: rpMediaThumbnail(photo.src, adapter.name(photo)) }),
+            describe: photo => ({ title: adapter.name(photo), description: photo.caption || '', meta: '', imageHtml: rpMediaThumbnail(photo.src, adapter.name(photo)) }),
             preview: photo => rpMediaPreview(rpMediaThumbnail(photo.src, adapter.name(photo)), adapter.name(photo), formatPhotoDate(photo) || '')
                 + (photo.caption ? `<p>${escapeHtml(photo.caption)}</p>` : ''),
             bindPreview: rpBindMediaPreview,

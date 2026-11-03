@@ -4538,7 +4538,7 @@ function renderGeneographAddImageResults()
     {
         const title = geneoImageRecordName(photo);
         const checked = selected.has(photo.id);
-        const meta = [photo.filename, photo.placeText].filter(Boolean).join(' · ');
+        const meta = '';
         return `<article class="rp-record ${checked ? 'is-selected' : ''}">
           <label class="rp-record-select">
             <div class="rp-thumbnail">${renderPhotoThumbnail(photo, { label: title })}</div>
