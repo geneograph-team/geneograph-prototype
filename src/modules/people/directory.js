@@ -2014,7 +2014,7 @@ function renderPeopleSidebarInner()
           </div>
 
           <div class="side-nav">
-            ${savedViewsMarkup}
+            ${savedViewsMarkup || `<p class="places-sidebar-empty">No saved filters</p>`}
           </div>
         </div>`;
 }
