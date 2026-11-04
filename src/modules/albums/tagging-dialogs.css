@@ -745,14 +745,14 @@
 .notes-events-modal {
     width:
         min(980px,
-            calc(100vw - 32px));
+            calc(100vw - 48px));
 
     height:
-        min(760px,
-            calc(100vh - 48px));
+        min(800px,
+            calc(100dvh - 48px));
 
     max-height:
-        calc(100vh - 48px);
+        calc(100dvh - 48px);
 
     overflow: hidden;
 
@@ -879,6 +879,10 @@
         stable;
 }
 
+.notes-event-person-results:has(> .notes-event-empty) {
+    grid-template-rows: minmax(0, 1fr);
+}
+
 .notes-event-person-result {
     width: 100%;
     min-width: 0;
@@ -1001,6 +1005,10 @@
         auto minmax(0, 1fr);
 
     overflow: hidden;
+}
+
+.notes-event-timeline-pane:has(> .notes-event-timeline-empty) {
+    grid-template-rows: minmax(0, 1fr);
 }
 
 .notes-event-person-header {
