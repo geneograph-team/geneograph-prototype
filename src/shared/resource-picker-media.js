@@ -210,21 +210,22 @@
             partialIds: rpMediaValidIds(config.partialIds || config.partialPhotoIds, records()),
             mode: config.mode || 'manage',
             records,
-            name: photo => photo.title || photo.filename || rpText('Untitled photo', 'Без названия'),
-            searchText: photo => [photo.title, photo.filename, photo.caption, photo.placeText, formatPhotoDate(photo), ...getPhotoPeople(photo).map(personResourceDisplayName)].join(' '),
+            name: photo => localizedDataFieldValue(photo.title || photo.filename || rpText('Untitled photo', 'Без названия')),
+            searchText: photo => [photo.title, localizedDataFieldValue(photo.title), photo.filename, photo.caption,
+                localizedDataFieldValue(photo.caption), photo.placeText, formatPhotoDate(photo), ...getPhotoPeople(photo).map(personResourceDisplayName)].join(' '),
             scopes: () => [
                 { id: 'all', label: rpText('All photos', 'Все фотографии') },
                 { id: 'unfiled', label: rpText('Unfiled', 'Без альбома') },
-                ...getProjectAlbums(projectId).map(album => ({ id: `album:${album.id}`, label: album.title || album.name || rpText('Untitled album', 'Без названия') }))
+                ...getProjectAlbums(projectId).map(album => ({ id: `album:${album.id}`, label: localizedDataFieldValue(album.title || album.name || rpText('Untitled album', 'Без названия')) }))
             ],
             matchesScope: (photo, scopeId) => scopeId === 'all' || (scopeId === 'unfiled' ? !(photo.albumIds || []).some(id => getProjectAlbums(projectId).some(album => album.id === id)) : (photo.albumIds || []).includes(scopeId.slice(6))),
             filters: () => [rpMediaFavoriteFilter()],
             matchesFilters: (photo, values) => (!values.favorite || Boolean(photo.favorite))
                 && (!values.person || getPhotoPeople(photo).some(person => person.id === values.person)),
             dateValue: photo => photoDateModel(photo).sortDate || '',
-            describe: photo => ({ title: adapter.name(photo), description: photo.caption || '', meta: '', imageHtml: rpMediaThumbnail(photo.src, adapter.name(photo)) }),
+            describe: photo => ({ title: adapter.name(photo), description: localizedDataFieldValue(photo.caption || ''), meta: '', imageHtml: rpMediaThumbnail(photo.src, adapter.name(photo)) }),
             preview: photo => rpMediaPreview(rpMediaThumbnail(photo.src, adapter.name(photo)), adapter.name(photo), formatPhotoDate(photo) || '')
-                + (photo.caption ? `<p>${escapeHtml(photo.caption)}</p>` : ''),
+                + (photo.caption ? `<p>${escapeHtml(localizedDataFieldValue(photo.caption))}</p>` : ''),
             bindPreview: rpBindMediaPreview,
             validate: session => typeof config.validate === 'function' ? config.validate(session) : true,
             create: session => rpCreatePhotoUpload(session, { ...config, projectId }),

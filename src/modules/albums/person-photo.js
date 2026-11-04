@@ -117,10 +117,11 @@ function renderPersonPhotoCandidate(photo, person)
             photo,
             person
         );
-    const title = photo.title || photo.filename || 'Photo';
+    const title = localizedDataFieldValue(photo.title || photo.filename || 'Photo');
     return `<article class="rp-record ${selected ? 'is-selected' : ''}"><button class="rp-record-select" type="button" data-person-photo-candidate="${escapeHtml(photo.id)}" aria-pressed="${selected}" aria-label="${escapeHtml(title)}">
         <span class="rp-thumbnail">${renderPhotoThumbnail(photo, { label: title })}</span>
         <span class="rp-record-copy"><strong title="${escapeHtml(title)}">${escapeHtml(title)}</strong>
+          ${photo.caption ? `<span class="rp-description">${escapeHtml(localizedDataFieldValue(photo.caption))}</span>` : ''}
           ${current ? `<small>${escapeHtml(t('Current photo'))}</small>` : ''}
           ${tagged ? '' : `<small>${escapeHtml(t('Not tagged'))}</small>`}</span>
         <span class="rp-selection-mark" aria-hidden="true">${icon.check}</span>
