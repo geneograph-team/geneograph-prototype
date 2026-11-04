@@ -55,7 +55,8 @@ Several extracted files are still very large. **Never read them end-to-end.**
 - Inspect only files relevant to the requested change. Avoid repository-wide scans unless targeted searches fail or cross-cutting behavior requires one.
 - Prefer targeted `rg` searches and bounded file ranges. Do not reread or repeat file contents already inspected.
 - Make surgical patches at the responsible layer; avoid unrelated refactors.
-- Keep verification proportional to risk. Check the affected browser workflow and console; add automated checks only when they meaningfully cover a regression.
+- Keep verification proportional to risk. For small, isolated changes, run focused static checks such as JavaScript syntax and `git diff --check`; do not start a browser or run browser tests. Add automated tests only when they meaningfully cover a regression.
+- For substantial changes that need visual or interaction verification, ask the user to perform or authorize a focused browser check. State the exact workflow and states to inspect, and report browser QA as pending until it is actually completed. Do not infer a pass from static checks.
 - Stop when the acceptance criteria are met. Keep explanations concise and omit large diffs from final responses.
 
 ## Repository Structure
@@ -85,7 +86,7 @@ Several extracted files are still very large. **Never read them end-to-end.**
 
 - Edit declarations in their owning feature or shared stylesheet. Merge superseded rules; do not append competing overrides or use `!important` merely to avoid reconciling an existing rule.
 - Put shared tokens and resets in `src/core/foundation.css`; put reusable button, icon-button, field, select, checkbox, label, and focus appearance in `src/shared/controls.css`. Use existing opt-in classes (`.button`, `.text-action`, `.panel-action`, `.control-icon-button`, `.field`, `.select`, `.common-select`, `.compact-select`, `.checkbox-row`) where applicable. Feature styles own layout, dimensions, and named exceptions such as Living status. Reconcile shared rules directly instead of adding module overrides. Shared resource-picker layout belongs in `src/shared/resource-picker.css`. Preserve the CSS tag order.
-- Check English/Russian, desktop/phone widths, focus, and relevant modal states when changing shared or responsive styles.
+- For substantial shared or responsive style changes, include English/Russian, desktop/phone widths, focus, and relevant modal states in the requested browser QA. Use focused static checks for small style edits.
 
 ## Accessibility Requirements
 
@@ -113,21 +114,11 @@ Maintain on every change:
 
 ## Browser QA on this Windows host
 
-Use this exact local preview; do not search for a development server or try a remote installer. `scripts/serve-local.cjs` serves only `src/` on `127.0.0.1:8000` with Node's built-in modules. It is a testing helper, not an application runtime dependency.
+Use browser QA only for substantial changes after asking the user. The prototype has no required development server or build step. Do not start a server or open a browser for small changes.
 
 1. Set the shell working directory to `E:\Geneograph\Concept\geneograph-prototype` and confirm `Get-Location` resolves there. Inspect `git status --short` before editing.
-2. Check `http://127.0.0.1:8000/index.html`. If it responds with HTTP 200, reuse the running server. Otherwise start it in PowerShell:
-
-   ```powershell
-   Set-Location 'E:\Geneograph\Concept\geneograph-prototype'
-   $geneoNode = 'C:\Users\Nick-PC\AppData\Local\Author Software\nvm\installs\v26.10.0\node.exe'
-   $geneoScript = (Resolve-Path '.\scripts\serve-local.cjs').Path
-   Start-Process -FilePath $geneoNode -ArgumentList @($geneoScript) -WorkingDirectory (Get-Location).Path -WindowStyle Hidden -PassThru | Select-Object -ExpandProperty Id
-   (Invoke-WebRequest 'http://127.0.0.1:8000/index.html' -UseBasicParsing -TimeoutSec 5).StatusCode
-   ```
-
-   The final command must return `200`. Keep the printed process ID; the server can stay running for subsequent browser checks. Stop it with `Stop-Process -Id <printed-id>` when no longer needed. The `node` shim on this host may report no active version, so use the exact executable path above.
-3. Open `http://127.0.0.1:8000/index.html` in the Codex browser. Check the affected workflow at desktop and phone widths in English and Russian as relevant; inspect console errors and failed resources. Reload after source edits. Report the exact browser or server error if access fails—never assume visual QA passed.
+2. If browser QA is agreed, check `http://127.0.0.1:8000/index.html` and reuse an existing server when it returns HTTP 200. `scripts/serve-local.cjs` is not present in this checkout; do not follow older instructions that reference it. If no server is available, tell the user and agree on how to serve `src/` before browser testing.
+3. Open the agreed localhost URL in the Codex browser only when the user authorizes agent-run QA. Check the affected workflow and relevant language, viewport, focus, and modal states; inspect console errors and failed resources. Report the exact browser or server error if access fails—never assume visual QA passed.
 4. Use `file://` only for a separate manual compatibility check when available outside the restricted Codex browser. Do not add fetch-based runtime dependencies or change relative paths merely because localhost allows them.
 
 ## License

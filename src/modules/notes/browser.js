@@ -2632,14 +2632,12 @@ function renderEventRelationItem({
                     "
                     type="button"
                     ${removeAttributes}
-                    aria-label="Remove ${escapeHtml(
+                    aria-label="${escapeHtml(t('Unlink'))} ${escapeHtml(
                         eventTitle
-                    )} from ${escapeHtml(
-                        removeContextLabel
                     )}"
-                    title="Remove link">
+                    title="${escapeHtml(t('Unlink'))}">
 
-                    ${icon.close}
+                    ${icon.unlink}
                   </button>
                 </div>
               `
@@ -2723,12 +2721,12 @@ function renderNoteLinkedRecordRows(
                         data-note-linked-id="${escapeHtml(
                             person.id
                         )}"
-                        aria-label="Remove ${escapeHtml(
+                        aria-label="${escapeHtml(t('Unlink'))} ${escapeHtml(
                             name
-                        )} from note"
-                        title="Remove link">
+                        )}"
+                        title="${escapeHtml(t('Unlink'))}">
 
-                        ${icon.close}
+                        ${icon.unlink}
                       </button>
                     </div>
                   </div>
@@ -2820,12 +2818,12 @@ function renderNoteLinkedRecordRows(
                         data-note-linked-id="${escapeHtml(
                             place.id
                         )}"
-                        aria-label="Remove ${escapeHtml(
+                        aria-label="${escapeHtml(t('Unlink'))} ${escapeHtml(
                             primaryName
-                        )} from note"
-                        title="Remove link">
+                        )}"
+                        title="${escapeHtml(t('Unlink'))}">
 
-                        ${icon.close}
+                        ${icon.unlink}
                       </button>
                     </div>
                   </div>
@@ -3023,7 +3021,7 @@ function renderNoteLinkedPhotoGrid(
                         );
 
                     return `
-                <div class="notes-linked-photo-item">
+                <div class="person-connected-photo-item">
                   <button
                     class="connected-photo-button"
                     type="button"
@@ -3048,17 +3046,17 @@ function renderNoteLinkedPhotoGrid(
                   </button>
 
                   <button
-                    class="notes-linked-photo-remove"
+                    class="connected-photo-unlink"
                     type="button"
                     data-note-linked-remove
                     data-note-linked-type="photo"
                     data-note-linked-id="${escapeHtml(
                         photo.id
                     )}"
-                    aria-label="Remove photo link"
-                    title="Remove link">
+                    aria-label="${escapeHtml(t('Unlink'))} ${escapeHtml(label)}"
+                    title="${escapeHtml(t('Unlink'))}">
 
-                    ${icon.close}
+                    ${icon.unlink}
                   </button>
                 </div>
               `;
@@ -3336,14 +3334,12 @@ function renderRelatedNoteRelationItem({
                     "
                     type="button"
                     ${removeAttributes}
-                    aria-label="Remove ${escapeHtml(
+                    aria-label="${escapeHtml(t('Unlink'))} ${escapeHtml(
                         title
-                    )} from ${escapeHtml(
-                        removeContextLabel
                     )}"
-                    title="Remove link">
+                    title="${escapeHtml(t('Unlink'))}">
 
-                    ${icon.close}
+                    ${icon.unlink}
                   </button>
                 </div>
               `

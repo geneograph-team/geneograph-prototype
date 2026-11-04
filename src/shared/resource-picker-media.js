@@ -337,7 +337,7 @@
             },
             afterSave: (ids, result, session) =>
             {
-                if (person) render();
+                if (person) renderAfterPersonConnectedResourcesChanged();
                 options.afterSave?.(ids, result, session);
             }
         });

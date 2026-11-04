@@ -2858,71 +2858,7 @@
 .notes-linked-photo-grid {
     grid-template-columns:
         repeat(auto-fill,
-            minmax(96px, 1fr));
-}
-
-.notes-linked-photo-item {
-    position: relative;
-    min-width: 0;
-    aspect-ratio: 1;
-}
-
-.notes-linked-photo-item>.connected-photo-button {
-    position: absolute;
-    inset: 0;
-
-    aspect-ratio: auto;
-}
-
-.notes-linked-photo-remove {
-    position: absolute;
-    z-index: 3;
-    top: 6px;
-    right: 6px;
-
-    width: 28px;
-    height: 28px;
-    padding: 0;
-
-    display: grid;
-    place-items: center;
-
-    border:
-        1px solid rgba(255, 255, 255, .16);
-
-    border-radius: 7px;
-
-    background:
-        rgba(9, 14, 12, .82);
-
-    color:
-        var(--text-secondary);
-
-    box-shadow:
-        0 2px 8px rgba(0, 0, 0, .24);
-}
-
-.notes-linked-photo-remove:hover {
-    border-color:
-        rgba(212, 107, 107, .4);
-
-    background:
-        rgba(58, 30, 30, .92);
-
-    color:
-        var(--red);
-}
-
-.notes-linked-photo-remove:focus-visible {
-    outline:
-        2px solid var(--brand-green-300);
-
-    outline-offset: 2px;
-}
-
-.notes-linked-photo-remove svg {
-    width: 14px;
-    height: 14px;
+            minmax(min(88px, 100%), 1fr));
 }
 
 .notes-confirmation-card {
