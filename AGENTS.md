@@ -109,7 +109,26 @@ Maintain on every change:
 
 - The site is static: open `src/index.html` directly or serve `src/` as static files; no build step is required.
 - The current root-based GitHub Pages configuration does **not** publish the application from `src/` — do not assume the deployed Pages site reflects `src/` until the Pages configuration is updated.
-- Verify locally by opening `src/index.html` in a browser before pushing; after structural changes also re-check the console for errors.
+- Preserve direct `file://` compatibility in source paths and load order. Codex browser security blocks local `file://` navigation, so use the localhost procedure below for browser QA. Do not change browser security settings.
+
+## Browser QA on this Windows host
+
+Use this exact local preview; do not search for a development server or try a remote installer. `scripts/serve-local.cjs` serves only `src/` on `127.0.0.1:8000` with Node's built-in modules. It is a testing helper, not an application runtime dependency.
+
+1. Set the shell working directory to `E:\Geneograph\Concept\geneograph-prototype` and confirm `Get-Location` resolves there. Inspect `git status --short` before editing.
+2. Check `http://127.0.0.1:8000/index.html`. If it responds with HTTP 200, reuse the running server. Otherwise start it in PowerShell:
+
+   ```powershell
+   Set-Location 'E:\Geneograph\Concept\geneograph-prototype'
+   $geneoNode = 'C:\Users\Nick-PC\AppData\Local\Author Software\nvm\installs\v26.10.0\node.exe'
+   $geneoScript = (Resolve-Path '.\scripts\serve-local.cjs').Path
+   Start-Process -FilePath $geneoNode -ArgumentList @($geneoScript) -WorkingDirectory (Get-Location).Path -WindowStyle Hidden -PassThru | Select-Object -ExpandProperty Id
+   (Invoke-WebRequest 'http://127.0.0.1:8000/index.html' -UseBasicParsing -TimeoutSec 5).StatusCode
+   ```
+
+   The final command must return `200`. Keep the printed process ID; the server can stay running for subsequent browser checks. Stop it with `Stop-Process -Id <printed-id>` when no longer needed. The `node` shim on this host may report no active version, so use the exact executable path above.
+3. Open `http://127.0.0.1:8000/index.html` in the Codex browser. Check the affected workflow at desktop and phone widths in English and Russian as relevant; inspect console errors and failed resources. Reload after source edits. Report the exact browser or server error if access fails—never assume visual QA passed.
+4. Use `file://` only for a separate manual compatibility check when available outside the restricted Codex browser. Do not add fetch-based runtime dependencies or change relative paths merely because localhost allows them.
 
 ## License
 
