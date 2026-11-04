@@ -33,8 +33,8 @@
 .membership-picker .album-picker-browse { display:grid; grid-template-rows:auto minmax(0,1fr); gap:16px; flex:1; min-height:0; }
 .membership-picker [hidden] { display:none!important; }
 .membership-picker .album-picker-results-panel { display:flex; flex-direction:column; min-height:0; overflow:hidden; }
-.membership-picker .album-picker-results { flex:1; min-height:0; max-height:none; height:auto; overflow:auto; border:0; border-radius:0; background:transparent; }
-.membership-picker-toolbar { display:flex; align-items:center; gap:8px; min-width:0; }
+.membership-picker .album-picker-results { flex:1; min-height:0; max-height:none; height:auto; overflow:auto; scrollbar-gutter:stable; border:0; border-radius:0; background:transparent; }
+.membership-picker-toolbar { display:flex; align-items:center; gap:8px; min-width:0; overflow:hidden; scrollbar-gutter:stable; }
 .membership-picker-toolbar .album-picker-search { flex:1; min-width:0; display:block; }
 .membership-picker .album-picker-new-button { width:auto; flex:0 0 auto; }
 .membership-picker-toolbar .search-input { width:100%; max-width:none; min-width:0; height:44px; min-height:44px; border-radius:var(--radius-sm); background:var(--surface-input); }
