@@ -263,6 +263,21 @@
     width:100%;
 }
 
+.resource-picker[data-resource-picker=photos] .rp-filter-panel { width:min(680px, calc(100% - 48px)); }
+.rp-photo-filters { display:grid; grid-template-columns:minmax(0,1fr); gap:14px; min-width:0; }
+.rp-photo-filters .rp-filter-checkbox { display:flex; align-items:center; gap:10px; cursor:pointer; }
+.rp-photo-filters .rp-filter-checkbox input { width:18px; height:18px; flex:none; accent-color:var(--brand-green-500); }
+.rp-photo-person-field { display:grid; gap:7px; min-width:0; }
+.rp-photo-person-combobox { position:relative; min-width:0; }
+.rp-photo-person-combobox input { width:100%; min-width:0; }
+.rp-photo-person-options { max-height:210px; margin-top:4px; overflow:auto; border:1px solid var(--border-strong); border-radius:var(--radius-sm); background:var(--surface-card); }
+.rp-photo-person-options [role=option] { padding:9px 12px; cursor:pointer; }
+.rp-photo-person-options [role=option]:hover,.rp-photo-person-options [role=option][aria-selected=true] { background:var(--surface-card-hover); }
+.rp-photo-person-options [role=option][hidden] { display:none; }
+@media (max-width:600px) {
+    .resource-picker[data-resource-picker=photos] .rp-filter-panel { width:calc(100% - 24px); }
+}
+
 .rp-filter-panel .rp-filters input:not([type=checkbox]),.rp-filter-panel select
 {
     width:100%;
@@ -473,6 +488,12 @@
     min-width:0
 }
 
+.resource-picker[data-resource-picker=photos] .rp-toolbar
+{
+    overflow-y:hidden;
+    scrollbar-gutter:stable
+}
+
 .rp-toolbar .button
 {
     white-space:nowrap;
@@ -634,6 +655,11 @@
     flex-direction:column
 }
 
+.resource-picker[data-resource-picker=photos] .rp-content
+{
+    scrollbar-gutter:stable
+}
+
 .rp-results
 {
     display:flex;
@@ -723,7 +749,7 @@
 .rp-photo-grid
 {
     display:grid;
-    grid-template-columns:repeat(3,minmax(0,1fr));
+    grid-template-columns:repeat(4,minmax(0,1fr));
     gap:16px
 }
 
@@ -745,6 +771,11 @@
     gap:0;
     padding:0
 }
+
+.rp-photo-grid button.rp-record-select { width:100%; border:0; background:transparent; color:inherit; text-align:left; font:inherit; }
+.rp-photo-grid .rp-selection-mark { position:absolute; z-index:3; top:10px; left:10px; width:22px; height:22px; display:grid; place-items:center; border:1px solid var(--brand-green-500); border-radius:4px; background:var(--brand-green-500); color:var(--surface-main); opacity:0; }
+.rp-photo-grid .rp-record.is-selected .rp-selection-mark { opacity:1; }
+.rp-photo-grid .rp-selection-mark svg { width:16px; height:16px; }
 
 .rp-photo-grid .rp-thumbnail
 {
@@ -1217,6 +1248,11 @@
 
 @media(max-width:900px)
 {
+    .rp-photo-grid
+    {
+        grid-template-columns:repeat(3,minmax(0,1fr))
+    }
+
     .rp-toolbar
     {
         flex-wrap:wrap

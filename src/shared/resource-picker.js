@@ -205,6 +205,91 @@ function rpEnhanceSortControl(root, selector)
     return sortTrigger;
 }
 
+function rpPhotoFilterFieldsMarkup(projectId, filters = {}, { tagged = false } = {})
+{
+    const people = (sampleData.people || []).filter(person => person.projectId === projectId && !person.deleted)
+        .map(person => ({ id: person.id, name: personResourceDisplayName(person) }))
+        .sort((a, b) => a.name.localeCompare(b.name, state.language === 'ru' ? 'ru' : 'en', { numeric: true }));
+    const selected = people.find(person => person.id === filters.person);
+    return `<div class="rp-photo-filters">
+        <label class="rp-filter-checkbox"><input type="checkbox" data-photo-filter-favorite ${filters.favorite ? 'checked' : ''}>${escapeHtml(rpText('Favorites only', 'Только избранное'))}</label>
+        ${tagged ? `<label class="rp-filter-checkbox"><input type="checkbox" data-photo-filter-tagged ${filters.tagged ? 'checked' : ''}>${escapeHtml(rpText('Tagged with this person', 'Связанные с этим человеком'))}</label>` : ''}
+        <div class="field rp-photo-person-field"><label for="rpPhotoPersonFilter">${escapeHtml(rpText('Person', 'Человек'))}</label>
+          <div class="rp-photo-person-combobox" data-photo-person-combobox>
+            <input id="rpPhotoPersonFilter" class="input" type="text" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="rpPhotoPersonOptions" autocomplete="off" data-photo-person-search
+              placeholder="${escapeHtml(rpText('Search people', 'Поиск людей'))}" value="${escapeHtml(selected?.name || '')}">
+            <div id="rpPhotoPersonOptions" class="rp-photo-person-options" role="listbox" hidden>
+              <div role="option" data-photo-person-option="" tabindex="-1">${escapeHtml(rpText('All people', 'Все люди'))}</div>
+              ${people.map(person => `<div role="option" data-photo-person-option="${escapeHtml(person.id)}" tabindex="-1">${escapeHtml(person.name)}</div>`).join('')}
+            </div>
+          </div>
+        </div>
+      </div>`;
+}
+
+function rpBindPhotoFilterFields(root, filters, onChange)
+{
+    if (!root) return;
+    const input = root.querySelector('[data-photo-person-search]');
+    const list = root.querySelector('[data-photo-person-combobox] [role=listbox]');
+    const options = [...(list?.querySelectorAll('[data-photo-person-option]') || [])];
+    let active = -1;
+    const visible = () => options.filter(option => !option.hidden);
+    const close = () => { if (list) list.hidden = true; input?.setAttribute('aria-expanded', 'false'); input?.removeAttribute('aria-activedescendant'); active = -1; };
+    const show = (query = '') =>
+    {
+        const normalized = query.trim().toLocaleLowerCase(state.language === 'ru' ? 'ru' : 'en');
+        options.forEach(option => { option.hidden = Boolean(option.dataset.photoPersonOption) && !option.textContent.toLocaleLowerCase(state.language === 'ru' ? 'ru' : 'en').includes(normalized); });
+        list.hidden = false;
+        input.setAttribute('aria-expanded', 'true');
+        active = -1;
+    };
+    const choose = option =>
+    {
+        filters.person = option.dataset.photoPersonOption;
+        if (filters.person) filters.tagged = false;
+        const tagged = root.querySelector('[data-photo-filter-tagged]');
+        if (tagged) tagged.checked = Boolean(filters.tagged);
+        input.value = filters.person ? option.textContent : '';
+        close();
+        onChange({ ...filters });
+        input.focus();
+    };
+    input?.addEventListener('focus', () => show(filters.person ? '' : input.value));
+    input?.addEventListener('input', () =>
+    {
+        if (filters.person) { filters.person = ''; onChange({ ...filters }); }
+        show(input.value);
+    });
+    input?.addEventListener('keydown', event =>
+    {
+        if (event.key === 'Escape' && !list.hidden) { event.stopPropagation(); close(); return; }
+        if (event.key === 'ArrowDown' || event.key === 'ArrowUp')
+        {
+            event.preventDefault();
+            if (list.hidden) show(input.value);
+            const shown = visible();
+            if (!shown.length) return;
+            active = (active + (event.key === 'ArrowDown' ? 1 : -1) + shown.length) % shown.length;
+            shown.forEach(option => option.setAttribute('aria-selected', String(option === shown[active])));
+            shown[active].id ||= `rpPhotoPersonOption${options.indexOf(shown[active])}`;
+            input.setAttribute('aria-activedescendant', shown[active].id);
+            shown[active].scrollIntoView({ block: 'nearest' });
+        }
+        if (event.key === 'Enter' && !list.hidden && active >= 0) { event.preventDefault(); choose(visible()[active]); }
+    });
+    list?.addEventListener('pointerdown', event => { if (event.target.closest('[data-photo-person-option]')) event.preventDefault(); });
+    list?.addEventListener('click', event => { const option = event.target.closest('[data-photo-person-option]'); if (option) choose(option); });
+    root.addEventListener('focusout', event => { if (!root.contains(event.relatedTarget)) close(); });
+    root.querySelector('[data-photo-filter-favorite]')?.addEventListener('change', event => { filters.favorite = event.target.checked; onChange({ ...filters }); });
+    root.querySelector('[data-photo-filter-tagged]')?.addEventListener('change', event =>
+    {
+        filters.tagged = event.target.checked;
+        if (filters.tagged) { filters.person = ''; input.value = ''; close(); }
+        onChange({ ...filters });
+    });
+}
+
 function openResourcePicker(adapter, options = {})
 {
     const esc = escapeHtml;
@@ -394,7 +479,7 @@ function openResourcePicker(adapter, options = {})
         panel.className = 'rp-filter-panel';
         panel.setAttribute('role', 'dialog');
         panel.setAttribute('aria-label', rpText('Filters', 'Фильтры'));
-        panel.innerHTML = `<h3>${rpText('Filters', 'Фильтры')}</h3><div class="rp-filters">${(adapter.filters?.(session) || []).map(field =>
+        panel.innerHTML = `<h3>${rpText('Filters', 'Фильтры')}</h3><div class="rp-filters">${adapter.kind === 'photos' ? rpPhotoFilterFieldsMarkup(session.projectId, session.filters) : (adapter.filters?.(session) || []).map(field =>
             `<label class="field ${field.type === 'checkbox' ? 'rp-filter-checkbox' : ''}">${field.type === 'checkbox'
                 ? `<input type="checkbox" data-rp-filter="${esc(field.key)}" ${session.filters[field.key] ? 'checked' : ''}>${esc(field.label)}`
                 : `<span>${esc(field.label)}</span>${field.type === 'select'
@@ -402,11 +487,13 @@ function openResourcePicker(adapter, options = {})
                     : `<input class="input" type="date" data-rp-filter="${esc(field.key)}" value="${esc(session.filters[field.key] || '')}">`}`}</label>`).join('')}</div>
             <p class="rp-filter-error" role="alert" hidden></p><div class="rp-filter-actions"><button type="button" class="button secondary" data-rp-action="reset-filters">${rpText('Clear filters', 'Сбросить фильтры')}</button><button type="button" class="button secondary" data-rp-action="close-filters">${rpText('Done', 'Готово')}</button></div>`;
         root.append(panel);
+        if (adapter.kind === 'photos') rpBindPhotoFilterFields(panel.querySelector('.rp-photo-filters'), { ...session.filters }, values => { session.filters = values; session.render(); });
         const trigger = root.querySelector('[data-rp-action="filters"]');
         const bounds = root.getBoundingClientRect();
         const target = trigger.getBoundingClientRect();
         panel.style.top = `${target.bottom - bounds.top + 8}px`;
-        panel.style.right = `${Math.max(12, Math.min(bounds.width - 340, bounds.right - target.right))}px`;
+        panel.style.right = adapter.kind === 'photos' ? (bounds.width <= 600 ? '12px' : '24px')
+            : `${Math.max(12, Math.min(bounds.width - 340, bounds.right - target.right))}px`;
         panel.style.maxHeight = `${Math.max(180, bounds.bottom - target.bottom - 100)}px`;
         trigger.setAttribute('aria-expanded', 'true');
         panel.querySelector('input,select,button')?.focus({ preventScroll: true });
@@ -460,7 +547,8 @@ function openResourcePicker(adapter, options = {})
         }
         else if (session.view === 'filters')
         {
-            content.innerHTML = `<div class="rp-filters">${(adapter.filters?.(session) || []).map(field => `<label>${field.type === 'checkbox' ? `<input type="checkbox" data-rp-filter="${esc(field.key)}" ${session.filters[field.key] ? 'checked' : ''}>${esc(field.label)}` : `<span>${esc(field.label)}</span>${field.type === 'select' ? `<select data-rp-filter="${esc(field.key)}">${field.options.map(option => `<option value="${esc(option.value)}" ${String(session.filters[field.key] || '') === String(option.value) ? 'selected' : ''}>${esc(option.label)}</option>`).join('')}</select>` : `<input type="date" data-rp-filter="${esc(field.key)}" value="${esc(session.filters[field.key] || '')}">`}`}</label>`).join('')}<button type="button" class="button secondary" data-rp-action="clear-filters">${rpText('Clear filters', 'Сбросить фильтры')}</button><button type="button" class="button primary" data-rp-action="results">${rpText('Show results', 'Показать результаты')}</button></div>`;
+            content.innerHTML = `<div class="rp-filters">${adapter.kind === 'photos' ? rpPhotoFilterFieldsMarkup(session.projectId, session.filters) : (adapter.filters?.(session) || []).map(field => `<label>${field.type === 'checkbox' ? `<input type="checkbox" data-rp-filter="${esc(field.key)}" ${session.filters[field.key] ? 'checked' : ''}>${esc(field.label)}` : `<span>${esc(field.label)}</span>${field.type === 'select' ? `<select data-rp-filter="${esc(field.key)}">${field.options.map(option => `<option value="${esc(option.value)}" ${String(session.filters[field.key] || '') === String(option.value) ? 'selected' : ''}>${esc(option.label)}</option>`).join('')}</select>` : `<input type="date" data-rp-filter="${esc(field.key)}" value="${esc(session.filters[field.key] || '')}">`}`}</label>`).join('')}<button type="button" class="button secondary" data-rp-action="clear-filters">${rpText('Clear filters', 'Сбросить фильтры')}</button><button type="button" class="button primary" data-rp-action="results">${rpText('Show results', 'Показать результаты')}</button></div>`;
+            if (adapter.kind === 'photos') rpBindPhotoFilterFields(content.querySelector('.rp-photo-filters'), { ...session.filters }, values => { session.filters = values; session.render(); });
         }
         else if (session.view === 'preview')
         {

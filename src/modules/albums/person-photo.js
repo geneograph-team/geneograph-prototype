@@ -13,6 +13,8 @@ function resetPersonPhotoPickerState()
         step: 'choose',
         sourceTab: 'project',
         projectScope: 'tagged',
+        filters: { favorite: false, person: '', tagged: true },
+        sort: 'name',
         search: '',
         selectedPhotoId: null,
         initialPhotoId: null,
@@ -84,29 +86,21 @@ function personPhotoPickerProjectPhotos()
             .trim()
             .toLowerCase();
 
+    const filters = state.personPhotoPicker.filters || {};
     return getProjectPhotos(
         person.projectId
     ).filter(photo =>
     {
-        if (
-            state.personPhotoPicker
-                .projectScope === 'tagged'
-          && !photoIsTaggedWithPerson(
-              photo,
-              person
-          )
-        )
-        {
-            return false;
-        }
-
-        return (
-            !query
-          || photoSearchText(
-              photo
-          ).includes(query)
-        );
-    });
+        if (photo.id === person.primaryPhotoId) return true;
+        return (!filters.tagged || photoIsTaggedWithPerson(photo, person))
+            && (!filters.favorite || photo.favorite)
+            && (!filters.person || getPhotoPeople(photo).some(linked => linked.id === filters.person))
+            && (!query || photoSearchText(photo).includes(query));
+    }).sort((a, b) => state.personPhotoPicker.sort === 'updated'
+        ? String(b.updatedAt || '').localeCompare(String(a.updatedAt || ''))
+        : state.personPhotoPicker.sort === 'date'
+            ? String(formatPhotoDate(b)).localeCompare(String(formatPhotoDate(a)))
+            : (a.title || a.filename || '').localeCompare(b.title || b.filename || '', state.language === 'ru' ? 'ru' : 'en'));
 }
 
 function personPhotoPickerHasSource()
@@ -123,17 +117,14 @@ function renderPersonPhotoCandidate(photo, person)
             photo,
             person
         );
-    return `<button class="person-photo-candidate" type="button" data-person-photo-candidate="${escapeHtml(photo.id)}" aria-pressed="${selected}">
-        <span class="person-photo-candidate-preview">
-          ${renderPhotoThumbnail(photo, { label: photo.title || photo.filename })}
-          ${current ? '<span class="person-photo-current-badge">Current photo</span>' : ''}
-          ${tagged ? '' : '<span class="person-photo-untagged-badge">Not tagged</span>'}
-        </span>
-        <span class="person-photo-candidate-copy">
-          <strong>${escapeHtml(photo.title || photo.filename)}</strong>
-          <span>${escapeHtml(formatPhotoDate(photo) || 'Unknown date')}</span>
-        </span>
-      </button>`;
+    const title = photo.title || photo.filename || 'Photo';
+    return `<article class="rp-record ${selected ? 'is-selected' : ''}"><button class="rp-record-select" type="button" data-person-photo-candidate="${escapeHtml(photo.id)}" aria-pressed="${selected}" aria-label="${escapeHtml(title)}">
+        <span class="rp-thumbnail">${renderPhotoThumbnail(photo, { label: title })}</span>
+        <span class="rp-record-copy"><strong title="${escapeHtml(title)}">${escapeHtml(title)}</strong>
+          ${current ? `<small>${escapeHtml(t('Current photo'))}</small>` : ''}
+          ${tagged ? '' : `<small>${escapeHtml(t('Not tagged'))}</small>`}</span>
+        <span class="rp-selection-mark" aria-hidden="true">${icon.check}</span>
+      </button></article>`;
 }
 
 function renderPersonPhotoProjectResults()
@@ -159,10 +150,10 @@ function renderPersonPhotoProjectResults()
     if (!photos.length)
     {
         const hasSearch = Boolean(state.personPhotoPicker.search.trim());
-        const taggedScope = state.personPhotoPicker.projectScope === 'tagged';
+        const taggedScope = Boolean(state.personPhotoPicker.filters?.tagged);
         const message = hasSearch
             ? 'No matching project photos.'
-            : `No photos are tagged with ${person.names?.display || 'this person'}.`;
+            : taggedScope ? `No photos are tagged with ${person.names?.display || 'this person'}.` : 'No matching project photos.';
         return `<div class="person-photo-empty"><div>
           <strong>${escapeHtml(message)}</strong>
           <div class="person-photo-empty-actions">
@@ -174,7 +165,7 @@ function renderPersonPhotoProjectResults()
     }
 
     return `${selectedIsUntagged ? `<div class="person-photo-picker-notice">${escapeHtml(person.names?.display || 'This person')} will also be tagged in this photo.</div>` : ''}
-        <div class="person-photo-candidate-grid">${photos.map(photo => renderPersonPhotoCandidate(photo, person)).join('')}</div>`;
+        <div class="rp-results rp-photo-grid">${photos.map(photo => renderPersonPhotoCandidate(photo, person)).join('')}</div>`;
 }
 
 function renderPersonPhotoProjectPanel()
@@ -237,7 +228,7 @@ function renderPersonPhotoUploadPanel()
 {
     const draftPhoto = personPhotoUploadDraftAsPhoto();
     const maxMegabytes = Math.round(PHOTO_UPLOAD_MAX_BYTES / (1024 * 1024));
-    return `<div class="person-photo-upload-dropzone" data-person-photo-dropzone>
+    return `<div class="person-photo-upload-dropzone upload-dropzone" data-person-photo-dropzone>
         <input type="file" accept="${PHOTO_UPLOAD_ALLOWED_TYPES.join(',')}" data-person-photo-file hidden>
         ${draftPhoto ? `<div class="person-photo-upload-preview">
           <div class="person-photo-upload-thumb">${renderPhotoThumbnail(draftPhoto, { label: draftPhoto.filename })}</div>
@@ -475,6 +466,93 @@ function renderPersonPhotoAdjustStage()
       </div>`;
 }
 
+function renderPersonPhotoSharedChooseModal(person)
+{
+    const picker = state.personPhotoPicker;
+    const upload = picker.sourceTab === 'upload';
+    const filters = picker.filters || { favorite: false, person: '', tagged: true };
+    openModal(`<section class="modal resource-picker person-photo-shared-modal ${upload ? `rp-upload-staging ${picker.uploadDraft ? 'has-items' : ''}` : ''}"
+      data-resource-picker="photos" data-person-photo-picker role="dialog" aria-modal="true" aria-labelledby="personPhotoPickerTitle">
+      <header class="modal-header"><div><h2 id="personPhotoPickerTitle">${escapeHtml(t('Change photo for {name}').replace('{name}', person.names?.display || 'Person'))}</h2>
+        <p>${escapeHtml(t('This photo will appear in Family Tree, People, and Profile.'))}</p></div>
+        <button class="close-button" type="button" data-close aria-label="${escapeHtml(t('Close'))}">${icon.close}</button></header>
+      <div class="rp-toolbar">
+        <button class="button secondary" type="button" data-person-photo-tab="project">${icon.folder}<span>${escapeHtml(rpText('Browse', 'Обзор'))}</span></button>
+        <label class="app-search-field rp-search">${icon.search}<input type="search" data-person-photo-search value="${escapeHtml(picker.search)}" aria-label="${escapeHtml(t('Search'))}" placeholder="${escapeHtml(t('Search'))}"></label>
+        <button class="icon-button ${filters.tagged ? 'is-active' : ''}" type="button" data-person-photo-filter-button aria-label="${escapeHtml(t('Filters'))}" aria-expanded="false" aria-pressed="${Boolean(filters.tagged)}" title="${escapeHtml(t('Filters'))}">${icon.filter}</button>
+        <div class="rp-sort">${icon.sortLines}<select data-person-photo-sort aria-label="${escapeHtml(rpText('Sort', 'Сортировка'))}">
+          <option value="name" ${picker.sort === 'name' ? 'selected' : ''}>${escapeHtml(t('Name'))}</option>
+          <option value="updated" ${picker.sort === 'updated' ? 'selected' : ''}>${escapeHtml(t('Recently updated'))}</option>
+          <option value="date" ${picker.sort === 'date' ? 'selected' : ''}>${escapeHtml(rpText('Photo date', 'Дата фотографии'))}</option>
+        </select><span class="rp-sort-chevron" aria-hidden="true">${icon.chevron}</span></div>
+        <button class="button secondary rp-create" type="button" data-person-photo-show-upload>${icon.plus}<span>${escapeHtml(rpText('Upload photos', 'Загрузить фотографии'))}</span></button>
+      </div>
+      <nav class="rp-path" aria-label="${escapeHtml(t('Location'))}"><span class="rp-path-icon" aria-hidden="true">${icon.folder}</span><span aria-current="page">${escapeHtml(upload ? rpText('Upload photos', 'Загрузить фотографии') : rpText('All photos', 'Все фотографии'))}</span></nav>
+      <div class="rp-content" tabindex="-1">${upload ? renderPersonPhotoUploadPanel() : `<div data-person-photo-project-results>${renderPersonPhotoProjectResults()}</div>`}</div>
+      <footer class="modal-footer"><div>${person.primaryPhotoId ? `<button class="button secondary" type="button" data-person-photo-remove-current>${escapeHtml(t('Remove current photo'))}</button>` : ''}</div>
+        <div class="modal-footer-actions"><button class="button secondary" type="button" data-close>${escapeHtml(t('Cancel'))}</button>
+          <button class="button primary" type="button" data-person-photo-continue ${personPhotoPickerHasSource() ? '' : 'disabled'}>${escapeHtml(t('Continue'))}</button></div></footer>
+    </section>`);
+    rpEnhanceSortControl(modalBackdrop.querySelector('.person-photo-shared-modal'), '[data-person-photo-sort]');
+    bindPersonPhotoPickerModal();
+    const root = modalBackdrop.querySelector('.person-photo-shared-modal');
+    root.querySelector('[data-person-photo-filter-button]').addEventListener('click', () =>
+    {
+        const existing = root.querySelector('.rp-filter-panel');
+        if (existing) { existing.remove(); return; }
+        const panel = document.createElement('section');
+        panel.className = 'rp-filter-panel';
+        panel.setAttribute('role', 'dialog');
+        panel.setAttribute('aria-label', t('Filters'));
+        panel.innerHTML = `<h3>${escapeHtml(t('Filters'))}</h3>${rpPhotoFilterFieldsMarkup(person.projectId, filters, { tagged: true })}
+          <div class="rp-filter-actions"><button class="button secondary" type="button" data-person-photo-clear-filters>${escapeHtml(t('Clear filters'))}</button>
+          <button class="button secondary" type="button" data-person-photo-done-filters>${escapeHtml(t('Done'))}</button></div>`;
+        root.append(panel);
+        const trigger = root.querySelector('[data-person-photo-filter-button]');
+        const bounds = root.getBoundingClientRect();
+        const target = trigger.getBoundingClientRect();
+        panel.style.top = `${target.bottom - bounds.top + 8}px`;
+        panel.style.right = bounds.width <= 600 ? '12px' : '24px';
+        panel.style.maxHeight = `${Math.max(180, bounds.bottom - target.bottom - 100)}px`;
+        trigger.setAttribute('aria-expanded', 'true');
+        rpBindPhotoFilterFields(panel.querySelector('.rp-photo-filters'), filters, values =>
+        {
+            picker.filters = values;
+            trigger.classList.toggle('is-active', Boolean(values.tagged));
+            trigger.setAttribute('aria-pressed', String(Boolean(values.tagged)));
+            updatePersonPhotoProjectResults();
+        });
+        panel.querySelector('[data-person-photo-clear-filters]').addEventListener('click', () =>
+        {
+            picker.filters = { favorite: false, person: '', tagged: false };
+            trigger.classList.remove('is-active');
+            trigger.setAttribute('aria-pressed', 'false');
+            panel.remove();
+            trigger.setAttribute('aria-expanded', 'false');
+            updatePersonPhotoProjectResults();
+        });
+        panel.querySelector('[data-person-photo-done-filters]').addEventListener('click', () =>
+        {
+            panel.remove();
+            trigger.setAttribute('aria-expanded', 'false');
+            trigger.focus();
+        });
+        panel.addEventListener('keydown', event =>
+        {
+            if (event.key !== 'Escape') return;
+            event.stopPropagation();
+            panel.remove(); trigger.setAttribute('aria-expanded', 'false'); trigger.focus();
+        });
+        panel.querySelector('input')?.focus();
+    });
+    root.addEventListener('pointerdown', event =>
+    {
+        if (event.target.closest('.rp-filter-panel,[data-person-photo-filter-button]')) return;
+        root.querySelector('.rp-filter-panel')?.remove();
+        root.querySelector('[data-person-photo-filter-button]').setAttribute('aria-expanded', 'false');
+    });
+}
+
 function renderPersonPhotoPickerModal()
 {
     const person =
@@ -485,6 +563,12 @@ function renderPersonPhotoPickerModal()
     const adjust =
         state.personPhotoPicker.step
         === 'adjust';
+
+    if (!adjust)
+    {
+        renderPersonPhotoSharedChooseModal(person);
+        return;
+    }
 
     openModal(`
         <div
@@ -571,7 +655,10 @@ function bindPersonPhotoProjectResultActions(root = modalBackdrop)
             state.personPhotoPicker.selectedPhotoId = nextId;
             if (nextId !== state.personPhotoPicker.initialPhotoId) state.personPhotoPicker.dirty = true;
         }
-        renderPersonPhotoPickerModal();
+        updatePersonPhotoProjectResults();
+        const continueButton = modalBackdrop.querySelector('[data-person-photo-continue]');
+        if (continueButton) continueButton.disabled = !personPhotoPickerHasSource();
+        modalBackdrop.querySelector(`[data-person-photo-candidate="${CSS.escape(nextId)}"]`)?.focus({ preventScroll: true });
     }));
     root.querySelector('[data-person-photo-clear-search]')?.addEventListener('click', () =>
     {
@@ -582,6 +669,7 @@ function bindPersonPhotoProjectResultActions(root = modalBackdrop)
     {
         state.personPhotoPicker.sourceTab = 'project';
         state.personPhotoPicker.projectScope = 'all';
+        state.personPhotoPicker.filters = { favorite: false, person: '', tagged: false };
         state.personPhotoPicker.search = '';
         renderPersonPhotoPickerModal();
     }));
@@ -2702,6 +2790,11 @@ function bindPersonPhotoPickerModal()
         state.personPhotoPicker.search = event.target.value;
         updatePersonPhotoProjectResults();
     });
+    modalBackdrop.querySelector('[data-person-photo-sort]')?.addEventListener('change', event =>
+    {
+        state.personPhotoPicker.sort = event.target.value;
+        updatePersonPhotoProjectResults();
+    });
     bindPersonPhotoProjectResultActions(modalBackdrop);
     const fileInput = modalBackdrop.querySelector('[data-person-photo-file]');
     modalBackdrop.querySelector('[data-person-photo-choose-file]')?.addEventListener('click', () => fileInput?.click());
@@ -2768,13 +2861,15 @@ function openPersonPhotoPicker(personId)
     const person = getPerson(personId);
     if (!person) return;
     const projectPhotos = getProjectPhotos(person.projectId);
+    const hasTaggedPhotos = projectPhotos.some(photo => photoIsTaggedWithPerson(photo, person));
     const activePrimary = getPhoto(person.primaryPhotoId, { projectId: person.projectId });
     resetPersonPhotoPickerState();
     Object.assign(state.personPhotoPicker, {
         open: true,
         personId: person.id,
         sourceTab: projectPhotos.length ? 'project' : 'upload',
-        projectScope: 'tagged',
+        projectScope: hasTaggedPhotos ? 'tagged' : 'all',
+        filters: { favorite: false, person: '', tagged: hasTaggedPhotos },
         selectedPhotoId: activePrimary?.id || null,
         initialPhotoId: person.primaryPhotoId || null,
         region: photoPersonRegion(activePrimary, person.id)

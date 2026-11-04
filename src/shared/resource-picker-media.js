@@ -15,23 +15,6 @@
         return { key: 'favorite', label: rpText('Favorites only', 'Только избранное'), type: 'checkbox' };
     }
 
-    function rpPhotoMatchesDates(photo, values)
-    {
-        if (!values.dateFrom && !values.dateTo) return true;
-        const boundary = value =>
-        {
-            const [year, month, day] = value.split('-').map(Number);
-            return isValidGregorianDate(year, month, day) ? genealogyDayNumber(year, month, day) : NaN;
-        };
-        const from = values.dateFrom ? boundary(values.dateFrom) : -Infinity;
-        const to = values.dateTo ? boundary(values.dateTo) : Infinity;
-        if (Number.isNaN(from) || Number.isNaN(to) || from > to) return false;
-        const model = photoDateModel(photo);
-        // Circa dates have no exact bounds; use their stated partial date.
-        const bounds = genealogyDateBounds(model) || (model.state === 'known' ? genealogyPartBounds(model.first, model.calendar) : null);
-        return Boolean(bounds && bounds.min <= to && bounds.max >= from);
-    }
-
     function rpMediaAfterCommit(config, ids, result, session)
     {
         config.afterSave?.(ids, result, session);
@@ -235,19 +218,9 @@
                 ...getProjectAlbums(projectId).map(album => ({ id: `album:${album.id}`, label: album.title || album.name || rpText('Untitled album', 'Без названия') }))
             ],
             matchesScope: (photo, scopeId) => scopeId === 'all' || (scopeId === 'unfiled' ? !(photo.albumIds || []).some(id => getProjectAlbums(projectId).some(album => album.id === id)) : (photo.albumIds || []).includes(scopeId.slice(6))),
-            filters: () => [rpMediaFavoriteFilter(),
-                { key: 'person', label: rpText('Person', 'Человек'), type: 'select', options: [
-                    { value: '', label: rpText('All people', 'Все люди') },
-                    ...(sampleData.people || []).filter(person => person.projectId === projectId && !person.deleted)
-                        .map(person => ({ value: person.id, label: personResourceDisplayName(person) }))
-                        .sort((a, b) => a.label.localeCompare(b.label, state.language === 'ru' ? 'ru' : 'en', { numeric: true }))
-                ] },
-                { key: 'dateFrom', label: rpText('Date from', 'Дата с'), type: 'date' },
-                { key: 'dateTo', label: rpText('Date to', 'Дата по'), type: 'date' }
-            ],
+            filters: () => [rpMediaFavoriteFilter()],
             matchesFilters: (photo, values) => (!values.favorite || Boolean(photo.favorite))
-                && (!values.person || getPhotoPeople(photo).some(person => person.id === values.person))
-                && rpPhotoMatchesDates(photo, values),
+                && (!values.person || getPhotoPeople(photo).some(person => person.id === values.person)),
             dateValue: photo => photoDateModel(photo).sortDate || '',
             describe: photo => ({ title: adapter.name(photo), description: photo.caption || '', meta: '', imageHtml: rpMediaThumbnail(photo.src, adapter.name(photo)) }),
             preview: photo => rpMediaPreview(rpMediaThumbnail(photo.src, adapter.name(photo)), adapter.name(photo), formatPhotoDate(photo) || '')

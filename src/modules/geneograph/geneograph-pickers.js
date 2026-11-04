@@ -4024,6 +4024,7 @@ function resetGeneographImagePickerState()
         albumScopeId: '',
         imageSort: 'name',
         search: '',
+        filters: { favorite: false, person: '', tagged: false },
         selectedProjectPhotoIds: [],
         uploadDrafts: [],
         addUploadsToAlbum: false,
@@ -4413,9 +4414,9 @@ function renderGeneographImageUploadPanel()
             ? 'Choose more images'
             : 'Choose images';
 
-    if (adding || picker.mode === 'replace')
+    if (adding || replacing)
     {
-        const detail = state.language === 'ru'
+            const detail = state.language === 'ru'
             ? `JPEG, PNG или WebP, до ${maxMegabytes} МБ на файл.`
             : `JPEG, PNG, or WebP up to ${maxMegabytes} MB each.`;
         return `
@@ -4514,12 +4515,19 @@ function renderGeneographImageUploadPanel()
 function renderGeneographAddImageResults()
 {
     const picker = state.geneoImagePicker;
-    if (picker.mode === 'replace' && picker.addView === 'selected' && picker.sourceTab === 'upload') return '';
+    const single = ['replace', 'avatar'].includes(picker.mode);
+    if (single && picker.addView === 'selected' && picker.sourceTab === 'upload') return '';
     const projectId = geneoImagePickerProjectId();
     const selected = geneoImagePickerSelectedProjectIds();
     let photos = getProjectPhotos(projectId).filter(photo => !photo.deletedAt);
     if (picker.addView === 'selected') photos = photos.filter(photo => selected.has(photo.id));
     if (picker.albumScopeId) photos = photos.filter(photo => (photo.albumIds || []).includes(picker.albumScopeId));
+    const filters = picker.filters || {};
+    const boardPerson = picker.mode === 'avatar' ? getGeneographPerson(picker.personId) : null;
+    photos = photos.filter(photo => (picker.mode === 'avatar' && photo.id === boardPerson?.photoId)
+        || ((!filters.favorite || photo.favorite)
+            && (!filters.person || getPhotoPeople(photo).some(person => person.id === filters.person))
+            && (!filters.tagged || (boardPerson && photoIsTaggedWithPerson(photo, boardPerson.treePersonId || boardPerson.id)))));
     const query = picker.search.trim().toLowerCase();
     if (query) photos = photos.filter(photo => photoSearchText(photo).includes(query));
     photos.sort((a, b) => picker.imageSort === 'updated'
@@ -4531,25 +4539,27 @@ function renderGeneographAddImageResults()
     if (!photos.length)
     {
         if (picker.addView === 'selected' && picker.uploadDrafts.length) return '';
-        return `<div class="rp-empty"><p>${escapeHtml(state.language === 'ru' ? 'Фотографии не найдены.' : 'No photos found.')}</p></div>`;
+        return `<div class="rp-empty"><p>${escapeHtml(state.language === 'ru' ? 'Фотографии не найдены.' : 'No photos found.')}</p>
+          ${picker.mode === 'avatar' && filters.tagged ? `<button type="button" class="button secondary" data-geneo-image-show-all>${escapeHtml(state.language === 'ru' ? 'Показать все фотографии' : 'Show all photos')}</button>` : ''}</div>`;
     }
 
     return `<div class="rp-results rp-photo-grid">${photos.map(photo =>
     {
         const title = geneoImageRecordName(photo);
         const checked = selected.has(photo.id);
-        const meta = '';
+        const meta = picker.mode === 'avatar' && photo.id === getGeneographPerson(picker.personId)?.photoId
+            ? t('Current photo') : '';
         return `<article class="rp-record ${checked ? 'is-selected' : ''}">
-          <label class="rp-record-select">
+          ${single ? `<button type="button" class="rp-record-select" data-geneo-image-candidate="${escapeHtml(photo.id)}" aria-pressed="${checked}" aria-label="${escapeHtml(`Use ${title}`)}">` : '<label class="rp-record-select">'}
             <div class="rp-thumbnail">${renderPhotoThumbnail(photo, { label: title })}</div>
             <span class="rp-record-copy"><span class="rp-record-title"><strong title="${escapeHtml(title)}">${escapeHtml(title)}</strong></span>
               ${photo.caption ? `<span class="rp-description">${escapeHtml(photo.caption)}</span>` : ''}
               ${meta ? `<small title="${escapeHtml(meta)}">${escapeHtml(meta)}</small>` : ''}
             </span>
-            <input type="${picker.mode === 'replace' ? 'radio' : 'checkbox'}" ${picker.mode === 'replace' ? 'name="geneoReplacementPhoto"' : ''}
+            ${single ? `<span class="rp-selection-mark" data-geneo-image-candidate-check aria-hidden="true">${icon.check}</span>` : `<input type="checkbox"
               data-geneo-image-candidate="${escapeHtml(photo.id)}"
-              aria-label="${escapeHtml(`${picker.mode === 'replace' ? 'Use' : checked ? 'Deselect' : 'Select'} ${title}`)}" ${checked ? 'checked' : ''}>
-          </label>
+              aria-label="${escapeHtml(`${checked ? 'Deselect' : 'Select'} ${title}`)}" ${checked ? 'checked' : ''}>`}
+          ${single ? '</button>' : '</label>'}
         </article>`;
     }).join('')}</div>`;
 }
@@ -4558,6 +4568,9 @@ function renderGeneographAddImageModal({ focusSelector = '' } = {})
 {
     const picker = state.geneoImagePicker;
     const replacing = picker.mode === 'replace';
+    const avatarMode = picker.mode === 'avatar';
+    const single = replacing || avatarMode;
+    const boardPerson = avatarMode ? getGeneographPerson(picker.personId) : null;
     const count = geneoImagePickerPendingCount();
     const albumReady = !picker.addUploadsToAlbum || getProjectAlbums(geneoImagePickerProjectId())
         .some(album => album.id === picker.uploadAlbumId && !album.deleted);
@@ -4568,15 +4581,16 @@ function renderGeneographAddImageModal({ focusSelector = '' } = {})
 
     openModal(`<section class="modal resource-picker geneo-image-add-modal ${view === 'upload' ? `rp-upload-staging ${picker.uploadDrafts.length ? 'has-items' : ''}` : ''}" data-resource-picker="photos"
       data-geneo-image-picker role="dialog" aria-modal="true" aria-labelledby="geneoImagePickerTitle">
-      <header class="modal-header"><div><h2 id="geneoImagePickerTitle">${escapeHtml(t(replacing ? 'Replace image' : 'Add images'))}</h2>
-        <p>${escapeHtml(t(replacing ? 'Choose one project photo or upload a replacement stored locally in this board.'
+      <header class="modal-header"><div><h2 id="geneoImagePickerTitle">${avatarMode ? escapeHtml(t('Change photo for {name}').replace('{name}', geneoPersonDisplayName(boardPerson))) : escapeHtml(t(replacing ? 'Replace image' : 'Add images'))}</h2>
+        <p>${avatarMode ? escapeHtml(t('This photo will appear only on this board.')) : escapeHtml(t(replacing ? 'Choose one project photo or upload a replacement stored locally in this board.'
             : 'Select project photos, upload new images, or combine both sources in one addition.'))}</p></div>
-        <button type="button" class="close-button" data-close aria-label="${text('Close', 'Закрыть')}">${icon.close}</button>
+        <button type="button" class="close-button" ${avatarMode ? 'data-geneo-avatar-cancel' : 'data-close'} aria-label="${text('Close', 'Закрыть')}">${icon.close}</button>
       </header>
       <div class="rp-toolbar">
         <button type="button" class="button secondary" data-geneo-image-browse>${icon.folder}<span>${text('Browse', 'Обзор')}</span></button>
         <label class="app-search-field rp-search">${icon.search}<input type="search" data-geneo-image-search
           value="${escapeHtml(picker.search)}" aria-label="${text('Search', 'Поиск')}" placeholder="${text('Search', 'Поиск')}"></label>
+        <button type="button" class="icon-button ${avatarMode && picker.filters?.tagged ? 'is-active' : ''}" data-geneo-image-filters aria-label="${text('Filters', 'Фильтры')}" aria-expanded="false" aria-pressed="${Boolean(avatarMode && picker.filters?.tagged)}" title="${text('Filters', 'Фильтры')}">${icon.filter}</button>
         <div class="rp-sort">${icon.sortLines}<select data-geneo-image-sort aria-label="${text('Sort', 'Сортировка')}">
           <option value="name" ${picker.imageSort === 'name' ? 'selected' : ''}>${text('Name', 'Название')}</option>
           <option value="updated" ${picker.imageSort === 'updated' ? 'selected' : ''}>${text('Recently updated', 'Недавно изменённые')}</option>
@@ -4593,14 +4607,14 @@ function renderGeneographAddImageModal({ focusSelector = '' } = {})
             : view === 'browse' ? `<div class="rp-scopes"><button type="button" class="rp-scope" data-geneo-image-scope="">${icon.folder}<span>${text('All photos', 'Все фотографии')}</span>${icon.chevron}</button>
                 ${albums.map(album => `<button type="button" class="rp-scope" data-geneo-image-scope="${escapeHtml(album.id)}">${icon.folder}<span>${escapeHtml(album.title || album.name || '')}</span>${icon.chevron}</button>`).join('')}</div>`
             : `<div data-geneo-image-project-results>${renderGeneographAddImageResults()}</div>
-                ${view === 'selected' && picker.uploadDrafts.length && (!replacing || picker.sourceTab === 'upload') ? `<section class="geneo-image-selected-uploads">
+                ${view === 'selected' && picker.uploadDrafts.length && (!single || picker.sourceTab === 'upload') ? `<section class="geneo-image-selected-uploads">
                   <h3>${text('Uploaded images', 'Загруженные изображения')}</h3>
                   <div class="rp-upload-tiles">${picker.uploadDrafts.map(renderGeneographImageUploadDraft).join('')}</div>
                 </section>` : ''}`}
       </div>
       <footer class="modal-footer">
-        <button type="button" class="rp-selected" data-geneo-image-selected ${count ? '' : 'disabled'}>${text('Selected', 'Выбрано')} (${count}) ${icon.chevron}</button>
-        <div class="rp-footer-actions"><button type="button" class="button secondary" data-close>${escapeHtml(t('Cancel'))}</button>
+        <div class="rp-footer-left">${avatarMode && (boardPerson?.photoId || boardPerson?.photoAssetId) ? `<button type="button" class="button secondary" data-geneo-avatar-remove>${escapeHtml(t('Remove current photo'))}</button>` : `<button type="button" class="rp-selected" data-geneo-image-selected ${count ? '' : 'disabled'}>${text('Selected', 'Выбрано')} (${count}) ${icon.chevron}</button>`}</div>
+        <div class="rp-footer-actions"><button type="button" class="button secondary" ${avatarMode ? 'data-geneo-avatar-cancel' : 'data-close'}>${escapeHtml(t('Cancel'))}</button>
           <button type="button" class="button primary" data-geneo-image-confirm ${count && !picker.uploadBusy && albumReady ? '' : 'disabled'}>${escapeHtml(geneoImagePickerActionLabel(count))}</button></div>
       </footer>
     </section>`);
@@ -4616,7 +4630,7 @@ function renderGeneographImagePickerModal({
 {
     const picker = state.geneoImagePicker;
     if (!picker.open) return;
-    if (picker.mode === 'add' || picker.mode === 'replace')
+    if (picker.mode === 'add' || picker.mode === 'replace' || (picker.mode === 'avatar' && picker.step === 'choose'))
     {
         renderGeneographAddImageModal({ focusSelector });
         return;
@@ -4824,8 +4838,9 @@ function refreshGeneographImagePickerSelectionUi()
                 'aria-pressed',
                 String(selected)
             );
+            card.closest('.rp-record')?.classList.toggle('is-selected', selected);
 
-            if (card.matches('input[type="checkbox"], input[type="radio"]'))
+            if (card.matches('input[type="checkbox"]'))
             {
                 card.checked = selected;
                 card.closest('.rp-record')?.classList.toggle('is-selected', selected);
@@ -4963,11 +4978,11 @@ function bindGeneographImageProjectResultActions(
             button.addEventListener('click', () =>
             {
                 state.geneoImagePicker.sourceTab = 'upload';
-                if (state.geneoImagePicker.mode !== 'avatar') state.geneoImagePicker.addView = 'upload';
+                state.geneoImagePicker.addView = 'upload';
 
                 renderGeneographImagePickerModal({
                     focusSelector:
-                state.geneoImagePicker.mode !== 'avatar' ? '[data-geneo-image-dropzone]' : '[data-geneo-image-choose-file]'
+                '[data-geneo-image-dropzone]'
                 });
             });
         });
@@ -4981,7 +4996,7 @@ function updateGeneographImageProjectResults()
 
     if (!host) return;
 
-    host.innerHTML = state.geneoImagePicker.mode === 'add'
+    host.innerHTML = ['add', 'replace', 'avatar'].includes(state.geneoImagePicker.mode)
         ? renderGeneographAddImageResults()
         : renderGeneographImageProjectResults();
     bindGeneographImageProjectResultActions(host);
@@ -5106,8 +5121,7 @@ async function processGeneographImageUploads(fileList)
     picker.uploadBusy = false;
 
     renderGeneographImagePickerModal({
-        focusSelector:
-          picker.mode !== 'avatar' ? '[data-geneo-image-dropzone]' : '[data-geneo-image-choose-file]'
+        focusSelector: '[data-geneo-image-dropzone]'
     });
 }
 
@@ -5498,7 +5512,7 @@ function bindGeneographImagePickerModal()
             state.geneoImagePicker.search =
                 event.target.value;
 
-            if (state.geneoImagePicker.mode === 'add'
+            if (['add', 'replace', 'avatar'].includes(state.geneoImagePicker.mode)
                 && !['results', 'selected'].includes(state.geneoImagePicker.addView))
             {
                 state.geneoImagePicker.addView = 'results';
@@ -5535,10 +5549,7 @@ function bindGeneographImagePickerModal()
         refreshGeneographImagePickerSelectionUi();
     });
 
-    if (state.geneoImagePicker.mode !== 'avatar')
-    {
-        bindUploadDropzoneChooser(modalBackdrop.querySelector('[data-geneo-image-dropzone]'), fileInput);
-    }
+    bindUploadDropzoneChooser(modalBackdrop.querySelector('[data-geneo-image-dropzone]'), fileInput);
 
     modalBackdrop
         .querySelector('[data-geneo-image-choose-file]')
@@ -5575,7 +5586,7 @@ function bindGeneographImagePickerModal()
 
                 renderGeneographImagePickerModal({
                     focusSelector:
-                state.geneoImagePicker.mode !== 'avatar' ? '[data-geneo-image-dropzone]' : '[data-geneo-image-choose-file]'
+                '[data-geneo-image-dropzone]'
                 });
             });
         });
@@ -5631,10 +5642,72 @@ function bindGeneographImagePickerModal()
 function bindGeneographAddImageModal()
 {
     const picker = state.geneoImagePicker;
+    const root = modalBackdrop.querySelector('.geneo-image-add-modal');
+    root?.querySelector('[data-geneo-image-project-results]')?.addEventListener('click', event =>
+    {
+        if (!event.target.closest('[data-geneo-image-show-all]')) return;
+        picker.filters = { favorite: false, person: '', tagged: false };
+        const trigger = root.querySelector('[data-geneo-image-filters]');
+        trigger.classList.remove('is-active');
+        trigger.setAttribute('aria-pressed', 'false');
+        updateGeneographImageProjectResults();
+    });
+    root?.querySelector('[data-geneo-image-filters]')?.addEventListener('click', () =>
+    {
+        const existing = root.querySelector('.rp-filter-panel');
+        if (existing) { existing.remove(); root.querySelector('[data-geneo-image-filters]').setAttribute('aria-expanded', 'false'); return; }
+        const panel = document.createElement('section');
+        panel.className = 'rp-filter-panel';
+        panel.setAttribute('role', 'dialog');
+        panel.setAttribute('aria-label', state.language === 'ru' ? 'Фильтры' : 'Filters');
+        panel.innerHTML = `<h3>${state.language === 'ru' ? 'Фильтры' : 'Filters'}</h3>${rpPhotoFilterFieldsMarkup(geneoImagePickerProjectId(), picker.filters, { tagged: picker.mode === 'avatar' })}
+          <div class="rp-filter-actions"><button class="button secondary" type="button" data-geneo-clear-filters>${state.language === 'ru' ? 'Сбросить фильтры' : 'Clear filters'}</button>
+          <button class="button secondary" type="button" data-geneo-done-filters>${state.language === 'ru' ? 'Готово' : 'Done'}</button></div>`;
+        root.append(panel);
+        const trigger = root.querySelector('[data-geneo-image-filters]');
+        const bounds = root.getBoundingClientRect();
+        const target = trigger.getBoundingClientRect();
+        panel.style.top = `${target.bottom - bounds.top + 8}px`;
+        panel.style.right = bounds.width <= 600 ? '12px' : '24px';
+        panel.style.maxHeight = `${Math.max(180, bounds.bottom - target.bottom - 100)}px`;
+        trigger.setAttribute('aria-expanded', 'true');
+        rpBindPhotoFilterFields(panel.querySelector('.rp-photo-filters'), picker.filters, values =>
+        {
+            picker.filters = values;
+            trigger.classList.toggle('is-active', Boolean(picker.mode === 'avatar' && values.tagged));
+            trigger.setAttribute('aria-pressed', String(Boolean(picker.mode === 'avatar' && values.tagged)));
+            updateGeneographImageProjectResults();
+        });
+        panel.querySelector('[data-geneo-clear-filters]').addEventListener('click', () =>
+        {
+            picker.filters = { favorite: false, person: '', tagged: false };
+            trigger.classList.remove('is-active');
+            trigger.setAttribute('aria-pressed', 'false');
+            panel.remove(); trigger.setAttribute('aria-expanded', 'false');
+            updateGeneographImageProjectResults();
+        });
+        panel.querySelector('[data-geneo-done-filters]').addEventListener('click', () =>
+        {
+            panel.remove(); trigger.setAttribute('aria-expanded', 'false'); trigger.focus();
+        });
+        panel.addEventListener('keydown', event =>
+        {
+            if (event.key !== 'Escape') return;
+            event.stopPropagation();
+            panel.remove(); trigger.setAttribute('aria-expanded', 'false'); trigger.focus();
+        });
+        panel.querySelector('input')?.focus();
+    });
+    root?.addEventListener('pointerdown', event =>
+    {
+        if (event.target.closest('.rp-filter-panel,[data-geneo-image-filters]')) return;
+        root.querySelector('.rp-filter-panel')?.remove();
+        root.querySelector('[data-geneo-image-filters]').setAttribute('aria-expanded', 'false');
+    });
     modalBackdrop.querySelector('[data-geneo-image-browse]')?.addEventListener('click', () =>
     {
         picker.addView = picker.addView === 'browse' ? 'results' : 'browse';
-        if (picker.mode === 'replace') picker.sourceTab = 'project';
+        if (['replace', 'avatar'].includes(picker.mode)) picker.sourceTab = 'project';
         renderGeneographImagePickerModal({ focusSelector: '[data-geneo-image-browse]' });
     });
     modalBackdrop.querySelector('[data-geneo-image-selected]')?.addEventListener('click', () =>
@@ -5647,7 +5720,7 @@ function bindGeneographAddImageModal()
         {
             picker.albumScopeId = button.dataset.geneoImageScope;
             picker.addView = 'results';
-            if (picker.mode === 'replace') picker.sourceTab = 'project';
+            if (['replace', 'avatar'].includes(picker.mode)) picker.sourceTab = 'project';
             renderGeneographImagePickerModal({ focusSelector: '[data-geneo-image-search]' });
         }));
     modalBackdrop.querySelector('[data-geneo-image-sort]')?.addEventListener('change', event =>
@@ -5847,7 +5920,9 @@ function openGeneographAvatarPicker(personId, { nodeId = null, location = 'card'
     Object.assign(state.geneoImagePicker, {
         open: true, mode: 'avatar', boardId: board.id, personId,
         originNodeId: nodeId, originLocation: location,
-        sourceTab: asset ? 'upload' : 'project',
+        sourceTab: 'project',
+        addView: 'results',
+        filters: { favorite: false, person: '', tagged: photos.some(photo => photoIsTaggedWithPerson(photo, person.treePersonId || person.id)) },
         selectedProjectPhotoIds: person.photoId ? [person.photoId] : [],
         uploadDrafts: asset ? [{ ...asset }] : [],
         avatarRegion: normalizeFaceRegion(person.photoRegion, FACE_REGION_MIN)
