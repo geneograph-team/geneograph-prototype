@@ -2018,8 +2018,8 @@ body.mobile-surface-open:has(.albums-shell) .menu-popover {
 
 .albums-list {
     min-width: 850px;
-    border: 0;
-    border-radius: 0;
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-sm);
 }
 
 .albums-list-row {
@@ -2049,12 +2049,26 @@ body.mobile-surface-open:has(.albums-shell) .menu-popover {
 }
 
 .albums-list-row.header {
-    min-height: 42px;
-    background: transparent;
-    color: var(--text-tertiary);
-    font-size: 11px;
-    font-weight: 900;
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    min-height: 44px;
+    border-bottom-color: var(--border-default);
+    border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+    background: var(--surface-sidebar);
+    color: var(--text-secondary);
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: .03em;
     text-transform: uppercase;
+}
+
+@media (min-width: 901px) {
+    .albums-main:has(.albums-list) .albums-header,
+    .albums-main:has(.albums-list) .albums-toolbar {
+        overflow-y: hidden;
+        scrollbar-gutter: stable;
+    }
 }
 
 .albums-list-photo-heading {
