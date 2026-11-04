@@ -252,6 +252,9 @@ function bindAlbumsCardControls(root = main)
 
 function bindAlbumsPaginationControls()
 {
+    const pageSizeSelect = main.querySelector('#albumsRowsPerPage');
+    if (pageSizeSelect) bindPageSizeControl(pageSizeSelect, main);
+
     main
         .querySelectorAll(
             '[data-albums-page]'

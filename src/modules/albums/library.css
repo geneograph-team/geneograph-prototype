@@ -303,6 +303,10 @@ body.mobile-surface-open:has(.albums-shell) .menu-popover {
     scrollbar-gutter: stable;
 }
 
+.albums-list-footer {
+    flex: 0 0 auto;
+}
+
 .albums-photo-action-menu {
     width: min(210px, calc(100vw - 24px));
     max-height: calc(100vh - 24px);
@@ -2014,9 +2018,8 @@ body.mobile-surface-open:has(.albums-shell) .menu-popover {
 
 .albums-list {
     min-width: 850px;
-    border: 1px solid var(--border-default);
-    border-radius: var(--radius-sm);
-    overflow: hidden;
+    border: 0;
+    border-radius: 0;
 }
 
 .albums-list-row {
@@ -2026,7 +2029,7 @@ body.mobile-surface-open:has(.albums-shell) .menu-popover {
         1px solid var(--border-default);
 
     background:
-        var(--surface-card);
+        transparent;
 
     display: grid;
     grid-template-columns:
@@ -2047,11 +2050,20 @@ body.mobile-surface-open:has(.albums-shell) .menu-popover {
 
 .albums-list-row.header {
     min-height: 42px;
-    background: var(--surface-card);
+    background: transparent;
     color: var(--text-tertiary);
     font-size: 11px;
     font-weight: 900;
     text-transform: uppercase;
+}
+
+.albums-list-photo-heading {
+    grid-column: 2 / span 2;
+}
+
+.albums-list-row.selected-detail {
+    box-shadow: none;
+    background: var(--surface-selected);
 }
 
 .albums-select-checkbox {

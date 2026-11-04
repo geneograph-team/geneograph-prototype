@@ -170,7 +170,7 @@ const state = {
     albumsFilters: { personId: '', placeId: '', dateRange: '', favouriteOnly: false },
     albumsViewMode: 'grid',
     albumsPage: 1,
-    albumsRowsPerPage: 25,
+    albumsRowsPerPage: 10,
     albumsGridWidth: 0,
     selectedPhotoId: 'photo-silver-portrait',
     selectedPhotoIds: [],

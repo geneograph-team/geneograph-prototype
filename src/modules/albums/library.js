@@ -298,7 +298,7 @@ function normalizeAlbumsRowsPerPage(
     return ALBUMS_ROWS_PER_PAGE_OPTIONS
         .includes(parsedValue)
         ? parsedValue
-        : 25;
+        : 10;
 }
 
 function resetAlbumsPage()
@@ -1325,7 +1325,7 @@ function renderAlbumsMainMarkup()
                     context
                 )
         }
-
+      </div>
         ${
             listPage
           && photos.length
@@ -1334,7 +1334,7 @@ function renderAlbumsMainMarkup()
                 )
                 : ''
         }
-      </div>`;
+      `;
 }
 
 function renderAlbumsSelectionBar()
@@ -1550,22 +1550,24 @@ function renderAlbumsList(photos)
 
           <span class="albums-mobile-select-all">${escapeHtml(t('Select all visible photos'))}</span>
 
-          <span>Photo</span>
-          <span>People</span>
-          <span>Date</span>
-          <span>Place</span>
+          <span class="albums-list-photo-heading" role="columnheader" aria-colspan="2">Photo</span>
+          <span role="columnheader">People</span>
+          <span role="columnheader">Date</span>
+          <span role="columnheader">Place</span>
 
           <span
             class="
               albums-list-favourite-heading
             "
+            role="columnheader"
             aria-label="Favorite"
             title="Favorite">
             ${icon.star}
           </span>
 
           <span
-            aria-hidden="true">
+            role="columnheader"
+            aria-label="Actions">
           </span>
         </div>
       `;
@@ -1683,7 +1685,7 @@ function renderAlbumsList(photos)
               <span
                 class="
                   albums-list-thumb
-                ">
+                " role="cell">
                 ${renderPhotoThumbnail(
                     photo,
                     {
@@ -1695,7 +1697,7 @@ function renderAlbumsList(photos)
               <span
                 class="
                   albums-list-title
-                ">
+                " role="cell">
                 <strong title="${escapeHtml(title)}">
                   ${escapeHtml(title)}
                 </strong>
@@ -1709,13 +1711,13 @@ function renderAlbumsList(photos)
                 </span>
               </span>
 
-              <span class="albums-list-people"><span class="albums-mobile-cell-label">${escapeHtml(t('People'))}</span><span>${escapeHtml(people)}</span></span>
+              <span class="albums-list-people" role="cell"><span class="albums-mobile-cell-label">${escapeHtml(t('People'))}</span><span>${escapeHtml(people)}</span></span>
 
-              <span class="albums-list-date"><span class="albums-mobile-cell-label">${escapeHtml(t('Date'))}</span><span>${escapeHtml(
+              <span class="albums-list-date" role="cell"><span class="albums-mobile-cell-label">${escapeHtml(t('Date'))}</span><span>${escapeHtml(
                     formatPhotoDate(photo)
                 )}</span></span>
 
-              <span class="albums-list-place"><span class="albums-mobile-cell-label">${escapeHtml(t('Place'))}</span><span>${escapeHtml(
+              <span class="albums-list-place" role="cell"><span class="albums-mobile-cell-label">${escapeHtml(t('Place'))}</span><span>${escapeHtml(
                     getPlaceDisplay(
                         photo.placeId
                     )

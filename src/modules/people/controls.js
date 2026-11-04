@@ -412,45 +412,7 @@ function bindPeopleRowActions(rows)
 function bindPeoplePaginationControls()
 {
     const pageSizeSelect = main.querySelector('#peopleRowsPerPage');
-    if (pageSizeSelect)
-    {
-        pageSizeSelect.hidden = true;
-        const trigger = document.createElement('button');
-        trigger.type = 'button';
-        trigger.className = 'people-page-size-trigger';
-        trigger.textContent = pageSizeSelect.value;
-        trigger.setAttribute('aria-label', `${t('Rows per page')}: ${pageSizeSelect.value}`);
-        trigger.setAttribute('aria-haspopup', 'menu');
-        trigger.setAttribute('aria-expanded', 'false');
-        pageSizeSelect.after(trigger);
-        trigger.addEventListener('click', event =>
-        {
-            event.preventDefault();
-            if (trigger.getAttribute('aria-expanded') === 'true') { closeMenu(); return; }
-            closeMenu();
-            const menu = document.createElement('div');
-            menu.id = 'projectMenu';
-            menu.className = 'menu-popover people-page-size-menu';
-            menu.setAttribute('role', 'menu');
-            menu.setAttribute('aria-label', t('Rows per page'));
-            menu.innerHTML = [...pageSizeSelect.options].map(option => `<button type="button" role="menuitemradio" aria-checked="${option.selected}" data-page-size="${option.value}"><span>${option.value}</span>${option.selected ? icon.check : ''}</button>`).join('');
-            document.body.append(menu);
-            const rect = trigger.getBoundingClientRect();
-            menu.style.left = `${Math.max(12, Math.min(rect.left, innerWidth - menu.offsetWidth - 12))}px`;
-            menu.style.top = `${Math.max(12, rect.top - menu.offsetHeight - 6)}px`;
-            menu.addEventListener('click', click =>
-            {
-                const option = click.target.closest('[data-page-size]');
-                if (!option) return;
-                pageSizeSelect.value = option.dataset.pageSize;
-                closeMenu();
-                pageSizeSelect.dispatchEvent(new Event('change', { bubbles: true }));
-                main.querySelector('.people-page-size-trigger')?.focus({ preventScroll: true });
-            });
-            bindMenuLifecycle(trigger);
-            menu.querySelector('[aria-checked=true]')?.focus();
-        });
-    }
+    if (pageSizeSelect) bindPageSizeControl(pageSizeSelect, main);
     main
         .querySelectorAll(
             '[data-people-page]'

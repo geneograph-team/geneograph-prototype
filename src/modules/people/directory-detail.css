@@ -133,7 +133,7 @@
         box-shadow var(--ease);
 }
 
-.people-rows-select-shell #peopleRowsPerPage[hidden] { display:none; }
+.people-rows-select-shell .people-rows-select[hidden] { display:none; }
 .people-page-size-trigger { width:100%; height:100%; background:transparent; border:0; padding:0 32px 0 12px; color:var(--text-primary); font:inherit; font-size:13px; cursor:pointer; text-align:left; }
 .people-page-size-menu { min-width:100px; }
 .people-page-size-menu button { display:flex; justify-content:space-between; align-items:center; gap:16px; }
