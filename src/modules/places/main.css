@@ -2956,15 +2956,6 @@
 }
 
 .place-coordinate-error {
-    min-height:
-        18px;
-
-    margin-top:
-        8px;
-
-    display:
-        block;
-
     color:
         var(--red);
 
@@ -2973,6 +2964,11 @@
 
     line-height:
         1.4;
+}
+
+.place-coordinate-error:not(:empty) {
+    display: block;
+    margin-top: 8px;
 }
 
 .place-delete-confirm {

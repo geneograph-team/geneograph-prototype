@@ -58,11 +58,11 @@ function rpCreateNoteForm(session, projectId)
           <form data-rp-note-form>
             <div class="modal-header"><h2 id="rpNoteCreateTitle">${label('Create note', 'Создать заметку')}</h2>
               <button type="button" class="close-button" data-close aria-label="${label('Close', 'Закрыть')}">${icon.close}</button></div>
-            <div class="modal-body form-grid" style="display:flex;flex-direction:column;min-height:0">
-              <div class="field"><label for="rpNoteTitle">${label('Title', 'Название')}</label><input class="input" id="rpNoteTitle" name="title" required maxlength="500" placeholder="Untitled note" autocomplete="off"></div>
-              <div class="field rp-note-body-field" style="display:flex;flex:1;flex-direction:column;min-height:0"><label for="rpNoteBody">${label('Note body', 'Текст заметки')}</label>
+            <div class="modal-body form-grid">
+              <div class="field"><label for="rpNoteTitle">${label('Title', 'Название')}</label><input class="input" id="rpNoteTitle" name="title" required maxlength="500" placeholder="${label('Enter note title...', 'Введите название заметки...')}" autocomplete="off"></div>
+              <div class="field rp-note-body-field"><label for="rpNoteBody">${label('Note body', 'Текст заметки')}</label>
                 ${typeof window.Quill === 'function' ? renderRichTextToolbar({ id: 'rpNoteToolbar', ariaLabel: rpText('Note formatting', 'Форматирование заметки') }) : ''}
-                <div data-rp-note-rich hidden style="flex:1;min-height:180px"></div><textarea class="input" style="flex:1" id="rpNoteBody" name="body" rows="10" placeholder="Start writing..."></textarea></div>
+                <div data-rp-note-rich hidden></div><textarea class="input" id="rpNoteBody" name="body" rows="10" placeholder="${label('Start writing...', 'Начните писать...')}"></textarea></div>
               <p data-rp-note-error role="alert" hidden></p>
             </div>
             <div class="modal-footer"><button type="button" class="button secondary" data-close>${label('Cancel', 'Отмена')}</button>
@@ -77,7 +77,7 @@ function rpCreateNoteForm(session, projectId)
         {
             const host = root.querySelector('[data-rp-note-rich]');
             host.hidden = false;
-            editor = new window.Quill(host, { theme: 'snow', placeholder: 'Start writing...', modules: { toolbar: root.querySelector('#rpNoteToolbar') } });
+            editor = new window.Quill(host, { theme: 'snow', placeholder: rpText('Start writing...', 'Начните писать...'), modules: { toolbar: root.querySelector('#rpNoteToolbar') } });
             editor.root.setAttribute('aria-label', rpText('Note body', 'Текст заметки'));
             body.hidden = true;
         }
@@ -295,14 +295,24 @@ function rpOpenPlacePicker(options = {})
         create: session =>
         {
             if (!rpRecordProjectValid(projectId)) return session.error(rpRecordUnavailable());
-            const previousSelectedPlaceId = state.selectedPlaceId;
-            session.openEditor(modalOpener => openPlaceModal(null, { modalOpener,
-                completion: { onComplete: place =>
+            const openInPlaces = () =>
+            {
+                closeModal({ force: true });
+                const navigate = () =>
                 {
-                    state.selectedPlaceId = previousSelectedPlaceId;
-                    if (place?.projectId === projectId && !place.deleted) session.selectCreated([place.id]);
-                }, onCancel: () => { state.selectedPlaceId = previousSelectedPlaceId; } }
-            }), { primaryLabel: 'Create' });
+                    if (navigateToProjectModuleCommit(projectId, 'Places')) openPlaceModal();
+                };
+                if (state.activeModule === 'Archive') runAfterArchiveFileEditGuard(navigate);
+                else navigate();
+            };
+            if (session.getChanges().decisions.length)
+            {
+                rpConfirmDiscard({ title: rpText('Discard connection changes?', 'Отменить изменения связей?'),
+                    message: rpText('Your connection changes have not been saved.', 'Изменения связей ещё не сохранены.'),
+                    notice: session.createdIds.size ? rpText('New resources will remain in the project.', 'Новые материалы останутся в проекте.') : '',
+                    onDiscard: openInPlaces });
+            }
+            else openInPlaces();
         },
         validate: () => (rpRecordProjectValid(projectId) && (context
             ? typeof context.onSave === 'function' && (!context.validate || context.validate() === true)
