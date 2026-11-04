@@ -35,7 +35,7 @@ function renderGenealogyDateField(
 
     const placeholder =
         options.placeholder
-        || 'e.g. 14 Feb 1915';
+        || 'e.g. 14 Feb 1915 or 01,01,2001';
 
     const fieldClass =
         options.className
@@ -150,7 +150,7 @@ function renderGenealogyDateField(
                             endValue
                         )
                     )}"
-                  placeholder="e.g. 14 Feb 1925">
+                  placeholder="e.g. 14 Feb 1925 or 01,01,2001">
               </div>
             </div>
 

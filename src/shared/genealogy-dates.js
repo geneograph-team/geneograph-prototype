@@ -158,7 +158,7 @@ function parseBaseGenealogyDate(text, options = {})
     }
     let match, parts;
     if ((match = raw.match(/^(\d{4})-(\d{1,2})(?:-(\d{1,2}))?$/))) parts = genealogyDateParts(match[1], match[2], match[3], options.calendar);
-    else if ((match = raw.match(/^(\d{1,2})[./-](\d{1,2})[./-](\d{3,4})$/))) parts = genealogyDateParts(match[3], match[2], match[1], options.calendar);
+    else if ((match = raw.match(/^(\d{1,2})[.,/-](\d{1,2})[.,/-](\d{3,4})$/))) parts = genealogyDateParts(match[3], match[2], match[1], options.calendar);
     else if ((match = raw.match(/^(\d{1,2})[./](\d{3,4})$/))) parts = genealogyDateParts(match[2], match[1], null, options.calendar);
     else if ((match = raw.match(/^(\d{1,2})[./](\d{1,2})$/))) parts = genealogyDateParts(null, match[2], match[1], options.calendar);
     else if ((match = raw.match(/^(?:day|день|число)\s+(\d{1,2})(?:\s+(?:year|год)\s+(\d{1,4}))?$/i))) parts = genealogyDateParts(match[2], null, match[1], options.calendar);
