@@ -488,7 +488,8 @@
     min-width:0
 }
 
-.resource-picker[data-resource-picker=photos] .rp-toolbar
+.resource-picker[data-resource-picker=photos] .rp-toolbar,
+.resource-picker[data-resource-picker=files] .rp-toolbar
 {
     overflow-y:hidden;
     scrollbar-gutter:stable
@@ -655,7 +656,8 @@
     flex-direction:column
 }
 
-.resource-picker[data-resource-picker=photos] .rp-content
+.resource-picker[data-resource-picker=photos] .rp-content,
+.resource-picker[data-resource-picker=files] .rp-content
 {
     scrollbar-gutter:stable
 }

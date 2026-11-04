@@ -412,21 +412,8 @@
         if (!projectId) return null;
         const records = () => connectedFilesForProject(projectId);
         const folders = () => (sampleData.archiveFolders || []).filter(folder => folder.projectId === projectId && !folder.deleted);
-        const folderScope = (file, scopeId, session) =>
-        {
-            if (scopeId === 'all') return true;
-            const target = scopeId === 'unfiled' ? null : scopeId.slice(7);
-            let folderId = archiveFileFolderId(file);
-            if (!String(session.query || '').trim() || target === null) return folderId === target;
-            const visited = new Set();
-            while (folderId && !visited.has(folderId))
-            {
-                if (folderId === target) return true;
-                visited.add(folderId);
-                folderId = archiveFolderParentId(folders().find(folder => folder.id === folderId) || {});
-            }
-            return false;
-        };
+        const folderScope = (file, scopeId, session) => Boolean(String(session.query || '').trim())
+            || archiveFileFolderId(file) === (scopeId === 'all' ? null : scopeId.slice(7));
         const adapter = {
             kind: 'files', projectId,
             title: options.title || 'Add files',
@@ -435,18 +422,18 @@
             existingIds: rpMediaValidIds(options.existingFileIds, records()),
             partialIds: rpMediaValidIds(options.partialIds || options.partialFileIds, records()),
             records,
-            name: file => file.title || file.name || file.filename || rpText('Untitled file', 'Без названия'),
-            searchText: file => [file.title, file.name, file.filename, file.description, file.notes, archiveFileTypeLabel(file)].join(' '),
+            name: file => localizedDataFieldValue(file.title || file.name || file.filename || rpText('Untitled file', 'Без названия')),
+            searchText: file => [file.title, file.name, file.filename, file.description, file.notes,
+                localizedDataFieldValue(file.title || file.name), localizedDataFieldValue(file.description), archiveFileTypeLabel(file)].join(' '),
             scopes: () => [
                 { id: 'all', label: rpText('All files', 'Все файлы') },
-                { id: 'unfiled', label: rpText('Unfiled', 'Без папки') },
                 ...folders().map(folder => ({ id: `folder:${folder.id}`, label: translateText(folder.name || folder.title || ''), parentId: archiveFolderParentId(folder) ? `folder:${archiveFolderParentId(folder)}` : 'all' }))
             ],
             matchesScope: folderScope,
             filters: () => [rpMediaFavoriteFilter(), { key: 'type', label: rpText('File type', 'Тип файла'), type: 'select', options: [{ value: '', label: rpText('All types', 'Все типы') }, ...[...new Set(records().map(archiveFileKind))].map(value => ({ value, label: archiveFileTypeLabel(records().find(file => archiveFileKind(file) === value)) }))] }],
             matchesFilters: (file, values) => (!values.favorite || Boolean(file.favorite)) && (!values.type || archiveFileKind(file) === values.type),
-            describe: (file, session) => ({ title: adapter.name(file), description: file.description || '',
-                meta: [connectedFileMeta(file), (session.scopeId === 'all' || session.query.trim()) && archiveFileFolderId(file) ? archiveFolderPath(archiveFileFolderId(file)) : ''].filter(Boolean).join(' · '), icon: archiveFileIcon(file) }),
+            describe: file => ({ title: adapter.name(file), description: localizedDataFieldValue(file.description || ''),
+                icon: archiveFileIcon(file) }),
             preview: rpFilePreview,
             bindPreview: rpBindFilePreview,
             validate: session => options.validate?.(session) ?? true,

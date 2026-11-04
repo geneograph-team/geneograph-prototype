@@ -316,7 +316,7 @@ function openResourcePicker(adapter, options = {})
     const button = (action, contents, label, extra = '') => `<button type="button" class="icon-button" data-rp-action="${action}" aria-label="${esc(label)}" title="${esc(label)}" ${extra}>${contents || ''}</button>`;
     (options.modalOpener || openModal)(`<section class="modal resource-picker" role="dialog" aria-modal="true" data-resource-picker="${adapter.kind}" aria-label="${esc(title)}">
         <header class="modal-header"><div><h2 tabindex="-1" data-rp-heading>${esc(title)}</h2>${adapter.subtitle ? `<p title="${esc(adapter.subtitle)}">${esc(adapter.subtitle)}</p>` : ''}</div>${button('close', icon.close, rpText('Close', 'Закрыть'))}</header>
-        <div class="rp-toolbar"><button type="button" class="button secondary" data-rp-action="browse">${icon.folder || ''}<span>${rpText('Browse', 'Обзор')}</span></button><label class="app-search-field rp-search">${icon.search}<input type="search" data-rp-search aria-label="${esc(rpText('Search', 'Поиск'))}" placeholder="${esc(rpText('Search', 'Поиск'))}"></label>${button('filters', icon.filter || icon.settings, rpText('Filters', 'Фильтры'))}<select data-rp-sort aria-label="${esc(rpText('Sort', 'Сортировка'))}"><option value="name">${rpText('Name', 'Название')}</option><option value="updated">${rpText('Recently updated', 'Недавно изменённые')}</option>${adapter.kind === 'photos' ? `<option value="date">${rpText('Photo date', 'Дата фотографии')}</option>` : ''}<option value="relevance" hidden>${rpText('Relevance', 'По совпадению')}</option></select><button type="button" class="button secondary rp-create" data-rp-action="create">${icon.plus}<span>${labels[adapter.kind][1]}</span></button></div>
+        <div class="rp-toolbar">${adapter.kind === 'files' ? '' : `<button type="button" class="button secondary" data-rp-action="browse">${icon.folder || ''}<span>${rpText('Browse', 'Обзор')}</span></button>`}<label class="app-search-field rp-search">${icon.search}<input type="search" data-rp-search aria-label="${esc(rpText('Search', 'Поиск'))}" placeholder="${esc(rpText('Search', 'Поиск'))}"></label>${button('filters', icon.filter || icon.settings, rpText('Filters', 'Фильтры'))}<select data-rp-sort aria-label="${esc(rpText('Sort', 'Сортировка'))}"><option value="name">${rpText('Name', 'Название')}</option><option value="updated">${rpText('Recently updated', 'Недавно изменённые')}</option>${adapter.kind === 'photos' ? `<option value="date">${rpText('Photo date', 'Дата фотографии')}</option>` : ''}<option value="relevance" hidden>${rpText('Relevance', 'По совпадению')}</option></select><button type="button" class="button secondary rp-create" data-rp-action="create">${icon.plus}<span>${labels[adapter.kind][1]}</span></button></div>
         <nav class="rp-path" aria-label="${esc(rpText('Location', 'Расположение'))}"></nav><div class="rp-error" role="alert" hidden></div>
         <div class="rp-content" tabindex="-1"></div>
         <footer class="modal-footer"><div class="rp-selection-summary"><button type="button" class="rp-selected" data-rp-action="selected"></button><span data-rp-changes></span></div><div class="rp-footer-actions"><button type="button" class="button secondary" data-rp-action="close">${rpText('Cancel', 'Отмена')}</button><button type="button" class="button primary" data-rp-action="save">${rpText('Save changes', 'Сохранить изменения')}</button><button type="button" class="button primary" data-rp-action="preview-transfer" hidden></button><button type="button" class="button secondary" data-rp-action="results" hidden>${rpText('Done', 'Готово')}</button></div><span class="sr-only" data-rp-live aria-live="polite"></span></footer>
@@ -359,6 +359,12 @@ function openResourcePicker(adapter, options = {})
             session.createdIds.add(String(id));
         });
         session.view = 'results';
+        if (adapter.kind === 'files')
+        {
+            session.query = '';
+            root.querySelector('[data-rp-search]').value = '';
+            session.sort = session.browseSort;
+        }
         session.scrolls.set(key(), 0);
         session.render();
         content.scrollTop = 0;
@@ -558,16 +564,29 @@ function openResourcePicker(adapter, options = {})
         }
         else
         {
-            const uploads = session.view === 'results' && ['photos', 'files'].includes(adapter.kind)
+            const uploads = session.view === 'results' && adapter.kind === 'photos'
                 ? records().filter(record => session.createdIds.has(idOf(record))) : [];
             const items = results().filter(record => !uploads.some(upload => idOf(upload) === idOf(record)));
-            const folders = adapter.kind === 'files' && !session.query.trim() && !Object.values(session.filters).some(Boolean) && session.view === 'results'
+            const folders = adapter.kind === 'files' && !session.query.trim() && session.view === 'results'
                 ? allScopes.filter(scope => scope.parentId === session.scopeId) : [];
-            const folderHtml = folders.length ? `<div class="rp-scopes">${folders.map(scope => `<button type="button" class="rp-scope" data-rp-scope="${esc(scope.id)}">${icon.folder}<span>${esc(scope.label)}</span>${icon.chevron}</button>`).join('')}</div>` : '';
+            const folderHtml = folders.length ? `<div class="rp-scopes">${folders.map(scope => `<button type="button" class="rp-scope" data-rp-scope="${esc(scope.id)}">${icon.folderyellow}<span>${esc(scope.label)}</span>${icon.chevron}</button>`).join('')}</div>` : '';
             const groupedPlaces = adapter.kind === 'places' && session.scopeId === 'all' && !session.query.trim() && session.view === 'results';
             if (groupedPlaces) items.sort((a, b) => placeCountry(a).localeCompare(placeCountry(b), state.language === 'ru' ? 'ru' : 'en'));
             const visible = items.slice(0, session.limit);
             let rows = visible.map(rowHtml).join('');
+            if (adapter.kind === 'files' && session.query.trim() && session.view === 'results')
+            {
+                const groups = new Map();
+                visible.forEach(file =>
+                {
+                    const folderId = archiveFileFolderId(file);
+                    const location = folderId ? archiveFolderPath(folderId) : allScopes[0].label;
+                    if (!groups.has(location)) groups.set(location, []);
+                    groups.get(location).push(file);
+                });
+                rows = [...groups].sort(([a], [b]) => a.localeCompare(b, state.language === 'ru' ? 'ru' : 'en'))
+                    .map(([location, files]) => `<h3 class="rp-view-heading">${esc(location)}</h3>${files.map(rowHtml).join('')}`).join('');
+            }
             if (adapter.kind === 'places' && session.scopeId === 'all' && !session.query.trim() && session.view === 'results')
             {
                 const groups = new Map();
