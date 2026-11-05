@@ -1039,7 +1039,7 @@
     padding: 12px 14px;
     display: grid;
     gap: 4px;
-    background: var(--surface-elevated);
+    background: var(--surface-card);
     border: 1px solid var(--border-default);
     border-radius: var(--radius-sm);
     box-shadow: var(--shadow-soft);
@@ -1116,7 +1116,7 @@
     padding: 0;
 
     border:
-        1px solid transparent;
+        1px solid var(--border-default);
 
     border-radius: 7px;
 
@@ -1124,7 +1124,7 @@
     place-items: center;
 
     background:
-        #202726;
+        var(--surface-card);
 
     color:
         var(--text-secondary);

@@ -1834,7 +1834,7 @@ body.mobile-surface-open:has(.albums-shell) .menu-popover {
     top: 10px;
     width: 30px;
     height: 30px;
-    border-color: rgba(255, 255, 255, .14);
+    border-color: var(--border-default);
     border-radius: var(--radius-sm);
     background: var(--surface-card);
     backdrop-filter: blur(8px);
@@ -1850,8 +1850,8 @@ body.mobile-surface-open:has(.albums-shell) .menu-popover {
 
 .albums-check:hover,
 .albums-fav-button:hover {
-    border-color: rgba(255, 255, 255, .26);
-    background: rgba(28, 35, 32, .9);
+    border-color: var(--border-strong);
+    background: var(--surface-card-hover);
     color: var(--text-primary);
 }
 
