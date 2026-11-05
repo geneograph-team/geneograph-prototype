@@ -2969,8 +2969,8 @@ function geneoAppearance(value, defaults = {}, nodeType = '')
     }
     result.strokePattern = legacyStrokeType && legacyStrokeType !== 'none'
         ? legacyStrokeType
-        : source.strokePattern === 'dashed'
-            ? 'dashed'
+        : ['solid', 'dashed'].includes(source.strokePattern)
+            ? source.strokePattern
             : defaultPattern;
     result.strokeWidth = Math.round(geneoNumber(
         source.strokeWidth,
