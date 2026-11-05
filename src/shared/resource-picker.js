@@ -489,9 +489,9 @@ function openResourcePicker(adapter, options = {})
             `<label class="field ${field.type === 'checkbox' ? 'rp-filter-checkbox' : ''}">${field.type === 'checkbox'
                 ? `<input type="checkbox" data-rp-filter="${esc(field.key)}" ${session.filters[field.key] ? 'checked' : ''}>${esc(field.label)}`
                 : `<span>${esc(field.label)}</span>${field.type === 'select'
-                    ? `<select class="input" data-rp-filter="${esc(field.key)}">${field.options.map(option => `<option value="${esc(option.value)}" ${String(session.filters[field.key] || '') === String(option.value) ? 'selected' : ''}>${esc(option.label)}</option>`).join('')}</select>`
+                    ? `<span class="common-select-shell"><select class="common-select" data-rp-filter="${esc(field.key)}">${field.options.map(option => `<option value="${esc(option.value)}" ${String(session.filters[field.key] || '') === String(option.value) ? 'selected' : ''}>${esc(option.label)}</option>`).join('')}</select><span class="common-select-chevron" aria-hidden="true">${icon.chevron}</span></span>`
                     : `<input class="input" type="date" data-rp-filter="${esc(field.key)}" value="${esc(session.filters[field.key] || '')}">`}`}</label>`).join('')}</div>
-            <p class="rp-filter-error" role="alert" hidden></p><div class="rp-filter-actions"><button type="button" class="button secondary" data-rp-action="reset-filters">${rpText('Clear filters', 'Сбросить фильтры')}</button><button type="button" class="button secondary" data-rp-action="close-filters">${rpText('Done', 'Готово')}</button></div>`;
+            <p class="rp-filter-error" role="alert" hidden></p><div class="rp-filter-actions"><button type="button" class="button secondary" data-rp-action="reset-filters">${rpText('Clear filters', 'Сбросить фильтры')}</button><button type="button" class="button primary" data-rp-action="close-filters">${rpText('Done', 'Готово')}</button></div>`;
         root.append(panel);
         if (adapter.kind === 'photos') rpBindPhotoFilterFields(panel.querySelector('.rp-photo-filters'), { ...session.filters }, values => { session.filters = values; session.render(); });
         const trigger = root.querySelector('[data-rp-action="filters"]');

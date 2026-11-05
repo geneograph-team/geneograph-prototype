@@ -5663,7 +5663,7 @@ function bindGeneographAddImageModal()
         panel.setAttribute('aria-label', state.language === 'ru' ? 'Фильтры' : 'Filters');
         panel.innerHTML = `<h3>${state.language === 'ru' ? 'Фильтры' : 'Filters'}</h3>${rpPhotoFilterFieldsMarkup(geneoImagePickerProjectId(), picker.filters, { tagged: picker.mode === 'avatar' })}
           <div class="rp-filter-actions"><button class="button secondary" type="button" data-geneo-clear-filters>${state.language === 'ru' ? 'Сбросить фильтры' : 'Clear filters'}</button>
-          <button class="button secondary" type="button" data-geneo-done-filters>${state.language === 'ru' ? 'Готово' : 'Done'}</button></div>`;
+          <button class="button primary" type="button" data-geneo-done-filters>${state.language === 'ru' ? 'Готово' : 'Done'}</button></div>`;
         root.append(panel);
         const trigger = root.querySelector('[data-geneo-image-filters]');
         const bounds = root.getBoundingClientRect();

@@ -507,7 +507,7 @@ function renderPersonPhotoSharedChooseModal(person)
         panel.setAttribute('aria-label', t('Filters'));
         panel.innerHTML = `<h3>${escapeHtml(t('Filters'))}</h3>${rpPhotoFilterFieldsMarkup(person.projectId, filters, { tagged: true })}
           <div class="rp-filter-actions"><button class="button secondary" type="button" data-person-photo-clear-filters>${escapeHtml(t('Clear filters'))}</button>
-          <button class="button secondary" type="button" data-person-photo-done-filters>${escapeHtml(t('Done'))}</button></div>`;
+          <button class="button primary" type="button" data-person-photo-done-filters>${escapeHtml(t('Done'))}</button></div>`;
         root.append(panel);
         const trigger = root.querySelector('[data-person-photo-filter-button]');
         const bounds = root.getBoundingClientRect();
