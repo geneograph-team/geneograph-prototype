@@ -313,7 +313,6 @@
 .common-select:focus,
 .add-person-select:focus {
     outline: 0;
-    border-color: var(--brand-green-500);
     color: var(--text-primary);
 }
 
@@ -344,7 +343,7 @@
 }
 
 .common-select-shell:hover .common-select-chevron,
-.common-select-shell:focus-within .common-select-chevron {
+.common-select-shell:has(select:is(:focus-visible, :open)) .common-select-chevron {
     color: var(--text-primary);
 }
 
@@ -399,7 +398,8 @@
     border-color: var(--border-strong);
 }
 
-:is(.field input, .field textarea, .field select, .common-select, .add-person-select, .compact-select, .select):focus:not(:disabled) {
+:is(.field input, .field textarea):focus:not(:disabled),
+:is(.field select, .common-select, .add-person-select, .compact-select, .select):is(:focus-visible, :open):not(:disabled) {
     outline: none;
     border-color: var(--control-field-focus-color);
 }

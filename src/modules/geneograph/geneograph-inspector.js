@@ -175,8 +175,9 @@ function renderGeneographPersonCardSelect({
             ${escapeHtml(label)}
           </label>
 
+          <span class="common-select-shell">
           <select
-            class="geneo-select"
+            class="common-select"
             id="${escapeHtml(id)}"
             data-geneo-person-card-setting="${escapeHtml(
                 key
@@ -224,6 +225,8 @@ function renderGeneographPersonCardSelect({
                 )
                 .join('')}
           </select>
+          <span class="common-select-chevron" aria-hidden="true">${icon.chevron}</span>
+          </span>
 
           ${
                 help
@@ -1268,7 +1271,7 @@ function renderGeneographMultiConnectionAppearance(connections, mixed = false)
           <div class="geneo-field"><span class="geneo-setting-label">${escapeHtml(t('Pattern'))}</span>
             <button type="button" class="geneo-connection-default-pattern" data-geneo-connection-multi-pattern
               aria-label="${escapeHtml(`${t('Pattern')}: ${pattern ? t(GENEO_CONNECTION_PATTERN_LABELS[pattern]) : t('Mixed')}`)}"
-              aria-haspopup="menu" aria-expanded="false">${pattern ? renderGeneoConnectionLineSample(pattern) : escapeHtml(t('Mixed'))}${icon.chevron}</button>
+              aria-haspopup="menu" aria-expanded="false">${pattern ? renderGeneoConnectionLineSample(pattern) : escapeHtml(t('Mixed'))}<span class="common-select-chevron" aria-hidden="true">${icon.chevron}</span></button>
           </div>
           <label class="geneo-field"><span class="geneo-setting-label">${escapeHtml(t('Width'))}</span>
             <span class="geneo-number-unit"><input class="geneo-input" type="number" min="1" max="12" step="1"
@@ -2462,14 +2465,14 @@ function renderGeneographConnectionInspector(
                       Relationship type
                     </label>
 
-                    <select
-                      class="geneo-select"
+                    <span class="common-select-shell"><select
+                      class="common-select"
                       id="geneoRelationshipType"
                       data-geneo-relationship-type>
                       ${addPersonRelationshipTypeOptions(
                             relationshipType
                         )}
-                    </select>
+                    </select><span class="common-select-chevron" aria-hidden="true">${icon.chevron}</span></span>
                   </div>
 
                   ${renderPartnerRelationshipDateFields({
@@ -2493,14 +2496,14 @@ function renderGeneographConnectionInspector(
                       Marriage type
                     </label>
 
-                    <select
-                      class="geneo-select"
+                    <span class="common-select-shell"><select
+                      class="common-select"
                       id="geneoRelationshipMarriageType"
                       data-geneo-marriage-type>
                       ${addPersonMarriageTypeOptions(
                             marriageType
                         )}
-                    </select>
+                    </select><span class="common-select-chevron" aria-hidden="true">${icon.chevron}</span></span>
                   </div>
 
                 </div>
@@ -2518,8 +2521,8 @@ function renderGeneographConnectionInspector(
             Routing
           </label>
 
-          <select
-            class="geneo-select"
+          <span class="common-select-shell"><select
+            class="common-select"
             id="geneoConnectionRouting"
             data-geneo-connection-routing>
             <option
@@ -2541,7 +2544,7 @@ function renderGeneographConnectionInspector(
                 }>
               Manual
             </option>
-          </select>
+          </select><span class="common-select-chevron" aria-hidden="true">${icon.chevron}</span></span>
         </div>
 
         <button

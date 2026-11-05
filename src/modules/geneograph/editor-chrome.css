@@ -1132,9 +1132,12 @@
 .geneo-connection-style-fields > .geneo-paint-row { grid-column: 1 / -1; }
 .geneo-connection-date-default { grid-column: 1 / -1; }
 .geneo-connection-radius-row { grid-column: 1 / -1; }
-.geneo-connection-default-pattern { display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%; min-width: 0; height: 42px; padding: 0 10px; border: 1px solid var(--border-default); border-radius: 5px; background: var(--surface-input); color: var(--text-primary); cursor: pointer; }
+.geneo-connection-default-pattern { position: relative; display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%; min-width: 0; height: var(--control-height); padding: 0 42px 0 var(--space-3); border: 1px solid var(--border-default); border-radius: var(--radius-sm); background: var(--surface-input); color: var(--text-primary); cursor: pointer; }
 .geneo-connection-default-pattern .geneo-line-sample { width: 120px; max-width: calc(100% - 22px); height: 16px; }
-.geneo-connection-default-pattern > svg:last-child { width: 13px; height: 13px; color: var(--text-secondary); transform: rotate(90deg); }
+.geneo-connection-default-pattern .common-select-chevron { right: 14px; }
+.geneo-connection-default-pattern:hover { background: var(--surface-card-hover); border-color: var(--border-strong); }
+.geneo-connection-default-pattern:is(:hover, [aria-expanded="true"]) .common-select-chevron { color: var(--text-primary); }
+.geneo-connection-default-pattern[aria-expanded="true"] .common-select-chevron svg { transform: rotate(-90deg); }
 .geneo-connection-default-pattern:focus-visible { outline: 2px solid var(--brand-green-300); outline-offset: 2px; }
 .geneo-connection-default-pattern:disabled { opacity: .55; cursor: not-allowed; }
 .geneo-connection-arrows { min-width: 0; margin: 0; padding: 0; border: 0; }

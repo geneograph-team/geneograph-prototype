@@ -1684,6 +1684,15 @@ function suppressSplitFocusAfterEscape(element)
     element?.closest?.('.tool-split')?.classList.add('escape-dismissed');
 }
 document.addEventListener('pointerdown', () => { lastInteractionWasKeyboard = false; clearDismissedSplitFocus(); }, true);
+document.addEventListener('pointerdown', event =>
+{
+    const select = event.target.closest?.('select');
+    if (!select?.matches(':open')) return;
+    setTimeout(() =>
+    {
+        if (select.isConnected && !select.matches(':open')) select.blur();
+    }, 0);
+}, true);
 document.addEventListener('keydown', event => {
     if (!event.altKey && !event.ctrlKey && !event.metaKey) lastInteractionWasKeyboard = true;
     if (event.key === 'Escape' && document.getElementById('projectMenu'))

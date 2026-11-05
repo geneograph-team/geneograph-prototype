@@ -435,8 +435,7 @@
 }
 
 .geneo-input,
-.geneo-textarea,
-.geneo-select {
+.geneo-textarea {
     width: 100%;
     border: 1px solid var(--border-default);
     background: var(--surface-input);
@@ -445,6 +444,13 @@
     min-height: 36px;
     padding: 8px 10px;
     outline: 0;
+    font: inherit;
+    font-size: 14px;
+}
+
+.geneo-inspector .common-select {
+    font: inherit;
+    font-size: 14px;
 }
 
 .geneo-textarea {
@@ -485,6 +491,8 @@
     accent-color: var(--brand-green-500);
     width: 16px;
     height: 16px;
+    flex: 0 0 16px;
+    box-sizing: border-box;
 }
 
 .geneo-check-help {
@@ -524,9 +532,10 @@
 }
 
 .geneo-person-card-group-title {
-    color: var(--text-secondary);
-    font-size: 12px;
-    line-height: 1.35;
+    color: var(--text-primary);
+    font-size: 14px;
+    font-weight: 800;
+    line-height: 1.3;
 }
 
 .geneo-person-style-picker {
@@ -865,27 +874,6 @@
     display: grid;
     gap: 12px;
     min-width: 0;
-}
-
-.geneo-multi-paint-swatch.is-mixed {
-    background: repeating-linear-gradient(135deg,
-        var(--surface-card) 0 7px, var(--border-default) 7px 14px);
-}
-
-.geneo-multi-paint-swatch.is-mixed > span {
-    opacity: 0;
-}
-
-.geneo-person-appearance-controls .geneo-paint-opacity-number input {
-    appearance: textfield;
-    padding-left: 7px;
-    padding-right: 18px;
-}
-
-.geneo-person-appearance-controls .geneo-paint-opacity-number input::-webkit-inner-spin-button,
-.geneo-person-appearance-controls .geneo-paint-opacity-number input::-webkit-outer-spin-button {
-    appearance: none;
-    margin: 0;
 }
 
 .geneo-layout-name {
