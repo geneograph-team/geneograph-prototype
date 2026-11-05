@@ -136,14 +136,14 @@
 .repeatable-fact-summary + .repeatable-fact-summary {
     border-top: 1px solid var(--border);
 }
-.repeatable-fact-entry-head {
+.person-profile .repeatable-fact-entry-head {
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 12px;
     margin-bottom: 12px;
 }
-.repeatable-fact-entry-head h4 { margin: 0; }
+.person-profile .repeatable-fact-entry-head h4 { margin: 0; }
 .repeatable-fact-entry .add-person-fact-date-row.repeatable-fact-dates {
     display: grid;
     grid-column: 1 / -1;

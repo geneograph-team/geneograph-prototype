@@ -34,7 +34,7 @@ const RU_UI_SHARED = Object.freeze({
     'Choose whether this number is a day or a year.': 'Укажите, что означает это число: день или год.',
     'Enter the first date.': 'Введите первую дату.',
     'e.g. 1900, February, 14 Feb': 'например, 1900, февраль, 14 февраля',
-    'e.g. 1900, 01,01,2001, =1900-50': 'например, 1900, 01,01,2001, =1900-50',
+    'e.g. 1900, =1900-50': 'например, 1900, =1900-50',
     'Year calculations must start with =. Try =1900-50.': 'Вычисление года должно начинаться с =. Например: =1900-50.',
     'Enter a year calculation such as =1900-50.': 'Введите вычисление года, например =1900-50.',
     'The calculated year must be between 1 and 9999.': 'Вычисленный год должен быть от 1 до 9999.',
