@@ -2,6 +2,7 @@ const GENEO_TOUR_STORAGE_KEY = 'geneograph.productTour';
 const GENEO_TOUR_VERSION = 2;
 const GENEO_TOUR_PROJECT_ID = 'p1';
 const geneoTourSteps = [
+    { id: 'tour-navigation-intro', module: 'Projects', projectView: 'library', presentation: 'centered', title: 'Navigate the tour', body: 'Use Back and Next to move between stops. Choose Browse modules above to jump to any section. If you close the tour, open Help and choose Take the tour to start again.' },
     { id: 'projects-welcome', module: 'Projects', projectView: 'library', presentation: 'centered', title: "Welcome to Projects", body: "Projects bring your family tree, photographs, records, and notes into one workspace. This is where each family-history research begins." },
     { id: 'projects-actions', module: 'Projects', projectView: 'library', title: "Create or open a project", body: "Create family tree starts a blank project. Import GEDCOM and Open project are not available in this demo." },
     { id: 'projects-continue', module: 'Projects', projectView: 'library', title: "Continue your work", body: "Return to the last project and section you opened." },
@@ -152,6 +153,7 @@ const geneoTourSocketSelector = (id, port) => `[data-geneo-port-node="${id || ''
 const geneoTourFamilySelector = id => `[data-geneo-family-junction="${id || ''}"]`;
 
 const geneoTourSecondarySelectors = {
+    'tour-navigation-intro': '[data-topbar-help]',
     'tree-to-people': '.tree-person-hero-profile',
     'tree-add-relative': '.tree-inspector #addRelative',
     'people-columns': '#peopleColumnsButton',
@@ -833,6 +835,7 @@ function geneoTourTarget(index)
         'places-routes': '#projectMenu.places-route-popover',
         'places-inspector': '[data-places-inspector]',
         'places-actions': '[data-places-inspector-edit="place-meowbridge"]',
+        'tour-navigation-intro': '#topbarPopover [data-help-tour]',
         'places-outro': '#topbarPopover [data-help-tour]',
         'places-map': '.places-map-panel',
         'geneograph-navigation': '[data-geneo-tour-target="library-navigation"]',
@@ -954,7 +957,7 @@ function geneoTourClosePreview()
     if (['geneograph-export', 'geneograph-toolbar-overflow'].includes(geneoTourRuntime.ownedPreview)) closeMenu();
     if (geneoTourRuntime.ownedPreview === 'places-filters') closePlacesFilterPopover();
     if (geneoTourRuntime.ownedPreview === 'places-routes') closeMenu();
-    if (geneoTourRuntime.ownedPreview === 'places-help') closeTopbarPopover();
+    if (geneoTourRuntime.ownedPreview === 'tour-help') closeTopbarPopover();
     if (geneoTourRuntime.albumsModalSelection)
     {
         state.selectedPhotoIds = geneoTourRuntime.albumsModalSelection;
@@ -1105,7 +1108,7 @@ function geneoTourOpenPreview(step)
             geneoTourRuntime.openingPreview = false;
         }
     }
-    if (step.id === 'places-outro')
+    if (step.id === 'tour-navigation-intro' || step.id === 'places-outro')
     {
         const anchor = document.querySelector('[data-topbar-help]');
         if (!anchor) return;
@@ -1115,7 +1118,7 @@ function geneoTourOpenPreview(step)
         {
             popover.inert = true;
             document.removeEventListener('click', closeTopbarPopoverOnOutside);
-            geneoTourRuntime.ownedPreview = 'places-help';
+            geneoTourRuntime.ownedPreview = 'tour-help';
         }
     }
     if (step.id === 'notes-filters')
@@ -1415,9 +1418,10 @@ function geneoTourRefreshCopy()
     if (moduleName)
     {
         const currentModule = geneoTourSteps[geneoTourRuntime.index].module;
-        moduleName.textContent = t(currentModule);
+        moduleName.textContent = geneoTourRuntime.index === 0 ? t('Browse modules') : t(currentModule);
         const browse = root.querySelector('[data-geneo-tour-action="browse-modules"]');
-        browse.setAttribute('aria-label', `${t('Browse modules')}: ${t(currentModule)}`);
+        browse.setAttribute('aria-label', geneoTourRuntime.index === 0
+            ? t('Browse modules') : `${t('Browse modules')}: ${t(currentModule)}`);
         browse.title = t('Browse modules');
         root.querySelector('[data-geneo-tour-map-title]').textContent = t('Browse modules');
         root.querySelector('[data-geneo-tour-map-return]').textContent = t('Return to tour');
@@ -1466,7 +1470,7 @@ function geneoTourRenderOverlay(target = null)
             : [['restart', 'Start again'], ['finish', 'Explore the demo']]
         : [['back', 'Back'], ['next', index === geneoTourSteps.length - 1 ? 'Finish tour' : 'Next']];
     const root = document.createElement('div');
-    root.className = `geneo-tour${centered ? ' is-centered' : ''}${index < 0 ? ' is-welcome' : ''}${index >= geneoTourSteps.length ? ' is-finish' : ''}${projectIntro ? ' is-project-intro' : ''}${geneoTourSteps[index]?.id === 'places-routes' ? ' is-places-routes' : ''}${geneoTourSteps[index]?.id === 'places-filters' ? ' is-places-filters' : ''}${geneoTourSteps[index]?.id === 'places-add-map' ? ' is-places-add-map' : ''}${geneoTourSteps[index]?.id === 'places-add-modal' ? ' is-places-add-modal' : ''}${['tree-quick-edit-modal', 'geneograph-create-modal', 'albums-tag-person-modal', 'albums-add-to-album', 'archive-folder-modal', 'notes-add-events', 'places-add-modal', 'places-add-coordinates', 'places-add-create'].includes(geneoTourSteps[index]?.id) ? ' is-modal-stop' : ''}`;
+    root.className = `geneo-tour${centered ? ' is-centered' : ''}${index < 0 ? ' is-welcome' : ''}${index >= geneoTourSteps.length ? ' is-finish' : ''}${projectIntro ? ' is-project-intro' : ''}${geneoTourSteps[index]?.id === 'tour-navigation-intro' ? ' is-navigation-intro' : ''}${geneoTourSteps[index]?.id === 'places-routes' ? ' is-places-routes' : ''}${geneoTourSteps[index]?.id === 'places-filters' ? ' is-places-filters' : ''}${geneoTourSteps[index]?.id === 'places-add-map' ? ' is-places-add-map' : ''}${geneoTourSteps[index]?.id === 'places-add-modal' ? ' is-places-add-modal' : ''}${['tree-quick-edit-modal', 'geneograph-create-modal', 'albums-tag-person-modal', 'albums-add-to-album', 'archive-folder-modal', 'notes-add-events', 'places-add-modal', 'places-add-coordinates', 'places-add-create'].includes(geneoTourSteps[index]?.id) ? ' is-modal-stop' : ''}`;
     root.dataset.geneoTour = '';
     root.innerHTML = `
         <div class="geneo-tour-scrim" data-geneo-tour-scrim></div>
@@ -1528,8 +1532,8 @@ function geneoTourRenderOverlay(target = null)
     }));
     root.querySelectorAll('[data-geneo-tour-module]').forEach(button => button.addEventListener('click', () =>
     {
-        const targetIndex = geneoTourSteps.findIndex(step => step.module === button.dataset.geneoTourModule);
-        if (button.dataset.geneoTourModule === geneoTourSteps[index].module) geneoTourCloseModuleMap();
+        const targetIndex = geneoTourSteps.findIndex(step => step.module === button.dataset.geneoTourModule && step.id !== 'tour-navigation-intro');
+        if (index !== 0 && button.dataset.geneoTourModule === geneoTourSteps[index].module) geneoTourCloseModuleMap();
         else if (targetIndex >= 0) geneoTourNavigate(targetIndex);
     }));
     root.querySelector('.geneo-tour-close').hidden = index < 0 || index >= geneoTourSteps.length;
@@ -1622,12 +1626,14 @@ function geneoTourPosition()
 {
     const root = geneoTourRuntime.root;
     if (!root) return;
+    const stepId = geneoTourSteps[geneoTourRuntime.index]?.id;
     const block = root.querySelector('[data-geneo-tour-block]');
     const secondaryBlock = root.querySelector('[data-geneo-tour-block-secondary]');
     const tertiaryBlock = root.querySelector('[data-geneo-tour-block-tertiary]');
     const quaternaryBlock = root.querySelector('[data-geneo-tour-block-quaternary]');
     const card = root.querySelector('.geneo-tour-card');
-    if (!root.classList.contains('is-centered') && !geneoTourRuntime.target?.isConnected)
+    if ((!root.classList.contains('is-centered') || stepId === 'tour-navigation-intro')
+        && !geneoTourRuntime.target?.isConnected)
     {
         geneoTourRuntime.target = geneoTourTarget(geneoTourRuntime.index);
         if (geneoTourRuntime.target) geneoTourRuntime.resizeObserver?.observe(geneoTourRuntime.target);
@@ -1665,16 +1671,39 @@ function geneoTourPosition()
     if (centered)
     {
         if (!root.classList.contains('is-centered')) root.classList.add('is-unanchored');
-        geneoTourPaintScrims(root, []);
-        block.hidden = true;
-        secondaryBlock.hidden = true;
+        const introFocus = stepId === 'tour-navigation-intro'
+            && !root.classList.contains('is-module-map') && target?.isConnected;
+        if (introFocus)
+        {
+            const focusRect = element =>
+            {
+                const rect = element.getBoundingClientRect();
+                return { left: Math.max(8, rect.left - 8), top: Math.max(8, rect.top - 8),
+                    right: Math.min(innerWidth - 8, rect.right + 8),
+                    bottom: Math.min(innerHeight - 8, rect.bottom + 8) };
+            };
+            const primary = focusRect(target);
+            const secondary = geneoTourRuntime.secondaryTarget?.isConnected
+                ? focusRect(geneoTourRuntime.secondaryTarget) : null;
+            geneoTourPaintScrims(root, [primary, ...(secondary ? [secondary] : [])]);
+            block.hidden = false;
+            block.style.cssText = `left:${primary.left}px;top:${primary.top}px;width:${primary.right - primary.left}px;height:${primary.bottom - primary.top}px`;
+            secondaryBlock.hidden = !secondary;
+            if (secondary)
+                secondaryBlock.style.cssText = `left:${secondary.left}px;top:${secondary.top}px;width:${secondary.right - secondary.left}px;height:${secondary.bottom - secondary.top}px`;
+        }
+        else
+        {
+            geneoTourPaintScrims(root, []);
+            block.hidden = true;
+            secondaryBlock.hidden = true;
+        }
         tertiaryBlock.hidden = true;
         quaternaryBlock.hidden = true;
         card.style.left = '';
         card.style.top = '';
         return;
     }
-    const stepId = geneoTourSteps[geneoTourRuntime.index]?.id;
     if (stepId === 'people-columns' || stepId === 'people-filters')
     {
         const popover = target;

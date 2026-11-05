@@ -212,6 +212,18 @@ body.geneo-tour-people-popover #peopleColumnsPopover .people-columns-footer {
     color: var(--text-primary);
 }
 
+.geneo-tour.is-navigation-intro .geneo-tour-browse {
+    padding: 0 var(--space-3);
+    border: 1px solid var(--brand-green-500);
+    background: var(--brand-green-900);
+    color: var(--brand-green-300);
+}
+
+.geneo-tour.is-navigation-intro .geneo-tour-browse:hover {
+    border-color: var(--brand-green-300);
+    background: var(--brand-green-800);
+}
+
 .geneo-tour-browse svg {
     width: 18px;
     height: 18px;
