@@ -753,7 +753,7 @@
     border: 1px solid var(--border-default);
     border-radius: var(--radius-md);
     overflow: auto;
-    background: #0c1210;
+    background: var(--surface-card);
 }
 
 .people-table-wrap.is-empty { display:flex; flex-direction:column; }
@@ -790,7 +790,7 @@
     position: sticky;
     top: 0;
     z-index: 2;
-    background: #111716;
+    background: var(--surface-card-hover);
     color: var(--text-secondary);
     font-size: 12px;
     letter-spacing: .04em;
@@ -802,15 +802,15 @@
 }
 
 .people-table tbody tr:hover {
-    background: rgba(255, 255, 255, .025);
+    background: var(--surface-hover-tint);
 }
 
 .people-table tbody tr.is-previewed {
-    background: rgba(255, 255, 255, .035);
+    background: var(--surface-selected);
 }
 
 .people-table tbody tr.is-previewed td {
-    border-color: rgba(255, 255, 255, .09);
+    border-color: var(--border-default);
 }
 
 .people-table tbody tr.is-selected {

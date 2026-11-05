@@ -551,7 +551,7 @@
     gap: 7px;
     border: 1px solid var(--border-strong);
     border-radius: var(--radius-sm);
-    background: rgba(18, 24, 22, .94);
+    background: var(--surface-card);
     box-shadow: var(--shadow-soft);
     backdrop-filter: blur(8px);
 }
@@ -1010,7 +1010,7 @@
     min-width: 0;
     min-height: 0;
     overflow: hidden;
-    background: #111715;
+    background: var(--surface-main);
     isolation: isolate;
 }
 
@@ -1021,7 +1021,7 @@
 }
 
 .places-leaflet-map .leaflet-control-attribution {
-    background: rgba(12, 17, 15, .84);
+    background: var(--surface-card);
     color: var(--text-tertiary);
 }
 
@@ -1059,7 +1059,7 @@
     display: flex;
     align-items: center;
     gap: 8px;
-    background: rgba(18, 24, 22, .97);
+    background: var(--surface-card);
     border: 1px solid var(--border-strong);
     border-radius: var(--radius-md);
     box-shadow: var(--shadow-soft);

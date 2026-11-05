@@ -264,10 +264,14 @@
 }
 
 .people-hero {
+    --text-primary: #F2F4F3;
+    --text-secondary: #B8C0BD;
+    --brand-green-300: #62D99A;
+    color: var(--text-primary);
     position: relative;
     padding: 10px;
     min-height: 170px;
-    background: linear-gradient(90deg, var(--brand-green-700) 0%, var(--brand-green-900) 100%);
+    background: linear-gradient(90deg, #1B6847 0%, #0D2118 100%);
     border-bottom: 1px solid rgba(255, 255, 255, .08);
     overflow: hidden;
     isolation: isolate;
@@ -369,6 +373,10 @@
 }
 
 .profile-hero {
+    --text-primary: #F2F4F3;
+    --text-secondary: #B8C0BD;
+    --brand-green-300: #62D99A;
+    color: var(--text-primary);
     --profile-hero-fact-text:
         rgba(240, 248, 244, .76);
     grid-column: 1 / -1;
@@ -395,8 +403,8 @@
 
     background:
         linear-gradient(90deg,
-            var(--brand-green-700) 0%,
-            var(--brand-green-900) 100%);
+            #1B6847 0%,
+            #0D2118 100%);
 }
 
 .profile-hero::after {
@@ -575,6 +583,16 @@
 .profile-hero-actions .button {
     min-height: 44px;
     white-space: nowrap;
+}
+
+.profile-hero-actions .button.secondary {
+    background: rgba(255, 255, 255, .12);
+    border-color: rgba(255, 255, 255, .28);
+    color: #F2F4F3;
+}
+
+.profile-hero-actions .button.secondary:hover {
+    background: rgba(255, 255, 255, .2);
 }
 
 .profile-back-link {
@@ -796,7 +814,7 @@
     z-index: 90;
     border: 1px solid var(--border-strong);
     border-radius: var(--radius-lg);
-    background: rgba(26, 32, 31, .98);
+    background: var(--surface-card);
     box-shadow: var(--shadow-soft);
     overflow: hidden;
     display: grid;

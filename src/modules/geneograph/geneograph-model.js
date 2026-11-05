@@ -325,9 +325,10 @@ function geneoDefaultPersonCardSettings(
 function geneoDefaultCardAppearances()
 {
     const neutral = {
-        fill: { color: '#173029', opacity: 100, enabled: true },
-        stroke: { color: '#62D99A', opacity: 100, enabled: false },
-        text: { color: '#F1F5F3', opacity: 100, enabled: true },
+        fill: { color: geneoThemeColor('#173029', '#FFFFFF'), opacity: 100, enabled: true },
+        stroke: { color: geneoThemeColor('#62D99A', '#1B6847'), opacity: 100, enabled: false },
+        text: { color: geneoThemeColor('#F1F5F3', '#17251E'), opacity: 100, enabled: true },
+        paintOverrides: { fill: false, stroke: false, text: false },
         strokeWidth: 2,
         strokePattern: 'solid',
         cornerRadius: 8
@@ -336,15 +337,15 @@ function geneoDefaultCardAppearances()
         neutral,
         male: {
             ...structuredClone(neutral),
-            fill: { color: '#172A32', opacity: 100, enabled: true },
-            stroke: { color: '#5A9BD8', opacity: 100, enabled: true },
-            text: { color: '#F2F8FB', opacity: 100, enabled: true }
+            fill: { color: geneoThemeColor('#172A32', '#EAF3F8'), opacity: 100, enabled: true },
+            stroke: { color: geneoThemeColor('#5A9BD8', '#286B9B'), opacity: 100, enabled: true },
+            text: { color: geneoThemeColor('#F2F8FB', '#173047'), opacity: 100, enabled: true }
         },
         female: {
             ...structuredClone(neutral),
-            fill: { color: '#2D2437', opacity: 100, enabled: true },
-            stroke: { color: '#8D6CE8', opacity: 100, enabled: true },
-            text: { color: '#F6F1FB', opacity: 100, enabled: true }
+            fill: { color: geneoThemeColor('#2D2437', '#F4EFF9'), opacity: 100, enabled: true },
+            stroke: { color: geneoThemeColor('#8D6CE8', '#6D4AB8'), opacity: 100, enabled: true },
+            text: { color: geneoThemeColor('#F6F1FB', '#382647'), opacity: 100, enabled: true }
         },
         unknown: structuredClone(neutral)
     };
@@ -362,7 +363,12 @@ function normalizeGeneoCardAppearances(value, radius = 8)
             text: normalizeGeneoPaint(entry.text, fallback.text, { forceEnabled: true }),
             strokeWidth: Math.round(geneoNumber(entry.strokeWidth, fallback.strokeWidth, 1, 12)),
             strokePattern: entry.strokePattern === 'dashed' ? 'dashed' : 'solid',
-            cornerRadius: Math.round(geneoNumber(entry.cornerRadius, radius, 0, 32))
+            cornerRadius: Math.round(geneoNumber(entry.cornerRadius, radius, 0, 32)),
+            paintOverrides: {
+                fill: entry.paintOverrides?.fill === true,
+                stroke: entry.paintOverrides?.stroke === true,
+                text: entry.paintOverrides?.text === true
+            }
         }];
     }));
 }
@@ -1809,8 +1815,10 @@ function geneoNodeCornerRadius(node)
 function createEmptyGeneographDiagram()
 {
     return {
+        themeProvenanceVersion: 1,
         canvas: {
-            backgroundPaint: { color: '#0F1413', opacity: 100, enabled: true },
+            backgroundPaint: { color: geneoThemeColor('#0F1413', '#F3F7F2'), opacity: 100, enabled: true },
+            backgroundOverride: false,
             backgroundPattern: 'dots',
             snapToGrid: true,
             alwaysShowSockets: false,

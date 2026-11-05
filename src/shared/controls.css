@@ -21,8 +21,8 @@
 
 .button.primary {
     background: var(--brand-green-500);
-    border-color: rgba(98, 217, 154, .35);
-    color: #06110D;
+    border-color: var(--brand-green-600);
+    color: var(--on-primary);
 }
 
 .button.primary:hover {
@@ -31,7 +31,7 @@
 }
 
 .button.secondary {
-    background: #222927;
+    background: var(--surface-card-hover);
     color: var(--text-primary);
 }
 

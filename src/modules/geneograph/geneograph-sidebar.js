@@ -719,7 +719,7 @@ function resolveGeneoPaintTarget(reference)
             scope, id: selectedGeneographBoard()?.id || '', property,
             label: 'Background', paint: canvas.backgroundPaint,
             supportsOpacity: false, supportsNone: false, resettable: false,
-            defaultPaint: { color: '#0F1413', opacity: 100, enabled: true }
+            defaultPaint: { color: geneoThemeColor('#0F1413', '#F3F7F2'), opacity: 100, enabled: true }
         };
     }
     if (scope === 'connection')
@@ -1395,13 +1395,14 @@ function geneoPaintOverrideState(
     target
 )
 {
-    if (target?.scope === 'creation-tool') return false;
+    if (target?.scope === 'creation-tool') return geneoCreationToolSettings(target.id).appearance.paintOverrides?.[target.property] === true;
+    if (target?.scope === 'canvas') return selectedGeneographDiagram()?.canvas?.backgroundOverride === true;
+    if (target?.scope === 'card-default') return selectedGeneographDiagram()?.cardAppearanceDefaults?.[target.id]?.paintOverrides?.[target.property] === true;
+    if (target?.scope === 'connection-default') return selectedGeneographDiagram()?.connectionDefaults?.lineOverride === true;
     if (target?.scope === 'connection-tool') return Boolean(geneoConnectionToolRuntime.overrides.line);
     if (target?.scope === 'connection') return Boolean(target.entity?.style?.line);
     if (
         target?.scope !== 'node'
-        || target.entity?.type
-          !== 'person'
         || ![
             'fill',
             'stroke',
@@ -1426,7 +1427,30 @@ function setGeneoPaintOverrideState(
     overridden
 )
 {
-    if (target?.scope === 'creation-tool') return false;
+    if (target?.scope === 'creation-tool')
+    {
+        const appearance = geneoCreationToolSettings(target.id).appearance;
+        appearance.paintOverrides ||= { fill: false, stroke: false, text: false };
+        appearance.paintOverrides[target.property] = Boolean(overridden);
+        return true;
+    }
+    if (target?.scope === 'canvas')
+    {
+        selectedGeneographDiagram().canvas.backgroundOverride = Boolean(overridden);
+        return true;
+    }
+    if (target?.scope === 'card-default')
+    {
+        const appearance = selectedGeneographDiagram().cardAppearanceDefaults[target.id];
+        appearance.paintOverrides ||= { fill: false, stroke: false, text: false };
+        appearance.paintOverrides[target.property] = Boolean(overridden);
+        return true;
+    }
+    if (target?.scope === 'connection-default')
+    {
+        selectedGeneographDiagram().connectionDefaults.lineOverride = Boolean(overridden);
+        return true;
+    }
     if (target?.scope === 'connection-tool')
     {
         const defaults = selectedGeneographDiagram().connectionDefaults.line;
@@ -1444,8 +1468,6 @@ function setGeneoPaintOverrideState(
     }
     if (
         target?.scope !== 'node'
-        || target.entity?.type
-          !== 'person'
         || ![
             'fill',
             'stroke',

@@ -6,7 +6,7 @@
 }
 
 .geneo-home-page [data-geneo-import]:disabled:hover {
-    background: #222927;
+    background: var(--surface-card-hover);
     filter: none;
 }
 
@@ -171,7 +171,7 @@
     border-bottom:
         1px solid var(--border-default);
 
-    background: #111a17;
+    background: var(--surface-card);
 
     position:
         relative;

@@ -9,6 +9,9 @@ sampleData.boards = geneoSeedBoardEntries.map(entry =>
         throw new Error('The seeded Geneograph board has invalid project or board identifiers.');
     geneoSeedBoardIds.add(entry.id);
     if (payload.viewport) state.geneoBoardViewports[entry.id] = structuredClone(payload.viewport);
+    const diagram = structuredClone(payload.board.diagram);
+    geneoMarkSeedThemeProvenance(diagram);
+    geneoApplyThemeDefaultsToDiagram(diagram);
     return {
         id: entry.id,
         projectId: entry.projectId,
@@ -20,6 +23,6 @@ sampleData.boards = geneoSeedBoardEntries.map(entry =>
         favorite: true,
         archived: false,
         thumb: 'tree',
-        diagram: structuredClone(payload.board.diagram)
+        diagram
     };
 });

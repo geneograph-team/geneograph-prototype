@@ -1836,7 +1836,7 @@ body.mobile-surface-open:has(.albums-shell) .menu-popover {
     height: 30px;
     border-color: rgba(255, 255, 255, .14);
     border-radius: var(--radius-sm);
-    background: rgba(13, 17, 15, .76);
+    background: var(--surface-card);
     backdrop-filter: blur(8px);
 }
 

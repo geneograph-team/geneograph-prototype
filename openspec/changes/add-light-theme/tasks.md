@@ -2,10 +2,10 @@
 
 ## 1. Theme state and shared foundation
 
-- [ ] 1.1 Add an early theme initializer, persisted System/Dark/Light preference, and live system-change handling; verify first paint, reload, direct `file://` opening, and switching without losing an open module or modal.
-- [ ] 1.2 Replace the read-only Global settings theme row with a localized selector; verify Dark, Light, and System choices and their English/Russian labels.
+- [x] 1.1 Add an early theme initializer, persisted System/Dark/Light preference, and live system-change handling; verify first paint, reload, direct `file://` opening, and switching without losing an open module or modal.
+- [x] 1.2 Replace the read-only Global settings theme row with a localized selector; verify Dark, Light, and System choices and their English/Russian labels.
 - [ ] 1.3 Add Paper & Forest semantic tokens, native color scheme, scrollbar, shadow, focus, and select styling in the owning shared styles; verify normal, hover, selected, disabled, and keyboard-focus control states in both appearances.
-- [ ] 1.4 Update the theme guidance in `AGENTS.md` to describe both appearances and direct style ownership; verify the instructions match the implementation.
+- [x] 1.4 Update the theme guidance in `AGENTS.md` to describe both appearances and direct style ownership; verify the instructions match the implementation.
 
 ## 2. Module presentation
 

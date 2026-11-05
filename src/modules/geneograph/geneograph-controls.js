@@ -1083,11 +1083,8 @@ function geneoUpdateBulkNodeAppearance(node, property, field, value, diagram)
     {
         const paint = geneoBulkNodeValue(node, property);
         node.appearance[property] = { ...paint, [field]: value };
-        if (node.type === 'person')
-        {
-            node.appearance.paintOverrides ||= { fill: false, stroke: false, text: false };
-            node.appearance.paintOverrides[property] = true;
-        }
+        node.appearance.paintOverrides ||= { fill: false, stroke: false, text: false };
+        node.appearance.paintOverrides[property] = true;
         return;
     }
     node.appearance[property] = value;

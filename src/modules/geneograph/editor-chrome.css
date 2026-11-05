@@ -4,7 +4,7 @@
     grid-template-rows: auto minmax(0, 1fr);
     min-width: 0;
     overflow: hidden;
-    background: #080d0c;
+    background: var(--surface-app);
 }
 
 @media (max-width: 900px) {
@@ -468,7 +468,7 @@
     min-width: 0;
     padding: 8px var(--space-4);
     border-bottom: 1px solid var(--border-default);
-    background: rgba(16, 22, 21, .98);
+    background: var(--surface-topbar);
 
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto;
@@ -579,7 +579,7 @@
 
     border: 1px solid var(--border-default);
     border-radius: var(--radius-sm);
-    background: rgba(255, 255, 255, .018);
+    background: var(--surface-hover-tint);
 }
 
 .geneo-tool-group .geneo-tool {
@@ -622,7 +622,7 @@
 
 .geneo-toolbar-button.primary {
     background: var(--brand-green-500);
-    color: #06110D;
+    color: var(--on-primary);
     border-color: rgba(98, 217, 154, .35);
 }
 
@@ -1297,7 +1297,7 @@
     align-items: center;
     gap: 6px;
     border: 1px solid var(--border-default);
-    background: rgba(26, 32, 31, .92);
+    background: var(--surface-card);
     border-radius: var(--radius-sm);
     padding: 6px;
     box-shadow: var(--shadow-soft);
@@ -1323,7 +1323,7 @@
     margin: 0 0 12px 18px;
     border: 1px solid var(--border-default);
     border-radius: 10px;
-    background: rgba(10, 14, 13, .94);
+    background: var(--surface-card);
     box-shadow: var(--shadow-soft);
     overflow: hidden;
 }
@@ -1484,7 +1484,7 @@
     min-width: 0;
     flex: 1 1 auto;
     border: 1px solid var(--border-default);
-    background: #111817;
+    background: var(--surface-card);
     border-radius: 8px;
     color: var(--text-primary);
     padding: 0 var(--space-3);

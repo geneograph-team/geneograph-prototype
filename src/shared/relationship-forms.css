@@ -1014,7 +1014,7 @@
     padding: 0;
     border: 1px solid transparent;
     border-radius: var(--radius-sm);
-    background: rgba(15, 20, 19, .9);
+    background: var(--surface-card);
     color: var(--text-tertiary);
     display: grid;
     place-items: center;
@@ -2733,7 +2733,7 @@ body.mobile-person-details-open .relative-popover-body {
 .add-person-relationship-panel {
     border: 1px solid var(--border-default);
     border-radius: var(--radius-md);
-    background: rgba(26, 32, 31, .72);
+    background: var(--surface-panel-soft);
     overflow: hidden;
 }
 

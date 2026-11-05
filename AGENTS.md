@@ -71,7 +71,7 @@ Several extracted files are still very large. **Never read them end-to-end.**
 
 - No build step; Leaflet and Quill load from pinned CDNs, and local browser libraries live in `src/vendor/`. Do not add new runtime dependencies without asking.
 - JavaScript: Allman-style braces (opening brace on its own line), single quotes for strings, semicolons never omitted. Icons are inline SVG strings in the `icon` dictionary (`src/core/icons.js`) — reuse them rather than duplicating markup.
-- CSS: design tokens are custom properties in `:root` (surface ramps `--surface-*`, brand greens `--brand-green-*`, text `--text-*`, borders, spacing `--space-*`, radii, `--shadow-soft`, `--ease`, scrollbar colors). Reuse tokens instead of hard-coded values. Dark theme via `color-scheme: dark`.
+- CSS: design tokens are custom properties in `:root`, with Paper & Forest light values under `:root[data-theme="light"]`. Reuse semantic tokens for surfaces, text, borders, controls, shadows, and scrollbars. Theme preference is System initially, with Dark and Light choices in Global settings. Keep dark green branded heroes as explicit inverse surfaces with readable foreground colors.
 - HTML: semantic elements (`section`, `figure`, `article`, `nav`), `aria-*` attributes, `role="status"`/`aria-live` for the toast. Explicit `width`/`height` on images, `loading="lazy"`/`decoding="async"` for non-critical images.
 
 ## Content and Design Rules
@@ -79,12 +79,13 @@ Several extracted files are still very large. **Never read them end-to-end.**
 - Capitalization: the product is **GeneoGraph**; the visual board/workspace is **Geneograph**.
 - This is an interactive prototype/concept. Never present planned capabilities as shipped; distinguish prototype behavior from product direction.
 - Use the Whiskerfield sample project (Silver Whiskerfield, Luna Purrington, the Meowbridge marriage record) consistently. This is sample data, not historical records.
-- Keep the dark identity: near-black surfaces (`#0B0F0E` app background), brand green (`#62D99A` primary accent). Amber (`#D4AA6B`) is reserved for possible/uncertain relationships only; red/purple/blue are status/semantic accents as already used.
+- Preserve the dark theme's near-black surfaces (`#0B0F0E` app background) and the light theme's Paper & Forest surfaces. Use the theme's brand green for actions and focus. Amber (`#D4AA6B` in dark) is reserved for possible/uncertain relationships only; red/purple/blue are status/semantic accents as already used.
 - No glass/glow effects, floating decorative cards, or generic startup motifs.
 
 ## CSS Ownership
 
 - Edit declarations in their owning feature or shared stylesheet. Merge superseded rules; do not append competing overrides or use `!important` merely to avoid reconciling an existing rule.
+- Test new styles in both resolved themes. Theme-specific exceptions belong beside the owning rule; prefer a semantic token when the same role recurs. Geneograph board colors are separate from UI colors: inherited colors follow the resolved theme, while explicitly chosen colors remain fixed.
 - Put shared tokens and resets in `src/core/foundation.css`; put reusable button, icon-button, field, select, checkbox, label, and focus appearance in `src/shared/controls.css`. Use existing opt-in classes (`.button`, `.text-action`, `.panel-action`, `.control-icon-button`, `.field`, `.select`, `.common-select`, `.compact-select`, `.checkbox-row`) where applicable. Feature styles own layout, dimensions, and named exceptions such as Living status. Reconcile shared rules directly instead of adding module overrides. Shared resource-picker layout belongs in `src/shared/resource-picker.css`. Preserve the CSS tag order.
 - For substantial shared or responsive style changes, include English/Russian, desktop/phone widths, focus, and relevant modal states in the requested browser QA. Use focused static checks for small style edits.
 

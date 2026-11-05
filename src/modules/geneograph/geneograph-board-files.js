@@ -219,6 +219,17 @@ function validateGeneographBoardFile(payload)
     if (diagram.assets.length > 200 || diagram.people.length > 2000 || diagram.families.length > 2000
         || diagram.nodes.length > 2000 || diagram.connections.length > 4000)
         throw geneoBoardFileError('The board file contains too many objects.');
+    if (diagram.themeProvenanceVersion === 1)
+    {
+        const validOverrides = value => value && ['fill', 'stroke', 'text'].every(key =>
+            typeof value[key] === 'boolean');
+        if (typeof diagram.canvas.backgroundOverride !== 'boolean'
+            || typeof diagram.connectionDefaults?.lineOverride !== 'boolean'
+            || !Object.values(diagram.cardAppearanceDefaults || {}).every(appearance =>
+                validOverrides(appearance.paintOverrides))
+            || !diagram.nodes.every(node => validOverrides(node.appearance?.paintOverrides)))
+            throw geneoBoardFileError('The board has invalid theme color settings.');
+    }
     if (diagram.connectionDefaults?.cornerRadius !== undefined
         && (!Number.isInteger(diagram.connectionDefaults.cornerRadius)
             || diagram.connectionDefaults.cornerRadius < 0

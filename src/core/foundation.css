@@ -1,4 +1,5 @@
 :root {
+    color-scheme: dark;
     --surface-app: #0B0F0E;
     --surface-main: #0F1413;
     --surface-sidebar: #151A1A;
@@ -54,10 +55,71 @@
     --scrollbar-thumb-hover: #3A4743;
     --scrollbar-thumb-active: #4B5B56;
     --geneograph-cover-tree-image: url("../assets/covers/geneograph-cover-tree.png");
+    --on-primary: #081B12;
+    --inverse-text: #F2F4F3;
+    --surface-topbar: rgba(12, 17, 16, .96);
+    --surface-panel-soft: rgba(26, 32, 31, .72);
+    --surface-sidebar-soft: rgba(15, 20, 19, .6);
+    --surface-hover-tint: rgba(255, 255, 255, .035);
+    --surface-row-divider: rgba(255, 255, 255, .045);
+    --tree-canvas-surface: #090F0D;
+    --tree-canvas-dot: rgba(127, 138, 134, .18);
+    --tree-connection: rgba(245, 247, 246, .9);
+    --tree-connection-partner: rgba(245, 247, 246, .72);
+    --tree-selected-card: linear-gradient(180deg, rgba(22, 58, 42, .98), rgba(26, 32, 31, .96));
+    --tree-card-hover: rgba(33, 40, 38, .98);
+}
+
+:root[data-theme="light"] {
+    color-scheme: light;
+    --surface-app: #F8FAF6;
+    --surface-main: #F8FAF6;
+    --surface-sidebar: #EFF3EC;
+    --surface-card: #FFFFFF;
+    --surface-card-hover: #F2F6F0;
+    --surface-input: #E7EEE7;
+    --surface-selected: #E4EDE7;
+    --brand-green-300: #1B6847;
+    --brand-green-400: #20774F;
+    --brand-green-500: #238B5C;
+    --brand-green-600: #1B6847;
+    --brand-green-700: #145439;
+    --brand-green-800: #D7E8DC;
+    --brand-green-900: #EFF6F0;
+    --text-primary: #17251E;
+    --text-secondary: #52635A;
+    --text-tertiary: #607168;
+    --border-default: #CDD9CE;
+    --border-strong: #A9BAAC;
+    --amber: #8A5A13;
+    --red: #A83D45;
+    --purple: #6D4AB8;
+    --blue: #286B9B;
+    --control-focus-color: #1B6847;
+    --control-field-focus-color: #1B6847;
+    --select-chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8'%3E%3Cpath d='m1 1 5 5 5-5' fill='none' stroke='%2352635A' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+    --select-chevron-open: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8'%3E%3Cpath d='m1 7 5-5 5 5' fill='none' stroke='%2352635A' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+    --shadow-soft: 0 16px 48px rgba(23, 37, 30, .14);
+    --scrollbar-track: #F8FAF6;
+    --scrollbar-track-soft: #EFF3EC;
+    --scrollbar-thumb: #B4C5B7;
+    --scrollbar-thumb-hover: #91A695;
+    --scrollbar-thumb-active: #718B78;
+    --on-primary: #FFFFFF;
+    --surface-topbar: rgba(255, 255, 255, .96);
+    --surface-panel-soft: #FFFFFF;
+    --surface-sidebar-soft: #EFF3EC;
+    --surface-hover-tint: rgba(23, 37, 30, .06);
+    --surface-row-divider: rgba(23, 37, 30, .1);
+    --tree-canvas-surface: #EAF0E8;
+    --tree-canvas-dot: rgba(82, 99, 90, .16);
+    --tree-connection: #748B7A;
+    --tree-connection-partner: #879B8B;
+    --tree-selected-card: #DCEDE1;
+    --tree-card-hover: #F2F6F0;
 }
 
 html {
-    color-scheme: dark;
     scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
     scrollbar-width: thin;
 }
@@ -156,7 +218,7 @@ button {
     gap: var(--space-4);
     padding: 0 var(--space-4);
     border-bottom: 1px solid var(--border-default);
-    background: rgba(12, 17, 16, .96);
+    background: var(--surface-topbar);
     backdrop-filter: blur(16px);
     z-index: 20;
     min-width: 0;
@@ -316,7 +378,7 @@ button {
     width: 250px;
     height: 34px;
     border: 1px solid var(--border-default);
-    background: #121817;
+    background: var(--surface-card);
     border-radius: var(--radius-sm);
     color: var(--text-tertiary);
     display: flex;
@@ -586,7 +648,7 @@ button {
 
 .tip-card {
     border: 1px solid rgba(47, 174, 116, .22);
-    background: rgba(9, 44, 28, .52);
+    background: var(--surface-selected);
     border-radius: var(--radius-sm);
     padding: var(--space-4);
     color: var(--text-secondary);
@@ -730,7 +792,7 @@ button {
     padding: var(--space-4);
     border: 1px solid var(--border-default);
     border-radius: var(--radius-sm);
-    background: rgba(26, 32, 31, .9);
+    background: var(--surface-card);
     display: grid;
     grid-template-columns: 38px minmax(0, 1fr);
     align-items: center;
@@ -1325,7 +1387,7 @@ button {
     border: 0;
     border-radius: 7px;
     background: var(--brand-green-500);
-    color: #06110D;
+    color: var(--on-primary);
     font-weight: 700;
 }
 
@@ -1445,7 +1507,7 @@ button {
 .right-card,
 .panel {
     border: 1px solid var(--border-default);
-    background: rgba(26, 32, 31, .9);
+    background: var(--surface-card);
     border-radius: var(--radius-sm);
     overflow: hidden;
 }
@@ -2146,6 +2208,14 @@ button {
 }
 
 .project-hero {
+    --text-primary: #F2F4F3;
+    --text-secondary: #C6D6CE;
+    --text-tertiary: #B4C8BE;
+    --border-default: rgba(242, 244, 243, .24);
+    --border-strong: rgba(242, 244, 243, .4);
+    --brand-green-300: #62D99A;
+    --surface-card-hover: #2D3A34;
+    color: var(--text-primary);
     border-radius: var(--radius-sm);
     padding: var(--space-8);
     margin-bottom: var(--space-6);
@@ -2734,7 +2804,7 @@ button.app-chip:disabled,
     border: 1px solid var(--border-default);
     border-radius: var(--radius-sm);
     overflow: hidden;
-    background: rgba(11, 15, 14, .26);
+    background: var(--surface-card);
 }
 
 .project-activity-row {
@@ -4141,7 +4211,7 @@ body.mobile-details-open .geneo-inspector [data-geneo-inspector-toggle] {
 
 .project-settings-section {
     border: 1px solid var(--border-default);
-    background: rgba(26, 32, 31, .72);
+    background: var(--surface-card);
     border-radius: var(--radius-sm);
     overflow: hidden;
 }
@@ -4889,7 +4959,7 @@ body.mobile-details-open .geneo-inspector [data-geneo-inspector-toggle] {
     z-index: 95;
     width: min(360px, calc(100vw - 24px));
     border: 1px solid var(--border-strong);
-    background: rgba(26, 32, 31, .98);
+    background: var(--surface-card);
     color: var(--text-primary);
     border-radius: var(--radius-lg);
     box-shadow: var(--shadow-soft);
@@ -5115,7 +5185,7 @@ body.mobile-details-open .geneo-inspector [data-geneo-inspector-toggle] {
 
 .global-settings-nav {
     border-right: 1px solid var(--border-default);
-    background: rgba(15, 20, 19, .6);
+    background: var(--surface-sidebar-soft);
     padding: var(--space-4);
     display: grid;
     align-content: start;
@@ -5139,7 +5209,7 @@ body.mobile-details-open .geneo-inspector [data-geneo-inspector-toggle] {
 }
 
 .global-settings-nav-button:hover {
-    background: rgba(255, 255, 255, .035);
+    background: var(--surface-hover-tint);
     color: var(--text-primary);
 }
 
@@ -5175,7 +5245,7 @@ body.mobile-details-open .geneo-inspector [data-geneo-inspector-toggle] {
 .global-settings-section {
     border: 1px solid var(--border-default);
     border-radius: var(--radius-lg);
-    background: rgba(26, 32, 31, .72);
+    background: var(--surface-panel-soft);
     overflow: hidden;
 }
 
@@ -5193,7 +5263,7 @@ body.mobile-details-open .geneo-inspector [data-geneo-inspector-toggle] {
     gap: var(--space-4);
     align-items: center;
     padding: var(--space-3) var(--space-4);
-    border-bottom: 1px solid rgba(255, 255, 255, .045);
+    border-bottom: 1px solid var(--surface-row-divider);
     color: var(--text-secondary);
 }
 

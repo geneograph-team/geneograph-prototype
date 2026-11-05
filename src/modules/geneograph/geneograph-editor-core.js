@@ -2554,7 +2554,7 @@ function geneoCreationToolSettings(tool)
 
 function geneoDefaultConnectionStyle()
 {
-    return { line: { color: '#D9E5E1', opacity: 100, enabled: true }, width: 2, pattern: 'solid', arrows: 'none', cornerRadius: 0, showRelationshipDates: false };
+    return { line: { color: geneoThemeColor('#D9E5E1', '#526B5C'), opacity: 100, enabled: true }, lineOverride: false, width: 2, pattern: 'solid', arrows: 'none', cornerRadius: 0, showRelationshipDates: false };
 }
 
 function geneoNormalizeConnectionDefaults(value)
@@ -2562,6 +2562,7 @@ function geneoNormalizeConnectionDefaults(value)
     const fallback = geneoDefaultConnectionStyle();
     return {
         line: geneoPaintFromLegacy(value?.line, value?.color, fallback.line),
+        lineOverride: value?.lineOverride === true,
         width: Math.round(geneoNumber(value?.width, fallback.width, GENEO_STROKE_WIDTH_MIN, GENEO_STROKE_WIDTH_MAX)),
         pattern: GENEO_CONNECTION_PATTERNS.includes(value?.pattern) ? value.pattern : fallback.pattern,
         arrows: GENEO_CONNECTION_ARROWS.includes(value?.arrows) ? value.arrows : fallback.arrows,
@@ -2965,7 +2966,11 @@ function geneoAppearance(value, defaults = {}, nodeType = '')
     }
     else
     {
-        delete result.paintOverrides;
+        result.paintOverrides = {
+            fill: source.paintOverrides?.fill === true,
+            stroke: source.paintOverrides?.stroke === true,
+            text: source.paintOverrides?.text === true
+        };
     }
     result.strokePattern = legacyStrokeType && legacyStrokeType !== 'none'
         ? legacyStrokeType
@@ -3439,6 +3444,7 @@ function normalizeGeneographRuntimeData()
     })).filter(collection => collection.id && projects.has(collection.projectId));
     sampleData.boards = (sampleData.boards || []).filter(Boolean).map(board =>
         normalizeGeneographBoardRecord(board, projectPeople));
+    sampleData.boards.forEach(board => geneoApplyThemeDefaultsToDiagram(board.diagram));
     const boardIds = new Set(sampleData.boards.map(board => board.id));
     Object.keys(state.geneoBoardViewports || {}).forEach(boardId =>
     {
@@ -3463,13 +3469,15 @@ function normalizeGeneographBoardRecord(board, projectPeople)
             ? canvas.backgroundPattern
             : canvas.gridVisible === false ? 'clear' : 'dots';
         const diagram = {
+            themeProvenanceVersion: source.themeProvenanceVersion === 1 ? 1 : 0,
             canvas: {
                 backgroundPaint: geneoPaintFromLegacy(
                     canvas.backgroundPaint,
                     canvas.backgroundColor,
-                    { color: '#0F1413', opacity: 100, enabled: true },
+                    { color: geneoThemeColor('#0F1413', '#F3F7F2'), opacity: 100, enabled: true },
                     { forceEnabled: true, forceOpacity: 100 }
                 ),
+                backgroundOverride: canvas.backgroundOverride === true,
                 backgroundPattern,
                 snapToGrid: Boolean(canvas.snapToGrid),
                 alwaysShowSockets: Boolean(canvas.alwaysShowSockets),
@@ -3891,12 +3899,13 @@ function geneoNodeDefaults(type)
 {
     const common = {
         appearance: {
-            fill: { color: '#18211F', opacity: 100, enabled: true },
-            stroke: { color: '#52615D', opacity: 100, enabled: true },
+            fill: { color: geneoThemeColor('#18211F', '#FFFFFF'), opacity: 100, enabled: true },
+            stroke: { color: geneoThemeColor('#52615D', '#8FA99A'), opacity: 100, enabled: true },
             strokeWidth: 1,
             strokePattern: 'solid',
             shadowEnabled: null,
-            text: { color: '#F1F5F3', opacity: 100, enabled: true }
+            text: { color: geneoThemeColor('#F1F5F3', '#17251E'), opacity: 100, enabled: true },
+            paintOverrides: { fill: false, stroke: false, text: false }
         }
     };
 
@@ -3962,19 +3971,19 @@ function geneoNodeDefaults(type)
             appearance: {
                 ...common.appearance,
                 fill: {
-                    color: '#D4AA6B',
+                    color: geneoThemeColor('#D4AA6B', '#FFF2CF'),
                     opacity: 100,
                     enabled: true
                 },
                 stroke: {
-                    color: '#A77C3F',
+                    color: geneoThemeColor('#A77C3F', '#A77C3F'),
                     opacity: 100,
                     enabled: true
                 },
                 strokeWidth: 1,
                 strokePattern: 'solid',
                 text: {
-                    color: '#241C10',
+                    color: geneoThemeColor('#241C10', '#4F4326'),
                     opacity: 100,
                     enabled: true
                 },
@@ -4036,8 +4045,8 @@ function geneoNodeDefaults(type)
             minHeight: 60,
             appearance: {
                 ...common.appearance,
-                fill: { color: '#173029', opacity: 100, enabled: true },
-                stroke: { color: '#62D99A', opacity: 100, enabled: true },
+                fill: { color: geneoThemeColor('#173029', '#E4EDE7'), opacity: 100, enabled: true },
+                stroke: { color: geneoThemeColor('#62D99A', '#1B6847'), opacity: 100, enabled: true },
                 strokeWidth: 2,
                 strokePattern: 'solid',
                 cornerRadius: 8
@@ -4056,7 +4065,7 @@ function geneoNodeDefaults(type)
             appearance: {
                 ...common.appearance,
                 fill: { ...common.appearance.fill, enabled: false },
-                stroke: { color: '#D9E5E1', opacity: 100, enabled: true },
+                stroke: { color: geneoThemeColor('#D9E5E1', '#526B5C'), opacity: 100, enabled: true },
                 strokeWidth: 2,
                 strokePattern: 'solid'
             }
