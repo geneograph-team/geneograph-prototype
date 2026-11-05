@@ -5,6 +5,11 @@
     max-height: calc(100dvh - 48px);
 }
 
+.notes-people-modal:not(.archive-person-area-modal) {
+    width: min(980px, calc(100vw - 48px));
+    height: min(800px, calc(100dvh - 48px));
+}
+
 .notes-people-modal .photo-people-body,
 .notes-places-modal .photo-people-body {
     display: flex;
@@ -45,12 +50,87 @@
     grid-template-rows: auto minmax(0, 1fr);
 }
 
+.notes-people-modal .photo-people-results-panel {
+    grid-template-rows: minmax(0, 1fr);
+}
+
 .notes-people-modal .photo-people-results,
 .notes-places-modal .photo-people-results {
     max-height: none;
     height: 100%;
     min-height: 0;
     overflow-y: auto;
+}
+
+.notes-people-modal:not(.archive-person-area-modal) .photo-people-body {
+    display: grid;
+    grid-template-columns: minmax(0, 1.2fr) minmax(280px, 1fr);
+    gap: 0;
+    padding: 0;
+}
+
+.notes-person-search-column {
+    display: grid;
+    grid-template-rows: auto minmax(0, 1fr);
+    gap: var(--space-4);
+    min-width: 0;
+    min-height: 0;
+    padding: var(--space-4);
+}
+
+.notes-people-modal:not(.archive-person-area-modal) .photo-people-selected-panel {
+    display: grid;
+    grid-template-rows: auto minmax(0, 1fr);
+    align-self: stretch;
+    max-height: none;
+    padding: var(--space-4);
+    border-left: 1px solid var(--border-default);
+}
+
+.notes-people-empty-selected {
+    margin: 0;
+    align-self: start;
+    color: var(--text-tertiary);
+}
+
+.notes-people-modal:not(.archive-person-area-modal) .photo-people-selected-name {
+    flex: 1 1 auto;
+}
+
+.notes-people-modal:not(.archive-person-area-modal) .photo-people-selected-remove {
+    width: 20px;
+    height: 20px;
+    flex: 0 0 20px;
+    margin-left: auto;
+}
+
+.notes-people-modal:not(.archive-person-area-modal) .photo-people-selected-remove svg {
+    width: 18px;
+    height: 18px;
+}
+
+@media (max-width: 760px) {
+    .notes-people-modal:not(.archive-person-area-modal) {
+        width: min(100%, calc(100vw - 24px));
+        height: min(800px, calc(100dvh - 24px));
+        max-height: calc(100dvh - 24px);
+    }
+
+    .notes-people-modal:not(.archive-person-area-modal) .photo-people-body {
+        grid-template-columns: minmax(0, 1fr);
+        grid-template-rows: minmax(0, 1fr) minmax(120px, auto);
+        overflow-y: auto;
+    }
+
+    .notes-person-search-column {
+        min-height: 250px;
+    }
+
+    .notes-people-modal:not(.archive-person-area-modal) .photo-people-selected-panel {
+        max-height: 180px;
+        border-left: 0;
+        border-top: 1px solid var(--border-default);
+    }
 }
 
 .notes-places-modal .notes-place-result {

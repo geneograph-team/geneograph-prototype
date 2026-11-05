@@ -3153,9 +3153,9 @@ function renderNoteLinkedEntitySection(
 
             ${renderPanelButtonLabel(
                 icon.plus,
-                `Add ${
-                    config.singular
-                }`
+                type === 'person'
+                    ? 'Tag person'
+                    : `Add ${config.singular}`
             )}
           </button>
         `,

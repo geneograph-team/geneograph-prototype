@@ -110,16 +110,6 @@ function openPeopleLinkModal({
             )
           || 'Unnamed person';
 
-    const personContext =
-        person =>
-            getPlaceEventDisplay(
-                person?.birth
-            )
-          || getPlaceEventDisplay(
-              person?.death
-          )
-          || '';
-
     const personSearchText =
         person =>
             [
@@ -333,7 +323,12 @@ function openPeopleLinkModal({
 
         if (!people.length)
         {
-            return '';
+            return imageArea ? '' : `
+          <div class="photo-people-selected-head">
+            <strong>${escapeHtml(selectedHeading)}</strong>
+            <span>0</span>
+          </div>
+          <p class="notes-people-empty-selected">${escapeHtml(t('No people tagged'))}</p>`;
         }
 
         return `
@@ -440,11 +435,6 @@ function openPeopleLinkModal({
                         )
                 || 'Dates unknown';
 
-                    const context =
-                        personContext(
-                            person
-                        );
-
                     return `
                 <label
                   class="
@@ -493,17 +483,6 @@ function openPeopleLinkModal({
                         )}
                     </span>
 
-                    ${
-                        context
-                            ? `
-                          <span>
-                            ${escapeHtml(
-                                context
-                            )}
-                          </span>
-                        `
-                            : ''
-                    }
                   </span>
 
                   <input
@@ -527,6 +506,12 @@ function openPeopleLinkModal({
                 })
                 .join('');
         };
+
+    const selectedPanelMarkup = `<section
+              class="photo-people-selected-panel"
+              data-notes-people-selected-panel
+              hidden>
+            </section>`;
 
     openModal(`
         <div
@@ -565,7 +550,7 @@ function openPeopleLinkModal({
               class="close-button"
               type="button"
               data-close
-              aria-label="Close add people dialog">
+              aria-label="${escapeHtml(t('Close'))}">
 
               ${icon.close}
             </button>
@@ -573,6 +558,7 @@ function openPeopleLinkModal({
 
           <div class="photo-people-body">
             ${imageArea ? '<div class="archive-person-area-list">' : ''}
+            ${imageArea ? '' : '<div class="notes-person-search-column">'}
 
             <div
               class="
@@ -596,32 +582,16 @@ function openPeopleLinkModal({
               </div>
             </div>
 
-            <section
-              class="photo-people-selected-panel"
-              data-notes-people-selected-panel
-              hidden>
-            </section>
+            ${imageArea ? selectedPanelMarkup : ''}
 
             <section class="photo-people-results-panel">
-
-              <div class="notes-related-results-head">
-                <div>
-                  <strong
-                    data-notes-people-results-title>
-                  </strong>
-
-                  <span
-                    data-notes-people-results-meta
-                    aria-live="polite">
-                  </span>
-                </div>
-              </div>
-
               <div
                 class="photo-people-results"
                 data-notes-people-choices>
               </div>
             </section>
+            ${imageArea ? '' : '</div>'}
+            ${imageArea ? '' : selectedPanelMarkup}
             ${imageArea ? '</div><section class="archive-person-area-workspace" data-archive-person-area-workspace></section>' : ''}
           </div>
 
@@ -717,49 +687,11 @@ function openPeopleLinkModal({
         const candidates =
             getCandidates();
 
-        const queryActive =
-            Boolean(
-                query.trim()
-            );
-
         selectedPanel.hidden =
-            !selectedHtml;
+            imageArea && !selectedHtml;
 
         selectedPanel.innerHTML =
             selectedHtml;
-
-        modal
-            .querySelector(
-                '[data-notes-people-results-title]'
-            )
-            .textContent =
-                queryActive
-                    ? 'Search results'
-                    : 'Suggested people';
-
-        modal
-            .querySelector(
-                '[data-notes-people-results-meta]'
-            )
-            .textContent =
-                candidates.total
-              > candidates.people.length
-                    ? `Showing ${
-                        candidates.people.length
-                    } of ${
-                        candidates.total
-                    }`
-                    : candidates.total
-                        ? `${candidates.total} ${
-                            queryActive
-                                ? 'match'
-                                : 'suggestion'
-                        }${
-                            candidates.total === 1
-                                ? ''
-                                : 's'
-                        }`
-                        : '';
 
         modal
             .querySelector(
@@ -979,7 +911,7 @@ function openNotesPeopleModal()
           note.projectId,
 
         title:
-          'Add people',
+          'Tag person',
 
         subtitle:
           note.title

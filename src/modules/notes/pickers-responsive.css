@@ -29,7 +29,7 @@
         height: 36px;
     }
 
-    .notes-people-modal .photo-people-selected-panel {
+    .notes-people-modal.archive-person-area-modal .photo-people-selected-panel {
         display: flex;
         flex-direction: column;
         flex: 0 0 auto;
@@ -37,7 +37,7 @@
         overflow: hidden;
     }
 
-    .notes-people-modal .photo-people-selected-list {
+    .notes-people-modal.archive-person-area-modal .photo-people-selected-list {
         min-height: 0;
         max-height: none;
         overflow-y: auto;
@@ -102,7 +102,7 @@
 }
 
 @media (max-width: 540px) and (max-height: 600px) {
-    .notes-people-modal .photo-people-selected-panel {
+    .notes-people-modal.archive-person-area-modal .photo-people-selected-panel {
         max-height: min(34%, 132px);
     }
 }
