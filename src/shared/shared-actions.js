@@ -476,7 +476,7 @@ function openProjectCoverPhotoPicker(projectId, { onSelect, nested = false, sele
                 ${renderPhotoThumbnail(photo, { label: title })}
                 <span>${escapeHtml(title)}</span>
             </button>`;
-        }).join('') : `<p class="project-cover-photo-empty">${escapeHtml(t(query ? 'No matching photos.' : 'No photos in this project yet.'))}</p>`;
+        }).join('') : `<p class="project-cover-photo-empty">${escapeHtml(t(query ? 'No matching photos.' : 'No project photos yet. Use Upload new photo above to choose one.'))}</p>`;
     };
 
     (nested ? openNestedModal : openModal)(`<div class="modal project-cover-photo-modal" role="dialog" aria-modal="true" aria-labelledby="coverPhotoPickerTitle">
@@ -485,10 +485,12 @@ function openProjectCoverPhotoPicker(projectId, { onSelect, nested = false, sele
         <div class="project-cover-photo-body">
             <div class="project-cover-photo-library">
                 <label class="project-cover-photo-search-label" for="coverPhotoSearch">Search photos</label>
-                <div class="app-search-field project-cover-photo-search">${icon.search}<input id="coverPhotoSearch" data-cover-photo-search type="search" placeholder="Search photos" autocomplete="off"></div>
+                <div class="project-cover-photo-toolbar">
+                    <div class="app-search-field project-cover-photo-search">${icon.search}<input id="coverPhotoSearch" data-cover-photo-search type="search" placeholder="Search photos" autocomplete="off"></div>
+                    <button type="button" class="button secondary project-cover-photo-upload" data-cover-photo-upload>${icon.plus} Upload new photo</button>
+                </div>
                 <div class="project-cover-photo-grid" data-cover-photo-grid>${renderGrid()}</div>
                 <input data-cover-photo-file type="file" accept="image/jpeg,image/png,image/webp" hidden>
-                <button type="button" class="button secondary project-cover-photo-upload" data-cover-photo-upload>${icon.plus} Upload new photo</button>
                 <label class="project-cover-photo-albums" data-cover-photo-albums hidden><input type="checkbox" data-cover-photo-add-albums> Add to Albums</label>
                 <p class="project-cover-photo-error" data-cover-photo-error role="alert" hidden></p>
             </div>

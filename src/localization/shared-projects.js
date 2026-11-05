@@ -246,7 +246,7 @@ const RU_UI_SHARED = Object.freeze({
     'Select a project photo or upload a new image.': 'Выберите фото проекта или загрузите новое изображение.',
     'Search photos': 'Поиск фотографий',
     'No matching photos.': 'Фотографии не найдены.',
-    'No photos in this project yet.': 'В проекте пока нет фотографий.',
+    'No project photos yet. Use Upload new photo above to choose one.': 'В проекте пока нет фотографий. Нажмите «Загрузить фото» выше, чтобы выбрать снимок.',
     'Add to Albums': 'Добавить в альбомы',
     'Cover preview': 'Предпросмотр обложки',
     'Choose a JPEG, PNG, or WebP image under 20 MB.': 'Выберите изображение JPEG, PNG или WebP размером до 20 МБ.',
