@@ -74,8 +74,10 @@ function openAddPersonModal(title, subtitle, options = {})
             : !connectionIntent.shouldConnect && state.activeModule === 'People' ? 'Male' : relativeGender)
         || 'Unknown';
 
+    const statusSuggested = !isEditMode && !options.livingStatus && connectionIntent.shouldConnect
+        && suggestedRelativeLivingStatus(getPerson(connectionIntent.anchorPersonId)?.birth, connectionIntent.relationshipType) === 'Deceased';
     const initialStatus = options.livingStatus
-        || (isEditMode ? editValues.livingStatus : 'Living');
+        || (isEditMode ? editValues.livingStatus : statusSuggested ? 'Deceased' : 'Living');
     openModal(`<div class="modal add-person-modal" role="dialog" aria-modal="true" aria-labelledby="addPersonTitle">
         <div class="modal-header add-person-header"><div class="add-person-icon">${icon.people}</div><div><h2 id="addPersonTitle">${escapeHtml(title)}</h2><p>${escapeHtml(subtitle)}</p></div><button class="close-button" type="button" data-close>${icon.close}</button></div>
         <div class="modal-body add-person-grid">

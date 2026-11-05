@@ -386,6 +386,18 @@ function genealogyCivilFromDay(number)
         day: e - Math.floor((153 * m + 2) / 5) + 1 };
 }
 
+function suggestedRelativeLivingStatus(birth, relationshipType, currentYear = new Date().getFullYear())
+{
+    const threshold = relationshipType === 'child' ? 140
+        : ['parent', 'sibling', 'partner'].includes(relationshipType) ? 125 : null;
+    if (!threshold || !Number.isInteger(currentYear)) return null;
+    const value = normalizeGenealogyDateInput(birth);
+    const bounds = genealogyDateBounds(value);
+    if (!bounds || !Number.isFinite(bounds.max)) return null;
+    const cutoff = genealogyDayNumber(currentYear - threshold, 12, 31, value.calendar);
+    return bounds.max <= cutoff ? 'Deceased' : null;
+}
+
 function genealogyAgeRange(birth, occurrence = undefined)
 {
     const now = new Date();

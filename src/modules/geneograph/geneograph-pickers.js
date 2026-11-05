@@ -2714,9 +2714,10 @@ function renderGeneographPersonModal(
             ? person.gender
             : defaultGender;
 
-    const status =
-        person?.livingStatus
-        || 'Living';
+    const anchorNode = relative ? getGeneographNode(relative.anchorNodeId) : null;
+    const statusSuggested = !editing && anchorNode?.type === 'person'
+        && suggestedRelativeLivingStatus(getGeneographPerson(anchorNode.personId)?.birth, geneoRelativeCategory(relative.type)) === 'Deceased';
+    const status = person?.livingStatus || (statusSuggested ? 'Deceased' : 'Living');
 
     const relativeLabel =
         relative
