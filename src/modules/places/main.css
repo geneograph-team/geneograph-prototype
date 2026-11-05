@@ -762,9 +762,9 @@
     border:
         1px solid var(--border-default);
     border-radius:
-        var(--radius-md);
+        var(--radius-sm);
     background:
-        var(--surface-card);
+        transparent;
 }
 
 .places-list-head,
@@ -783,18 +783,19 @@
         sticky;
     top: 0;
     z-index: 5;
-    min-height: 42px;
+    min-height: 44px;
     padding: 0 14px;
 
-    color: var(--text-tertiary);
+    color: var(--text-secondary);
     background:
         var(--surface-sidebar);
     border-bottom:
         1px solid var(--border-default);
-    box-shadow:
-        0 1px 0 rgba(0, 0, 0, .18);
+    border-radius: var(--radius-sm) var(--radius-sm) 0 0;
     font-size: 12px;
-    font-weight: 600;
+    font-weight: 700;
+    letter-spacing: .03em;
+    text-transform: uppercase;
 }
 
 .places-list-row {
@@ -807,6 +808,10 @@
 
     border-bottom:
         1px solid var(--border-default);
+}
+
+.places-list-row:last-child {
+    border-bottom: 0;
 }
 
 .places-list-row:hover {

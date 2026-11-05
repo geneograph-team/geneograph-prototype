@@ -141,11 +141,9 @@ function rpOpenNotePicker(options = {})
         filters: () => [{ key: 'favorite', label: rpText('Favorites only', 'Только избранные'), type: 'checkbox' },
             ...(options.includeArchived ? [{ key: 'archived', label: rpText('Include archived', 'Включая архивные'), type: 'checkbox' }] : [])],
         matchesFilters: (note, values) => Boolean((!values.favorite || note.favorite) && (!note.archived || connectedIds.has(note.id) || (options.includeArchived && values.archived))),
-        describe: (note, session) => ({ title: adapter.name(note),
+        describe: note => ({ title: adapter.name(note),
             description: localizedNoteBodyText(note.body || '').replace(/\s+/g, ' ').slice(0, 160),
-            meta: [note.archived ? rpText('Archived', 'В архиве') : '',
-                session.scopeId === 'all' ? collections().filter(collection => (note.collectionIds || []).includes(collection.id))
-                    .map(collection => localizedDataFieldValue(collection.name)).join(', ') : ''].filter(Boolean).join(' · '),
+            meta: note.archived ? rpText('Archived', 'В архиве') : '',
             icon: icon.note }),
         rank: (note, query, session) => Number(options.getSuggestionScore?.(note, query, session) || 0),
         preview: note => `<article class="rp-note-preview"><h3>${escapeHtml(adapter.name(note))}</h3><div class="rp-note-prose">${renderRichTextDeltaHtml(note.bodyDelta, localizedNoteBodyText(note.body || ''))}</div></article>`,

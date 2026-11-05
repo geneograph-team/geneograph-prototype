@@ -733,9 +733,15 @@
     white-space:nowrap
 }
 
-.resource-picker[data-resource-picker=notes] .rp-record-copy { gap:7px; }
+.resource-picker[data-resource-picker=notes] .rp-record-copy { gap:5px; }
 .resource-picker[data-resource-picker=notes] .rp-record-copy strong { font-weight:700; font-size:14px; }
-.resource-picker[data-resource-picker=notes] .rp-description { font-size:13px; line-height:1.5; }
+.resource-picker[data-resource-picker=notes] .rp-description {
+    display:block;
+    white-space:nowrap;
+    text-overflow:ellipsis;
+    font-size:13px;
+    line-height:1.5;
+}
 .resource-picker[data-resource-picker=notes] .rp-record-copy small { font-size:11px; opacity:.8; }
 
 .rp-record-icon
