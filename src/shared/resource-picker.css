@@ -535,7 +535,8 @@
 
 .rp-sort>svg { left:12px; width:20px; height:20px; }
 .rp-sort-chevron { right:12px; display:flex; }
-.rp-sort-chevron svg { width:14px; height:14px; transform:rotate(90deg); }
+.rp-sort-chevron svg { width:14px; height:14px; transform:rotate(90deg); transition:transform var(--ease); }
+.rp-sort:has(.rp-sort-trigger[aria-expanded="true"]) .rp-sort-chevron svg { transform:rotate(-90deg); }
 .resource-picker .rp-sort-trigger
 {
     width:100%;

@@ -34,6 +34,7 @@
     --control-focus-width: 2px;
     --control-field-focus-color: var(--brand-green-600);
     --select-chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8'%3E%3Cpath d='m1 1 5 5 5-5' fill='none' stroke='%23B8C0BD' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+    --select-chevron-open: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8'%3E%3Cpath d='m1 7 5-5 5 5' fill='none' stroke='%23B8C0BD' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
     --control-icon-button-size: var(--control-height);
     --search-field-max-width: 460px;
     --inspector-width: 450px;
@@ -3624,7 +3625,7 @@ body.mobile-details-open .geneo-inspector [data-geneo-inspector-toggle] {
     row-gap: var(--genealogy-date-row-gap);
 }
 
-.genealogy-date-field>label {
+.field.genealogy-date-field>label {
     margin-bottom: 0;
 }
 
@@ -4331,6 +4332,7 @@ body.mobile-details-open .geneo-inspector [data-geneo-inspector-toggle] {
     height: 15px;
     display: block;
     transform: rotate(90deg);
+    transition: transform var(--ease);
 }
 
 .project-settings-select-field:focus-within .project-settings-select-chevron {

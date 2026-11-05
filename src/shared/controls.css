@@ -336,6 +336,11 @@
     height: 16px;
     display: block;
     transform: rotate(90deg);
+    transition: transform var(--ease);
+}
+
+:is(.common-select-shell, .add-person-select-field, .project-settings-select-field):has(select:open) :is(.common-select-chevron, .add-person-select-chevron, .project-settings-select-chevron) svg {
+    transform: rotate(-90deg);
 }
 
 .common-select-shell:hover .common-select-chevron,
@@ -383,6 +388,10 @@
     background-position: calc(100% - 16px) center;
     background-size: 12px 7px;
     background-repeat: no-repeat;
+}
+
+:is(.select, .field select:not(.common-select):not(.add-person-select), .compact-select:not(.common-select):not(.add-person-select)):open {
+    background-image: var(--select-chevron-open);
 }
 
 /* Shared field and dropdown states. Unique controls keep their own layout. */

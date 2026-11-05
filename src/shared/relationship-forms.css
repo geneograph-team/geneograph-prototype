@@ -2452,6 +2452,7 @@ body.mobile-person-details-open .relative-popover-body {
     height: 16px;
     display: block;
     transform: rotate(90deg);
+    transition: transform var(--ease);
 }
 
 .add-person-select-field:hover .add-person-select-chevron,
@@ -2474,6 +2475,11 @@ body.mobile-person-details-open .relative-popover-body {
     height: 16px;
     display: block;
     transform: rotate(90deg);
+    transition: transform var(--ease);
+}
+
+.add-person-status-button[aria-expanded="true"] .add-person-status-chevron svg {
+    transform: rotate(-90deg);
 }
 
 .add-person-status-button:hover .add-person-status-chevron,
