@@ -5155,7 +5155,7 @@ body.mobile-details-open .geneo-inspector [data-geneo-inspector-toggle] {
     margin-bottom: 2px;
 }
 
-.global-settings-row span {
+.global-settings-row > div > span {
     display: block;
     color: var(--text-tertiary);
     font-size: 12px;
