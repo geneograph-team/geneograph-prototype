@@ -94,6 +94,7 @@
 
 :root[data-theme="light"] {
     color-scheme: light;
+    --table-surface: var(--gg-sidebar);
     --surface-app: var(--gg-background);
     --surface-main: var(--gg-panel);
     --surface-sidebar: var(--gg-sidebar);
@@ -1538,6 +1539,11 @@ button {
     background: var(--surface-card);
     border-radius: var(--radius-sm);
     overflow: hidden;
+}
+
+:root[data-theme="light"] .right-card,
+:root[data-theme="light"] .panel {
+    background: var(--surface-panel);
 }
 
 .right-card h2,

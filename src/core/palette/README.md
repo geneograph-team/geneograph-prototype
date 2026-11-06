@@ -14,9 +14,12 @@ This palette owns application UI colors. Authored Geneograph board colors, user-
 | Right inspector | `--gg-details` | `--surface-inspector` |
 | Inset panel or modal | `--gg-panel` | `--surface-panel` |
 | Raised card | `--gg-raised` | `--surface-raised` |
+| Tip of the Day | `--gg-tip-background`, `--gg-tip-text`, `--gg-tip-link` | direct component roles |
 | Field, hover, divider | `--gg-field`, `--gg-hover`, `--gg-border` | `--surface-field`, `--surface-hover`, `--surface-divider` |
 | Wide table selection | `--gg-selected-row` | `--table-row-selected` |
 | Currently inspected row | `--gg-selected-border` | `--table-current-marker` |
+
+Light surfaces progress from a warm neutral workspace to clean sidebars, inset panels, and white raised cards. Wide tables use the sidebar tone so their large bodies do not read as raised cards. The Light Tip of the Day uses the Heritage Green container palette; Dark keeps the deep green accent.
 
 Category families identify people, boards and education, photos, files, notes, places, events, sources, and publication in that order: Heritage Green, Creative Blue, Rose Sepia, Sepia Gold, Investigation Purple, Map Cyan, Chronicle Copper, Evidence Slate, and Print Magenta. Use `--gg-accent-<family>-*` for these identities. Use `--gg-status-<state>-*` for success, warning, error, pending, offline, favorite, and neutral states. Favorite currently reuses approved Sepia Gold values under its own role so its color can be controlled independently later. A missing source is a warning; a source record is Evidence Slate.
 

@@ -355,6 +355,10 @@ body.mobile-surface-open:has(.albums-shell) .menu-popover {
     transition: border-color .16s ease, background .16s ease, box-shadow .16s ease;
 }
 
+:root[data-theme="light"] .album-photo-card {
+    background: var(--surface-panel);
+}
+
 .album-photo-card:hover,
 .albums-list-row:not(.header):hover {
     border-color: var(--border-strong);
