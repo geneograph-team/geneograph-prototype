@@ -1,5 +1,5 @@
-/* GeneoGraph Design System v3.1.0 — custom MD3-inspired semantic scheme */
-/* Soft Neutral Light / Neutral Charcoal Dark; hue ramps are approximate OKLab, not official HCT. */
+/* GeneoGraph Design System v3.2.0 — custom MD3-inspired semantic scheme */
+/* Warm Neutral Light / Neutral Charcoal Dark; hue ramps are approximate OKLab, not official HCT. */
 :root {
   --gg-brand-seed: #2FAE74;
 }
@@ -9,30 +9,31 @@
   --gg-select-chevron-open: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8'%3E%3Cpath d='m1 7 5-5 5 5' fill='none' stroke='%234D5C52' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
   color-scheme: light;
   /* Foundation surfaces, text, and global interaction */
-  --gg-background: #EBEEEA;
-  --gg-topbar: #F4F6F2;
-  --gg-sidebar: #EDF0EB;
-  --gg-panel: #EDF0EB;
-  --gg-details: #E8ECE6;
-  --gg-raised: #F7F8F4;
-  --gg-field: #E5EAE3;
-  --gg-hover: #E0E7DE;
-  --gg-border: #CBD5CB;
-  --gg-outline: #6F8175;
+  --gg-background: #F9F8F3;
+  --gg-topbar: #F8F9F4;
+  --gg-sidebar: #F9FAF4;
+  --gg-panel: #FEFEFA;
+  --gg-details: #F9FAF4;
+  --gg-raised: #FFFFFF;
+  --gg-field: #F2F4EE;
+  --gg-hover: #EFF3EA;
+  --gg-border: #D9E0D7;
+  --gg-outline: #728575;
   --gg-text: #1B2520;
   --gg-text-secondary: #4D5C52;
-  --gg-text-muted: #596C5F;
+  --gg-text-muted: #627065;
   --gg-primary: #1C6B46;
   --gg-on-primary: #FFFFFF;
-  --gg-selected: #DCEFE4;
+  --gg-selected: #DDEEE3; /* navigation / compact selected control */
+  --gg-selected-row: #E7F2E9; /* softer tint for wide table rows */
   --gg-on-selected: #153D29;
   --gg-selected-border: #1C6B46;
-  --gg-tree-canvas: #EEF1ED;
-  --gg-tree-dots: #C5D2C6;
+  --gg-tree-canvas: #F7F8F2;
+  --gg-tree-dots: #CFDBCF;
   --gg-tree-line: #7B8980;
   --gg-timeline-line: #A3B3A9;
-  --gg-surface-bright: #F7F8F4;
-  --gg-surface-dim: #E3E8E1;
+  --gg-surface-bright: #FFFFFF;
+  --gg-surface-dim: #F0F2EB;
   --gg-inverse-surface: #29312D;
   --gg-inverse-on-surface: #F6F9F6;
   --gg-scrim: #000000;
@@ -53,22 +54,22 @@
   --md-sys-color-on-error: #FFFFFF;
   --md-sys-color-error-container: #FFDAD6;
   --md-sys-color-on-error-container: #410002;
-  --md-sys-color-background: #EBEEEA;
+  --md-sys-color-background: #F9F8F3;
   --md-sys-color-on-background: #1B2520;
-  --md-sys-color-surface: #EBEEEA;
+  --md-sys-color-surface: #F9F8F3;
   --md-sys-color-on-surface: #1B2520;
-  --md-sys-color-surface-dim: #E3E8E1;
-  --md-sys-color-surface-bright: #F7F8F4;
-  --md-sys-color-surface-container-lowest: #F7F8F4;
-  --md-sys-color-surface-container-low: #EDF0EB;
-  --md-sys-color-surface-container: #E8ECE6;
-  --md-sys-color-surface-container-high: #E5EAE3;
-  --md-sys-color-surface-container-highest: #E0E7DE;
+  --md-sys-color-surface-dim: #F0F2EB;
+  --md-sys-color-surface-bright: #FFFFFF;
+  --md-sys-color-surface-container-lowest: #FFFFFF;
+  --md-sys-color-surface-container-low: #F9FAF4;
+  --md-sys-color-surface-container: #F5F6F0;
+  --md-sys-color-surface-container-high: #F2F4EE;
+  --md-sys-color-surface-container-highest: #EFF3EA;
   --md-sys-color-surface-tint: #1C6B46;
-  --md-sys-color-surface-variant: #E5EAE3;
+  --md-sys-color-surface-variant: #F2F4EE;
   --md-sys-color-on-surface-variant: #4D5C52;
-  --md-sys-color-outline: #6F8175;
-  --md-sys-color-outline-variant: #CBD5CB;
+  --md-sys-color-outline: #728575;
+  --md-sys-color-outline-variant: #D9E0D7;
   --md-sys-color-inverse-surface: #29312D;
   --md-sys-color-inverse-on-surface: #F6F9F6;
   --md-sys-color-inverse-primary: #89D7AB;
@@ -195,6 +196,7 @@
   --gg-primary: #89D7AB;
   --gg-on-primary: #003921;
   --gg-selected: #123C2B;
+  --gg-selected-row: #123C2B;
   --gg-on-selected: #C2F4D7;
   --gg-selected-border: #89D7AB;
   --gg-tree-canvas: #0B0F0E;

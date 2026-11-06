@@ -2213,8 +2213,8 @@ button {
     --text-primary: var(--gg-accent-heritage-green-on-container);
     --text-secondary: var(--gg-accent-heritage-green-on-container);
     --text-tertiary: var(--gg-accent-heritage-green-on-container);
-    --border-default: color-mix(in srgb, var(--gg-accent-heritage-green-outline) 24%, transparent);
-    --border-strong: color-mix(in srgb, var(--gg-accent-heritage-green-outline) 40%, transparent);
+    --border-default: color-mix(in srgb, var(--gg-border) 100%, transparent);
+    --border-strong: color-mix(in srgb, var(--gg-border) 100%, transparent);
     --brand-green-300: var(--gg-primary);
     --surface-card-hover: var(--gg-hover);
     color: var(--text-primary);
@@ -2364,7 +2364,7 @@ button {
 .project-hero-action-button.danger {
     color: var(--gg-status-error-accent);
     border-color: color-mix(in srgb, var(--gg-status-error-accent) 34%, transparent);
-    background: color-mix(in srgb, var(--gg-details) 68%, transparent);
+    background: color-mix(in srgb, var(--gg-details) 85%, transparent);
 }
 
 .project-hero-action-button.danger:hover,
@@ -5162,14 +5162,9 @@ body.mobile-details-open .geneo-inspector [data-geneo-inspector-toggle] {
     line-height: 1.35;
 }
 
-.global-settings-control {
-    min-height: 38px;
-    border: 1px solid var(--border-default);
-    border-radius: var(--radius-sm);
-    background: var(--surface-input);
-    color: var(--text-primary);
-    padding: 0 var(--space-3);
-    min-width: 150px;
+.global-settings-select-shell {
+    width: 220px;
+    max-width: 100%;
 }
 
 .global-settings-row .global-settings-value {
