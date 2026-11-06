@@ -4,6 +4,7 @@
     --surface-main: var(--gg-panel);
     --surface-sidebar: var(--gg-sidebar);
     --surface-card: var(--gg-raised);
+    --surface-row: var(--gg-panel);
     --surface-card-hover: var(--gg-hover);
     --surface-input: var(--gg-field);
     --surface-selected: var(--gg-selected);
@@ -47,7 +48,7 @@
     --space-5: 20px;
     --space-6: 24px;
     --space-8: 32px;
-    --shadow-soft: 0 20px 70px color-mix(in srgb, var(--gg-scrim) 30%, transparent);
+    --shadow-soft: 0 12px 32px color-mix(in srgb, var(--gg-scrim) 18%, transparent);
     --ease: 170ms ease;
     --scrollbar-track: var(--gg-background);
     --scrollbar-track-soft: var(--gg-sidebar);
@@ -76,6 +77,7 @@
     --surface-main: var(--gg-panel);
     --surface-sidebar: var(--gg-sidebar);
     --surface-card: var(--gg-raised);
+    --surface-row: var(--gg-panel);
     --surface-card-hover: var(--gg-hover);
     --surface-input: var(--gg-field);
     --surface-selected: var(--gg-selected);
@@ -99,7 +101,7 @@
     --control-field-focus-color: var(--gg-primary);
     --select-chevron: var(--gg-select-chevron);
     --select-chevron-open: var(--gg-select-chevron-open);
-    --shadow-soft: 0 20px 70px color-mix(in srgb, var(--gg-scrim) 30%, transparent);
+    --shadow-soft: 0 12px 32px color-mix(in srgb, var(--gg-scrim) 12%, transparent);
     --scrollbar-track: var(--gg-background);
     --scrollbar-track-soft: var(--gg-sidebar);
     --scrollbar-thumb: var(--gg-outline);
@@ -2488,9 +2490,9 @@ button {
 }
 
 .app-chip {
-    --app-chip-border: color-mix(in srgb, var(--gg-text) 10%, transparent);
-    --app-chip-background: color-mix(in srgb, var(--gg-text) 5.5%, transparent);
-    --app-chip-color: var(--text-secondary);
+    --app-chip-border: color-mix(in srgb, var(--gg-status-neutral-outline) 42%, var(--gg-status-neutral-container));
+    --app-chip-background: var(--gg-status-neutral-container);
+    --app-chip-color: var(--gg-status-neutral-on-container);
 
     min-height: 30px;
     padding: 0 10px;
@@ -2558,204 +2560,80 @@ button.app-chip:disabled,
 }
 
 .app-chip--people {
-    --app-chip-border:
-        color-mix(in srgb, var(--gg-outline) 28%, transparent);
-
-    --app-chip-background:
-        color-mix(in srgb, var(--gg-primary) 18%, transparent);
-
-    --app-chip-color:
-        var(--brand-green-300);
-
-    --app-chip-on-accent-border:
-        color-mix(in srgb, var(--gg-primary) 42%, transparent);
-
-    --app-chip-on-accent-color:
-        var(--gg-primary);
+    --app-chip-border: color-mix(in srgb, var(--gg-accent-heritage-green-outline) 42%, var(--gg-accent-heritage-green-container));
+    --app-chip-background: var(--gg-accent-heritage-green-container);
+    --app-chip-color: var(--gg-accent-heritage-green-on-container);
 }
 
 .app-chip--places {
-    --app-chip-border:
-        color-mix(in srgb, var(--gg-accent-map-cyan-accent) 32%, transparent);
-
-    --app-chip-background:
-        color-mix(in srgb, var(--gg-primary) 18%, transparent);
-
-    --app-chip-color:
-        var(--gg-accent-map-cyan-accent);
-
-    --app-chip-on-accent-border:
-        color-mix(in srgb, var(--gg-accent-map-cyan-accent) 42%, transparent);
-
-    --app-chip-on-accent-color:
-        var(--gg-accent-map-cyan-accent);
+    --app-chip-border: color-mix(in srgb, var(--gg-accent-map-cyan-outline) 42%, var(--gg-accent-map-cyan-container));
+    --app-chip-background: var(--gg-accent-map-cyan-container);
+    --app-chip-color: var(--gg-accent-map-cyan-on-container);
 }
 
 .app-chip--events {
-    --app-chip-border:
-        color-mix(in srgb, var(--gg-accent-map-cyan-accent) 30%, transparent);
-
-    --app-chip-background:
-        color-mix(in srgb, var(--gg-primary) 17%, transparent);
-
-    --app-chip-color:
-        var(--gg-status-info-accent);
-
-    --app-chip-on-accent-border:
-        color-mix(in srgb, var(--gg-status-info-accent) 42%, transparent);
-
-    --app-chip-on-accent-color:
-        var(--gg-accent-creative-blue-accent);
+    --app-chip-border: color-mix(in srgb, var(--gg-accent-creative-blue-outline) 42%, var(--gg-accent-creative-blue-container));
+    --app-chip-background: var(--gg-accent-creative-blue-container);
+    --app-chip-color: var(--gg-accent-creative-blue-on-container);
 }
 
 .app-chip--photos,
 .app-chip--albums {
-    --app-chip-border:
-        color-mix(in srgb, var(--gg-status-error-accent) 32%, transparent);
-
-    --app-chip-background:
-        color-mix(in srgb, var(--gg-status-error-accent) 18%, transparent);
-
-    --app-chip-color:
-        var(--gg-status-error-accent);
-
-    --app-chip-on-accent-border:
-        color-mix(in srgb, var(--gg-status-error-accent) 42%, transparent);
-
-    --app-chip-on-accent-color:
-        var(--gg-status-error-accent);
+    --app-chip-border: color-mix(in srgb, var(--gg-accent-rose-sepia-outline) 42%, var(--gg-accent-rose-sepia-container));
+    --app-chip-background: var(--gg-accent-rose-sepia-container);
+    --app-chip-color: var(--gg-accent-rose-sepia-on-container);
 }
 
 .app-chip--files {
-    --app-chip-border:
-        color-mix(in srgb, var(--gg-accent-sepia-gold-accent) 32%, transparent);
-
-    --app-chip-background:
-        color-mix(in srgb, var(--gg-status-error-accent) 26%, transparent);
-
-    --app-chip-color:
-        var(--gg-accent-sepia-gold-accent);
-
-    --app-chip-on-accent-border:
-        color-mix(in srgb, var(--gg-accent-sepia-gold-accent) 44%, transparent);
-
-    --app-chip-on-accent-color:
-        var(--gg-accent-sepia-gold-accent);
+    --app-chip-border: color-mix(in srgb, var(--gg-accent-sepia-gold-outline) 42%, var(--gg-accent-sepia-gold-container));
+    --app-chip-background: var(--gg-accent-sepia-gold-container);
+    --app-chip-color: var(--gg-accent-sepia-gold-on-container);
 }
 
 .app-chip--sources {
-    --app-chip-border:
-        color-mix(in srgb, var(--gg-accent-map-cyan-accent) 32%, transparent);
-
-    --app-chip-background:
-        color-mix(in srgb, var(--gg-status-pending-container) 20%, transparent);
-
-    --app-chip-color:
-        var(--gg-accent-evidence-slate-accent);
-
-    --app-chip-on-accent-border:
-        color-mix(in srgb, var(--gg-accent-evidence-slate-accent) 42%, transparent);
-
-    --app-chip-on-accent-color:
-        var(--gg-accent-creative-blue-on-container);
+    --app-chip-border: color-mix(in srgb, var(--gg-accent-evidence-slate-outline) 42%, var(--gg-accent-evidence-slate-container));
+    --app-chip-background: var(--gg-accent-evidence-slate-container);
+    --app-chip-color: var(--gg-accent-evidence-slate-on-container);
 }
 
 .app-chip--notes,
 .app-chip--related {
-    --app-chip-border:
-        color-mix(in srgb, var(--gg-text-muted) 32%, transparent);
-
-    --app-chip-background:
-        color-mix(in srgb, var(--gg-accent-investigation-purple-container) 18%, transparent);
-
-    --app-chip-color:
-        var(--gg-accent-investigation-purple-accent);
-
-    --app-chip-on-accent-border:
-        color-mix(in srgb, var(--gg-accent-investigation-purple-accent) 44%, transparent);
-
-    --app-chip-on-accent-color:
-        var(--gg-accent-investigation-purple-accent);
+    --app-chip-border: color-mix(in srgb, var(--gg-accent-investigation-purple-outline) 42%, var(--gg-accent-investigation-purple-container));
+    --app-chip-background: var(--gg-accent-investigation-purple-container);
+    --app-chip-color: var(--gg-accent-investigation-purple-on-container);
 }
 
 .app-chip--neutral,
 .app-chip--collection,
-.app-chip--collections {
-    --app-chip-border:
-        color-mix(in srgb, var(--gg-text) 12%, transparent);
-
-    --app-chip-background:
-        color-mix(in srgb, var(--gg-text) 6%, transparent);
-
-    --app-chip-color:
-        var(--text-secondary);
-
-    --app-chip-on-accent-border:
-        color-mix(in srgb, var(--gg-text) 20%, transparent);
-
-    --app-chip-on-accent-color:
-        var(--gg-status-neutral-on-container);
+.app-chip--collections,
+.app-chip--deceased {
+    --app-chip-border: color-mix(in srgb, var(--gg-status-neutral-outline) 42%, var(--gg-status-neutral-container));
+    --app-chip-background: var(--gg-status-neutral-container);
+    --app-chip-color: var(--gg-status-neutral-on-container);
 }
-
-/* Person status chips */
 
 .app-chip--living {
-    --app-chip-border:
-        color-mix(in srgb, var(--gg-primary) 32%, transparent);
-
-    --app-chip-background:
-        color-mix(in srgb, var(--gg-primary) 17%, transparent);
-
-    --app-chip-color:
-        var(--brand-green-300);
-}
-
-.app-chip--deceased {
-    --app-chip-border:
-        color-mix(in srgb, var(--gg-text-muted) 24%, transparent);
-
-    --app-chip-background:
-        color-mix(in srgb, var(--gg-primary) 10%, transparent);
-
-    --app-chip-color:
-        var(--gg-text-secondary);
+    --app-chip-border: color-mix(in srgb, var(--gg-status-success-outline) 42%, var(--gg-status-success-container));
+    --app-chip-background: var(--gg-status-success-container);
+    --app-chip-color: var(--gg-status-success-on-container);
 }
 
 .app-chip--unknown {
-    --app-chip-border:
-        color-mix(in srgb, var(--gg-accent-sepia-gold-accent) 30%, transparent);
-
-    --app-chip-background:
-        color-mix(in srgb, var(--gg-accent-sepia-gold-accent) 15%, transparent);
-
-    --app-chip-color:
-        var(--gg-accent-sepia-gold-accent);
+    --app-chip-border: color-mix(in srgb, var(--gg-accent-sepia-gold-outline) 42%, var(--gg-accent-sepia-gold-container));
+    --app-chip-background: var(--gg-accent-sepia-gold-container);
+    --app-chip-color: var(--gg-accent-sepia-gold-on-container);
 }
 
-/*
-    Shared treatment for chips placed on
-    strong gradients and colored surfaces.
-*/
-
+/* Category chips keep their own opaque container on branded heroes. */
 .app-chip-row--on-accent .app-chip {
-    background:
-        color-mix(in srgb, var(--gg-topbar) 66%, transparent);
-
-    box-shadow:
-        inset 0 1px 0 color-mix(in srgb, var(--gg-text) 4%, transparent),
-        0 1px 2px color-mix(in srgb, var(--gg-scrim) 18%, transparent);
+    box-shadow: 0 1px 2px color-mix(in srgb, var(--gg-scrim) 18%, transparent);
 }
 
 .app-chip-row--on-accent button.app-chip:hover,
 .app-chip-row--on-accent a.app-chip:hover {
-    background:
-        color-mix(in srgb, var(--gg-topbar) 82%, transparent);
-
-    box-shadow:
-        inset 0 0 0 1px currentColor,
+    box-shadow: inset 0 0 0 1px currentColor,
         0 2px 5px color-mix(in srgb, var(--gg-scrim) 20%, transparent);
 }
-
 .overview-grid {
     display: grid;
     grid-template-columns: 1fr;
@@ -2804,10 +2682,7 @@ button.app-chip:disabled,
 
 .project-activity-list {
     display: grid;
-    border: 1px solid var(--border-default);
-    border-radius: var(--radius-sm);
-    overflow: hidden;
-    background: var(--surface-card);
+    background: transparent;
 }
 
 .project-activity-row {

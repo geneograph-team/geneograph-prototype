@@ -442,7 +442,7 @@
     min-width: 0;
     min-height: 0;
     border-left: 1px solid var(--border-default);
-    background: var(--surface-card);
+    background: var(--surface-row);
     overflow: auto;
     overscroll-behavior: contain;
 }
@@ -499,7 +499,7 @@
     display: grid;
     gap: var(--space-3);
     border-bottom: 1px solid var(--border-default);
-    background: var(--surface-card);
+    background: var(--surface-row);
     backdrop-filter: blur(12px);
 }
 

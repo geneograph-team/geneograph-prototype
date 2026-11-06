@@ -1999,6 +1999,7 @@ body.mobile-surface-open:has(.albums-shell) .menu-popover {
     min-width: 850px;
     border: 1px solid var(--border-default);
     border-radius: var(--radius-sm);
+    background: var(--surface-row);
 }
 
 .albums-list-row {
@@ -2034,7 +2035,7 @@ body.mobile-surface-open:has(.albums-shell) .menu-popover {
     min-height: 44px;
     border-bottom-color: var(--border-default);
     border-radius: var(--radius-sm) var(--radius-sm) 0 0;
-    background: var(--surface-sidebar);
+    background: var(--gg-details);
     color: var(--text-secondary);
     font-size: 12px;
     font-weight: 700;

@@ -459,7 +459,7 @@
     flex: 1 1 auto;
     border: 1px solid var(--border-default);
     border-radius: var(--radius-md);
-    background: var(--surface-card);
+    background: var(--surface-row);
     overflow: auto;
 }
 
@@ -496,7 +496,7 @@
     top: 0;
     z-index: 3;
     height: 42px;
-    background: var(--surface-card-hover);
+    background: var(--gg-details);
     color: var(--text-tertiary);
     font-size: 11px;
     font-weight: 900;

@@ -286,6 +286,12 @@
     z-index: -1;
 }
 
+[data-theme="light"] .people-hero::after {
+    opacity: .27;
+    mix-blend-mode: multiply;
+    filter: saturate(.75) brightness(.82);
+}
+
 .people-hero-head {
     display: flex;
     align-items: flex-start;
@@ -420,6 +426,12 @@
         saturate(.72) brightness(.82);
 
     pointer-events: none;
+}
+
+[data-theme="light"] .profile-hero::after {
+    opacity: .35;
+    mix-blend-mode: multiply;
+    filter: saturate(.75) brightness(.82);
 }
 
 .profile-hero-content {

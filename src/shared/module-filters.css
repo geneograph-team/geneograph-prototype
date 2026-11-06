@@ -753,7 +753,7 @@
     border: 1px solid var(--border-default);
     border-radius: var(--radius-md);
     overflow: auto;
-    background: var(--surface-card);
+    background: var(--surface-row);
 }
 
 .people-table-wrap.is-empty { display:flex; flex-direction:column; }
@@ -790,7 +790,7 @@
     position: sticky;
     top: 0;
     z-index: 2;
-    background: var(--surface-card-hover);
+    background: var(--gg-details);
     color: var(--text-secondary);
     font-size: 12px;
     letter-spacing: .04em;
