@@ -1,6 +1,6 @@
 .geneo-inspector {
     border-left: 1px solid var(--border-default);
-    background: var(--surface-sidebar);
+    background: var(--surface-inspector);
     width: var(--inspector-width);
     min-width: var(--inspector-width);
     overflow-y: auto;
@@ -356,19 +356,19 @@
 
 .geneo-tree-link-row.is-warning {
     border-color:
-        color-mix(in srgb, var(--gg-accent-sepia-gold-accent) 32%, transparent);
+        var(--gg-status-warning-outline);
 
     background:
-        color-mix(in srgb, var(--gg-accent-sepia-gold-accent) 7%, transparent);
+        var(--gg-status-warning-subtle-container);
 }
 
 .geneo-tree-link-row.is-warning:hover,
 .geneo-tree-link-row.is-warning:focus-within {
     border-color:
-        color-mix(in srgb, var(--gg-accent-sepia-gold-accent) 52%, transparent);
+        var(--gg-status-warning-outline);
 
     background:
-        color-mix(in srgb, var(--gg-accent-sepia-gold-accent) 11%, transparent);
+        var(--gg-status-warning-container);
 }
 
 .geneo-tree-link-warning-icon {
@@ -380,9 +380,9 @@
     border-radius: 50%;
 
     background:
-        color-mix(in srgb, var(--gg-accent-sepia-gold-accent) 12%, transparent);
+        var(--gg-status-warning-subtle-container);
 
-    color: var(--amber);
+    color: var(--gg-status-warning-accent);
 }
 
 .geneo-tree-link-warning-icon svg {
@@ -939,7 +939,7 @@
     border: 0;
     padding: 0;
     background: transparent;
-    color: var(--brand-green-200);
+    color: var(--gg-primary);
     font: inherit;
     text-decoration: underline;
     text-underline-offset: 2px;
@@ -952,7 +952,7 @@
 }
 
 .geneo-image-source-link:focus-visible {
-    outline: 2px solid var(--brand-green-200);
+    outline: 2px solid var(--gg-primary);
     outline-offset: 3px;
 }
 

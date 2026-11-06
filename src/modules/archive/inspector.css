@@ -8,7 +8,7 @@
         1px solid var(--border-default);
 
     background:
-        var(--surface-sidebar);
+        var(--surface-inspector);
 }
 
 .archive-inspector {
@@ -1036,11 +1036,7 @@
 
 .archive-source-table .archive-source-row.selected-detail,
 .archive-source-table .archive-source-row.selected-detail:hover {
-    background:
-        var(--surface-selected);
-
-    box-shadow:
-        inset 3px 0 0 var(--brand-green-400);
+    box-shadow: inset 3px 0 0 var(--table-current-marker);
 }
 
 .archive-source-row-actions {

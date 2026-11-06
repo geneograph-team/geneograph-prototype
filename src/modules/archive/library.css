@@ -8,7 +8,7 @@
         minmax(0, 1fr) var(--inspector-width);
 
     background:
-        var(--surface-main);
+        var(--surface-workspace);
 
     overflow: hidden;
 }
@@ -459,7 +459,7 @@
     flex: 1 1 auto;
     border: 1px solid var(--border-default);
     border-radius: var(--radius-md);
-    background: var(--surface-row);
+    background: var(--table-surface);
     overflow: auto;
 }
 
@@ -486,7 +486,7 @@
 .archive-table td {
     height: 44px;
     padding: 0 9px;
-    border-bottom: 1px solid var(--border-default);
+    border-bottom: 1px solid var(--table-divider);
     text-align: left;
     vertical-align: middle;
 }
@@ -496,8 +496,8 @@
     top: 0;
     z-index: 3;
     height: 42px;
-    background: var(--gg-details);
-    color: var(--text-tertiary);
+    background: var(--table-header-surface);
+    color: var(--table-secondary-text);
     font-size: 11px;
     font-weight: 900;
     letter-spacing: .075em;
@@ -527,8 +527,7 @@
 }
 
 .archive-table tbody tr:hover {
-    background:
-        color-mix(in srgb, var(--gg-text) 2.5%, transparent);
+    background: var(--table-row-hover);
 }
 
 /*
@@ -538,8 +537,7 @@
 */
 .archive-table tbody tr.is-checked,
 .archive-table tbody tr.is-checked:hover {
-    background:
-        var(--surface-selected);
+    background: var(--table-row-selected);
 }
 
 /*
@@ -548,8 +546,7 @@
     matching Albums' selected-detail state.
 */
 .archive-table tbody tr.selected-detail {
-    box-shadow:
-        inset 0 0 0 1px color-mix(in srgb, var(--gg-primary) 20%, transparent);
+    box-shadow: inset 3px 0 0 var(--table-current-marker);
 }
 
 /*
@@ -557,11 +554,8 @@
     replacing the row's selection background.
 */
 .archive-table tbody tr:focus-visible {
-    outline:
-        2px solid var(--brand-green-400);
-
-    outline-offset:
-        -2px;
+    outline: 2px solid var(--table-focus);
+    outline-offset: -2px;
 }
 
 .archive-table tbody tr:last-child td {
@@ -765,7 +759,7 @@
     cursor: pointer;
 }
 .archive-tile:hover { background: var(--surface-card-hover); }
-.archive-tile.selected-detail { border-color: color-mix(in srgb, var(--gg-primary) 55%, transparent); background: var(--surface-selected); }
+.archive-tile.selected-detail { border-color: color-mix(in srgb, var(--gg-primary) 55%, transparent); background: var(--surface-card-hover); box-shadow: inset 3px 0 0 var(--table-current-marker); }
 .archive-tile.is-checked { border-color: var(--brand-green-400); background: var(--surface-selected); }
 .archive-tile:focus-visible { outline: 2px solid var(--brand-green-400); outline-offset: 1px; }
 .archive-tile-art { position: relative; width: 72px; height: 72px; margin-inline: auto; display: grid; place-items: center; overflow: hidden; }
@@ -782,7 +776,7 @@
 .archive-tile:focus-within .archive-tile-select,
 .archive-tile.is-checked .archive-tile-select { opacity: 1; }
 .archive-tile-more { position: absolute; z-index: 2; top: 3px; right: 3px; width: 32px; height: 32px; color: var(--text-tertiary); }
-.archive-tile-favorite { flex: none; color: var(--amber); }
+.archive-tile-favorite { flex: none; color: var(--gg-status-favorite-accent); }
 .archive-tile-favorite svg { width: 14px; height: 14px; }
 @media (hover: none) { .archive-tile-select { opacity: 1; pointer-events: auto; } }
 .archive-files-page [data-archive-folder-row].archive-drop-target,
@@ -830,13 +824,13 @@ body.mobile-surface-open:has(.archive-shell) .modal-backdrop.open {
 }
 
 .archive-file-icon.pdf {
-    color: var(--gg-status-error-accent);
-    background: color-mix(in srgb, var(--gg-status-error-accent) 10%, transparent);
+    color: var(--gg-accent-sepia-gold-accent);
+    background: var(--gg-accent-sepia-gold-subtle-container);
 }
 
 .archive-file-icon.img {
-    color: var(--gg-accent-sepia-gold-accent);
-    background: color-mix(in srgb, var(--gg-accent-sepia-gold-accent) 10%, transparent);
+    color: var(--gg-accent-rose-sepia-accent);
+    background: var(--gg-accent-rose-sepia-subtle-container);
 }
 
 .archive-file-icon.audio {
@@ -878,7 +872,7 @@ body.mobile-surface-open:has(.archive-shell) .modal-backdrop.open {
 }
 
 .archive-row-icon-button.active {
-    color: var(--amber);
+    color: var(--gg-status-favorite-accent);
 }
 
 .archive-row-icon-button svg {
@@ -1130,13 +1124,13 @@ body.mobile-surface-open:has(.archive-shell) .modal-backdrop.open {
 }
 
 .archive-source-filter:hover {
-    background: color-mix(in srgb, var(--gg-text) 3.5%, transparent);
+    background: var(--surface-card-hover);
     color: var(--text-primary);
 }
 
 .archive-source-filter.active {
-    border-color: color-mix(in srgb, var(--gg-primary) 10%, transparent);
-    background: color-mix(in srgb, var(--gg-primary) 7.5%, transparent);
+    border-color: var(--gg-selected-border);
+    background: var(--surface-selected);
     color: var(--text-primary);
     box-shadow:
         inset 2px 0 0 var(--brand-green-400);

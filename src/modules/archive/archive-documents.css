@@ -27,7 +27,7 @@
     font-size: 12px;
     line-height: 1.4;
 }
-.archive-document-import-notice > span:first-child { display: inline-flex; flex: 0 0 16px; color: var(--warning, var(--gg-accent-sepia-gold-accent)); }
+.archive-document-import-notice > span:first-child { display: inline-flex; flex: 0 0 16px; color: var(--gg-status-warning-accent); }
 .archive-document-import-notice svg { width: 16px; height: 16px; }
 .archive-document-import-summary:empty { display: none; }
 

@@ -401,7 +401,7 @@
 
 .places-route-popup-preview.is-unavailable {
     border-color:
-        color-mix(in srgb, var(--gg-accent-sepia-gold-accent) 34%, transparent);
+        var(--gg-status-warning-outline);
 }
 
 .places-route-popup-preview-icon {
@@ -414,7 +414,7 @@
 }
 
 .places-route-popup-preview.is-unavailable .places-route-popup-preview-icon {
-    color: var(--amber);
+    color: var(--gg-status-warning-accent);
 }
 
 .places-route-popup-preview-icon svg {
@@ -710,7 +710,7 @@
         minmax(0, 1fr) var(--inspector-width);
 
     background:
-        var(--surface-main);
+        var(--surface-workspace);
 
     overflow: hidden;
 }
@@ -764,7 +764,7 @@
     border-radius:
         var(--radius-sm);
     background:
-        var(--surface-row);
+        var(--table-surface);
 }
 
 .places-list-head,
@@ -788,7 +788,7 @@
 
     color: var(--text-secondary);
     background:
-        var(--gg-details);
+        var(--table-header-surface);
     border-bottom:
         1px solid var(--border-default);
     border-radius: var(--radius-sm) var(--radius-sm) 0 0;
@@ -816,12 +816,12 @@
 
 .places-list-row:hover {
     background:
-        var(--surface-card-hover);
+        var(--table-row-hover);
 }
 
 .places-list-row.active {
-    background: var(--surface-selected);
-    box-shadow: inset 3px 0 0 var(--brand-green-500);
+    background: var(--table-row-selected);
+    box-shadow: inset 3px 0 0 var(--table-current-marker);
 }
 
 .places-list-row>div:first-child {
@@ -842,7 +842,7 @@
     padding: 0;
     border: 0;
     background: transparent;
-    color: var(--amber);
+    color: var(--gg-status-warning-accent);
     font-size: 11px;
     font-weight: 600;
     cursor: pointer;
@@ -877,7 +877,7 @@
     min-height: 0;
     display: flex;
     flex-direction: column;
-    background: var(--surface-base);
+    background: var(--surface-app);
 }
 
 .places-review-head {
@@ -1253,10 +1253,10 @@
 
 .places-map-legend-marker.selected {
     background:
-        var(--gg-accent-sepia-gold-accent);
+        var(--gg-primary);
 
     border-color:
-        var(--gg-accent-rose-sepia-accent);
+        var(--gg-accent-map-cyan-outline);
 
     box-shadow:
         0 0 0 3px color-mix(in srgb, var(--gg-primary) 16%, transparent);
@@ -1355,10 +1355,10 @@
 
 .leaflet-place-marker.selected {
     background:
-        var(--gg-accent-sepia-gold-accent);
+        var(--gg-primary);
 
     border-color:
-        var(--gg-accent-rose-sepia-accent);
+        var(--gg-accent-map-cyan-outline);
 
     box-shadow:
         0 0 0 5px color-mix(in srgb, var(--gg-primary) 22%, transparent),
@@ -1368,7 +1368,7 @@
 
 .leaflet-place-marker.selected::after {
     background:
-        color-mix(in srgb, var(--gg-status-warning-subtle-container) 78%, transparent);
+        var(--gg-accent-map-cyan-container);
 
     box-shadow:
         0 0 0 1px color-mix(in srgb, var(--gg-text) 28%, transparent);
@@ -1378,10 +1378,10 @@
 
 .leaflet-place-marker.draft {
     background:
-        var(--gg-accent-evidence-slate-container);
+        var(--gg-accent-map-cyan-container);
 
     border-color:
-        var(--gg-accent-investigation-purple-accent);
+        var(--gg-accent-map-cyan-outline);
 
     box-shadow:
         0 0 0 5px color-mix(in srgb, var(--gg-scrim) 20%, transparent),
@@ -1426,7 +1426,7 @@
 .places-route-marker.is-end {
     border-radius: 7px;
     background: var(--gg-status-error-accent);
-    color: var(--gg-accent-print-magenta-on-accent);
+    color: var(--gg-status-error-on-accent);
 }
 
 .places-route-marker-icon:focus-visible .places-route-marker,
@@ -1549,16 +1549,16 @@
         8px 10px;
 
     border:
-        1px solid color-mix(in srgb, var(--gg-accent-sepia-gold-accent) 25%, transparent);
+        1px solid var(--gg-status-warning-outline);
 
     border-radius:
         var(--radius-sm);
 
     background:
-        color-mix(in srgb, var(--gg-accent-sepia-gold-accent) 8%, transparent);
+        var(--gg-status-warning-subtle-container);
 
     color:
-        var(--amber);
+        var(--gg-status-warning-accent);
 
     font-size:
         12px;
@@ -1667,13 +1667,13 @@
 }
 
 .places-attention-actions .places-attention-fix {
-    border-color: color-mix(in srgb, var(--gg-accent-sepia-gold-accent) 45%, transparent);
-    background: var(--amber);
-    color: var(--gg-accent-print-magenta-on-accent);
+    border-color: var(--gg-status-warning-outline);
+    background: var(--gg-status-warning-accent);
+    color: var(--gg-status-warning-on-accent);
 }
 
 .places-attention-actions .places-attention-fix:hover {
-    border-color: var(--amber);
+    border-color: var(--gg-status-warning-accent);
     filter: brightness(1.06);
 }
 
@@ -2517,7 +2517,7 @@
 .place-editor-suggestion-status button {
     border: 0;
     background: transparent;
-    color: var(--green);
+    color: var(--gg-primary);
     font-weight: 800;
 }
 
@@ -2532,7 +2532,7 @@
 .place-editor-selection-notice {
     margin: 0;
     padding: 9px 11px;
-    border-left: 3px solid var(--green);
+    border-left: 3px solid var(--gg-primary);
     background: color-mix(in srgb, var(--gg-primary) 8%, transparent);
     color: var(--text-secondary);
     font-size: 12px;
@@ -2543,9 +2543,9 @@
     margin-top: var(--space-1);
     padding: var(--space-3);
     border: 0;
-    border-left: 3px solid var(--amber);
+    border-left: 3px solid var(--gg-status-warning-accent);
     border-radius: var(--radius-sm);
-    background: color-mix(in srgb, var(--gg-accent-sepia-gold-accent) 8%, transparent);
+    background: var(--gg-status-warning-subtle-container);
 
     display: grid;
     grid-template-columns: minmax(0, 1fr);
@@ -2558,7 +2558,7 @@
     display: flex;
     align-items: center;
     gap: var(--space-2);
-    color: var(--text-primary);
+    color: var(--gg-status-warning-on-container);
     line-height: 1.4;
 }
 
@@ -2566,7 +2566,7 @@
     width: 18px;
     height: 18px;
     flex: 0 0 18px;
-    color: var(--amber);
+    color: var(--gg-status-warning-accent);
 }
 
 .place-duplicate-name {

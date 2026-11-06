@@ -2843,7 +2843,7 @@ html[lang="ru"] .geneo-node-person[data-geneo-person-card-style="standard"] .gen
         50%;
 
     color:
-        var(--gg-accent-print-magenta-on-accent);
+        var(--gg-on-primary);
 
     background:
         var(--brand-green-300);
@@ -3033,7 +3033,7 @@ html[lang="ru"] .geneo-node-person[data-geneo-person-card-style="standard"] .gen
     width: 14px;
     height: 14px;
     padding: 0;
-    border: 2px solid var(--gg-accent-print-magenta-on-accent);
+    border: 2px solid var(--gg-accent-heritage-green-on-container);
     border-radius: 50%;
     background: var(--gg-accent-heritage-green-container);
     box-shadow: 0 0 0 1px color-mix(in srgb, var(--gg-text) 55%, transparent);
@@ -3095,7 +3095,7 @@ html[lang="ru"] .geneo-node-person[data-geneo-person-card-style="standard"] .gen
     width: 12px;
     height: 12px;
     padding: 0;
-    border: 2px solid var(--gg-accent-print-magenta-on-accent);
+    border: 2px solid var(--gg-status-pending-on-container);
     border-radius: 3px;
     background: var(--gg-status-pending-container);
 }
@@ -3284,7 +3284,7 @@ html[lang="ru"] .geneo-node-person[data-geneo-person-card-style="standard"] .gen
 }
 
 .geneo-waypoint {
-    fill: var(--gg-accent-print-magenta-on-accent);
+    fill: var(--gg-panel);
     stroke: var(--gg-primary);
     stroke-width: 2;
     pointer-events: all;
@@ -3297,7 +3297,7 @@ html[lang="ru"] .geneo-node-person[data-geneo-person-card-style="standard"] .gen
 
 .geneo-family-junction {
     fill: var(--gg-primary);
-    stroke: var(--gg-accent-print-magenta-on-accent);
+    stroke: var(--gg-on-primary);
     stroke-width: 3;
     opacity: 0;
     pointer-events: none;
@@ -3328,7 +3328,7 @@ html[lang="ru"] .geneo-node-person[data-geneo-person-card-style="standard"] .gen
 }
 
 .geneo-relationship-date rect {
-    fill: color-mix(in srgb, var(--gg-accent-print-magenta-on-accent) 94%, transparent);
+    fill: color-mix(in srgb, var(--gg-panel) 94%, transparent);
     stroke: color-mix(in srgb, var(--gg-primary) 35%, transparent);
     stroke-width: 1;
 }

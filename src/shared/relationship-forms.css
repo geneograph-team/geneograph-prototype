@@ -2302,8 +2302,8 @@ body.mobile-person-details-open .relative-popover-body {
 }
 
 .attach-icon.photo {
-    color: var(--red);
-    background: color-mix(in srgb, var(--gg-status-error-accent) 12%, transparent);
+    color: var(--gg-accent-rose-sepia-accent);
+    background: var(--gg-accent-rose-sepia-subtle-container);
 }
 
 .attach-icon.file {
@@ -2339,7 +2339,7 @@ body.mobile-person-details-open .relative-popover-body {
 }
 
 .match-row .match-score {
-    color: var(--amber);
+    color: var(--gg-status-warning-accent);
     font-size: 12px;
     font-weight: 800;
 }
@@ -2529,11 +2529,11 @@ body.mobile-person-details-open .relative-popover-body {
 }
 
 .add-person-status-dot.deceased {
-    background: var(--text-tertiary);
+    background: var(--gg-deceased-dot);
 }
 
 .add-person-status-dot.unknown {
-    background: var(--amber);
+    background: var(--gg-accent-sepia-gold-accent);
 }
 
 .add-person-status-menu {
@@ -3524,7 +3524,7 @@ body.mobile-person-details-open .relative-popover-body {
 .add-person-mini-choice-indicator.checked {
     border-color: color-mix(in srgb, var(--gg-primary) 40%, transparent);
     background: var(--brand-green-500);
-    color: var(--gg-accent-print-magenta-on-accent);
+    color: var(--gg-on-primary);
 }
 
 .add-person-mini-footer {

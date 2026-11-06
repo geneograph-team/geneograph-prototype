@@ -288,7 +288,7 @@
     min-height: 0;
     display: flex;
     flex-direction: column;
-    background: var(--surface-base);
+    background: var(--surface-app);
 }
 
 .places-page-head {

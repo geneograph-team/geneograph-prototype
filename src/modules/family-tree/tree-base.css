@@ -15,7 +15,7 @@
     display: grid;
     place-items: center;
     padding: 32px;
-    background: var(--surface-main);
+    background: var(--surface-workspace);
 }
 
 .tree-empty-state-card {
@@ -741,7 +741,7 @@
 }
 
 .status-dot.unknown::before {
-    background: var(--amber);
+    background: var(--gg-status-neutral-accent);
 }
 
 .card-actions {
@@ -1467,13 +1467,13 @@
 .inspector-name-save {
     border-color: color-mix(in srgb, var(--gg-primary) 35%, transparent);
     background: var(--brand-green-500);
-    color: var(--gg-accent-print-magenta-on-accent);
+    color: var(--gg-on-primary);
 }
 
 .inspector-name-save:hover,
 .inspector-name-save:focus-visible {
     background: var(--brand-green-300);
-    color: var(--gg-accent-print-magenta-on-accent);
+    color: var(--gg-on-primary);
 }
 
 .inspector-name-heading h2 { min-width: 0; }

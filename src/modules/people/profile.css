@@ -26,7 +26,7 @@
     align-items: start;
     gap: var(--space-4);
     padding: 24px 28px 36px;
-    background: var(--surface-main);
+    background: var(--surface-workspace);
     overflow: visible;
 }
 
@@ -652,7 +652,7 @@
     flex: 0 0 16px;
     display: inline-grid;
     place-items: center;
-    color: var(--amber);
+    color: var(--gg-status-warning-accent);
 }
 
 .profile-place-coordinate-warning svg {

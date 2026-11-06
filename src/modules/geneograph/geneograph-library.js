@@ -104,7 +104,7 @@ function renderGeneographHome()
 
               <button
                 class="
-                  link
+                  text-action
                   tip-link
                 "
                 type="button"

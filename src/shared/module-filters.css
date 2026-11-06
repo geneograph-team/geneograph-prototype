@@ -753,7 +753,7 @@
     border: 1px solid var(--border-default);
     border-radius: var(--radius-md);
     overflow: auto;
-    background: var(--surface-row);
+    background: var(--table-surface);
 }
 
 .people-table-wrap.is-empty { display:flex; flex-direction:column; }
@@ -779,7 +779,7 @@
 
 .people-table th,
 .people-table td {
-    border-bottom: 1px solid var(--border-default);
+    border-bottom: 1px solid var(--table-divider);
     padding: 12px 14px;
     text-align: left;
     white-space: nowrap;
@@ -790,8 +790,8 @@
     position: sticky;
     top: 0;
     z-index: 2;
-    background: var(--gg-details);
-    color: var(--text-secondary);
+    background: var(--table-header-surface);
+    color: var(--table-secondary-text);
     font-size: 12px;
     letter-spacing: .04em;
     font-weight: 800;
@@ -802,11 +802,11 @@
 }
 
 .people-table tbody tr:hover {
-    background: var(--surface-hover-tint);
+    background: var(--table-row-hover);
 }
 
 .people-table tbody tr.is-previewed {
-    background: var(--surface-selected);
+    box-shadow: inset 3px 0 0 var(--table-current-marker);
 }
 
 .people-table tbody tr.is-previewed td {
@@ -814,7 +814,7 @@
 }
 
 .people-table tbody tr.is-selected {
-    background: var(--surface-selected);
+    background: var(--table-row-selected);
 }
 
 .people-table tbody tr.is-selected td {
@@ -822,7 +822,7 @@
 }
 
 .people-table tbody tr.is-previewed.is-selected {
-    box-shadow: inset 3px 0 0 var(--brand-green-400);
+    box-shadow: inset 3px 0 0 var(--table-current-marker);
 }
 
 

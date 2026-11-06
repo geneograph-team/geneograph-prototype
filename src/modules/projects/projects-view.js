@@ -1414,7 +1414,7 @@ function renderActivityRows(count)
     const activityIcons = {
         Albums: icon.image,
         People: icon.people,
-        'Family Tree': icon.tree,
+        'Family Tree': icon.treeOutline,
         Notes: icon.note,
         Archive: icon.file,
         Places: icon.mapPin,

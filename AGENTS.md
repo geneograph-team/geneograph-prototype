@@ -79,7 +79,7 @@ Several extracted files are still very large. **Never read them end-to-end.**
 - Capitalization: the product is **GeneoGraph**; the visual board/workspace is **Geneograph**.
 - This is an interactive prototype/concept. Never present planned capabilities as shipped; distinguish prototype behavior from product direction.
 - Use the Whiskerfield sample project (Silver Whiskerfield, Luna Purrington, the Meowbridge marriage record) consistently. This is sample data, not historical records.
-- Use the approved v3 Neutral Charcoal Dark and Soft Neutral Light palette. Primary actions and focus use Heritage Green; category accents identify content, while status colors represent state. Do not use an archive gold as a warning or a death event as an error.
+- Use the approved v3 Neutral Charcoal Dark and Warm Neutral Light palette. Primary actions and focus use Heritage Green; category accents identify content, while status colors represent state. Do not use an archive gold as a warning or a death event as an error.
 - No glass/glow effects, floating decorative cards, or generic startup motifs.
 
 ## CSS Ownership

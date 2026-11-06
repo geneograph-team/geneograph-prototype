@@ -20,7 +20,7 @@
     padding:
         var(--space-6);
     background:
-        var(--surface-main);
+        var(--surface-workspace);
 }
 
 .geneo-board-toolbar {
@@ -715,7 +715,7 @@
 
 .geneo-star.active {
     color:
-        var(--amber);
+        var(--gg-status-favorite-accent);
 }
 
 /*

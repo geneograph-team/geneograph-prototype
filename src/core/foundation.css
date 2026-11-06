@@ -1,6 +1,25 @@
 :root {
     color-scheme: dark;
     --surface-app: var(--gg-background);
+    --surface-workspace: var(--gg-background);
+    --surface-inspector: var(--gg-details);
+    --surface-panel: var(--gg-panel);
+    --surface-raised: var(--gg-raised);
+    --surface-field: var(--gg-field);
+    --surface-hover: var(--gg-hover);
+    --surface-divider: var(--gg-border);
+    --surface-selected-row: var(--gg-selected-row);
+    --table-surface: var(--gg-panel);
+    --table-header-surface: var(--gg-details);
+    --table-row-hover: var(--gg-hover);
+    --table-row-selected: var(--gg-selected-row);
+    --table-row-disabled: var(--gg-panel);
+    --table-disabled-text: var(--gg-text-muted);
+    --table-current-marker: var(--gg-selected-border);
+    --table-focus: var(--gg-primary);
+    --table-divider: var(--gg-border);
+    --table-text: var(--gg-text);
+    --table-secondary-text: var(--gg-text-secondary);
     --surface-main: var(--gg-panel);
     --surface-sidebar: var(--gg-sidebar);
     --surface-card: var(--gg-raised);
@@ -24,6 +43,7 @@
     --red: var(--gg-status-error-accent);
     --purple: var(--gg-accent-investigation-purple-accent);
     --blue: var(--gg-accent-creative-blue-accent);
+    --radius-xs: 6px;
     --radius-sm: 8px;
     --radius-md: 12px;
     --radius-lg: 18px;
@@ -47,6 +67,7 @@
     --space-4: 16px;
     --space-5: 20px;
     --space-6: 24px;
+    --space-7: 28px;
     --space-8: 32px;
     --shadow-soft: 0 12px 32px color-mix(in srgb, var(--gg-scrim) 18%, transparent);
     --ease: 170ms ease;
@@ -380,7 +401,7 @@ button {
     width: 250px;
     height: 34px;
     border: 1px solid var(--border-default);
-    background: var(--surface-card);
+    background: var(--surface-field);
     border-radius: var(--radius-sm);
     color: var(--text-tertiary);
     display: flex;
@@ -429,7 +450,7 @@ button {
     min-height: 0;
     display: grid;
     grid-template-columns: var(--sidebar-w) 1fr;
-    background: var(--surface-main);
+    background: var(--surface-workspace);
 }
 
 .sidebar {
@@ -649,18 +670,18 @@ button {
 }
 
 .tip-card {
-    border: 1px solid color-mix(in srgb, var(--gg-outline) 22%, transparent);
-    background: var(--surface-selected);
+    border: 1px solid var(--gg-tip-border);
+    background: var(--gg-tip-background);
     border-radius: var(--radius-sm);
     padding: var(--space-4);
-    color: var(--text-secondary);
+    color: var(--gg-tip-text);
 }
 
 .tip-card .tip-title {
     display: flex;
     align-items: center;
     gap: var(--space-2);
-    color: var(--text-primary);
+    color: var(--gg-tip-text);
     font-weight: 800;
     margin-bottom: var(--space-3);
 }
@@ -669,13 +690,18 @@ button {
     margin: 0 0 var(--space-4);
 }
 
-.tip-link {
+.tip-card .tip-link {
     display: inline-flex;
     align-items: center;
     gap: 8px;
     line-height: 20px;
     text-decoration: none;
     vertical-align: middle;
+    color: var(--gg-tip-link);
+}
+
+.tip-card .tip-link:hover:not(:disabled) {
+    color: var(--gg-tip-text);
 }
 
 .tip-link-text {
@@ -1031,7 +1057,7 @@ button {
     min-height: 280px;
     border: 1px dashed var(--border-strong);
     border-radius: var(--radius-sm);
-    background: var(--surface-main);
+    background: var(--surface-panel);
     overflow: hidden;
     transition: border-color var(--ease), background var(--ease);
 }
@@ -1797,8 +1823,9 @@ button {
 }
 
 .startup-action-icon svg {
-    width: 19px;
-    height: 19px;
+    width: 20px;
+    height: 20px;
+    stroke-width: 2;
 }
 
 .startup-action-icon.amber {
@@ -1808,21 +1835,21 @@ button {
 }
 
 .startup-action-icon.purple {
-    border-color: color-mix(in srgb, var(--gg-accent-investigation-purple-accent) 28%, transparent);
-    background: color-mix(in srgb, var(--gg-accent-investigation-purple-accent) 12%, transparent);
-    color: var(--gg-accent-investigation-purple-accent);
+    border-color: var(--gg-accent-heritage-green-outline);
+    background: var(--gg-accent-heritage-green-subtle-container);
+    color: var(--gg-accent-heritage-green-accent);
 }
 
 .startup-action-icon.blue {
-    border-color: color-mix(in srgb, var(--gg-accent-creative-blue-accent) 28%, transparent);
-    background: color-mix(in srgb, var(--gg-accent-creative-blue-accent) 12%, transparent);
-    color: var(--gg-accent-creative-blue-accent);
+    border-color: var(--gg-accent-map-cyan-outline);
+    background: var(--gg-accent-map-cyan-subtle-container);
+    color: var(--gg-accent-map-cyan-accent);
 }
 
 .startup-action-icon.red {
-    border-color: color-mix(in srgb, var(--gg-status-error-accent) 28%, transparent);
-    background: color-mix(in srgb, var(--gg-status-error-accent) 12%, transparent);
-    color: var(--gg-status-error-accent);
+    border-color: var(--gg-accent-rose-sepia-outline);
+    background: var(--gg-accent-rose-sepia-subtle-container);
+    color: var(--gg-accent-rose-sepia-accent);
 }
 
 .startup-action-copy {
@@ -2572,6 +2599,13 @@ button.app-chip:disabled,
 }
 
 .app-chip--events {
+    --app-chip-border: color-mix(in srgb, var(--gg-accent-chronicle-copper-outline) 42%, var(--gg-accent-chronicle-copper-container));
+    --app-chip-background: var(--gg-accent-chronicle-copper-container);
+    --app-chip-color: var(--gg-accent-chronicle-copper-on-container);
+}
+
+.app-chip--boards,
+.app-chip--education {
     --app-chip-border: color-mix(in srgb, var(--gg-accent-creative-blue-outline) 42%, var(--gg-accent-creative-blue-container));
     --app-chip-background: var(--gg-accent-creative-blue-container);
     --app-chip-color: var(--gg-accent-creative-blue-on-container);
@@ -2619,9 +2653,9 @@ button.app-chip:disabled,
 }
 
 .app-chip--unknown {
-    --app-chip-border: color-mix(in srgb, var(--gg-accent-sepia-gold-outline) 42%, var(--gg-accent-sepia-gold-container));
-    --app-chip-background: var(--gg-accent-sepia-gold-container);
-    --app-chip-color: var(--gg-accent-sepia-gold-on-container);
+    --app-chip-border: color-mix(in srgb, var(--gg-status-neutral-outline) 42%, var(--gg-status-neutral-container));
+    --app-chip-background: var(--gg-status-neutral-container);
+    --app-chip-color: var(--gg-status-neutral-on-container);
 }
 
 /* Category chips keep their own opaque container on branded heroes. */
@@ -2723,14 +2757,15 @@ button.app-chip:disabled,
 }
 
 .project-activity-icon svg {
-    width: 18px;
-    height: 18px;
+    width: 20px;
+    height: 20px;
+    stroke-width: 2;
 }
 
 .project-activity-icon.red {
-    color: var(--gg-status-error-accent);
-    background: color-mix(in srgb, var(--gg-status-error-accent) 10%, transparent);
-    border-color: color-mix(in srgb, var(--gg-status-error-accent) 20%, transparent);
+    color: var(--gg-accent-rose-sepia-accent);
+    background: var(--gg-accent-rose-sepia-subtle-container);
+    border-color: var(--gg-accent-rose-sepia-outline);
 }
 
 .project-activity-icon.amber {
@@ -2746,9 +2781,9 @@ button.app-chip:disabled,
 }
 
 .project-activity-icon.blue {
-    color: var(--gg-accent-creative-blue-accent);
-    background: color-mix(in srgb, var(--gg-accent-creative-blue-accent) 10%, transparent);
-    border-color: color-mix(in srgb, var(--gg-accent-creative-blue-accent) 20%, transparent);
+    color: var(--gg-accent-map-cyan-accent);
+    background: var(--gg-accent-map-cyan-subtle-container);
+    border-color: var(--gg-accent-map-cyan-outline);
 }
 
 .project-activity-copy {
@@ -4539,7 +4574,7 @@ body.mobile-details-open .geneo-inspector [data-geneo-inspector-toggle] {
     min-width: 0;
     overflow: auto;
     padding: var(--space-6);
-    background: var(--surface-main);
+    background: var(--surface-workspace);
 }
 
 .project-settings-page {
@@ -4828,7 +4863,7 @@ body.mobile-details-open .geneo-inspector [data-geneo-inspector-toggle] {
     width: 8px;
     height: 8px;
     border-radius: 999px;
-    background: var(--amber);
+    background: var(--gg-status-warning-accent);
     box-shadow: 0 0 0 2px color-mix(in srgb, var(--gg-scrim) 96%, transparent);
 }
 
@@ -4936,9 +4971,9 @@ body.mobile-details-open .geneo-inspector [data-geneo-inspector-toggle] {
 }
 
 .topbar-popover-icon.warn {
-    color: var(--amber);
-    background: color-mix(in srgb, var(--gg-accent-sepia-gold-accent) 12%, transparent);
-    border-color: color-mix(in srgb, var(--gg-accent-sepia-gold-accent) 24%, transparent);
+    color: var(--gg-status-warning-accent);
+    background: var(--gg-status-warning-subtle-container);
+    border-color: var(--gg-status-warning-outline);
 }
 
 .topbar-popover-icon.blue {

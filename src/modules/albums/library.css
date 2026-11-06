@@ -16,7 +16,7 @@ body.mobile-surface-open:has(.albums-shell) .menu-popover {
         minmax(0, 1fr) var(--inspector-width);
 
     background:
-        var(--surface-main);
+        var(--surface-workspace);
 
     overflow: hidden;
 }
@@ -361,6 +361,10 @@ body.mobile-surface-open:has(.albums-shell) .menu-popover {
     background: var(--surface-card-hover);
 }
 
+.albums-list-row:not(.header):hover {
+    background: var(--table-row-hover);
+}
+
 .album-photo-card:focus-visible,
 .albums-list-row:focus-visible,
 .albums-album-main:focus-visible,
@@ -378,6 +382,10 @@ body.mobile-surface-open:has(.albums-shell) .menu-popover {
 .album-photo-card.is-checked,
 .albums-list-row.is-checked {
     background: var(--surface-selected);
+}
+
+.albums-list-row.is-checked {
+    background: var(--table-row-selected);
 }
 
 .albums-thumb {
@@ -1145,7 +1153,7 @@ body.mobile-surface-open:has(.albums-shell) .menu-popover {
 .person-photo-untagged-badge {
     top: auto;
     bottom: 8px;
-    color: var(--brand-green-200);
+    color: var(--gg-primary);
 }
 
 .person-photo-picker-notice {
@@ -1299,7 +1307,7 @@ body.mobile-surface-open:has(.albums-shell) .menu-popover {
     background:
         var(--brand-green-500);
 
-    color: var(--gg-accent-print-magenta-on-accent);
+    color: var(--gg-on-primary);
 
     display: grid;
     place-items: center;
@@ -1518,7 +1526,7 @@ body.mobile-surface-open:has(.albums-shell) .menu-popover {
 .albums-photo-upload-notice > span:first-child {
     display: inline-flex;
     flex: 0 0 16px;
-    color: var(--warning, var(--gg-accent-sepia-gold-accent));
+    color: var(--gg-status-warning-accent);
 }
 
 .albums-photo-upload-notice svg {
@@ -1864,7 +1872,7 @@ body.mobile-surface-open:has(.albums-shell) .menu-popover {
 }
 
 .albums-fav-button.active {
-    color: var(--gg-accent-sepia-gold-accent);
+    color: var(--gg-status-favorite-accent);
 }
 
 .albums-card-body {
@@ -1964,7 +1972,7 @@ body.mobile-surface-open:has(.albums-shell) .menu-popover {
 }
 
 .albums-list-favourite.active {
-    color: var(--gg-accent-sepia-gold-accent);
+    color: var(--gg-status-favorite-accent);
 }
 
 .albums-list-favourite-heading {
@@ -1999,7 +2007,7 @@ body.mobile-surface-open:has(.albums-shell) .menu-popover {
     min-width: 850px;
     border: 1px solid var(--border-default);
     border-radius: var(--radius-sm);
-    background: var(--surface-row);
+    background: var(--table-surface);
 }
 
 .albums-list-row {
@@ -2035,8 +2043,8 @@ body.mobile-surface-open:has(.albums-shell) .menu-popover {
     min-height: 44px;
     border-bottom-color: var(--border-default);
     border-radius: var(--radius-sm) var(--radius-sm) 0 0;
-    background: var(--gg-details);
-    color: var(--text-secondary);
+    background: var(--table-header-surface);
+    color: var(--table-secondary-text);
     font-size: 12px;
     font-weight: 700;
     letter-spacing: .03em;
@@ -2056,8 +2064,7 @@ body.mobile-surface-open:has(.albums-shell) .menu-popover {
 }
 
 .albums-list-row.selected-detail {
-    box-shadow: none;
-    background: var(--surface-selected);
+    box-shadow: inset 3px 0 0 var(--table-current-marker);
 }
 
 .albums-select-checkbox {

@@ -31,7 +31,7 @@
 }
 
 .button.secondary {
-    background: var(--surface-card-hover);
+    background: var(--surface-raised);
     color: var(--text-primary);
 }
 
@@ -116,7 +116,7 @@
     box-sizing: border-box;
     border: 1px solid var(--border-default);
     border-radius: var(--radius-sm);
-    background: var(--surface-card);
+    background: var(--surface-field);
     display: flex;
     align-items: center;
     gap: var(--space-3);
@@ -129,7 +129,7 @@
 }
 
 .search-input.app-search-field {
-    background: var(--surface-card);
+    background: var(--surface-field);
     border-radius: var(--radius-sm);
 }
 
@@ -186,7 +186,7 @@
     min-width: 215px;
     border-radius: var(--radius-sm);
     border: 1px solid var(--border-default);
-    background: var(--surface-card);
+    background: var(--surface-field);
     color: var(--text-secondary);
     padding: 0 42px 0 var(--space-4);
     appearance: none;

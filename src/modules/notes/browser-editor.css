@@ -10,7 +10,7 @@
     min-height: 0;
     display: grid;
     grid-template-columns: minmax(0, 1fr);
-    background: var(--surface-main);
+    background: var(--surface-workspace);
     overflow: hidden;
 }
 
@@ -33,7 +33,7 @@
     overflow: hidden;
     background:
         radial-gradient(circle at 92% -5%, color-mix(in srgb, var(--gg-primary) 5%, transparent), transparent 28%),
-        var(--surface-main);
+        var(--surface-workspace);
     container-type: inline-size;
     container-name: notes-browser;
 }
@@ -49,7 +49,7 @@
     border-bottom:
         1px solid var(--border-default);
     background:
-        var(--surface-main);
+        var(--surface-workspace);
     backdrop-filter:
         blur(12px);
 }
@@ -270,7 +270,7 @@
 }
 
 .notes-row-favorite.active {
-    color: var(--amber);
+    color: var(--gg-status-favorite-accent);
 }
 
 .notes-row-favorite:focus-visible,
@@ -443,7 +443,7 @@
     min-width: 0;
     min-height: 0;
     border-left: 1px solid var(--border-default);
-    background: var(--surface-row);
+    background: var(--surface-inspector);
     overflow: auto;
     overscroll-behavior: contain;
 }
@@ -500,7 +500,7 @@
     display: grid;
     gap: var(--space-3);
     border-bottom: 1px solid var(--border-default);
-    background: var(--surface-row);
+    background: var(--surface-inspector);
     backdrop-filter: blur(12px);
 }
 
@@ -594,13 +594,13 @@
 }
 
 .notes-save-status.saving {
-    color: var(--amber);
+    color: var(--gg-status-pending-accent);
 }
 
 .notes-save-status.saving::before {
-    background: var(--amber);
+    background: var(--gg-status-pending-accent);
     box-shadow:
-        0 0 0 3px color-mix(in srgb, var(--gg-accent-sepia-gold-accent) 10%, transparent);
+        0 0 0 3px color-mix(in srgb, var(--gg-status-pending-accent) 10%, transparent);
 }
 
 .notes-save-status.error {
@@ -625,9 +625,9 @@
 }
 
 .notes-icon-button.active {
-    border-color: color-mix(in srgb, var(--gg-accent-sepia-gold-accent) 35%, transparent);
-    background: color-mix(in srgb, var(--gg-accent-sepia-gold-accent) 10%, transparent);
-    color: var(--amber);
+    border-color: var(--gg-status-favorite-outline);
+    background: var(--gg-status-favorite-subtle-container);
+    color: var(--gg-status-favorite-accent);
 }
 
 .notes-title-input {
@@ -1956,10 +1956,10 @@
 .notes-related-archived-badge {
     flex: 0 0 auto;
     padding: 2px 6px;
-    border: 1px solid color-mix(in srgb, var(--gg-accent-sepia-gold-accent) 35%, transparent);
+    border: 1px solid var(--gg-status-neutral-outline);
     border-radius: 999px;
-    background: color-mix(in srgb, var(--gg-accent-sepia-gold-accent) 10%, transparent);
-    color: var(--amber);
+    background: var(--gg-status-neutral-subtle-container);
+    color: var(--gg-status-neutral-accent);
     font-size: 9px;
     font-weight: 850;
     line-height: 1.2;
@@ -2015,7 +2015,7 @@
 
 .connected-source-main:focus-visible {
     outline-color:
-        var(--amber);
+        var(--gg-primary);
 }
 
 .connected-source-icon {
@@ -2052,16 +2052,16 @@
         center;
 
     border:
-        1px solid color-mix(in srgb, var(--gg-accent-sepia-gold-accent) 42%, transparent);
+        1px solid var(--gg-accent-evidence-slate-outline);
 
     border-radius:
         10px;
 
     background:
-        color-mix(in srgb, var(--gg-accent-sepia-gold-accent) 12%, transparent);
+        var(--gg-accent-evidence-slate-subtle-container);
 
     color:
-        var(--amber);
+        var(--gg-accent-evidence-slate-accent);
 
     transition:
         border-color var(--ease),
@@ -2109,10 +2109,10 @@
         6px;
 
     background:
-        var(--amber);
+        var(--gg-accent-evidence-slate-accent);
 
     color:
-        var(--gg-accent-print-magenta-on-accent);
+        var(--gg-accent-evidence-slate-on-accent);
 }
 
 .connected-source-icon-link svg {
@@ -2129,10 +2129,10 @@
 .connected-source-item:hover .connected-source-icon-record,
 .connected-source-item:focus-within .connected-source-icon-record {
     border-color:
-        color-mix(in srgb, var(--gg-accent-sepia-gold-accent) 72%, transparent);
+        var(--gg-accent-evidence-slate-outline);
 
     background:
-        color-mix(in srgb, var(--gg-accent-sepia-gold-accent) 18%, transparent);
+        var(--gg-accent-evidence-slate-container);
 
     transform:
         translateY(-1px);
@@ -3057,7 +3057,7 @@
         color-mix(in srgb, var(--gg-primary) 94%, transparent);
 
     color:
-        var(--gg-accent-print-magenta-on-accent);
+        var(--gg-on-primary);
 
     display: grid;
     place-items: center;
