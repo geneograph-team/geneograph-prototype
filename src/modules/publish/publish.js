@@ -473,7 +473,7 @@ function renderPublishChartPreview()
     }).join('');
     return `<div class="publish-chart-preview">
         ${parentCards}
-        <div class="publish-chart-card" style="left:300px;top:300px;border-color:rgba(98,217,154,.8)"><strong>${escapeHtml(person.names?.display || 'Unknown')}</strong><span>Focus person</span></div>
+        <div class="publish-chart-card" style="left:300px;top:300px;border-color:color-mix(in srgb, var(--gg-primary) 80%, transparent)"><strong>${escapeHtml(person.names?.display || 'Unknown')}</strong><span>Focus person</span></div>
         <div class="publish-chip" style="position:absolute;left:24px;bottom:24px">Page 1 - Fit to printable area</div>
       </div>`;
 }

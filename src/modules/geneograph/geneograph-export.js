@@ -525,12 +525,13 @@ async function runGeneographPngExport()
         const brand = dimensions.brand;
         const badgeLeft = finalCanvas.width - brand.inset - brand.width;
         const badgeTop = finalCanvas.height - brand.inset - brand.height;
-        context.fillStyle = 'rgba(11, 15, 14, 0.92)';
+        const uiPalette = getComputedStyle(document.documentElement);
+        context.fillStyle = uiPalette.getPropertyValue('--gg-accent-heritage-green-container').trim();
         context.beginPath();
         context.roundRect(badgeLeft, badgeTop, brand.width, brand.height, Math.max(6, Math.round(8 * scale)));
         context.fill();
         context.font = `600 ${brand.fontSize}px Inter, Segoe UI, sans-serif`;
-        context.fillStyle = '#EAF5F0';
+        context.fillStyle = uiPalette.getPropertyValue('--gg-accent-heritage-green-on-container').trim();
         context.textBaseline = 'middle';
         const centerY = badgeTop + brand.height / 2;
         context.drawImage(logo, badgeLeft + brand.paddingX, centerY - brand.logoHeight / 2, brand.logoWidth, brand.logoHeight);

@@ -7,15 +7,15 @@
 }
 
 .geneo-board-space.pattern-dots {
-    background-image: radial-gradient(circle at 0 0, rgba(255, 255, 255, .16) 1px, transparent 1.5px);
+    background-image: radial-gradient(circle at 0 0, color-mix(in srgb, var(--gg-text) 16%, transparent) 1px, transparent 1.5px);
     background-size: calc(20px * var(--geneo-canvas-zoom, 1)) calc(20px * var(--geneo-canvas-zoom, 1));
     background-position: var(--geneo-grid-origin-x, 0) var(--geneo-grid-origin-y, 0);
 }
 
 .geneo-board-space.pattern-grid {
     background-image:
-        linear-gradient(rgba(255, 255, 255, .1) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(255, 255, 255, .1) 1px, transparent 1px);
+        linear-gradient(color-mix(in srgb, var(--gg-text) 10%, transparent) 1px, transparent 1px),
+        linear-gradient(90deg, color-mix(in srgb, var(--gg-text) 10%, transparent) 1px, transparent 1px);
     background-size: calc(20px * var(--geneo-canvas-zoom, 1)) calc(20px * var(--geneo-canvas-zoom, 1));
     background-position: var(--geneo-grid-origin-x, 0) var(--geneo-grid-origin-y, 0);
 }
@@ -46,11 +46,11 @@
     border-radius: 3px;
 }
 .geneo-pattern-preview.pattern-dots {
-    background-image: radial-gradient(circle at 0 0, rgba(255,255,255,.4) 1px, transparent 1.5px);
+    background-image: radial-gradient(circle at 0 0, color-mix(in srgb, var(--gg-text) 40%, transparent) 1px, transparent 1.5px);
     background-size: 10px 10px;
 }
 .geneo-pattern-preview.pattern-grid {
-    background-image: linear-gradient(rgba(255,255,255,.24) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.24) 1px, transparent 1px);
+    background-image: linear-gradient(color-mix(in srgb, var(--gg-text) 24%, transparent) 1px, transparent 1px), linear-gradient(90deg, color-mix(in srgb, var(--gg-text) 24%, transparent) 1px, transparent 1px);
     background-size: 10px 10px;
 }
 .geneo-card-default-group { display: grid; gap: 12px; padding-block: 12px; border-top: 1px solid var(--border-default); }
@@ -70,7 +70,7 @@
 
 .geneo-background-pattern button[aria-pressed="true"] {
     background: var(--surface-selected);
-    border-color: rgba(98, 217, 154, .28);
+    border-color: color-mix(in srgb, var(--gg-primary) 28%, transparent);
     color: var(--text-primary);
 }
 
@@ -100,7 +100,7 @@
     position: absolute;
     z-index: 45;
     border: 1px solid var(--brand-green-300);
-    background: rgba(98, 217, 154, .12);
+    background: color-mix(in srgb, var(--gg-primary) 12%, transparent);
     pointer-events: none;
 }
 
@@ -119,10 +119,10 @@
     min-height: 0;
     border: 2px dashed var(--brand-green-300);
     border-radius: 8px;
-    background: rgba(47, 174, 116, .08);
+    background: color-mix(in srgb, var(--gg-primary) 8%, transparent);
     box-shadow:
-        0 0 0 1px rgba(8, 14, 11, .7),
-        0 12px 30px rgba(0, 0, 0, .18);
+        0 0 0 1px color-mix(in srgb, var(--gg-scrim) 70%, transparent),
+        0 12px 30px color-mix(in srgb, var(--gg-scrim) 18%, transparent);
     pointer-events: none;
 }
 
@@ -139,7 +139,7 @@
     border-radius: 5px;
     display: inline-flex;
     align-items: center;
-    background: rgba(7, 13, 10, .82);
+    background: color-mix(in srgb, var(--gg-topbar) 82%, transparent);
     color: var(--text-primary);
     font-size: 11px;
     font-weight: 850;
@@ -156,7 +156,7 @@
     color: var(--geneo-node-text);
     border-radius:
         var(--geneo-node-radius, 8px);
-    box-shadow: 0 10px 28px rgba(0, 0, 0, .22);
+    box-shadow: 0 10px 28px color-mix(in srgb, var(--gg-scrim) 22%, transparent);
     overflow: visible;
     cursor: move;
     outline: 0;
@@ -183,7 +183,7 @@
 
 .geneo-node:focus-visible,
 .geneo-node.selected {
-    box-shadow: 0 0 0 2px #62d99a, 0 14px 34px rgba(0, 0, 0, .3);
+    box-shadow: 0 0 0 2px var(--gg-primary), 0 14px 34px color-mix(in srgb, var(--gg-scrim) 30%, transparent);
 }
 
 .geneo-node.locked {
@@ -277,7 +277,7 @@
     padding: 0;
     border: 0;
     background: transparent;
-    color: #f8faf9;
+    color: var(--gg-text);
     display: grid;
     place-items: center;
     cursor: pointer;
@@ -289,9 +289,9 @@
     content: '';
     position: absolute;
     inset: 7px 5px 5px 7px;
-    border: 1px solid rgba(255, 255, 255, .2);
+    border: 1px solid color-mix(in srgb, var(--gg-text) 20%, transparent);
     border-radius: 6px;
-    background: #101715;
+    background: var(--gg-sidebar);
 }
 
 .geneo-avatar-action svg {
@@ -312,7 +312,7 @@
 }
 
 .geneo-avatar-action:hover::before {
-    background: #20523e;
+    background: var(--gg-accent-heritage-green-container);
 }
 
 .geneo-avatar-action:focus-visible {
@@ -477,7 +477,7 @@
 .geneo-node-person.geneo-person-gender-female.selected,
 .geneo-node-person.geneo-person-gender-male:focus-visible,
 .geneo-node-person.geneo-person-gender-female:focus-visible {
-    box-shadow: 0 0 0 2px var(--brand-green-300), 0 14px 34px rgba(0, 0, 0, .3);
+    box-shadow: 0 0 0 2px var(--brand-green-300), 0 14px 34px color-mix(in srgb, var(--gg-scrim) 30%, transparent);
 }
 
 /*
@@ -1149,7 +1149,7 @@ html[lang="ru"] .geneo-node-person[data-geneo-person-card-style="standard"] .gen
     position: absolute;
     inset: 6px;
     border-radius: 6px;
-    background: #080e0b;
+    background: var(--gg-topbar);
 }
 .geneo-node-person[data-geneo-person-card-style="portrait"] :is(.geneo-person-add-relative, .geneo-person-edit-action) svg { position: relative; }
 
@@ -1225,9 +1225,9 @@ html[lang="ru"] .geneo-node-person[data-geneo-person-card-style="standard"] .gen
     border: 0;
     border-radius: 6px;
 
-    background: #080e0b;
+    background: var(--gg-topbar);
 
-    color: #f8faf9;
+    color: var(--gg-text);
 
     display: grid;
     place-items: center;
@@ -1263,7 +1263,7 @@ html[lang="ru"] .geneo-node-person[data-geneo-person-card-style="standard"] .gen
 
 .geneo-person-add-relative:hover,
 .geneo-person-edit-action:hover {
-    background: #080e0b;
+    background: var(--gg-topbar);
 }
 
 .geneo-person-add-relative:focus-visible,
@@ -1312,7 +1312,7 @@ html[lang="ru"] .geneo-node-person[data-geneo-person-card-style="standard"] .gen
     position: absolute;
     inset: 6px;
     border-radius: 6px;
-    background: #080e0b;
+    background: var(--gg-topbar);
 }
 
 .geneo-node-person[data-geneo-person-card-style="compact"] :is(.geneo-person-add-relative, .geneo-person-edit-action) svg {
@@ -1351,11 +1351,11 @@ html[lang="ru"] .geneo-node-person[data-geneo-person-card-style="standard"] .gen
     position: absolute;
     inset: 6px;
     border-radius: 6px;
-    background: #080e0b;
+    background: var(--gg-topbar);
 }
 
 .geneo-node-person[data-geneo-person-card-style="chart"] :is(.geneo-person-add-relative, .geneo-person-edit-action):is(:hover, :focus-visible)::before {
-    background: #080e0b;
+    background: var(--gg-topbar);
 }
 
 .geneo-node-person[data-geneo-person-card-style="chart"] :is(.geneo-person-add-relative, .geneo-person-edit-action) svg { position: relative; }
@@ -1373,11 +1373,11 @@ html[lang="ru"] .geneo-node-person[data-geneo-person-card-style="standard"] .gen
     position: absolute;
     inset: 6px;
     border-radius: 6px;
-    background: #080e0b;
+    background: var(--gg-topbar);
 }
 
 .geneo-node-person[data-geneo-person-card-style="standard"] :is(.geneo-person-add-relative, .geneo-person-edit-action):is(:hover, :focus-visible)::before {
-    background: #080e0b;
+    background: var(--gg-topbar);
 }
 
 .geneo-node-person[data-geneo-person-card-style="standard"] :is(.geneo-person-add-relative, .geneo-person-edit-action) svg {
@@ -1614,11 +1614,11 @@ html[lang="ru"] .geneo-node-person[data-geneo-person-card-style="standard"] .gen
     bottom: 8px;
     min-width: 0;
     padding: 7px 9px;
-    border: 1px solid rgba(255, 255, 255, .12);
+    border: 1px solid color-mix(in srgb, var(--gg-text) 12%, transparent);
     border-radius: 6px;
-    background: rgba(7, 12, 10, .82);
-    color: #f4f7f5;
-    box-shadow: 0 5px 16px rgba(0, 0, 0, .22);
+    background: color-mix(in srgb, var(--gg-topbar) 82%, transparent);
+    color: var(--gg-text);
+    box-shadow: 0 5px 16px color-mix(in srgb, var(--gg-scrim) 22%, transparent);
     backdrop-filter: blur(6px);
     font-size: 12px;
     font-weight: 800;
@@ -1651,22 +1651,22 @@ html[lang="ru"] .geneo-node-person[data-geneo-person-card-style="standard"] .gen
 
 .geneo-node-sticky.has-paper-fill {
     box-shadow:
-        0 3px 7px rgba(0, 0, 0, .2),
-        0 12px 18px -14px rgba(0, 0, 0, .7);
+        0 3px 7px color-mix(in srgb, var(--gg-scrim) 20%, transparent),
+        0 12px 18px -14px color-mix(in srgb, var(--gg-scrim) 70%, transparent);
 }
 
 .geneo-node-sticky.has-paper-fill:hover {
     box-shadow:
-        0 4px 9px rgba(0, 0, 0, .24),
-        0 14px 20px -14px rgba(0, 0, 0, .76);
+        0 4px 9px color-mix(in srgb, var(--gg-scrim) 24%, transparent),
+        0 14px 20px -14px color-mix(in srgb, var(--gg-scrim) 76%, transparent);
 }
 
 .geneo-node-sticky.has-paper-fill.selected,
 .geneo-node-sticky.has-paper-fill:focus-visible {
     box-shadow:
-        0 0 0 2px #62D99A,
-        0 5px 12px rgba(0, 0, 0, .28),
-        0 16px 22px -15px rgba(0, 0, 0, .78);
+        0 0 0 2px var(--gg-primary),
+        0 5px 12px color-mix(in srgb, var(--gg-scrim) 28%, transparent),
+        0 16px 22px -15px color-mix(in srgb, var(--gg-scrim) 78%, transparent);
 }
 
 .geneo-node-sticky .geneo-node-content {
@@ -1686,13 +1686,13 @@ html[lang="ru"] .geneo-node-person[data-geneo-person-card-style="standard"] .gen
     background:
         color-mix(in srgb,
             var(--geneo-node-bg) 72%,
-            #4A3518);
+            var(--gg-status-warning-subtle-container));
     clip-path:
         polygon(0 100%,
             100% 0,
             100% 100%);
     box-shadow:
-        -1px -1px 0 rgba(0, 0, 0, .14);
+        -1px -1px 0 color-mix(in srgb, var(--gg-scrim) 14%, transparent);
     pointer-events: none;
 }
 
@@ -1765,7 +1765,7 @@ html[lang="ru"] .geneo-node-person[data-geneo-person-card-style="standard"] .gen
 
 .geneo-rich-text-copy a,
 .geneo-rich-text-inspector-preview a {
-    color: #8BC8F5;
+    color: var(--gg-status-info-accent);
 
     text-decoration:
         underline;
@@ -1902,7 +1902,7 @@ html[lang="ru"] .geneo-node-person[data-geneo-person-card-style="standard"] .gen
 }
 
 .geneo-rich-text-editor-shell .ql-editor a {
-    color: #8BC8F5;
+    color: var(--gg-status-info-accent);
 }
 
 .geneo-rich-text-editor-shell .ql-editor.ql-blank::before {
@@ -1980,7 +1980,7 @@ html[lang="ru"] .geneo-node-person[data-geneo-person-card-style="standard"] .gen
         blur(10px);
 
     box-shadow:
-        0 10px 28px rgba(0, 0, 0, .2);
+        0 10px 28px color-mix(in srgb, var(--gg-scrim) 20%, transparent);
 }
 
 .geneo-rich-text-toolbar .ql-stroke {
@@ -2046,7 +2046,7 @@ html[lang="ru"] .geneo-node-person[data-geneo-person-card-style="standard"] .gen
     overflow: visible;
 
     border:
-        1px solid rgba(255, 255, 255, .065);
+        1px solid color-mix(in srgb, var(--gg-text) 6.5%, transparent);
 
     border-radius: var(--radius-sm);
 
@@ -2060,16 +2060,10 @@ html[lang="ru"] .geneo-node-person[data-geneo-person-card-style="standard"] .gen
 
 .geneo-rich-text-inspector-editor-shell:focus-within {
     border-color:
-        rgba(98,
-            217,
-            154,
-            .42);
+        color-mix(in srgb, var(--gg-primary) 42%, transparent);
 
     box-shadow:
-        0 0 0 1px rgba(47,
-            174,
-            116,
-            .08);
+        0 0 0 1px color-mix(in srgb, var(--gg-primary) 8%, transparent);
 }
 
 .geneo-rich-text-inspector-toolbar.ql-toolbar.ql-snow {
@@ -2088,10 +2082,7 @@ html[lang="ru"] .geneo-node-person[data-geneo-person-card-style="standard"] .gen
         calc(var(--radius-sm) - 1px) calc(var(--radius-sm) - 1px) 0 0;
 
     background:
-        rgba(255,
-            255,
-            255,
-            .025);
+        color-mix(in srgb, var(--gg-text) 2.5%, transparent);
 }
 
 .geneo-rich-text-inspector-editor-shell .ql-container.ql-snow {
@@ -2159,17 +2150,14 @@ html[lang="ru"] .geneo-node-person[data-geneo-person-card-style="standard"] .gen
         6px 9px;
 
     border-left:
-        3px solid rgba(98,
-            217,
-            154,
-            .48);
+        3px solid color-mix(in srgb, var(--gg-primary) 48%, transparent);
 
     border-radius:
         0 5px 5px 0;
 }
 
 .geneo-rich-text-inspector-editor-shell .ql-editor a {
-    color: #8BC8F5;
+    color: var(--gg-status-info-accent);
 }
 
 .geneo-rich-text-inspector-fallback {
@@ -2461,7 +2449,7 @@ html[lang="ru"] .geneo-node-person[data-geneo-person-card-style="standard"] .gen
 
 .geneo-pencil-preview {
     fill: none;
-    stroke: #D9E5E1;
+    stroke: var(--gg-status-neutral-on-container);
     stroke-width: 2;
     stroke-linecap: round;
     stroke-linejoin: round;
@@ -2470,7 +2458,7 @@ html[lang="ru"] .geneo-node-person[data-geneo-person-card-style="standard"] .gen
 }
 
 .geneo-node-place {
-    box-shadow: 0 6px 18px rgba(0, 0, 0, .18);
+    box-shadow: 0 6px 18px color-mix(in srgb, var(--gg-scrim) 18%, transparent);
 }
 
 .geneo-node-place .geneo-node-content {
@@ -2696,7 +2684,7 @@ html[lang="ru"] .geneo-node-person[data-geneo-person-card-style="standard"] .gen
     scrollbar-gutter: stable;
     border: 1px solid var(--border-default);
     border-radius: var(--radius-sm);
-    background: rgba(10, 16, 14, .44);
+    background: color-mix(in srgb, var(--gg-topbar) 44%, transparent);
 }
 
 .geneo-place-picker-options [hidden] {
@@ -2855,7 +2843,7 @@ html[lang="ru"] .geneo-node-person[data-geneo-person-card-style="standard"] .gen
         50%;
 
     color:
-        #06110d;
+        var(--gg-accent-print-magenta-on-accent);
 
     background:
         var(--brand-green-300);
@@ -2916,7 +2904,7 @@ html[lang="ru"] .geneo-node-person[data-geneo-person-card-style="standard"] .gen
 
 .geneo-place-board-choice:hover {
     background:
-        rgba(47, 174, 116, .09);
+        color-mix(in srgb, var(--gg-primary) 9%, transparent);
 }
 
 .geneo-place-board-choice:focus-visible {
@@ -3033,7 +3021,7 @@ html[lang="ru"] .geneo-node-person[data-geneo-person-card-style="standard"] .gen
     resize: none;
     border: 0;
     outline: 0;
-    background: rgba(3, 8, 7, .5);
+    background: color-mix(in srgb, var(--gg-scrim) 50%, transparent);
     color: inherit;
     padding: 10px;
     font: inherit;
@@ -3045,10 +3033,10 @@ html[lang="ru"] .geneo-node-person[data-geneo-person-card-style="standard"] .gen
     width: 14px;
     height: 14px;
     padding: 0;
-    border: 2px solid #0b1210;
+    border: 2px solid var(--gg-accent-print-magenta-on-accent);
     border-radius: 50%;
-    background: #62d99a;
-    box-shadow: 0 0 0 1px rgba(255, 255, 255, .55);
+    background: var(--gg-accent-heritage-green-container);
+    box-shadow: 0 0 0 1px color-mix(in srgb, var(--gg-text) 55%, transparent);
     opacity: 0;
     visibility: hidden;
     pointer-events: none;
@@ -3072,8 +3060,8 @@ html[lang="ru"] .geneo-node-person[data-geneo-person-card-style="standard"] .gen
 .geneo-port:focus-visible,
 .geneo-port.active {
     scale: 1.22;
-    background: #fff;
-    outline: 2px solid #62d99a;
+    background: var(--gg-status-pending-container);
+    outline: 2px solid var(--gg-primary);
     outline-offset: 2px;
 }
 
@@ -3107,9 +3095,9 @@ html[lang="ru"] .geneo-node-person[data-geneo-person-card-style="standard"] .gen
     width: 12px;
     height: 12px;
     padding: 0;
-    border: 2px solid #0b1210;
+    border: 2px solid var(--gg-accent-print-magenta-on-accent);
     border-radius: 3px;
-    background: #f5faf7;
+    background: var(--gg-status-pending-container);
 }
 
 .geneo-resize-handle.nw {
@@ -3179,7 +3167,7 @@ html[lang="ru"] .geneo-node-person[data-geneo-person-card-style="standard"] .gen
 .geneo-resize-edge:focus-visible {
     outline: 2px solid var(--brand-green-300);
     outline-offset: 1px;
-    background: rgba(98, 217, 154, .12);
+    background: color-mix(in srgb, var(--gg-primary) 12%, transparent);
 }
 
 .geneo-connections {
@@ -3250,7 +3238,7 @@ html[lang="ru"] .geneo-node-person[data-geneo-person-card-style="standard"] .gen
 }
 
 .geneo-family-bus-hit:focus-visible {
-    stroke: rgba(98, 217, 154, .35);
+    stroke: color-mix(in srgb, var(--gg-primary) 35%, transparent);
     outline: none;
 }
 
@@ -3278,7 +3266,7 @@ html[lang="ru"] .geneo-node-person[data-geneo-person-card-style="standard"] .gen
     border-radius: 5px;
     background: var(--surface-card);
     color: var(--text-primary);
-    box-shadow: 0 5px 16px rgba(0, 0, 0, .25);
+    box-shadow: 0 5px 16px color-mix(in srgb, var(--gg-scrim) 25%, transparent);
     font-size: 12px;
     font-weight: 700;
     line-height: 1.35;
@@ -3287,29 +3275,29 @@ html[lang="ru"] .geneo-node-person[data-geneo-person-card-style="standard"] .gen
 }
 
 .geneo-connection-tip.invalid {
-    border-color: #9b7842;
-    color: #f3d9a7;
+    border-color: var(--gg-accent-sepia-gold-accent);
+    color: var(--gg-accent-sepia-gold-accent);
 }
 
 .geneo-connection.selected .geneo-connection-line {
-    filter: drop-shadow(0 0 3px #62d99a);
+    filter: drop-shadow(0 0 3px var(--gg-primary));
 }
 
 .geneo-waypoint {
-    fill: #0d1513;
-    stroke: #62d99a;
+    fill: var(--gg-accent-print-magenta-on-accent);
+    stroke: var(--gg-primary);
     stroke-width: 2;
     pointer-events: all;
     cursor: move;
 }
 
 .geneo-waypoint.selected {
-    fill: #62d99a;
+    fill: var(--gg-primary);
 }
 
 .geneo-family-junction {
-    fill: #62d99a;
-    stroke: #0a100e;
+    fill: var(--gg-primary);
+    stroke: var(--gg-accent-print-magenta-on-accent);
     stroke-width: 3;
     opacity: 0;
     pointer-events: none;
@@ -3332,7 +3320,7 @@ html[lang="ru"] .geneo-node-person[data-geneo-person-card-style="standard"] .gen
 }
 
 .geneo-family-junction:focus-visible {
-    filter: drop-shadow(0 0 4px #62d99a);
+    filter: drop-shadow(0 0 4px var(--gg-primary));
 }
 
 .geneo-relationship-date {
@@ -3340,8 +3328,8 @@ html[lang="ru"] .geneo-node-person[data-geneo-person-card-style="standard"] .gen
 }
 
 .geneo-relationship-date rect {
-    fill: rgba(15, 20, 19, .94);
-    stroke: rgba(98, 217, 154, .35);
+    fill: color-mix(in srgb, var(--gg-accent-print-magenta-on-accent) 94%, transparent);
+    stroke: color-mix(in srgb, var(--gg-primary) 35%, transparent);
     stroke-width: 1;
 }
 
@@ -3480,7 +3468,7 @@ body.mobile-details-open:has(.geneo-inspector) #modalBackdrop.modal-backdrop.ope
 }
 
 .geneo-avatar-error {
-    color: var(--text-danger, #e99494);
+    color: var(--text-danger, var(--gg-status-error-accent));
     font-size: 12px;
 }
 

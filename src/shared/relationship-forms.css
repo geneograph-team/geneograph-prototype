@@ -42,7 +42,7 @@
 .relation-row:hover,
 .relation-row:focus-within {
     border-color: var(--border-default);
-    background: rgba(255, 255, 255, .04);
+    background: color-mix(in srgb, var(--gg-text) 4%, transparent);
 }
 
 .relation-row-main {
@@ -136,13 +136,13 @@
 
 .relation-action-button:hover,
 .relation-action-button:focus-visible {
-    background: rgba(255, 255, 255, .075);
+    background: color-mix(in srgb, var(--gg-text) 7.5%, transparent);
     color: var(--text-primary);
 }
 
 .relation-action-button.danger:hover,
 .relation-action-button.danger:focus-visible {
-    background: rgba(212, 107, 107, .12);
+    background: color-mix(in srgb, var(--gg-status-error-accent) 12%, transparent);
     color: var(--red);
 }
 
@@ -240,10 +240,7 @@
         var(--border-default);
 
     background:
-        rgba(255,
-            255,
-            255,
-            .04);
+        color-mix(in srgb, var(--gg-text) 4%, transparent);
 }
 
 .connected-file-item.can-unlink .connected-file-main {
@@ -403,10 +400,7 @@
         var(--radius-sm);
 
     background:
-        rgba(15,
-            20,
-            19,
-            .9);
+        color-mix(in srgb, var(--gg-background) 90%, transparent);
 
     color:
         var(--text-tertiary);
@@ -467,16 +461,10 @@
 .connected-file-unlink:hover,
 .connected-file-unlink:focus-visible {
     border-color:
-        rgba(212,
-            107,
-            107,
-            .32);
+        color-mix(in srgb, var(--gg-status-error-accent) 32%, transparent);
 
     background:
-        rgba(212,
-            107,
-            107,
-            .12);
+        color-mix(in srgb, var(--gg-status-error-accent) 12%, transparent);
 
     color:
         var(--red);
@@ -729,7 +717,7 @@
 
 .connected-files-choice.is-selected {
     border-color:
-        rgba(98, 217, 154, .35);
+        color-mix(in srgb, var(--gg-primary) 35%, transparent);
 
     background:
         var(--surface-selected);
@@ -1267,7 +1255,7 @@ body.mobile-person-details-open .relative-popover-body {
 }
 
 .relative-choice.female .gender-icon {
-    color: #e88fa5;
+    color: var(--gg-status-error-accent);
 }
 
 .relative-choice-icon {
@@ -1542,8 +1530,8 @@ body.mobile-person-details-open .relative-popover-body {
 
 .connect-person-warning {
     margin-top: var(--space-5);
-    border: 1px solid rgba(212, 170, 107, .65);
-    background: rgba(212, 170, 107, .13);
+    border: 1px solid color-mix(in srgb, var(--gg-accent-sepia-gold-accent) 65%, transparent);
+    background: color-mix(in srgb, var(--gg-accent-sepia-gold-accent) 13%, transparent);
     color: var(--text-secondary);
     border-radius: var(--radius-sm);
     padding: var(--space-4);
@@ -1559,7 +1547,7 @@ body.mobile-person-details-open .relative-popover-body {
     display: flex;
     align-items: center;
     gap: var(--space-2);
-    color: #F0C66F;
+    color: var(--gg-accent-sepia-gold-accent);
     font-weight: 900;
     font-size: 18px;
 }
@@ -1575,12 +1563,12 @@ body.mobile-person-details-open .relative-popover-body {
 }
 
 .connect-person-warning.is-blocking {
-    border-color: rgba(212, 107, 107, .72);
-    background: rgba(212, 107, 107, .13);
+    border-color: color-mix(in srgb, var(--gg-status-error-accent) 72%, transparent);
+    background: color-mix(in srgb, var(--gg-status-error-accent) 13%, transparent);
 }
 
 .connect-person-warning.is-blocking .connect-person-warning-title {
-    color: #F0A0A0;
+    color: var(--gg-status-error-accent);
 }
 
 .connect-person-results-panel {
@@ -1601,7 +1589,7 @@ body.mobile-person-details-open .relative-popover-body {
     border: 1px solid var(--border-default);
     border-radius: var(--radius-sm);
     overflow: auto;
-    background: rgba(0, 0, 0, .08);
+    background: color-mix(in srgb, var(--gg-scrim) 8%, transparent);
 }
 
 .connect-person-result {
@@ -1674,7 +1662,7 @@ body.mobile-person-details-open .relative-popover-body {
     border-radius: var(--radius-sm);
     padding: var(--space-5);
     color: var(--text-tertiary);
-    background: rgba(255, 255, 255, .018);
+    background: color-mix(in srgb, var(--gg-text) 1.8%, transparent);
     display: grid;
     align-content: center;
 }
@@ -1925,7 +1913,7 @@ body.mobile-person-details-open .relative-popover-body {
 
 .manage-relationships-unlink:hover,
 .manage-relationships-unlink:focus-visible {
-    background: rgba(212, 107, 107, .12);
+    background: color-mix(in srgb, var(--gg-status-error-accent) 12%, transparent);
     color: var(--red);
 }
 
@@ -2117,8 +2105,8 @@ body.mobile-person-details-open .relative-popover-body {
 }
 
 .unlink-relationship-warning {
-    border: 1px solid rgba(212, 170, 107, .55);
-    background: rgba(212, 170, 107, .12);
+    border: 1px solid color-mix(in srgb, var(--gg-accent-sepia-gold-accent) 55%, transparent);
+    background: color-mix(in srgb, var(--gg-accent-sepia-gold-accent) 12%, transparent);
     color: var(--text-secondary);
     border-radius: var(--radius-sm);
     padding: var(--space-4);
@@ -2208,7 +2196,7 @@ body.mobile-person-details-open .relative-popover-body {
     padding: var(--space-3);
     border: 1px solid var(--border-default);
     border-radius: var(--radius-sm);
-    background: rgba(255, 255, 255, .012);
+    background: color-mix(in srgb, var(--gg-text) 1.2%, transparent);
 }
 
 .fact-button {
@@ -2279,7 +2267,7 @@ body.mobile-person-details-open .relative-popover-body {
 .modal-side-card {
     border: 1px solid var(--border-default);
     border-radius: var(--radius-sm);
-    background: rgba(255, 255, 255, .018);
+    background: color-mix(in srgb, var(--gg-text) 1.8%, transparent);
     margin-bottom: var(--space-4);
     overflow: hidden;
 }
@@ -2310,12 +2298,12 @@ body.mobile-person-details-open .relative-popover-body {
     display: grid;
     place-items: center;
     border: 1px solid var(--red);
-    color: #ef8e9a;
+    color: var(--gg-status-error-accent);
 }
 
 .attach-icon.photo {
     color: var(--red);
-    background: rgba(212, 107, 107, .12);
+    background: color-mix(in srgb, var(--gg-status-error-accent) 12%, transparent);
 }
 
 .attach-icon.file {
@@ -2325,7 +2313,7 @@ body.mobile-person-details-open .relative-popover-body {
 
 .attach-icon.note {
     border-color: var(--purple);
-    color: #bca6ff;
+    color: var(--gg-accent-investigation-purple-accent);
 }
 
 .add-person-side-note {
@@ -2384,7 +2372,7 @@ body.mobile-person-details-open .relative-popover-body {
 
 .match-row.is-possible-duplicate.is-selected {
     border-color: var(--brand-green-500);
-    background: rgba(47, 174, 116, .12);
+    background: color-mix(in srgb, var(--gg-primary) 12%, transparent);
     color: var(--text-primary);
 }
 
@@ -2636,7 +2624,7 @@ body.mobile-person-details-open .relative-popover-body {
 .add-person-family-error {
     display: block;
     margin-top: var(--space-2);
-    color: var(--status-danger, #F28B82);
+    color: var(--status-danger, var(--gg-status-error-accent));
     font-size: 12px;
 }
 
@@ -2828,7 +2816,7 @@ body.mobile-person-details-open .relative-popover-body {
     min-height: 42px;
     border: 1px solid var(--border-default);
     border-radius: var(--radius-sm);
-    background: rgba(255, 255, 255, .024);
+    background: color-mix(in srgb, var(--gg-text) 2.4%, transparent);
     color: var(--text-primary);
     display: flex;
     align-items: center;
@@ -3095,14 +3083,14 @@ body.mobile-person-details-open .relative-popover-body {
 .add-person-facts-section {
     border: 1px solid var(--border-default);
     border-radius: var(--radius-md);
-    background: rgba(255, 255, 255, .012);
+    background: color-mix(in srgb, var(--gg-text) 1.2%, transparent);
     overflow: visible;
 }
 
 .add-person-relationship-panel {
     border: 1px solid var(--border-default);
     border-radius: var(--radius-sm);
-    background: rgba(255, 255, 255, .018);
+    background: color-mix(in srgb, var(--gg-text) 1.8%, transparent);
     overflow: visible;
 }
 
@@ -3135,7 +3123,7 @@ body.mobile-person-details-open .relative-popover-body {
 .add-person-facts-header:focus-visible,
 .add-person-relationship-header:hover,
 .add-person-relationship-header:focus-visible {
-    background: rgba(255, 255, 255, .035);
+    background: color-mix(in srgb, var(--gg-text) 3.5%, transparent);
 }
 
 .add-person-facts-header-main,
@@ -3232,7 +3220,7 @@ body.mobile-person-details-open .relative-popover-body {
 
 .add-person-fact-remove:hover,
 .add-person-fact-remove:focus-visible {
-    background: rgba(255, 255, 255, .055);
+    background: color-mix(in srgb, var(--gg-text) 5.5%, transparent);
     border-color: var(--border-default);
     color: var(--text-primary);
 }
@@ -3335,7 +3323,7 @@ body.mobile-person-details-open .relative-popover-body {
     display: grid;
     place-items: center;
     padding: var(--space-6);
-    background: rgba(0, 0, 0, .46);
+    background: color-mix(in srgb, var(--gg-scrim) 46%, transparent);
     backdrop-filter: blur(2px);
 }
 
@@ -3420,7 +3408,7 @@ body.mobile-person-details-open .relative-popover-body {
     width: 36px;
     height: 36px;
     border-radius: var(--radius-sm);
-    background: rgba(255, 255, 255, .04);
+    background: color-mix(in srgb, var(--gg-text) 4%, transparent);
     color: var(--text-tertiary);
     display: grid;
     place-items: center;
@@ -3444,7 +3432,7 @@ body.mobile-person-details-open .relative-popover-body {
 
 .match-row:hover,
 .match-row:focus-visible {
-    background: rgba(255, 255, 255, .035);
+    background: color-mix(in srgb, var(--gg-text) 3.5%, transparent);
     color: var(--text-primary);
 }
 
@@ -3459,7 +3447,7 @@ body.mobile-person-details-open .relative-popover-body {
     display: grid;
     place-items: center;
     padding: var(--space-6);
-    background: rgba(0, 0, 0, .28);
+    background: color-mix(in srgb, var(--gg-scrim) 28%, transparent);
     backdrop-filter: blur(2px);
 }
 
@@ -3506,7 +3494,7 @@ body.mobile-person-details-open .relative-popover-body {
     min-height: 50px;
     border: 1px solid var(--border-default);
     border-radius: var(--radius-sm);
-    background: rgba(255, 255, 255, .025);
+    background: color-mix(in srgb, var(--gg-text) 2.5%, transparent);
     color: var(--text-secondary);
     display: flex;
     align-items: center;
@@ -3534,9 +3522,9 @@ body.mobile-person-details-open .relative-popover-body {
 }
 
 .add-person-mini-choice-indicator.checked {
-    border-color: rgba(98, 217, 154, .4);
+    border-color: color-mix(in srgb, var(--gg-primary) 40%, transparent);
     background: var(--brand-green-500);
-    color: #07130e;
+    color: var(--gg-accent-print-magenta-on-accent);
 }
 
 .add-person-mini-footer {

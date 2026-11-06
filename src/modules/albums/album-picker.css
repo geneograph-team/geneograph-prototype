@@ -120,10 +120,7 @@
 
 .album-picker-result.is-selected {
     background:
-        rgba(47,
-            174,
-            116,
-            .08);
+        color-mix(in srgb, var(--gg-primary) 8%, transparent);
 }
 
 .album-picker-result.is-complete {

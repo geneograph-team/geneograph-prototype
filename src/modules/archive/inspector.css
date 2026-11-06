@@ -154,7 +154,7 @@
     position: absolute;
     z-index: 1;
     border: 2px solid var(--brand-green-400);
-    background: rgba(40, 180, 125, .16);
+    background: color-mix(in srgb, var(--gg-primary) 16%, transparent);
     pointer-events: none;
 }
 
@@ -162,9 +162,9 @@
 
 .archive-person-region-highlight.is-active {
     z-index: 2;
-    border: 3px solid #f5fff9;
-    background: rgba(35, 187, 121, .26);
-    box-shadow: inset 0 0 0 1px #16865c, 0 0 0 1px #16865c;
+    border: 3px solid var(--gg-accent-investigation-purple-accent);
+    background: color-mix(in srgb, var(--gg-primary) 26%, transparent);
+    box-shadow: inset 0 0 0 1px var(--gg-primary), 0 0 0 1px var(--gg-primary);
 }
 
 
@@ -178,7 +178,7 @@
     border: 1px solid var(--border-default);
     border-radius: 8px;
     background: var(--surface-input);
-    box-shadow: 0 12px 28px rgba(0, 0, 0, .35);
+    box-shadow: 0 12px 28px color-mix(in srgb, var(--gg-scrim) 35%, transparent);
     pointer-events: none;
 }
 
@@ -340,12 +340,12 @@
 
 .archive-file-title-field input:focus {
     border-color:
-        rgba(98, 217, 154, .55);
+        color-mix(in srgb, var(--gg-primary) 55%, transparent);
 
     outline: 0;
 
     box-shadow:
-        0 0 0 3px rgba(98, 217, 154, .1);
+        0 0 0 3px color-mix(in srgb, var(--gg-primary) 10%, transparent);
 }
 
 .archive-file-form-grid {
@@ -387,7 +387,7 @@
 
 .archive-file-form-grid input:focus-visible,
 .archive-file-form-grid select:focus-visible {
-    outline: 2px solid var(--accent-primary, #62d99a);
+    outline: 2px solid var(--accent-primary, var(--gg-primary));
     outline-offset: 2px;
 }
 
@@ -487,12 +487,12 @@
 
 .archive-file-field textarea:focus {
     border-color:
-        rgba(98, 217, 154, .55);
+        color-mix(in srgb, var(--gg-primary) 55%, transparent);
 
     outline: 0;
 
     box-shadow:
-        0 0 0 3px rgba(98, 217, 154, .1);
+        0 0 0 3px color-mix(in srgb, var(--gg-primary) 10%, transparent);
 }
 
 .archive-file-inspector-content .relationship-list {
@@ -552,7 +552,7 @@
         8px 0;
 
     border-bottom:
-        1px solid rgba(45, 54, 52, .72);
+        1px solid color-mix(in srgb, var(--gg-status-neutral-on-accent) 72%, transparent);
 
     display: grid;
     grid-template-columns:
@@ -630,7 +630,7 @@
     margin-top: var(--space-4);
     padding-top: var(--space-4);
     border-top:
-        1px solid rgba(45, 54, 52, .72);
+        1px solid color-mix(in srgb, var(--gg-status-neutral-on-accent) 72%, transparent);
     text-align: left;
 }
 
@@ -696,7 +696,7 @@
 .archive-kv {
     min-height: 34px;
     padding: 7px 0;
-    border-bottom: 1px solid rgba(255, 255, 255, .045);
+    border-bottom: 1px solid color-mix(in srgb, var(--gg-text) 4.5%, transparent);
     display: flex;
     align-items: flex-start;
     justify-content: space-between;
@@ -730,7 +730,7 @@
     padding: 8px 42px 8px 10px;
     border: 1px solid var(--border-default);
     border-radius: var(--radius-sm);
-    background: rgba(255, 255, 255, .018);
+    background: color-mix(in srgb, var(--gg-text) 1.8%, transparent);
     display: grid;
     gap: 2px;
 }
@@ -765,7 +765,7 @@
 .archive-connection-row:hover,
 .archive-connection-row:focus-within {
     border-color: var(--border-strong);
-    background: rgba(255, 255, 255, .035);
+    background: color-mix(in srgb, var(--gg-text) 3.5%, transparent);
 }
 
 .archive-connection-unlink {
@@ -800,7 +800,7 @@
 .archive-connection-unlink:hover,
 .archive-connection-unlink:focus-visible {
     color: var(--red);
-    background: rgba(212, 107, 107, .12);
+    background: color-mix(in srgb, var(--gg-status-error-accent) 12%, transparent);
 }
 
 .archive-connection-unlink svg {
@@ -966,9 +966,9 @@
     align-items: center;
     min-height: 24px;
     padding: 0 9px;
-    border: 1px solid rgba(255, 255, 255, .08);
+    border: 1px solid color-mix(in srgb, var(--gg-text) 8%, transparent);
     border-radius: 999px;
-    background: rgba(255, 255, 255, .035);
+    background: color-mix(in srgb, var(--gg-text) 3.5%, transparent);
     color: var(--text-secondary);
     font-size: 11px;
     font-weight: 850;

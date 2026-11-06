@@ -119,7 +119,7 @@
 
 .places-route-mode button:hover {
     background:
-        rgba(255, 255, 255, .035);
+        color-mix(in srgb, var(--gg-text) 3.5%, transparent);
     color:
         var(--text-primary);
 }
@@ -130,7 +130,7 @@
     color:
         var(--text-primary);
     box-shadow:
-        inset 0 0 0 1px rgba(98, 217, 154, .3);
+        inset 0 0 0 1px color-mix(in srgb, var(--gg-primary) 30%, transparent);
 }
 
 .places-route-mode button:focus-visible {
@@ -357,7 +357,7 @@
     place-items: center;
     border-radius: 50%;
     background:
-        rgba(98, 217, 154, .1);
+        color-mix(in srgb, var(--gg-primary) 10%, transparent);
     color:
         var(--brand-green-300);
 }
@@ -396,12 +396,12 @@
     border-radius:
         var(--radius-sm);
     background:
-        rgba(255, 255, 255, .025);
+        color-mix(in srgb, var(--gg-text) 2.5%, transparent);
 }
 
 .places-route-popup-preview.is-unavailable {
     border-color:
-        rgba(212, 170, 107, .34);
+        color-mix(in srgb, var(--gg-accent-sepia-gold-accent) 34%, transparent);
 }
 
 .places-route-popup-preview-icon {
@@ -557,7 +557,7 @@
 }
 
 .places-route-summary.is-unavailable {
-    border-color: rgba(226, 170, 86, .38);
+    border-color: color-mix(in srgb, var(--gg-status-error-accent) 38%, transparent);
 }
 
 .places-route-summary-head {
@@ -574,7 +574,7 @@
     display: grid;
     place-items: center;
     border-radius: 6px;
-    background: rgba(98, 217, 154, .1);
+    background: color-mix(in srgb, var(--gg-primary) 10%, transparent);
     color: var(--brand-green-300);
 }
 
@@ -585,8 +585,8 @@
 }
 
 .places-route-summary.is-unavailable .places-route-summary-icon {
-    background: rgba(226, 170, 86, .1);
-    color: #e2aa56;
+    background: color-mix(in srgb, var(--gg-status-error-accent) 10%, transparent);
+    color: var(--gg-status-error-accent);
 }
 
 .places-route-summary-title {
@@ -671,7 +671,7 @@
 }
 
 .places-route-summary-warning {
-    color: #edbd76;
+    color: var(--gg-status-error-accent);
 }
 
 .places-route-summary-excluded {
@@ -960,26 +960,26 @@
 }
 
 .places-review-row-actions .places-review-dismiss-button {
-    border-color: rgba(255, 255, 255, .14);
-    background: rgba(255, 255, 255, .045);
+    border-color: color-mix(in srgb, var(--gg-text) 14%, transparent);
+    background: color-mix(in srgb, var(--gg-text) 4.5%, transparent);
     color: var(--text-primary);
 }
 
 .places-review-row-actions .places-review-dismiss-button:hover {
     border-color: var(--border-strong);
-    background: rgba(255, 255, 255, .09);
+    background: color-mix(in srgb, var(--gg-text) 9%, transparent);
     color: var(--text-primary);
 }
 
 .places-review-list-row.active .places-review-dismiss-button {
-    border-color: rgba(255, 255, 255, .3);
-    background: rgba(6, 17, 13, .34);
-    color: #fff;
+    border-color: color-mix(in srgb, var(--gg-text) 30%, transparent);
+    background: color-mix(in srgb, var(--gg-topbar) 34%, transparent);
+    color: var(--gg-text);
 }
 
 .places-review-list-row.active .places-review-dismiss-button:hover {
-    border-color: rgba(255, 255, 255, .48);
-    background: rgba(6, 17, 13, .5);
+    border-color: color-mix(in srgb, var(--gg-text) 48%, transparent);
+    background: color-mix(in srgb, var(--gg-topbar) 50%, transparent);
 }
 
 .places-review-row-actions .places-review-dismiss-button:focus-visible {
@@ -1161,7 +1161,7 @@
         var(--surface-selected);
 
     border-color:
-        rgba(98, 217, 154, .35);
+        color-mix(in srgb, var(--gg-primary) 35%, transparent);
 
     color:
         var(--brand-green-300);
@@ -1192,7 +1192,7 @@
     gap: 10px;
 
     background:
-        rgba(18, 24, 22, .96);
+        color-mix(in srgb, var(--gg-sidebar) 96%, transparent);
 
     color:
         var(--text-secondary);
@@ -1237,29 +1237,29 @@
     height: 15px;
     margin-left: 2px;
     border:
-        2px solid #e5fff1;
+        2px solid var(--gg-accent-evidence-slate-accent);
     border-radius:
         50% 50% 50% 0;
     display: block;
     background:
         var(--brand-green-500);
     border-color:
-        rgba(232, 255, 243, .98);
+        color-mix(in srgb, var(--gg-accent-investigation-purple-accent) 98%, transparent);
     box-shadow:
-        0 2px 5px rgba(0, 0, 0, .38);
+        0 2px 5px color-mix(in srgb, var(--gg-scrim) 38%, transparent);
     transform:
         rotate(-45deg);
 }
 
 .places-map-legend-marker.selected {
     background:
-        #f2c464;
+        var(--gg-accent-sepia-gold-accent);
 
     border-color:
-        #fff4d3;
+        var(--gg-accent-rose-sepia-accent);
 
     box-shadow:
-        0 0 0 3px rgba(98, 217, 154, .16);
+        0 0 0 3px color-mix(in srgb, var(--gg-primary) 16%, transparent);
 }
 
 .places-map-legend-route {
@@ -1286,15 +1286,15 @@
         var(--brand-green-500);
 
     border:
-        3px solid rgba(232, 255, 243, .98);
+        3px solid color-mix(in srgb, var(--gg-accent-investigation-purple-accent) 98%, transparent);
 
     border-radius:
         50% 50% 50% 0;
 
     box-shadow:
-        inset 0 1px 0 rgba(255, 255, 255, .22),
-        0 1px 2px rgba(0, 0, 0, .36),
-        0 4px 12px rgba(0, 0, 0, .52);
+        inset 0 1px 0 color-mix(in srgb, var(--gg-text) 22%, transparent),
+        0 1px 2px color-mix(in srgb, var(--gg-scrim) 36%, transparent),
+        0 4px 12px color-mix(in srgb, var(--gg-scrim) 52%, transparent);
 
     opacity: 1;
 
@@ -1326,10 +1326,10 @@
     border-radius: 50%;
 
     background:
-        rgba(5, 18, 12, .74);
+        color-mix(in srgb, var(--gg-topbar) 74%, transparent);
 
     box-shadow:
-        0 0 0 1px rgba(255, 255, 255, .18);
+        0 0 0 1px color-mix(in srgb, var(--gg-text) 18%, transparent);
 
     transform:
         translate(-50%, -50%);
@@ -1346,52 +1346,52 @@
         rotate(-45deg) scale(1.08);
 
     box-shadow:
-        inset 0 1px 0 rgba(255, 255, 255, .28),
-        0 2px 3px rgba(0, 0, 0, .4),
-        0 6px 16px rgba(0, 0, 0, .58);
+        inset 0 1px 0 color-mix(in srgb, var(--gg-text) 28%, transparent),
+        0 2px 3px color-mix(in srgb, var(--gg-scrim) 40%, transparent),
+        0 6px 16px color-mix(in srgb, var(--gg-scrim) 58%, transparent);
 }
 
 /* Selected place */
 
 .leaflet-place-marker.selected {
     background:
-        #f2c464;
+        var(--gg-accent-sepia-gold-accent);
 
     border-color:
-        #fff4d3;
+        var(--gg-accent-rose-sepia-accent);
 
     box-shadow:
-        0 0 0 5px rgba(98, 217, 154, .22),
-        0 2px 3px rgba(0, 0, 0, .42),
-        0 6px 16px rgba(0, 0, 0, .6);
+        0 0 0 5px color-mix(in srgb, var(--gg-primary) 22%, transparent),
+        0 2px 3px color-mix(in srgb, var(--gg-scrim) 42%, transparent),
+        0 6px 16px color-mix(in srgb, var(--gg-scrim) 60%, transparent);
 }
 
 .leaflet-place-marker.selected::after {
     background:
-        rgba(54, 39, 9, .78);
+        color-mix(in srgb, var(--gg-status-warning-subtle-container) 78%, transparent);
 
     box-shadow:
-        0 0 0 1px rgba(255, 255, 255, .28);
+        0 0 0 1px color-mix(in srgb, var(--gg-text) 28%, transparent);
 }
 
 /* Temporary position-editing marker */
 
 .leaflet-place-marker.draft {
     background:
-        #8cb8ff;
+        var(--gg-accent-evidence-slate-container);
 
     border-color:
-        #eff6ff;
+        var(--gg-accent-investigation-purple-accent);
 
     box-shadow:
-        0 0 0 5px rgba(140, 184, 255, .2),
-        0 2px 3px rgba(0, 0, 0, .4),
-        0 6px 16px rgba(0, 0, 0, .58);
+        0 0 0 5px color-mix(in srgb, var(--gg-scrim) 20%, transparent),
+        0 2px 3px color-mix(in srgb, var(--gg-scrim) 40%, transparent),
+        0 6px 16px color-mix(in srgb, var(--gg-scrim) 58%, transparent);
 }
 
 .leaflet-place-marker.draft::after {
     background:
-        rgba(8, 28, 59, .78);
+        color-mix(in srgb, var(--gg-accent-creative-blue-subtle-container) 78%, transparent);
 }
 
 .places-leaflet-route {
@@ -1408,11 +1408,11 @@
     height: 32px;
     display: grid;
     place-items: center;
-    border: 2px solid rgba(232, 255, 243, .96);
+    border: 2px solid color-mix(in srgb, var(--gg-accent-investigation-purple-accent) 96%, transparent);
     border-radius: 50%;
-    background: #247a55;
-    color: #fff;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, .42), 0 5px 14px rgba(0, 0, 0, .5);
+    background: var(--gg-accent-heritage-green-container);
+    color: var(--gg-text);
+    box-shadow: 0 2px 4px color-mix(in srgb, var(--gg-scrim) 42%, transparent), 0 5px 14px color-mix(in srgb, var(--gg-scrim) 50%, transparent);
     font-size: 12px;
     font-weight: 850;
     line-height: 1;
@@ -1425,13 +1425,13 @@
 
 .places-route-marker.is-end {
     border-radius: 7px;
-    background: #b58a35;
-    color: #171107;
+    background: var(--gg-status-error-accent);
+    color: var(--gg-accent-print-magenta-on-accent);
 }
 
 .places-route-marker-icon:focus-visible .places-route-marker,
 .places-route-marker-icon:hover .places-route-marker {
-    outline: 3px solid rgba(98, 217, 154, .28);
+    outline: 3px solid color-mix(in srgb, var(--gg-primary) 28%, transparent);
     outline-offset: 2px;
 }
 
@@ -1549,13 +1549,13 @@
         8px 10px;
 
     border:
-        1px solid rgba(242, 196, 100, .25);
+        1px solid color-mix(in srgb, var(--gg-accent-sepia-gold-accent) 25%, transparent);
 
     border-radius:
         var(--radius-sm);
 
     background:
-        rgba(242, 196, 100, .08);
+        color-mix(in srgb, var(--gg-accent-sepia-gold-accent) 8%, transparent);
 
     color:
         var(--amber);
@@ -1624,7 +1624,7 @@
 }
 
 .places-attention-open:hover {
-    background: rgba(255, 255, 255, .06);
+    background: color-mix(in srgb, var(--gg-text) 6%, transparent);
     color: var(--text-primary);
 }
 
@@ -1667,9 +1667,9 @@
 }
 
 .places-attention-actions .places-attention-fix {
-    border-color: rgba(242, 196, 100, .45);
+    border-color: color-mix(in srgb, var(--gg-accent-sepia-gold-accent) 45%, transparent);
     background: var(--amber);
-    color: #171b19;
+    color: var(--gg-accent-print-magenta-on-accent);
 }
 
 .places-attention-actions .places-attention-fix:hover {
@@ -1678,14 +1678,14 @@
 }
 
 .places-attention-actions .places-attention-dismiss {
-    border-color: rgba(255, 255, 255, .08);
-    background: rgba(255, 255, 255, .035);
+    border-color: color-mix(in srgb, var(--gg-text) 8%, transparent);
+    background: color-mix(in srgb, var(--gg-text) 3.5%, transparent);
     color: var(--text-secondary);
 }
 
 .places-attention-actions .places-attention-dismiss:hover {
     border-color: var(--border-default);
-    background: rgba(255, 255, 255, .07);
+    background: color-mix(in srgb, var(--gg-text) 7%, transparent);
     color: var(--text-primary);
 }
 
@@ -1901,7 +1901,7 @@
 
 .places-inspector-section>summary:hover {
     background:
-        rgba(255, 255, 255, .025);
+        color-mix(in srgb, var(--gg-text) 2.5%, transparent);
 }
 
 .places-inspector-section>summary:focus-visible {
@@ -2067,7 +2067,7 @@
         var(--space-3);
 
     background:
-        rgba(255, 255, 255, .025);
+        color-mix(in srgb, var(--gg-text) 2.5%, transparent);
 
     color:
         inherit;
@@ -2257,7 +2257,7 @@
 
 .places-inspector-event-row+.places-inspector-event-row {
     border-top:
-        1px solid rgba(255, 255, 255, .055);
+        1px solid color-mix(in srgb, var(--gg-text) 5.5%, transparent);
 }
 
 .places-inspector-event-title {
@@ -2346,7 +2346,7 @@
         var(--space-3);
 
     background:
-        rgba(255, 255, 255, .025);
+        color-mix(in srgb, var(--gg-text) 2.5%, transparent);
 }
 
 .places-inspector-other-events>strong {
@@ -2533,7 +2533,7 @@
     margin: 0;
     padding: 9px 11px;
     border-left: 3px solid var(--green);
-    background: rgba(98, 217, 154, .08);
+    background: color-mix(in srgb, var(--gg-primary) 8%, transparent);
     color: var(--text-secondary);
     font-size: 12px;
 }
@@ -2545,7 +2545,7 @@
     border: 0;
     border-left: 3px solid var(--amber);
     border-radius: var(--radius-sm);
-    background: rgba(212, 170, 107, .08);
+    background: color-mix(in srgb, var(--gg-accent-sepia-gold-accent) 8%, transparent);
 
     display: grid;
     grid-template-columns: minmax(0, 1fr);

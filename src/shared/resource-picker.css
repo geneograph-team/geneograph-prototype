@@ -205,7 +205,7 @@
 
 .resource-picker[data-resource-picker=files] .rp-scope>svg,.resource-picker[data-resource-picker=files] .rp-record-icon
 {
-    color:#f2c75c;
+    color:var(--gg-accent-sepia-gold-accent);
 }
 
 .resource-picker[data-resource-picker=files] .rp-scope>svg:first-child
@@ -226,7 +226,7 @@
 
 .resource-picker[data-resource-picker=places] .rp-record-icon
 {
-    color:#54bfc4;
+    color:var(--gg-accent-map-cyan-accent);
 }
 
 
@@ -241,7 +241,7 @@
     background:var(--surface-card);
     border:1px solid var(--border-strong);
     border-radius:8px;
-    box-shadow:0 10px 30px rgba(0,0,0,.3);
+    box-shadow:0 10px 30px color-mix(in srgb, var(--gg-scrim) 30%, transparent);
 }
 
 .rp-filter-panel h3
@@ -683,7 +683,7 @@
 
 .rp-record.is-selected
 {
-    background:var(--accent-soft,rgba(45,179,124,.12))
+    background:var(--accent-soft,color-mix(in srgb, var(--gg-primary) 12%, transparent))
 }
 
 .rp-record-select
@@ -863,14 +863,14 @@
 
 .rp-scope:hover,.rp-scope.is-selected
 {
-    background:var(--accent-soft,rgba(45,179,124,.1))
+    background:var(--accent-soft,color-mix(in srgb, var(--gg-primary) 10%, transparent))
 }
 
 .rp-empty
 {
     flex:1;
     min-height:180px;
-    background:var(--surface-2,#111816);
+    background:var(--surface-2,var(--gg-sidebar));
     border:1px solid var(--border);
     border-radius:8px;
     display:flex;
@@ -921,7 +921,7 @@
 .rp-error
 {
     margin:0 24px 12px;
-    color:var(--danger,#ef9b9b);
+    color:var(--danger,var(--gg-status-error-accent));
     font-size:14px
 }
 

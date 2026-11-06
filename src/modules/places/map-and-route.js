@@ -493,12 +493,13 @@ function renderPlacesRouteLayer()
     const route = normalizePlacesRouteSelection();
     if (!state.placesShowRoute || !route.available) return;
     const layer = L.layerGroup().addTo(map);
+    const routeColor = getComputedStyle(document.documentElement).getPropertyValue('--gg-primary').trim();
     derivePlacesRouteSegments(route).forEach(segment =>
     {
         if (segment.length < 2) return;
         L.polyline(segment.map(stop => stop.coordinates), {
             className: 'places-leaflet-route',
-            color: '#62D99A',
+            color: routeColor,
             weight: 3,
             opacity: 0.78,
             dashArray: '9 8'

@@ -4,7 +4,7 @@
     --notes-card-hover: var(--surface-card-hover);
     --notes-card-selected: var(--surface-selected);
     --notes-card-selected-hover: var(--surface-selected);
-    --notes-card-selected-border: rgba(98, 217, 154, .18);
+    --notes-card-selected-border: color-mix(in srgb, var(--gg-primary) 18%, transparent);
     height: 100%;
     min-width: 0;
     min-height: 0;
@@ -32,7 +32,7 @@
     grid-template-rows: auto minmax(0, 1fr);
     overflow: hidden;
     background:
-        radial-gradient(circle at 92% -5%, rgba(47, 174, 116, .05), transparent 28%),
+        radial-gradient(circle at 92% -5%, color-mix(in srgb, var(--gg-primary) 5%, transparent), transparent 28%),
         var(--surface-main);
     container-type: inline-size;
     container-name: notes-browser;
@@ -164,9 +164,9 @@
     display: inline-flex;
     align-items: center;
     gap: 6px;
-    border: 1px solid rgba(98, 217, 154, .2);
+    border: 1px solid color-mix(in srgb, var(--gg-primary) 20%, transparent);
     border-radius: 999px;
-    background: rgba(47, 174, 116, .08);
+    background: color-mix(in srgb, var(--gg-primary) 8%, transparent);
     color: var(--text-secondary);
     font-size: 11px;
     font-weight: 800;
@@ -246,7 +246,7 @@
     border: 1px solid transparent;
     border-radius: 8px;
     background: transparent;
-    color: #8A9692;
+    color: var(--gg-text-muted);
     transition:
         background var(--ease),
         border-color var(--ease),
@@ -264,7 +264,7 @@
 .notes-row-favorite:hover,
 .notes-row-menu:hover {
     border-color: var(--border-default);
-    background: rgba(255, 255, 255, .045);
+    background: color-mix(in srgb, var(--gg-text) 4.5%, transparent);
     color: var(--text-primary);
 }
 
@@ -363,7 +363,7 @@
     overflow: hidden;
     border-radius: 5px;
     background:
-        rgba(255, 255, 255, .055);
+        color-mix(in srgb, var(--gg-text) 5.5%, transparent);
     color:
         var(--text-secondary);
     font-size: 12px;
@@ -380,7 +380,7 @@
     display: block;
 
     color:
-        #A7B1AD;
+        var(--gg-text-secondary);
 
     font-size: 12px;
     font-weight: 700;
@@ -391,18 +391,18 @@
 }
 
 .notes-row.active .notes-row-excerpt {
-    color: #D0D7D3;
+    color: var(--gg-accent-evidence-slate-on-container);
 }
 
 .notes-row.active .notes-row-metadata {
-    color: #BECAC4;
+    color: var(--gg-status-neutral-accent);
 }
 
 .notes-row.active .notes-row-collection-chip {
     background:
-        rgba(255, 255, 255, .075);
+        color-mix(in srgb, var(--gg-text) 7.5%, transparent);
     color:
-        #C4CEC9;
+        var(--gg-status-neutral-accent);
 }
 
 .notes-resizer {
@@ -432,9 +432,9 @@
     background:
         linear-gradient(90deg,
             transparent 0 3px,
-            rgba(98, 217, 154, .68) 3px 4px,
+            color-mix(in srgb, var(--gg-primary) 68%, transparent) 3px 4px,
             transparent 4px 6px,
-            rgba(98, 217, 154, .68) 6px 7px,
+            color-mix(in srgb, var(--gg-primary) 68%, transparent) 6px 7px,
             transparent 7px);
 }
 
@@ -472,7 +472,7 @@
 }
 
 .notes-editor-restore:hover {
-    background: rgba(255, 255, 255, .05);
+    background: color-mix(in srgb, var(--gg-text) 5%, transparent);
     color: var(--text-primary);
     border-color: var(--border-default);
 }
@@ -589,7 +589,7 @@
         var(--brand-green-400);
 
     box-shadow:
-        0 0 0 3px rgba(54, 201, 133, .1);
+        0 0 0 3px color-mix(in srgb, var(--gg-primary) 10%, transparent);
 }
 
 .notes-save-status.saving {
@@ -599,7 +599,7 @@
 .notes-save-status.saving::before {
     background: var(--amber);
     box-shadow:
-        0 0 0 3px rgba(212, 170, 107, .1);
+        0 0 0 3px color-mix(in srgb, var(--gg-accent-sepia-gold-accent) 10%, transparent);
 }
 
 .notes-save-status.error {
@@ -609,7 +609,7 @@
 .notes-save-status.error::before {
     background: var(--red);
     box-shadow:
-        0 0 0 3px rgba(212, 107, 107, .1);
+        0 0 0 3px color-mix(in srgb, var(--gg-status-error-accent) 10%, transparent);
 }
 
 .notes-icon-button {
@@ -624,8 +624,8 @@
 }
 
 .notes-icon-button.active {
-    border-color: rgba(212, 170, 107, .35);
-    background: rgba(212, 170, 107, .1);
+    border-color: color-mix(in srgb, var(--gg-accent-sepia-gold-accent) 35%, transparent);
+    background: color-mix(in srgb, var(--gg-accent-sepia-gold-accent) 10%, transparent);
     color: var(--amber);
 }
 
@@ -696,8 +696,8 @@
 }
 
 .notes-body-input:focus {
-    border-color: rgba(98, 217, 154, .34);
-    box-shadow: 0 0 0 1px rgba(47, 174, 116, .08);
+    border-color: color-mix(in srgb, var(--gg-primary) 34%, transparent);
+    box-shadow: 0 0 0 1px color-mix(in srgb, var(--gg-primary) 8%, transparent);
 }
 
 .notes-body-input::placeholder {
@@ -719,7 +719,7 @@
     overflow: visible;
 
     border:
-        1px solid rgba(255, 255, 255, .065);
+        1px solid color-mix(in srgb, var(--gg-text) 6.5%, transparent);
 
     border-radius:
         var(--radius-sm);
@@ -735,13 +735,13 @@
 
 .notes-rich-editor-shell:focus-within {
     border-color:
-        rgba(98, 217, 154, .38);
+        color-mix(in srgb, var(--gg-primary) 38%, transparent);
 
     box-shadow:
-        0 0 0 1px rgba(47, 174, 116, .08);
+        0 0 0 1px color-mix(in srgb, var(--gg-primary) 8%, transparent);
 
     background:
-        rgba(255, 255, 255, .012);
+        color-mix(in srgb, var(--gg-text) 1.2%, transparent);
 }
 
 .notes-rich-editor-shell.is-fallback:not(:focus-within) {
@@ -851,7 +851,7 @@
         calc(var(--radius-sm) - 1px) calc(var(--radius-sm) - 1px) 0 0;
 
     background:
-        rgba(255, 255, 255, .022);
+        color-mix(in srgb, var(--gg-text) 2.2%, transparent);
 }
 
 .rich-text-toolbar.ql-toolbar.ql-snow .ql-formats {
@@ -929,10 +929,10 @@
 .rich-text-toolbar.ql-toolbar.ql-snow .ql-picker-label.ql-active,
 .rich-text-toolbar.ql-toolbar.ql-snow .ql-picker.ql-expanded .ql-picker-label {
     border-color:
-        rgba(98, 217, 154, .34);
+        color-mix(in srgb, var(--gg-primary) 34%, transparent);
 
     background:
-        rgba(47, 174, 116, .12);
+        color-mix(in srgb, var(--gg-primary) 12%, transparent);
 
     color:
         var(--brand-green-300);
@@ -1080,7 +1080,7 @@
     padding: 0;
 
     border:
-        1px solid rgba(255, 255, 255, .16);
+        1px solid color-mix(in srgb, var(--gg-text) 16%, transparent);
 
     border-radius: 4px;
 }
@@ -1259,13 +1259,13 @@
         8px 12px;
 
     border-left:
-        3px solid rgba(98, 217, 154, .54);
+        3px solid color-mix(in srgb, var(--gg-primary) 54%, transparent);
 
     border-radius:
         0 6px 6px 0;
 
     background:
-        rgba(98, 217, 154, .055);
+        color-mix(in srgb, var(--gg-primary) 5.5%, transparent);
 
     color:
         var(--text-secondary);
@@ -1279,7 +1279,7 @@
 
 .notes-rich-editor-shell .ql-editor a {
     color:
-        #8BC8F5;
+        var(--gg-status-info-accent);
 
     text-decoration:
         underline;
@@ -1512,8 +1512,8 @@
 .notes-collection-remove:hover,
 .notes-checklist-delete:hover,
 .notes-linked-action.danger:hover {
-    border-color: rgba(212, 107, 107, .25);
-    background: rgba(212, 107, 107, .08);
+    border-color: color-mix(in srgb, var(--gg-status-error-accent) 25%, transparent);
+    background: color-mix(in srgb, var(--gg-status-error-accent) 8%, transparent);
     color: var(--red);
 }
 
@@ -1544,9 +1544,9 @@
     grid-template-columns: 22px minmax(0, 1fr) 32px;
     align-items: center;
     gap: var(--space-2);
-    border: 1px solid rgba(255, 255, 255, .055);
+    border: 1px solid color-mix(in srgb, var(--gg-text) 5.5%, transparent);
     border-radius: var(--radius-sm);
-    background: rgba(255, 255, 255, .025);
+    background: color-mix(in srgb, var(--gg-text) 2.5%, transparent);
 }
 
 .notes-checklist-row input[type="checkbox"] {
@@ -1595,9 +1595,9 @@
     grid-template-columns: minmax(0, 1fr) auto;
     align-items: center;
     gap: var(--space-2);
-    border: 1px solid rgba(255, 255, 255, .055);
+    border: 1px solid color-mix(in srgb, var(--gg-text) 5.5%, transparent);
     border-radius: var(--radius-sm);
-    background: rgba(255, 255, 255, .025);
+    background: color-mix(in srgb, var(--gg-text) 2.5%, transparent);
 }
 
 .notes-linked-main {
@@ -1828,7 +1828,7 @@
     gap: var(--space-3);
     border: 1px solid var(--border-default);
     border-radius: var(--radius-sm);
-    background: rgba(255, 255, 255, .025);
+    background: color-mix(in srgb, var(--gg-text) 2.5%, transparent);
     color: var(--text-secondary);
     cursor: pointer;
     margin: 0;
@@ -1885,10 +1885,10 @@
     height: 38px;
     display: grid;
     place-items: center;
-    border: 1px solid rgba(141, 108, 232, .42);
+    border: 1px solid color-mix(in srgb, var(--gg-text-muted) 42%, transparent);
     border-radius: 10px;
-    background: rgba(141, 108, 232, .12);
-    color: #BBA9F6;
+    background: color-mix(in srgb, var(--gg-accent-investigation-purple-container) 12%, transparent);
+    color: var(--gg-accent-investigation-purple-accent);
     transition:
         border-color var(--ease),
         background var(--ease),
@@ -1912,7 +1912,7 @@
     border: 2px solid var(--surface-sidebar);
     border-radius: 6px;
     background: var(--purple);
-    color: #FFFFFF;
+    color: var(--gg-text);
 }
 
 .notes-related-icon-link svg {
@@ -1923,8 +1923,8 @@
 
 .notes-related-item:hover .notes-related-icon-document,
 .notes-related-item:focus-within .notes-related-icon-document {
-    border-color: rgba(141, 108, 232, .72);
-    background: rgba(141, 108, 232, .18);
+    border-color: color-mix(in srgb, var(--gg-text-muted) 72%, transparent);
+    background: color-mix(in srgb, var(--gg-accent-investigation-purple-container) 18%, transparent);
     transform: translateY(-1px);
 }
 
@@ -1955,9 +1955,9 @@
 .notes-related-archived-badge {
     flex: 0 0 auto;
     padding: 2px 6px;
-    border: 1px solid rgba(212, 170, 107, .35);
+    border: 1px solid color-mix(in srgb, var(--gg-accent-sepia-gold-accent) 35%, transparent);
     border-radius: 999px;
-    background: rgba(212, 170, 107, .10);
+    background: color-mix(in srgb, var(--gg-accent-sepia-gold-accent) 10%, transparent);
     color: var(--amber);
     font-size: 9px;
     font-weight: 850;
@@ -2051,13 +2051,13 @@
         center;
 
     border:
-        1px solid rgba(212, 170, 107, .42);
+        1px solid color-mix(in srgb, var(--gg-accent-sepia-gold-accent) 42%, transparent);
 
     border-radius:
         10px;
 
     background:
-        rgba(212, 170, 107, .12);
+        color-mix(in srgb, var(--gg-accent-sepia-gold-accent) 12%, transparent);
 
     color:
         var(--amber);
@@ -2111,7 +2111,7 @@
         var(--amber);
 
     color:
-        #21180c;
+        var(--gg-accent-print-magenta-on-accent);
 }
 
 .connected-source-icon-link svg {
@@ -2128,10 +2128,10 @@
 .connected-source-item:hover .connected-source-icon-record,
 .connected-source-item:focus-within .connected-source-icon-record {
     border-color:
-        rgba(212, 170, 107, .72);
+        color-mix(in srgb, var(--gg-accent-sepia-gold-accent) 72%, transparent);
 
     background:
-        rgba(212, 170, 107, .18);
+        color-mix(in srgb, var(--gg-accent-sepia-gold-accent) 18%, transparent);
 
     transform:
         translateY(-1px);
@@ -2229,7 +2229,7 @@
 
 .notes-related-reciprocal-note {
     margin-top: 4px;
-    color: #BBA9F6;
+    color: var(--gg-accent-investigation-purple-accent);
     font-size: 12px;
 }
 
@@ -2408,7 +2408,7 @@
         var(--radius-md);
 
     background:
-        rgba(255, 255, 255, .025);
+        color-mix(in srgb, var(--gg-text) 2.5%, transparent);
 
     color:
         var(--text-secondary);
@@ -2432,15 +2432,15 @@
 
 .notes-related-choice.selected {
     border-color:
-        rgba(141, 108, 232, .68);
+        color-mix(in srgb, var(--gg-text-muted) 68%, transparent);
 
     background:
-        rgba(141, 108, 232, .10);
+        color-mix(in srgb, var(--gg-accent-investigation-purple-container) 10%, transparent);
 }
 
 .notes-related-choice.already-related {
     background:
-        rgba(255, 255, 255, .018);
+        color-mix(in srgb, var(--gg-text) 1.8%, transparent);
 
     cursor:
         default;
@@ -2451,7 +2451,7 @@
         var(--border-default);
 
     background:
-        rgba(255, 255, 255, .018);
+        color-mix(in srgb, var(--gg-text) 1.8%, transparent);
 }
 
 .notes-related-choice-icon {
@@ -2591,7 +2591,7 @@
         5px;
 
     background:
-        rgba(255, 255, 255, .055);
+        color-mix(in srgb, var(--gg-text) 5.5%, transparent);
 
     color:
         var(--text-secondary);
@@ -2614,10 +2614,10 @@
 
 .notes-related-choice.selected .notes-related-collection-chip {
     background:
-        rgba(255, 255, 255, .07);
+        color-mix(in srgb, var(--gg-text) 7%, transparent);
 
     color:
-        #C4CEC9;
+        var(--gg-status-neutral-accent);
 }
 
 .notes-related-choice-status {
@@ -2742,13 +2742,13 @@
         var(--space-2);
 
     border:
-        1px solid rgba(141, 108, 232, .24);
+        1px solid color-mix(in srgb, var(--gg-text-muted) 24%, transparent);
 
     border-radius:
         var(--radius-sm);
 
     background:
-        rgba(141, 108, 232, .07);
+        color-mix(in srgb, var(--gg-accent-investigation-purple-container) 7%, transparent);
 }
 
 .notes-related-selected-row>span {
@@ -2865,7 +2865,7 @@
     padding: var(--space-3);
     display: grid;
     gap: 5px;
-    border: 1px solid rgba(98, 217, 154, .18);
+    border: 1px solid color-mix(in srgb, var(--gg-primary) 18%, transparent);
     border-radius: var(--radius-sm);
     background: var(--surface-selected);
     color: var(--text-secondary);
@@ -2913,7 +2913,7 @@
 
 .notes-place-main:focus-visible {
     outline-color:
-        #4CB7B7;
+        var(--gg-accent-map-cyan-accent);
 }
 
 .notes-place-icon {
@@ -2924,15 +2924,15 @@
     place-items: center;
 
     border:
-        1px solid rgba(76, 183, 183, .25);
+        1px solid color-mix(in srgb, var(--gg-accent-map-cyan-accent) 25%, transparent);
 
     border-radius: 9px;
 
     background:
-        rgba(76, 183, 183, .1);
+        color-mix(in srgb, var(--gg-primary) 10%, transparent);
 
     color:
-        #4CB7B7;
+        var(--gg-accent-map-cyan-accent);
 
     transition:
         border-color var(--ease),
@@ -2942,10 +2942,10 @@
 .notes-place-item:hover .notes-place-icon,
 .notes-place-item:focus-within .notes-place-icon {
     border-color:
-        rgba(76, 183, 183, .45);
+        color-mix(in srgb, var(--gg-accent-map-cyan-accent) 45%, transparent);
 
     background:
-        rgba(76, 183, 183, .16);
+        color-mix(in srgb, var(--gg-primary) 16%, transparent);
 }
 
 .notes-place-icon svg {
@@ -3053,22 +3053,16 @@
         7px;
 
     background:
-        rgba(93,
-            173,
-            236,
-            .94);
+        color-mix(in srgb, var(--gg-primary) 94%, transparent);
 
     color:
-        #07131B;
+        var(--gg-accent-print-magenta-on-accent);
 
     display: grid;
     place-items: center;
 
     box-shadow:
-        0 2px 7px rgba(0,
-            0,
-            0,
-            .32);
+        0 2px 7px color-mix(in srgb, var(--gg-scrim) 32%, transparent);
 
     transition:
         background var(--ease),
@@ -3078,7 +3072,7 @@
 .notes-event-item:hover .notes-event-avatar-badge,
 .notes-event-item:focus-within .notes-event-avatar-badge {
     background:
-        #8BC8F5;
+        var(--gg-accent-investigation-purple-container);
 
     transform:
         translateY(-1px);
@@ -3139,7 +3133,7 @@
 
 .notes-event-relationship {
     color:
-        #8BC8F5;
+        var(--gg-status-info-accent);
 
     font-size: 11px;
     font-weight: 700;

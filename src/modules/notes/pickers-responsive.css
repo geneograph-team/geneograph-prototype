@@ -9,7 +9,7 @@
         min-height: 52px;
         padding: 6px 10px;
         gap: 8px;
-        border-color: rgba(98, 217, 154, .35);
+        border-color: color-mix(in srgb, var(--gg-primary) 35%, transparent);
         background: var(--surface-selected);
     }
 

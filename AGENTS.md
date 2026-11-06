@@ -29,7 +29,7 @@ The original monolithic `index.html` has been split: the application now lives i
   - Archive helpers and seed normalization load in the explicit order shown in `src/index.html`; Notes seed/model and shared Archive tagging pickers follow before bootstrap.
   - `src/modules/geneograph/` — ordered board model, library, canvas, inspector, pickers, interaction, import/export, and split styles.
   - `core/bootstrap.js` — global keyboard handling (Escape) and the initial `render()` call.
-- Stylesheets: `src/core/foundation.css` defines base tokens and resets; `src/shared/controls.css` owns reusable control appearance and loads immediately after foundation. Feature and other shared styles follow in the order shown in `src/index.html`. Check the cascade before changing selectors.
+- Stylesheets: `src/core/palette/geneograph-v3.css` owns approved UI colors; `src/core/foundation.css` defines semantic compatibility aliases and resets; `src/shared/controls.css` owns reusable control appearance and loads immediately after foundation. Feature and other shared styles follow in the order shown in `src/index.html`. Check the cascade before changing selectors.
 - Static media live in `src/assets/photos/`, `documents/`, `covers/`, `ui/`, and `boards/`.
 
 ## OpenSpec Handoff
@@ -71,7 +71,7 @@ Several extracted files are still very large. **Never read them end-to-end.**
 
 - No build step; Leaflet and Quill load from pinned CDNs, and local browser libraries live in `src/vendor/`. Do not add new runtime dependencies without asking.
 - JavaScript: Allman-style braces (opening brace on its own line), single quotes for strings, semicolons never omitted. Icons are inline SVG strings in the `icon` dictionary (`src/core/icons.js`) — reuse them rather than duplicating markup.
-- CSS: design tokens are custom properties in `:root`, with Paper & Forest light values under `:root[data-theme="light"]`. Reuse semantic tokens for surfaces, text, borders, controls, shadows, and scrollbars. Theme preference is System initially, with Dark and Light choices in Global settings. Keep dark green branded heroes as explicit inverse surfaces with readable foreground colors.
+- CSS: approved v3 light/dark UI colors live only in `src/core/palette/geneograph-v3.css`; components use semantic roles or aliases, never new literal UI colors. Run `node scripts/check-ui-colors.js` after color edits. Add a new color to the library only after user approval. Theme preference is System initially, with Dark and Light choices in Global settings. Branded heroes use the pale Light and deep Dark Heritage Green container/on-container pair.
 - HTML: semantic elements (`section`, `figure`, `article`, `nav`), `aria-*` attributes, `role="status"`/`aria-live` for the toast. Explicit `width`/`height` on images, `loading="lazy"`/`decoding="async"` for non-critical images.
 
 ## Content and Design Rules
@@ -79,14 +79,14 @@ Several extracted files are still very large. **Never read them end-to-end.**
 - Capitalization: the product is **GeneoGraph**; the visual board/workspace is **Geneograph**.
 - This is an interactive prototype/concept. Never present planned capabilities as shipped; distinguish prototype behavior from product direction.
 - Use the Whiskerfield sample project (Silver Whiskerfield, Luna Purrington, the Meowbridge marriage record) consistently. This is sample data, not historical records.
-- Preserve the dark theme's near-black surfaces (`#0B0F0E` app background) and the light theme's Paper & Forest surfaces. Use the theme's brand green for actions and focus. Amber (`#D4AA6B` in dark) is reserved for possible/uncertain relationships only; red/purple/blue are status/semantic accents as already used.
+- Use the approved v3 Neutral Charcoal Dark and Soft Neutral Light palette. Primary actions and focus use Heritage Green; category accents identify content, while status colors represent state. Do not use an archive gold as a warning or a death event as an error.
 - No glass/glow effects, floating decorative cards, or generic startup motifs.
 
 ## CSS Ownership
 
 - Edit declarations in their owning feature or shared stylesheet. Merge superseded rules; do not append competing overrides or use `!important` merely to avoid reconciling an existing rule.
 - Test new styles in both resolved themes. Theme-specific exceptions belong beside the owning rule; prefer a semantic token when the same role recurs. Geneograph board colors are separate from UI colors: inherited colors follow the resolved theme, while explicitly chosen colors remain fixed.
-- Put shared tokens and resets in `src/core/foundation.css`; put reusable button, icon-button, field, select, checkbox, label, and focus appearance in `src/shared/controls.css`. Use existing opt-in classes (`.button`, `.text-action`, `.panel-action`, `.control-icon-button`, `.field`, `.select`, `.common-select`, `.compact-select`, `.checkbox-row`) where applicable. Feature styles own layout, dimensions, and named exceptions such as Living status. Reconcile shared rules directly instead of adding module overrides. Shared resource-picker layout belongs in `src/shared/resource-picker.css`. Preserve the CSS tag order.
+- Put approved UI colors in `src/core/palette/geneograph-v3.css`, semantic compatibility aliases and resets in `src/core/foundation.css`; put reusable button, icon-button, field, select, checkbox, label, and focus appearance in `src/shared/controls.css`. Use existing opt-in classes (`.button`, `.text-action`, `.panel-action`, `.control-icon-button`, `.field`, `.select`, `.common-select`, `.compact-select`, `.checkbox-row`) where applicable. Feature styles own layout, dimensions, and named exceptions such as Living status. Reconcile shared rules directly instead of adding module overrides. Shared resource-picker layout belongs in `src/shared/resource-picker.css`. Preserve the CSS tag order.
 - For substantial shared or responsive style changes, include English/Russian, desktop/phone widths, focus, and relevant modal states in the requested browser QA. Use focused static checks for small style edits.
 
 ## Accessibility Requirements

@@ -1,0 +1,1489 @@
+{
+  "metadata": {
+    "name": "GeneoGraph — Design System Palette",
+    "version": "3.0.0",
+    "brandSeed": "#2FAE74",
+    "themes": [
+      "light",
+      "dark"
+    ],
+    "lightDirection": "Soft Neutral Light",
+    "darkDirection": "Neutral Charcoal Dark",
+    "generation": "Custom M3-inspired semantic tokens. Full 13-step OKLab tonal ramps are approximations, not official Material Color Utilities/HCT output.",
+    "convention": "Colors in #RRGGBB sRGB; canonical references use theme-specific semantic values."
+  },
+  "foundations": {
+    "light": {
+      "background": "#F3F6F3",
+      "topbar": "#F8FAF8",
+      "sidebar": "#EBF0EC",
+      "panel": "#F8FAF8",
+      "details": "#F0F3F0",
+      "raised": "#FCFDFC",
+      "field": "#E9EEEA",
+      "hover": "#E4ECE6",
+      "border": "#D6DED8",
+      "outline": "#6F8175",
+      "text": "#1B2520",
+      "textSecondary": "#4D5C52",
+      "textMuted": "#65766A",
+      "primary": "#1C6B46",
+      "onPrimary": "#FFFFFF",
+      "selected": "#DCEFE4",
+      "onSelected": "#153D29",
+      "selectedBorder": "#1C6B46",
+      "treeCanvas": "#F3F6F3",
+      "treeDots": "#CDD8CF",
+      "treeLine": "#7B8980",
+      "timelineLine": "#A3B3A9",
+      "surfaceBright": "#FCFDFC",
+      "surfaceDim": "#E5EBE6",
+      "inverseSurface": "#29312D",
+      "inverseOnSurface": "#F6F9F6",
+      "scrim": "#000000"
+    },
+    "dark": {
+      "background": "#0D1211",
+      "topbar": "#0B1110",
+      "sidebar": "#141A19",
+      "panel": "#1B2220",
+      "details": "#181F1D",
+      "raised": "#242C2A",
+      "field": "#242C2A",
+      "hover": "#2D3732",
+      "border": "#35423B",
+      "outline": "#708176",
+      "text": "#E2E9E5",
+      "textSecondary": "#B4C0B9",
+      "textMuted": "#95A59B",
+      "primary": "#89D7AB",
+      "onPrimary": "#003921",
+      "selected": "#123C2B",
+      "onSelected": "#C2F4D7",
+      "selectedBorder": "#89D7AB",
+      "treeCanvas": "#0D1211",
+      "treeDots": "#34413B",
+      "treeLine": "#798A80",
+      "timelineLine": "#596D61",
+      "surfaceBright": "#333D39",
+      "surfaceDim": "#0D1211",
+      "inverseSurface": "#E2E9E5",
+      "inverseOnSurface": "#1B2520",
+      "scrim": "#000000"
+    }
+  },
+  "m3RoleAliases": {
+    "light": {
+      "primary": "#1C6B46",
+      "onPrimary": "#FFFFFF",
+      "primaryContainer": "#A5F3C7",
+      "onPrimaryContainer": "#002111",
+      "secondary": "#476554",
+      "onSecondary": "#FFFFFF",
+      "secondaryContainer": "#C9EAD6",
+      "onSecondaryContainer": "#042012",
+      "tertiary": "#0F6875",
+      "onTertiary": "#FFFFFF",
+      "tertiaryContainer": "#A4EEFD",
+      "onTertiaryContainer": "#001F25",
+      "error": "#BA1A1A",
+      "onError": "#FFFFFF",
+      "errorContainer": "#FFDAD6",
+      "onErrorContainer": "#410002",
+      "background": "#F3F6F3",
+      "onBackground": "#1B2520",
+      "surface": "#F3F6F3",
+      "onSurface": "#1B2520",
+      "surfaceDim": "#E5EBE6",
+      "surfaceBright": "#FCFDFC",
+      "surfaceContainerLowest": "#FCFDFC",
+      "surfaceContainerLow": "#F8FAF8",
+      "surfaceContainer": "#F0F3F0",
+      "surfaceContainerHigh": "#E9EEEA",
+      "surfaceContainerHighest": "#E4ECE6",
+      "surfaceTint": "#1C6B46",
+      "surfaceVariant": "#E9EEEA",
+      "onSurfaceVariant": "#4D5C52",
+      "outline": "#6F8175",
+      "outlineVariant": "#D6DED8",
+      "inverseSurface": "#29312D",
+      "inverseOnSurface": "#F6F9F6",
+      "inversePrimary": "#89D7AB",
+      "scrim": "#000000",
+      "shadow": "#000000"
+    },
+    "dark": {
+      "primary": "#89D7AB",
+      "onPrimary": "#003921",
+      "primaryContainer": "#005231",
+      "onPrimaryContainer": "#A5F3C7",
+      "secondary": "#ADCEBA",
+      "onSecondary": "#193A28",
+      "secondaryContainer": "#304D3D",
+      "onSecondaryContainer": "#C9EAD6",
+      "tertiary": "#88D2E1",
+      "onTertiary": "#003741",
+      "tertiaryContainer": "#004E59",
+      "onTertiaryContainer": "#A4EEFD",
+      "error": "#FFB4AB",
+      "onError": "#690005",
+      "errorContainer": "#93000A",
+      "onErrorContainer": "#FFDAD6",
+      "background": "#0D1211",
+      "onBackground": "#E2E9E5",
+      "surface": "#0D1211",
+      "onSurface": "#E2E9E5",
+      "surfaceDim": "#0D1211",
+      "surfaceBright": "#333D39",
+      "surfaceContainerLowest": "#0B1110",
+      "surfaceContainerLow": "#141A19",
+      "surfaceContainer": "#1B2220",
+      "surfaceContainerHigh": "#242C2A",
+      "surfaceContainerHighest": "#2D3732",
+      "surfaceTint": "#89D7AB",
+      "surfaceVariant": "#242C2A",
+      "onSurfaceVariant": "#B4C0B9",
+      "outline": "#708176",
+      "outlineVariant": "#35423B",
+      "inverseSurface": "#E2E9E5",
+      "inverseOnSurface": "#1B2520",
+      "inversePrimary": "#1C6B46",
+      "scrim": "#000000",
+      "shadow": "#000000"
+    }
+  },
+  "accentFamilies": {
+    "heritage-green": {
+      "name": "Heritage Green",
+      "seed": "#2FAE74",
+      "usage": "Brand · People · Birth",
+      "light": {
+        "accent": "#1C6B46",
+        "onAccent": "#FFFFFF",
+        "container": "#DCEFE4",
+        "onContainer": "#153D29",
+        "subtleContainer": "#EBF5EE",
+        "outline": "#1C6B46"
+      },
+      "dark": {
+        "accent": "#89D7AB",
+        "onAccent": "#003921",
+        "container": "#123C2B",
+        "onContainer": "#C2F4D7",
+        "subtleContainer": "#172E25",
+        "outline": "#89D7AB"
+      },
+      "tonalRamp": {
+        "0": "#000000",
+        "10": "#000502",
+        "20": "#011C0E",
+        "30": "#033821",
+        "40": "#025635",
+        "50": "#03764A",
+        "60": "#2B9664",
+        "70": "#64B287",
+        "80": "#94CDAC",
+        "90": "#C5E8D3",
+        "95": "#DFF5E7",
+        "98": "#F0FCF5",
+        "100": "#FFFFFF"
+      }
+    },
+    "creative-blue": {
+      "name": "Creative Blue",
+      "seed": "#5A9BD8",
+      "usage": "Geneograph · Education",
+      "light": {
+        "accent": "#00639B",
+        "onAccent": "#FFFFFF",
+        "container": "#D6EAF8",
+        "onContainer": "#003754",
+        "subtleContainer": "#E8F2F8",
+        "outline": "#00639B"
+      },
+      "dark": {
+        "accent": "#9CCAFF",
+        "onAccent": "#003353",
+        "container": "#1E3A4A",
+        "onContainer": "#C6E6FF",
+        "subtleContainer": "#1C2E34",
+        "outline": "#9CCAFF"
+      },
+      "tonalRamp": {
+        "0": "#000000",
+        "10": "#00040A",
+        "20": "#00172D",
+        "30": "#043052",
+        "40": "#0E4A7A",
+        "50": "#2467A0",
+        "60": "#4D85B9",
+        "70": "#76A3CF",
+        "80": "#9FC2E4",
+        "90": "#CBE1F7",
+        "95": "#E3F0FE",
+        "98": "#F4F9FF",
+        "100": "#FFFFFF"
+      }
+    },
+    "rose-sepia": {
+      "name": "Rose Sepia",
+      "seed": "#D8898A",
+      "usage": "Albums · Photography",
+      "light": {
+        "accent": "#90494C",
+        "onAccent": "#FFFFFF",
+        "container": "#F7DADB",
+        "onContainer": "#622B30",
+        "subtleContainer": "#F8EBEA",
+        "outline": "#90494C"
+      },
+      "dark": {
+        "accent": "#FFB3B3",
+        "onAccent": "#5A1920",
+        "container": "#5C2F32",
+        "onContainer": "#FFD9DB",
+        "subtleContainer": "#3A2829",
+        "outline": "#FFB3B3"
+      },
+      "tonalRamp": {
+        "0": "#000000",
+        "10": "#090102",
+        "20": "#270C0E",
+        "30": "#4A1E20",
+        "40": "#6F3235",
+        "50": "#924A4D",
+        "60": "#AD6B6C",
+        "70": "#C68D8D",
+        "80": "#DEB1B0",
+        "90": "#F3D6D6",
+        "95": "#FCEAE9",
+        "98": "#FEF6F6",
+        "100": "#FFFFFF"
+      }
+    },
+    "sepia-gold": {
+      "name": "Sepia Gold",
+      "seed": "#B89463",
+      "usage": "Archive · Files · Marriage",
+      "light": {
+        "accent": "#77592B",
+        "onAccent": "#FFFFFF",
+        "container": "#F0E1CC",
+        "onContainer": "#4D3415",
+        "subtleContainer": "#F4EEE3",
+        "outline": "#77592B"
+      },
+      "dark": {
+        "accent": "#E7C08D",
+        "onAccent": "#432C00",
+        "container": "#5B4729",
+        "onContainer": "#F8DBB1",
+        "subtleContainer": "#3A3424",
+        "outline": "#E7C08D"
+      },
+      "tonalRamp": {
+        "0": "#000000",
+        "10": "#060300",
+        "20": "#201302",
+        "30": "#3D290A",
+        "40": "#5E4217",
+        "50": "#7E5C2C",
+        "60": "#997A51",
+        "70": "#B49A77",
+        "80": "#CEBAA0",
+        "90": "#E9DCCB",
+        "95": "#F5EDE3",
+        "98": "#FCF8F2",
+        "100": "#FFFFFF"
+      }
+    },
+    "investigation-purple": {
+      "name": "Investigation Purple",
+      "seed": "#A47BE8",
+      "usage": "Notes · DNA · Research",
+      "light": {
+        "accent": "#6C4F9D",
+        "onAccent": "#FFFFFF",
+        "container": "#E9DDFB",
+        "onContainer": "#392260",
+        "subtleContainer": "#F1ECF9",
+        "outline": "#6C4F9D"
+      },
+      "dark": {
+        "accent": "#D7BAFF",
+        "onAccent": "#392169",
+        "container": "#4B3A69",
+        "onContainer": "#E8D6FF",
+        "subtleContainer": "#322E43",
+        "outline": "#D7BAFF"
+      },
+      "tonalRamp": {
+        "0": "#000000",
+        "10": "#05010E",
+        "20": "#1C0A33",
+        "30": "#371C5B",
+        "40": "#542F87",
+        "50": "#7247B0",
+        "60": "#8D6AC7",
+        "70": "#A98EDC",
+        "80": "#C5B2EE",
+        "90": "#E3D7FD",
+        "95": "#F1EBFD",
+        "98": "#F9F7FE",
+        "100": "#FFFFFF"
+      }
+    },
+    "map-cyan": {
+      "name": "Map Cyan",
+      "seed": "#4CB7B7",
+      "usage": "Places · Geography",
+      "light": {
+        "accent": "#006A6A",
+        "onAccent": "#FFFFFF",
+        "container": "#D6F0F0",
+        "onContainer": "#00494A",
+        "subtleContainer": "#E8F5F4",
+        "outline": "#006A6A"
+      },
+      "dark": {
+        "accent": "#6ED7D6",
+        "onAccent": "#003737",
+        "container": "#1F4B4B",
+        "onContainer": "#B7F6F4",
+        "subtleContainer": "#1D3635",
+        "outline": "#6ED7D6"
+      },
+      "tonalRamp": {
+        "0": "#000000",
+        "10": "#000404",
+        "20": "#001B1B",
+        "30": "#033535",
+        "40": "#055353",
+        "50": "#017272",
+        "60": "#339090",
+        "70": "#67ACAC",
+        "80": "#96C9C8",
+        "90": "#C6E5E5",
+        "95": "#E0F3F3",
+        "98": "#F1FBFB",
+        "100": "#FFFFFF"
+      }
+    },
+    "chronicle-copper": {
+      "name": "Chronicle Copper",
+      "seed": "#9A4E20",
+      "usage": "Events · Timeline",
+      "light": {
+        "accent": "#9A4E20",
+        "onAccent": "#FFFFFF",
+        "container": "#FFE2D1",
+        "onContainer": "#783A16",
+        "subtleContainer": "#FBEEE5",
+        "outline": "#9A4E20"
+      },
+      "dark": {
+        "accent": "#FFB68C",
+        "onAccent": "#42200C",
+        "container": "#60351F",
+        "onContainer": "#FFD5BD",
+        "subtleContainer": "#3C2B20",
+        "outline": "#FFB68C"
+      },
+      "tonalRamp": {
+        "0": "#000000",
+        "10": "#090200",
+        "20": "#280D01",
+        "30": "#4C1F01",
+        "40": "#723307",
+        "50": "#974B1D",
+        "60": "#B26C47",
+        "70": "#CA8F70",
+        "80": "#E1B29A",
+        "90": "#F5D7C8",
+        "95": "#FDEAE1",
+        "98": "#FEF7F3",
+        "100": "#FFFFFF"
+      }
+    },
+    "evidence-slate": {
+      "name": "Evidence Slate",
+      "seed": "#435F73",
+      "usage": "Sources · Citations",
+      "light": {
+        "accent": "#435F73",
+        "onAccent": "#FFFFFF",
+        "container": "#DFEAF0",
+        "onContainer": "#314C5E",
+        "subtleContainer": "#ECF2F4",
+        "outline": "#435F73"
+      },
+      "dark": {
+        "accent": "#B4CFE0",
+        "onAccent": "#183141",
+        "container": "#2A4250",
+        "onContainer": "#C4D9E5",
+        "subtleContainer": "#223137",
+        "outline": "#B4CFE0"
+      },
+      "tonalRamp": {
+        "0": "#000000",
+        "10": "#010406",
+        "20": "#0D171F",
+        "30": "#1F303C",
+        "40": "#334B5C",
+        "50": "#4B677B",
+        "60": "#6A8497",
+        "70": "#8CA2B2",
+        "80": "#B0C0CD",
+        "90": "#D5E0E7",
+        "95": "#E9EFF4",
+        "98": "#F5F9FC",
+        "100": "#FFFFFF"
+      }
+    },
+    "print-magenta": {
+      "name": "Print Magenta",
+      "seed": "#BB4D93",
+      "usage": "Publish · Reports · Books",
+      "light": {
+        "accent": "#8B2C67",
+        "onAccent": "#FFFFFF",
+        "container": "#FAD7E9",
+        "onContainer": "#5B1745",
+        "subtleContainer": "#F9E9F1",
+        "outline": "#8B2C67"
+      },
+      "dark": {
+        "accent": "#F0ADD6",
+        "onAccent": "#27121E",
+        "container": "#572242",
+        "onContainer": "#FFD5EA",
+        "subtleContainer": "#382230",
+        "outline": "#F0ADD6"
+      },
+      "tonalRamp": {
+        "0": "#000000",
+        "10": "#0B0006",
+        "20": "#2C031E",
+        "30": "#500D3B",
+        "40": "#781B5A",
+        "50": "#9E3279",
+        "60": "#B95995",
+        "70": "#D180B0",
+        "80": "#E7A7CC",
+        "90": "#F9D0E7",
+        "95": "#FEE7F3",
+        "98": "#FDF6FA",
+        "100": "#FFFFFF"
+      }
+    }
+  },
+  "statuses": {
+    "success": {
+      "name": "Success",
+      "usage": "Saved, synced, confirmed",
+      "light": {
+        "accent": "#206B46",
+        "onAccent": "#FFFFFF",
+        "container": "#B6F1CF",
+        "onContainer": "#002E1B",
+        "subtleContainer": "#D8F6E4",
+        "outline": "#206B46"
+      },
+      "dark": {
+        "accent": "#89D7AB",
+        "onAccent": "#003921",
+        "container": "#005231",
+        "onContainer": "#A5F3C7",
+        "subtleContainer": "#0E3928",
+        "outline": "#89D7AB"
+      }
+    },
+    "warning": {
+      "name": "Warning",
+      "usage": "Needs review, missing information",
+      "light": {
+        "accent": "#795900",
+        "onAccent": "#FFFFFF",
+        "container": "#FFE4A3",
+        "onContainer": "#291A00",
+        "subtleContainer": "#FBEFCF",
+        "outline": "#795900"
+      },
+      "dark": {
+        "accent": "#F4CC79",
+        "onAccent": "#3D2E00",
+        "container": "#5B4200",
+        "onContainer": "#FFE4A3",
+        "subtleContainer": "#3A3111",
+        "outline": "#F4CC79"
+      }
+    },
+    "error": {
+      "name": "Error",
+      "usage": "Invalid input, failed operation",
+      "light": {
+        "accent": "#BA1A1A",
+        "onAccent": "#FFFFFF",
+        "container": "#FFDAD6",
+        "onContainer": "#410002",
+        "subtleContainer": "#FBEBE8",
+        "outline": "#BA1A1A"
+      },
+      "dark": {
+        "accent": "#FFB4AB",
+        "onAccent": "#690005",
+        "container": "#93000A",
+        "onContainer": "#FFDAD6",
+        "subtleContainer": "#551215",
+        "outline": "#FFB4AB"
+      }
+    },
+    "info": {
+      "name": "Information",
+      "usage": "Informational messages",
+      "light": {
+        "accent": "#006493",
+        "onAccent": "#FFFFFF",
+        "container": "#CDE8FF",
+        "onContainer": "#001E30",
+        "subtleContainer": "#E3F1FB",
+        "outline": "#006493"
+      },
+      "dark": {
+        "accent": "#91CCF3",
+        "onAccent": "#00344E",
+        "container": "#004D73",
+        "onContainer": "#CDE8FF",
+        "subtleContainer": "#0E3748",
+        "outline": "#91CCF3"
+      }
+    },
+    "pending": {
+      "name": "Pending",
+      "usage": "Queued, draft processing",
+      "light": {
+        "accent": "#68539A",
+        "onAccent": "#FFFFFF",
+        "container": "#EBDDFF",
+        "onContainer": "#25153C",
+        "subtleContainer": "#F2ECFB",
+        "outline": "#68539A"
+      },
+      "dark": {
+        "accent": "#D3B9FF",
+        "onAccent": "#35244E",
+        "container": "#4D376D",
+        "onContainer": "#EBDDFF",
+        "subtleContainer": "#332C45",
+        "outline": "#D3B9FF"
+      }
+    },
+    "offline": {
+      "name": "Offline",
+      "usage": "Local-only/cloud disconnected",
+      "light": {
+        "accent": "#675C55",
+        "onAccent": "#FFFFFF",
+        "container": "#ECE0D7",
+        "onContainer": "#28221E",
+        "subtleContainer": "#F2EEE8",
+        "outline": "#675C55"
+      },
+      "dark": {
+        "accent": "#D1C2B7",
+        "onAccent": "#382E28",
+        "container": "#4A403A",
+        "onContainer": "#ECE0D7",
+        "subtleContainer": "#32302C",
+        "outline": "#D1C2B7"
+      }
+    },
+    "neutral": {
+      "name": "Neutral",
+      "usage": "Archived, deceased, inactive",
+      "light": {
+        "accent": "#4F6355",
+        "onAccent": "#FFFFFF",
+        "container": "#E2E9E0",
+        "onContainer": "#1A251C",
+        "subtleContainer": "#EDF2EC",
+        "outline": "#4F6355"
+      },
+      "dark": {
+        "accent": "#BEC9BD",
+        "onAccent": "#29392D",
+        "container": "#36483B",
+        "onContainer": "#E2E9E0",
+        "subtleContainer": "#28342D",
+        "outline": "#BEC9BD"
+      }
+    }
+  },
+  "aliasesDeprecated": {
+    "leaf-green": "heritage-green",
+    "genetic-violet": "investigation-purple",
+    "amber-gold": "sepia-gold"
+  },
+  "mappings": {
+    "modules": {
+      "familyTree": "heritage-green",
+      "people": "heritage-green",
+      "geneograph": "creative-blue",
+      "albums": "rose-sepia",
+      "archive": "sepia-gold",
+      "notes": "investigation-purple",
+      "places": "map-cyan",
+      "dna": "investigation-purple",
+      "publish": "print-magenta",
+      "events": "chronicle-copper",
+      "sources": "evidence-slate"
+    },
+    "chips": {
+      "people": "heritage-green",
+      "events": "chronicle-copper",
+      "photos": "rose-sepia",
+      "files": "sepia-gold",
+      "notes": "investigation-purple",
+      "places": "map-cyan",
+      "sources": "evidence-slate",
+      "dna": "investigation-purple",
+      "publications": "print-magenta"
+    },
+    "eventTypes": {
+      "generic": "chronicle-copper",
+      "birth": "heritage-green",
+      "birthOfChild": "heritage-green",
+      "education": "creative-blue",
+      "marriage": "sepia-gold",
+      "residence": "map-cyan",
+      "relocation": "map-cyan",
+      "photo": "rose-sepia",
+      "research": "investigation-purple",
+      "dnaResult": "investigation-purple",
+      "publication": "print-magenta",
+      "death": "neutral-status"
+    },
+    "components": {
+      "appShell": "background",
+      "topNavigation": "topbar",
+      "leftNavigation": "sidebar",
+      "mainWorkspace": "background",
+      "tableSurface": "panel",
+      "formDialog": "panel",
+      "rightDetailSidebar": "details",
+      "raisedCard": "raised",
+      "inputField": "field",
+      "hover": "hover",
+      "divider": "border",
+      "interactiveOutline": "outline",
+      "primaryText": "text",
+      "secondaryText": "textSecondary",
+      "primaryAction": "primary",
+      "onPrimaryAction": "onPrimary",
+      "selectedRow": "selected",
+      "onSelectedRow": "onSelected",
+      "selectedRowIndicator": "selectedBorder",
+      "treeCanvas": "treeCanvas",
+      "treeConnector": "treeLine",
+      "timelineConnector": "timelineLine"
+    }
+  },
+  "usageRules": [
+    "Global actions, focus indicators, selections, and navigation use Heritage Green; module colors identify content, not button priority.",
+    "Use light #F3F6F3 and dark #0D1211 as workspace backgrounds; pure white is not the main light workspace surface.",
+    "Prefer neutral surfaces for large tables, forms, and editors; reserve saturated accents for compact chips, icons, and event markers.",
+    "Generic Events use Chronicle Copper; specific event types may use their own mapped family.",
+    "Sources use Evidence Slate; archive files use Sepia Gold.",
+    "Publish-related items use Print Magenta; primary Publish buttons remain Heritage Green.",
+    "Never treat a semantic warning or error as interchangeable with similarly colored module accents.",
+    "Use a text label or icon as well as color. Provide clear keyboard focus indicators.",
+    "Deprecated Leaf Green, Genetic Violet, and Amber Gold tokens are aliases of the three surviving families."
+  ],
+  "accessibility": {
+    "standard": "WCAG 2.2 AA reference checks; not an exhaustive UI audit",
+    "checks": [
+      {
+        "group": "foundation",
+        "theme": "light",
+        "pair": "primary text / panel",
+        "foreground": "#1B2520",
+        "background": "#F8FAF8",
+        "contrast": 15.03,
+        "minimum": 4.5,
+        "result": "PASS"
+      },
+      {
+        "group": "foundation",
+        "theme": "light",
+        "pair": "secondary text / panel",
+        "foreground": "#4D5C52",
+        "background": "#F8FAF8",
+        "contrast": 6.75,
+        "minimum": 4.5,
+        "result": "PASS"
+      },
+      {
+        "group": "foundation",
+        "theme": "light",
+        "pair": "primary button",
+        "foreground": "#FFFFFF",
+        "background": "#1C6B46",
+        "contrast": 6.48,
+        "minimum": 4.5,
+        "result": "PASS"
+      },
+      {
+        "group": "foundation",
+        "theme": "light",
+        "pair": "selected row",
+        "foreground": "#153D29",
+        "background": "#DCEFE4",
+        "contrast": 10.11,
+        "minimum": 4.5,
+        "result": "PASS"
+      },
+      {
+        "group": "foundation",
+        "theme": "light",
+        "pair": "input outline / field",
+        "foreground": "#6F8175",
+        "background": "#E9EEEA",
+        "contrast": 3.53,
+        "minimum": 3.0,
+        "result": "PASS"
+      },
+      {
+        "group": "foundation",
+        "theme": "light",
+        "pair": "selected leading edge / row",
+        "foreground": "#1C6B46",
+        "background": "#DCEFE4",
+        "contrast": 5.4,
+        "minimum": 3.0,
+        "result": "PASS"
+      },
+      {
+        "group": "foundation",
+        "theme": "light",
+        "pair": "selected leading edge / panel",
+        "foreground": "#1C6B46",
+        "background": "#F8FAF8",
+        "contrast": 6.18,
+        "minimum": 3.0,
+        "result": "PASS"
+      },
+      {
+        "group": "accent",
+        "theme": "light",
+        "pair": "heritage-green accent foreground",
+        "foreground": "#FFFFFF",
+        "background": "#1C6B46",
+        "contrast": 6.48,
+        "minimum": 4.5,
+        "result": "PASS"
+      },
+      {
+        "group": "accent",
+        "theme": "light",
+        "pair": "heritage-green container foreground",
+        "foreground": "#153D29",
+        "background": "#DCEFE4",
+        "contrast": 10.11,
+        "minimum": 4.5,
+        "result": "PASS"
+      },
+      {
+        "group": "accent",
+        "theme": "light",
+        "pair": "creative-blue accent foreground",
+        "foreground": "#FFFFFF",
+        "background": "#00639B",
+        "contrast": 6.45,
+        "minimum": 4.5,
+        "result": "PASS"
+      },
+      {
+        "group": "accent",
+        "theme": "light",
+        "pair": "creative-blue container foreground",
+        "foreground": "#003754",
+        "background": "#D6EAF8",
+        "contrast": 10.14,
+        "minimum": 4.5,
+        "result": "PASS"
+      },
+      {
+        "group": "accent",
+        "theme": "light",
+        "pair": "rose-sepia accent foreground",
+        "foreground": "#FFFFFF",
+        "background": "#90494C",
+        "contrast": 6.48,
+        "minimum": 4.5,
+        "result": "PASS"
+      },
+      {
+        "group": "accent",
+        "theme": "light",
+        "pair": "rose-sepia container foreground",
+        "foreground": "#622B30",
+        "background": "#F7DADB",
+        "contrast": 8.39,
+        "minimum": 4.5,
+        "result": "PASS"
+      },
+      {
+        "group": "accent",
+        "theme": "light",
+        "pair": "sepia-gold accent foreground",
+        "foreground": "#FFFFFF",
+        "background": "#77592B",
+        "contrast": 6.47,
+        "minimum": 4.5,
+        "result": "PASS"
+      },
+      {
+        "group": "accent",
+        "theme": "light",
+        "pair": "sepia-gold container foreground",
+        "foreground": "#4D3415",
+        "background": "#F0E1CC",
+        "contrast": 8.99,
+        "minimum": 4.5,
+        "result": "PASS"
+      },
+      {
+        "group": "accent",
+        "theme": "light",
+        "pair": "investigation-purple accent foreground",
+        "foreground": "#FFFFFF",
+        "background": "#6C4F9D",
+        "contrast": 6.48,
+        "minimum": 4.5,
+        "result": "PASS"
+      },
+      {
+        "group": "accent",
+        "theme": "light",
+        "pair": "investigation-purple container foreground",
+        "foreground": "#392260",
+        "background": "#E9DDFB",
+        "contrast": 10.31,
+        "minimum": 4.5,
+        "result": "PASS"
+      },
+      {
+        "group": "accent",
+        "theme": "light",
+        "pair": "map-cyan accent foreground",
+        "foreground": "#FFFFFF",
+        "background": "#006A6A",
+        "contrast": 6.42,
+        "minimum": 4.5,
+        "result": "PASS"
+      },
+      {
+        "group": "accent",
+        "theme": "light",
+        "pair": "map-cyan container foreground",
+        "foreground": "#00494A",
+        "background": "#D6F0F0",
+        "contrast": 8.57,
+        "minimum": 4.5,
+        "result": "PASS"
+      },
+      {
+        "group": "accent",
+        "theme": "light",
+        "pair": "chronicle-copper accent foreground",
+        "foreground": "#FFFFFF",
+        "background": "#9A4E20",
+        "contrast": 6.03,
+        "minimum": 4.5,
+        "result": "PASS"
+      },
+      {
+        "group": "accent",
+        "theme": "light",
+        "pair": "chronicle-copper container foreground",
+        "foreground": "#783A16",
+        "background": "#FFE2D1",
+        "contrast": 7.06,
+        "minimum": 4.5,
+        "result": "PASS"
+      },
+      {
+        "group": "accent",
+        "theme": "light",
+        "pair": "evidence-slate accent foreground",
+        "foreground": "#FFFFFF",
+        "background": "#435F73",
+        "contrast": 6.72,
+        "minimum": 4.5,
+        "result": "PASS"
+      },
+      {
+        "group": "accent",
+        "theme": "light",
+        "pair": "evidence-slate container foreground",
+        "foreground": "#314C5E",
+        "background": "#DFEAF0",
+        "contrast": 7.38,
+        "minimum": 4.5,
+        "result": "PASS"
+      },
+      {
+        "group": "accent",
+        "theme": "light",
+        "pair": "print-magenta accent foreground",
+        "foreground": "#FFFFFF",
+        "background": "#8B2C67",
+        "contrast": 7.91,
+        "minimum": 4.5,
+        "result": "PASS"
+      },
+      {
+        "group": "accent",
+        "theme": "light",
+        "pair": "print-magenta container foreground",
+        "foreground": "#5B1745",
+        "background": "#FAD7E9",
+        "contrast": 9.65,
+        "minimum": 4.5,
+        "result": "PASS"
+      },
+      {
+        "group": "status",
+        "theme": "light",
+        "pair": "success accent foreground",
+        "foreground": "#FFFFFF",
+        "background": "#206B46",
+        "contrast": 6.46,
+        "minimum": 4.5,
+        "result": "PASS"
+      },
+      {
+        "group": "status",
+        "theme": "light",
+        "pair": "success container foreground",
+        "foreground": "#002E1B",
+        "background": "#B6F1CF",
+        "contrast": 11.71,
+        "minimum": 4.5,
+        "result": "PASS"
+      },
+      {
+        "group": "status",
+        "theme": "light",
+        "pair": "warning accent foreground",
+        "foreground": "#FFFFFF",
+        "background": "#795900",
+        "contrast": 6.48,
+        "minimum": 4.5,
+        "result": "PASS"
+      },
+      {
+        "group": "status",
+        "theme": "light",
+        "pair": "warning container foreground",
+        "foreground": "#291A00",
+        "background": "#FFE4A3",
+        "contrast": 13.59,
+        "minimum": 4.5,
+        "result": "PASS"
+      },
+      {
+        "group": "status",
+        "theme": "light",
+        "pair": "error accent foreground",
+        "foreground": "#FFFFFF",
+        "background": "#BA1A1A",
+        "contrast": 6.46,
+        "minimum": 4.5,
+        "result": "PASS"
+      },
+      {
+        "group": "status",
+        "theme": "light",
+        "pair": "error container foreground",
+        "foreground": "#410002",
+        "background": "#FFDAD6",
+        "contrast": 13.26,
+        "minimum": 4.5,
+        "result": "PASS"
+      },
+      {
+        "group": "status",
+        "theme": "light",
+        "pair": "info accent foreground",
+        "foreground": "#FFFFFF",
+        "background": "#006493",
+        "contrast": 6.47,
+        "minimum": 4.5,
+        "result": "PASS"
+      },
+      {
+        "group": "status",
+        "theme": "light",
+        "pair": "info container foreground",
+        "foreground": "#001E30",
+        "background": "#CDE8FF",
+        "contrast": 13.5,
+        "minimum": 4.5,
+        "result": "PASS"
+      },
+      {
+        "group": "status",
+        "theme": "light",
+        "pair": "pending accent foreground",
+        "foreground": "#FFFFFF",
+        "background": "#68539A",
+        "contrast": 6.38,
+        "minimum": 4.5,
+        "result": "PASS"
+      },
+      {
+        "group": "status",
+        "theme": "light",
+        "pair": "pending container foreground",
+        "foreground": "#25153C",
+        "background": "#EBDDFF",
+        "contrast": 13.04,
+        "minimum": 4.5,
+        "result": "PASS"
+      },
+      {
+        "group": "status",
+        "theme": "light",
+        "pair": "offline accent foreground",
+        "foreground": "#FFFFFF",
+        "background": "#675C55",
+        "contrast": 6.48,
+        "minimum": 4.5,
+        "result": "PASS"
+      },
+      {
+        "group": "status",
+        "theme": "light",
+        "pair": "offline container foreground",
+        "foreground": "#28221E",
+        "background": "#ECE0D7",
+        "contrast": 12.12,
+        "minimum": 4.5,
+        "result": "PASS"
+      },
+      {
+        "group": "status",
+        "theme": "light",
+        "pair": "neutral accent foreground",
+        "foreground": "#FFFFFF",
+        "background": "#4F6355",
+        "contrast": 6.46,
+        "minimum": 4.5,
+        "result": "PASS"
+      },
+      {
+        "group": "status",
+        "theme": "light",
+        "pair": "neutral container foreground",
+        "foreground": "#1A251C",
+        "background": "#E2E9E0",
+        "contrast": 12.8,
+        "minimum": 4.5,
+        "result": "PASS"
+      },
+      {
+        "group": "foundation",
+        "theme": "dark",
+        "pair": "primary text / panel",
+        "foreground": "#E2E9E5",
+        "background": "#1B2220",
+        "contrast": 13.13,
+        "minimum": 4.5,
+        "result": "PASS"
+      },
+      {
+        "group": "foundation",
+        "theme": "dark",
+        "pair": "secondary text / panel",
+        "foreground": "#B4C0B9",
+        "background": "#1B2220",
+        "contrast": 8.63,
+        "minimum": 4.5,
+        "result": "PASS"
+      },
+      {
+        "group": "foundation",
+        "theme": "dark",
+        "pair": "primary button",
+        "foreground": "#003921",
+        "background": "#89D7AB",
+        "contrast": 7.7,
+        "minimum": 4.5,
+        "result": "PASS"
+      },
+      {
+        "group": "foundation",
+        "theme": "dark",
+        "pair": "selected row",
+        "foreground": "#C2F4D7",
+        "background": "#123C2B",
+        "contrast": 10.09,
+        "minimum": 4.5,
+        "result": "PASS"
+      },
+      {
+        "group": "foundation",
+        "theme": "dark",
+        "pair": "input outline / field",
+        "foreground": "#708176",
+        "background": "#242C2A",
+        "contrast": 3.47,
+        "minimum": 3.0,
+        "result": "PASS"
+      },
+      {
+        "group": "foundation",
+        "theme": "dark",
+        "pair": "selected leading edge / row",
+        "foreground": "#89D7AB",
+        "background": "#123C2B",
+        "contrast": 7.25,
+        "minimum": 3.0,
+        "result": "PASS"
+      },
+      {
+        "group": "foundation",
+        "theme": "dark",
+        "pair": "selected leading edge / panel",
+        "foreground": "#89D7AB",
+        "background": "#1B2220",
+        "contrast": 9.54,
+        "minimum": 3.0,
+        "result": "PASS"
+      },
+      {
+        "group": "accent",
+        "theme": "dark",
+        "pair": "heritage-green accent foreground",
+        "foreground": "#003921",
+        "background": "#89D7AB",
+        "contrast": 7.7,
+        "minimum": 4.5,
+        "result": "PASS"
+      },
+      {
+        "group": "accent",
+        "theme": "dark",
+        "pair": "heritage-green container foreground",
+        "foreground": "#C2F4D7",
+        "background": "#123C2B",
+        "contrast": 10.09,
+        "minimum": 4.5,
+        "result": "PASS"
+      },
+      {
+        "group": "accent",
+        "theme": "dark",
+        "pair": "creative-blue accent foreground",
+        "foreground": "#003353",
+        "background": "#9CCAFF",
+        "contrast": 7.7,
+        "minimum": 4.5,
+        "result": "PASS"
+      },
+      {
+        "group": "accent",
+        "theme": "dark",
+        "pair": "creative-blue container foreground",
+        "foreground": "#C6E6FF",
+        "background": "#1E3A4A",
+        "contrast": 9.19,
+        "minimum": 4.5,
+        "result": "PASS"
+      },
+      {
+        "group": "accent",
+        "theme": "dark",
+        "pair": "rose-sepia accent foreground",
+        "foreground": "#5A1920",
+        "background": "#FFB3B3",
+        "contrast": 7.75,
+        "minimum": 4.5,
+        "result": "PASS"
+      },
+      {
+        "group": "accent",
+        "theme": "dark",
+        "pair": "rose-sepia container foreground",
+        "foreground": "#FFD9DB",
+        "background": "#5C2F32",
+        "contrast": 8.49,
+        "minimum": 4.5,
+        "result": "PASS"
+      },
+      {
+        "group": "accent",
+        "theme": "dark",
+        "pair": "sepia-gold accent foreground",
+        "foreground": "#432C00",
+        "background": "#E7C08D",
+        "contrast": 7.71,
+        "minimum": 4.5,
+        "result": "PASS"
+      },
+      {
+        "group": "accent",
+        "theme": "dark",
+        "pair": "sepia-gold container foreground",
+        "foreground": "#F8DBB1",
+        "background": "#5B4729",
+        "contrast": 6.63,
+        "minimum": 4.5,
+        "result": "PASS"
+      },
+      {
+        "group": "accent",
+        "theme": "dark",
+        "pair": "investigation-purple accent foreground",
+        "foreground": "#392169",
+        "background": "#D7BAFF",
+        "contrast": 7.74,
+        "minimum": 4.5,
+        "result": "PASS"
+      },
+      {
+        "group": "accent",
+        "theme": "dark",
+        "pair": "investigation-purple container foreground",
+        "foreground": "#E8D6FF",
+        "background": "#4B3A69",
+        "contrast": 7.35,
+        "minimum": 4.5,
+        "result": "PASS"
+      },
+      {
+        "group": "accent",
+        "theme": "dark",
+        "pair": "map-cyan accent foreground",
+        "foreground": "#003737",
+        "background": "#6ED7D6",
+        "contrast": 7.71,
+        "minimum": 4.5,
+        "result": "PASS"
+      },
+      {
+        "group": "accent",
+        "theme": "dark",
+        "pair": "map-cyan container foreground",
+        "foreground": "#B7F6F4",
+        "background": "#1F4B4B",
+        "contrast": 8.08,
+        "minimum": 4.5,
+        "result": "PASS"
+      },
+      {
+        "group": "accent",
+        "theme": "dark",
+        "pair": "chronicle-copper accent foreground",
+        "foreground": "#42200C",
+        "background": "#FFB68C",
+        "contrast": 8.54,
+        "minimum": 4.5,
+        "result": "PASS"
+      },
+      {
+        "group": "accent",
+        "theme": "dark",
+        "pair": "chronicle-copper container foreground",
+        "foreground": "#FFD5BD",
+        "background": "#60351F",
+        "contrast": 7.65,
+        "minimum": 4.5,
+        "result": "PASS"
+      },
+      {
+        "group": "accent",
+        "theme": "dark",
+        "pair": "evidence-slate accent foreground",
+        "foreground": "#183141",
+        "background": "#B4CFE0",
+        "contrast": 8.33,
+        "minimum": 4.5,
+        "result": "PASS"
+      },
+      {
+        "group": "accent",
+        "theme": "dark",
+        "pair": "evidence-slate container foreground",
+        "foreground": "#C4D9E5",
+        "background": "#2A4250",
+        "contrast": 7.23,
+        "minimum": 4.5,
+        "result": "PASS"
+      },
+      {
+        "group": "accent",
+        "theme": "dark",
+        "pair": "print-magenta accent foreground",
+        "foreground": "#27121E",
+        "background": "#F0ADD6",
+        "contrast": 9.78,
+        "minimum": 4.5,
+        "result": "PASS"
+      },
+      {
+        "group": "accent",
+        "theme": "dark",
+        "pair": "print-magenta container foreground",
+        "foreground": "#FFD5EA",
+        "background": "#572242",
+        "contrast": 9.32,
+        "minimum": 4.5,
+        "result": "PASS"
+      },
+      {
+        "group": "status",
+        "theme": "dark",
+        "pair": "success accent foreground",
+        "foreground": "#003921",
+        "background": "#89D7AB",
+        "contrast": 7.7,
+        "minimum": 4.5,
+        "result": "PASS"
+      },
+      {
+        "group": "status",
+        "theme": "dark",
+        "pair": "success container foreground",
+        "foreground": "#A5F3C7",
+        "background": "#005231",
+        "contrast": 7.22,
+        "minimum": 4.5,
+        "result": "PASS"
+      },
+      {
+        "group": "status",
+        "theme": "dark",
+        "pair": "warning accent foreground",
+        "foreground": "#3D2E00",
+        "background": "#F4CC79",
+        "contrast": 8.66,
+        "minimum": 4.5,
+        "result": "PASS"
+      },
+      {
+        "group": "status",
+        "theme": "dark",
+        "pair": "warning container foreground",
+        "foreground": "#FFE4A3",
+        "background": "#5B4200",
+        "contrast": 7.59,
+        "minimum": 4.5,
+        "result": "PASS"
+      },
+      {
+        "group": "status",
+        "theme": "dark",
+        "pair": "error accent foreground",
+        "foreground": "#690005",
+        "background": "#FFB4AB",
+        "contrast": 7.72,
+        "minimum": 4.5,
+        "result": "PASS"
+      },
+      {
+        "group": "status",
+        "theme": "dark",
+        "pair": "error container foreground",
+        "foreground": "#FFDAD6",
+        "background": "#93000A",
+        "contrast": 7.24,
+        "minimum": 4.5,
+        "result": "PASS"
+      },
+      {
+        "group": "status",
+        "theme": "dark",
+        "pair": "info accent foreground",
+        "foreground": "#00344E",
+        "background": "#91CCF3",
+        "contrast": 7.58,
+        "minimum": 4.5,
+        "result": "PASS"
+      },
+      {
+        "group": "status",
+        "theme": "dark",
+        "pair": "info container foreground",
+        "foreground": "#CDE8FF",
+        "background": "#004D73",
+        "contrast": 7.18,
+        "minimum": 4.5,
+        "result": "PASS"
+      },
+      {
+        "group": "status",
+        "theme": "dark",
+        "pair": "pending accent foreground",
+        "foreground": "#35244E",
+        "background": "#D3B9FF",
+        "contrast": 8.03,
+        "minimum": 4.5,
+        "result": "PASS"
+      },
+      {
+        "group": "status",
+        "theme": "dark",
+        "pair": "pending container foreground",
+        "foreground": "#EBDDFF",
+        "background": "#4D376D",
+        "contrast": 7.83,
+        "minimum": 4.5,
+        "result": "PASS"
+      },
+      {
+        "group": "status",
+        "theme": "dark",
+        "pair": "offline accent foreground",
+        "foreground": "#382E28",
+        "background": "#D1C2B7",
+        "contrast": 7.62,
+        "minimum": 4.5,
+        "result": "PASS"
+      },
+      {
+        "group": "status",
+        "theme": "dark",
+        "pair": "offline container foreground",
+        "foreground": "#ECE0D7",
+        "background": "#4A403A",
+        "contrast": 7.77,
+        "minimum": 4.5,
+        "result": "PASS"
+      },
+      {
+        "group": "status",
+        "theme": "dark",
+        "pair": "neutral accent foreground",
+        "foreground": "#29392D",
+        "background": "#BEC9BD",
+        "contrast": 7.15,
+        "minimum": 4.5,
+        "result": "PASS"
+      },
+      {
+        "group": "status",
+        "theme": "dark",
+        "pair": "neutral container foreground",
+        "foreground": "#E2E9E0",
+        "background": "#36483B",
+        "contrast": 7.9,
+        "minimum": 4.5,
+        "result": "PASS"
+      }
+    ],
+    "failed": 0
+  }
+}

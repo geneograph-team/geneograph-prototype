@@ -1,0 +1,139 @@
+{
+  "src/core/icons.js": {
+    "reason": "Fixed logo artwork.",
+    "literals": {
+      "#2FAE74": 1
+    }
+  },
+  "src/modules/archive/archive-documents.css": {
+    "reason": "Document preview paper surface; content presentation independent of UI theme.",
+    "literals": {
+      "background: white": 1
+    }
+  },
+  "src/modules/geneograph/geneograph-board-preview.js": {
+    "reason": "Authored board defaults, user paint values, or board-preview artwork.",
+    "literals": {
+      "#1B2522": 1,
+      "#52615D": 1,
+      "#879D93": 1,
+      "#31423B": 1,
+      "#DCE8E1": 2,
+      "#A7BCB1": 1,
+      "#DBE9E1": 1,
+      "#80B9C6": 1,
+      "#111A17": 2,
+      "#638E7C": 1,
+      "#20362D": 1,
+      "#62977B": 1,
+      "#31322A": 1,
+      "#B49562": 1,
+      "#547D69": 1,
+      "#967A55": 1
+    }
+  },
+  "src/modules/geneograph/geneograph-editor-core.js": {
+    "reason": "Authored board defaults, user paint values, or board-preview artwork.",
+    "literals": {
+      "#D9E5E1": 3,
+      "#526B5C": 2,
+      "#101817": 5,
+      "#26312E": 1,
+      "#F3F1E9": 1,
+      "#173029": 2,
+      "#172A32": 1,
+      "#2D2437": 1,
+      "#302B1D": 1,
+      "#2FAE74": 1,
+      "#62D99A": 2,
+      "#4FB3A5": 1,
+      "#5DADEC": 1,
+      "#AA8CE8": 1,
+      "#D4AA6B": 2,
+      "#D9828B": 1,
+      "#C75B5B": 1,
+      "#0F1413": 1,
+      "#F3F7F2": 1,
+      "#18211F": 2,
+      "#FFFFFF": 1,
+      "#52615D": 2,
+      "#8FA99A": 1,
+      "#F1F5F3": 2,
+      "#17251E": 1,
+      "#FFF2CF": 1,
+      "#A77C3F": 2,
+      "#241C10": 1,
+      "#4F4326": 1,
+      "#E4EDE7": 1,
+      "#1B6847": 1
+    }
+  },
+  "src/modules/geneograph/geneograph-inspector.js": {
+    "reason": "Authored board defaults, user paint values, or board-preview artwork.",
+    "literals": {
+      "#FFFFFF": 2,
+      "#D9E5E1": 1
+    }
+  },
+  "src/modules/geneograph/geneograph-model.js": {
+    "reason": "Authored board defaults, user paint values, or board-preview artwork.",
+    "literals": {
+      "#173029": 1,
+      "#FFFFFF": 1,
+      "#62D99A": 1,
+      "#1B6847": 1,
+      "#F1F5F3": 1,
+      "#17251E": 1,
+      "#172A32": 1,
+      "#EAF3F8": 1,
+      "#5A9BD8": 1,
+      "#286B9B": 1,
+      "#F2F8FB": 1,
+      "#173047": 1,
+      "#2D2437": 1,
+      "#F4EFF9": 1,
+      "#8D6CE8": 1,
+      "#6D4AB8": 1,
+      "#F6F1FB": 1,
+      "#382647": 1,
+      "#0F1413": 1,
+      "#F3F7F2": 1
+    }
+  },
+  "src/modules/geneograph/geneograph-pickers.js": {
+    "reason": "Authored board defaults, user paint values, or board-preview artwork.",
+    "literals": {
+      "#173029": 2,
+      "#62D99A": 2
+    }
+  },
+  "src/modules/geneograph/geneograph-sidebar.js": {
+    "reason": "Authored board defaults, user paint values, or board-preview artwork.",
+    "literals": {
+      "#FFFFFF": 1,
+      "#0F1413": 2,
+      "#F3F7F2": 1
+    }
+  },
+  "src/modules/geneograph/geneograph-theme-board.js": {
+    "reason": "Authored board defaults, user paint values, or board-preview artwork.",
+    "literals": {
+      "#18211F": 1,
+      "#52615D": 1,
+      "#F1F5F3": 3,
+      "#D4AA6B": 1,
+      "#A77C3F": 1,
+      "#241C10": 1,
+      "#173029": 3,
+      "#62D99A": 3,
+      "#D9E5E1": 2,
+      "#0F1413": 1,
+      "#172A32": 1,
+      "#5A9BD8": 1,
+      "#F2F8FB": 1,
+      "#2D2437": 1,
+      "#8D6CE8": 1,
+      "#F6F1FB": 1
+    }
+  }
+}

@@ -35,7 +35,7 @@
 .archive-compact-path summary { display: grid; place-items: center; width: 28px; height: 36px; cursor: pointer; list-style: none; }
 .archive-compact-path summary::-webkit-details-marker { display: none; }
 .archive-compact-path summary svg { width: 18px; height: 18px; }
-.archive-compact-path-menu { position: absolute; top: 40px; left: 0; z-index: 70; width: min(260px, calc(100vw - 44px)); max-height: 50vh; overflow: auto; padding: 6px; border: 1px solid var(--border-default); border-radius: 6px; background: var(--surface-card); box-shadow: 0 12px 32px #0008; }
+.archive-compact-path-menu { position: absolute; top: 40px; left: 0; z-index: 70; width: min(260px, calc(100vw - 44px)); max-height: 50vh; overflow: auto; padding: 6px; border: 1px solid var(--border-default); border-radius: 6px; background: var(--surface-card); box-shadow: 0 12px 32px color-mix(in srgb, var(--gg-scrim) 3.1%, transparent); }
 .archive-compact-path-menu button { display: block; width: 100%; max-width: none; min-height: 44px; padding: 8px; border: 0; background: transparent; color: var(--text-primary); text-align: left; font: inherit; font-size: 12px; white-space: normal; overflow-wrap: anywhere; text-overflow: clip; }
 .archive-compact-path-menu button:hover { background: var(--surface-card-hover); }
 .archive-view-picker { position: relative; align-items: center; justify-content: center; gap: 2px; width: 52px; height: 44px; flex: none; border: 1px solid var(--border-default); border-radius: 6px; background: var(--surface-card); color: var(--text-secondary); }

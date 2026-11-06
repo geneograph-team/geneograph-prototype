@@ -34,7 +34,7 @@
         1px solid var(--border-default);
 
     background:
-        rgba(21, 26, 26, .94);
+        color-mix(in srgb, var(--gg-sidebar) 94%, transparent);
 
     backdrop-filter:
         blur(14px);
@@ -123,7 +123,7 @@
         var(--border-default);
 
     background:
-        rgba(255, 255, 255, .055);
+        color-mix(in srgb, var(--gg-text) 5.5%, transparent);
 
     color:
         var(--text-primary);
@@ -149,10 +149,10 @@
 .albums-detail-action.active,
 .archive-inspector-action.active {
     border-color:
-        rgba(212, 170, 107, .32);
+        color-mix(in srgb, var(--gg-accent-sepia-gold-accent) 32%, transparent);
 
     background:
-        rgba(212, 170, 107, .1);
+        color-mix(in srgb, var(--gg-accent-sepia-gold-accent) 10%, transparent);
 
     color:
         var(--amber);
@@ -203,8 +203,8 @@
     z-index: 5;
     border: 2px solid var(--brand-green-400);
     border-radius: 4px;
-    background: rgba(35, 175, 112, .12);
-    box-shadow: 0 0 0 2px rgba(0, 0, 0, .35);
+    background: color-mix(in srgb, var(--gg-primary) 12%, transparent);
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--gg-scrim) 35%, transparent);
     pointer-events: none;
 }
 
@@ -215,7 +215,7 @@
     border: 1px solid var(--border-strong);
     border-radius: var(--radius-sm);
     background: var(--surface-card);
-    box-shadow: 0 12px 28px rgba(0, 0, 0, .38);
+    box-shadow: 0 12px 28px color-mix(in srgb, var(--gg-scrim) 38%, transparent);
     overflow: hidden;
     pointer-events: none;
 }
@@ -303,10 +303,10 @@
 }
 
 .albums-detail-title-field input:focus {
-    border-color: rgba(98, 217, 154, .55);
+    border-color: color-mix(in srgb, var(--gg-primary) 55%, transparent);
     outline: 0;
     box-shadow:
-        0 0 0 3px rgba(98, 217, 154, .1);
+        0 0 0 3px color-mix(in srgb, var(--gg-primary) 10%, transparent);
 }
 
 .albums-detail .panel-section-body {
@@ -329,7 +329,7 @@
         13px 0;
 
     border-bottom:
-        1px solid rgba(45, 54, 52, .72);
+        1px solid color-mix(in srgb, var(--gg-status-neutral-on-accent) 72%, transparent);
 
     display: grid;
     grid-template-columns:
@@ -462,10 +462,10 @@
 }
 
 .albums-field textarea:focus {
-    border-color: rgba(98, 217, 154, .55);
+    border-color: color-mix(in srgb, var(--gg-primary) 55%, transparent);
     outline: 0;
     box-shadow:
-        0 0 0 3px rgba(98, 217, 154, .1);
+        0 0 0 3px color-mix(in srgb, var(--gg-primary) 10%, transparent);
 }
 
 /* People rows reuse the shared relationship-row system. */
@@ -571,7 +571,7 @@ button.albums-inspector-row-main:focus-visible {
 
 .albums-inspector-remove:hover,
 .albums-inspector-remove:focus-visible {
-    background: rgba(212, 107, 107, .1);
+    background: color-mix(in srgb, var(--gg-accent-rose-sepia-accent) 10%, transparent);
     color: var(--red);
 }
 
@@ -588,7 +588,7 @@ button.albums-inspector-row-main:focus-visible {
 .albums-metadata-row {
     min-width: 0;
     padding: 8px 0;
-    border-bottom: 1px solid rgba(45, 54, 52, .72);
+    border-bottom: 1px solid color-mix(in srgb, var(--gg-status-neutral-on-accent) 72%, transparent);
     display: grid;
     grid-template-columns:
         116px minmax(0, 1fr);
@@ -679,12 +679,12 @@ button.albums-inspector-row-main:focus-visible {
 }
 
 .sidebar-entity-row:hover {
-    background: rgba(255, 255, 255, .035);
+    background: color-mix(in srgb, var(--gg-text) 3.5%, transparent);
 }
 
 .sidebar-entity-row.active {
     background: var(--surface-selected);
-    border-color: rgba(98, 217, 154, .12);
+    border-color: color-mix(in srgb, var(--gg-primary) 12%, transparent);
 }
 
 .sidebar-entity-main {

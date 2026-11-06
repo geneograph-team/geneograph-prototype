@@ -29,7 +29,7 @@ The main shell exposes a top bar, project/module navigation, workspace, right in
 | Explicit provenance | Board-only and project-linked media or places are distinguished. Visual connection arrows do not imply a genealogical relationship. |
 | Prototype truthfulness | Working local actions must be distinguished from simulated import, publishing, persistence, or service integrations. |
 
-The visual identity is a dark, low-glare work surface with restrained green primary actions and semantic accents. `src/core/foundation.css` defines shared color, type, spacing, border, and motion tokens. Geneograph uses compact tool surfaces and a dotted/grid-capable canvas. Avoid treating the old document's individual bug-fix notes as lasting design rules.
+The visual identity uses the approved GeneoGraph v3 semantic palette: Soft Neutral Light and Neutral Charcoal Dark, Heritage Green for primary interaction, and category accents for content identity. `src/core/palette/geneograph-v3.css` owns UI color values; `src/core/foundation.css` owns aliases plus type, spacing, border, and motion tokens. Branded heroes use Heritage Green container/on-container in each theme. Geneograph uses compact tool surfaces and a dotted/grid-capable canvas; explicitly authored board colors remain content values. Avoid treating the old document's individual bug-fix notes as lasting design rules.
 
 ## 4. Architecture and state
 

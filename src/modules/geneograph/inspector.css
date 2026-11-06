@@ -356,31 +356,19 @@
 
 .geneo-tree-link-row.is-warning {
     border-color:
-        rgba(212,
-            170,
-            107,
-            .32);
+        color-mix(in srgb, var(--gg-accent-sepia-gold-accent) 32%, transparent);
 
     background:
-        rgba(212,
-            170,
-            107,
-            .07);
+        color-mix(in srgb, var(--gg-accent-sepia-gold-accent) 7%, transparent);
 }
 
 .geneo-tree-link-row.is-warning:hover,
 .geneo-tree-link-row.is-warning:focus-within {
     border-color:
-        rgba(212,
-            170,
-            107,
-            .52);
+        color-mix(in srgb, var(--gg-accent-sepia-gold-accent) 52%, transparent);
 
     background:
-        rgba(212,
-            170,
-            107,
-            .11);
+        color-mix(in srgb, var(--gg-accent-sepia-gold-accent) 11%, transparent);
 }
 
 .geneo-tree-link-warning-icon {
@@ -392,10 +380,7 @@
     border-radius: 50%;
 
     background:
-        rgba(212,
-            170,
-            107,
-            .12);
+        color-mix(in srgb, var(--gg-accent-sepia-gold-accent) 12%, transparent);
 
     color: var(--amber);
 }
@@ -586,10 +571,7 @@
 
 .geneo-person-style-option.active {
     border-color:
-        rgba(98,
-            217,
-            154,
-            .62);
+        color-mix(in srgb, var(--gg-primary) 62%, transparent);
 
     background:
         var(--surface-selected);

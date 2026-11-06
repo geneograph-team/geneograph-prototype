@@ -7,7 +7,7 @@
 
 .geneo-tour-scrim {
     position: absolute;
-    background: rgba(4, 9, 8, .68);
+    background: color-mix(in srgb, var(--gg-scrim) 68%, transparent);
     pointer-events: auto;
 }
 
@@ -33,7 +33,7 @@ body.geneo-tour-tree-relationship-actions .tree-inspector
 body.geneo-tour-tree-relationship-actions .tree-inspector
     [data-relationship-related-person-id="luna"] {
     border-color: var(--border-default);
-    background: rgba(255, 255, 255, .04);
+    background: color-mix(in srgb, var(--gg-text) 4%, transparent);
 }
 
 .geneo-tour-card {

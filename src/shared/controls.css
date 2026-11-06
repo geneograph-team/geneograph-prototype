@@ -55,9 +55,9 @@
 }
 
 .button.danger {
-    color: #F2B3B3;
-    border-color: rgba(212, 107, 107, .35);
-    background: rgba(212, 107, 107, .08);
+    color: var(--gg-status-error-accent);
+    border-color: color-mix(in srgb, var(--gg-status-error-accent) 35%, transparent);
+    background: color-mix(in srgb, var(--gg-status-error-accent) 8%, transparent);
 }
 
 /* Text links navigate; panel actions open an editor or picker. */
@@ -215,7 +215,7 @@
 
 .toolbar-button.active {
     background: var(--surface-selected);
-    border-color: rgba(98, 217, 154, .35);
+    border-color: color-mix(in srgb, var(--gg-primary) 35%, transparent);
     color: var(--text-primary);
 }
 

@@ -178,7 +178,7 @@
 }
 .repeatable-fact-list, .repeatable-fact-readonly { min-width: 0; }
 .repeatable-fact-add { margin-top: 12px; }
-.repeatable-fact-error { color: var(--danger, #ef8c8c); }
+.repeatable-fact-error { color: var(--danger, var(--gg-status-error-accent)); }
 .repeatable-fact-entry input { scroll-margin-top: 100px; }
 .person-profile .repeatable-fact-entry .add-person-fact-grid {
     display: grid;
@@ -219,7 +219,7 @@
     align-items: start;
     gap: var(--space-3);
     padding-bottom: 8px;
-    border-bottom: 1px solid rgba(255, 255, 255, .045);
+    border-bottom: 1px solid color-mix(in srgb, var(--gg-text) 4.5%, transparent);
     color: var(--text-secondary);
     font-size: 13px;
 }
@@ -307,9 +307,9 @@
     min-width: 22px;
     height: 22px;
     padding: 0 7px;
-    border: 1px solid rgba(255, 255, 255, .07);
+    border: 1px solid color-mix(in srgb, var(--gg-text) 7%, transparent);
     border-radius: 999px;
-    background: rgba(255, 255, 255, .04);
+    background: color-mix(in srgb, var(--gg-text) 4%, transparent);
     color: var(--text-tertiary);
     display: inline-flex;
     align-items: center;
@@ -368,7 +368,7 @@
     padding: 0 var(--space-4);
     border: 0;
     border-top: 1px solid var(--border-default);
-    background: rgba(11, 15, 14, .16);
+    background: color-mix(in srgb, var(--gg-topbar) 16%, transparent);
     color: var(--text-secondary);
     display: flex;
     align-items: center;
@@ -391,7 +391,7 @@
 
 .profile-resource-card__footer:hover,
 .profile-resource-card__footer:focus-visible {
-    background: rgba(255, 255, 255, .035);
+    background: color-mix(in srgb, var(--gg-text) 3.5%, transparent);
     color: var(--brand-green-300);
 }
 
@@ -435,7 +435,7 @@
 .profile-resource-row:hover,
 .profile-resource-row:focus-visible {
     border-color: var(--border-default);
-    background: rgba(255, 255, 255, .035);
+    background: color-mix(in srgb, var(--gg-text) 3.5%, transparent);
     color: var(--text-primary);
 }
 
@@ -766,9 +766,9 @@
     min-width: 24px;
     height: 24px;
     padding: 0 8px;
-    border: 1px solid rgba(255, 255, 255, .07);
+    border: 1px solid color-mix(in srgb, var(--gg-text) 7%, transparent);
     border-radius: 999px;
-    background: rgba(255, 255, 255, .04);
+    background: color-mix(in srgb, var(--gg-text) 4%, transparent);
     color: var(--text-tertiary);
     display: inline-flex;
     align-items: center;

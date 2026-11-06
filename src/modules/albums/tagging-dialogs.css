@@ -99,16 +99,16 @@
 
 .face-region-other {
     position: absolute;
-    border: 2px solid rgba(255, 255, 255, .7);
-    background: rgba(255, 255, 255, .06);
+    border: 2px solid color-mix(in srgb, var(--gg-text) 70%, transparent);
+    background: color-mix(in srgb, var(--gg-text) 6%, transparent);
     pointer-events: none;
 }
 
-.photo-people-modal .face-region-box { box-shadow: 0 0 0 999px rgba(0, 0, 0, .13); }
+.photo-people-modal .face-region-box { box-shadow: 0 0 0 999px color-mix(in srgb, var(--gg-scrim) 13%, transparent); }
 
 .photo-people-primary-choice { display: flex; align-items: center; gap: var(--space-2); }
 
-.photo-people-region-error { color: var(--text-danger, #f18a8a); }
+.photo-people-region-error { color: var(--text-danger, var(--gg-accent-rose-sepia-accent)); }
 
 .photo-people-search-field,
 .photo-people-selected-panel,
@@ -236,16 +236,10 @@
 .photo-people-selected-chip.is-active,
 .photo-people-selected-chip.is-active:hover {
     border-color:
-        rgba(98,
-            217,
-            154,
-            .48);
+        color-mix(in srgb, var(--gg-primary) 48%, transparent);
 
     background:
-        rgba(22,
-            58,
-            42,
-            .5);
+        color-mix(in srgb, var(--gg-primary) 50%, transparent);
 }
 
 .photo-people-selected-chip:focus-visible {
@@ -315,10 +309,7 @@
         var(--radius-sm);
 
     background:
-        rgba(0,
-            0,
-            0,
-            .08);
+        color-mix(in srgb, var(--gg-scrim) 8%, transparent);
 
     overflow-x: hidden;
     overflow-y: auto;
@@ -524,20 +515,14 @@
     height: 44px;
 
     border:
-        1px solid rgba(76,
-            183,
-            183,
-            .25);
+        1px solid color-mix(in srgb, var(--gg-accent-map-cyan-accent) 25%, transparent);
 
     border-radius: 9px;
 
     background:
-        rgba(76,
-            183,
-            183,
-            .1);
+        color-mix(in srgb, var(--gg-primary) 10%, transparent);
 
-    color: #4CB7B7;
+    color: var(--gg-accent-map-cyan-accent);
 
     display: grid;
     place-items: center;
@@ -550,11 +535,11 @@
 }
 
 .notes-place-result input {
-    accent-color: #4CB7B7;
+    accent-color: var(--gg-accent-map-cyan-accent);
 }
 
 .notes-place-result:focus-within {
-    outline-color: #4CB7B7;
+    outline-color: var(--gg-accent-map-cyan-accent);
 }
 
 .notes-place-result-meta {
@@ -567,51 +552,33 @@
 
 .notes-place-selected-chip {
     border-color:
-        rgba(76,
-            183,
-            183,
-            .28);
+        color-mix(in srgb, var(--gg-accent-map-cyan-accent) 28%, transparent);
 
     background:
-        rgba(76,
-            183,
-            183,
-            .08);
+        color-mix(in srgb, var(--gg-primary) 8%, transparent);
 }
 
 .notes-place-selected-chip:hover,
 .notes-place-selected-chip:focus-within {
     border-color:
-        rgba(76,
-            183,
-            183,
-            .52);
+        color-mix(in srgb, var(--gg-accent-map-cyan-accent) 52%, transparent);
 
     background:
-        rgba(76,
-            183,
-            183,
-            .13);
+        color-mix(in srgb, var(--gg-primary) 13%, transparent);
 }
 
 .notes-place-selected-chip .relation-action-button:hover,
 .notes-place-selected-chip .relation-action-button:focus-visible {
-    color: #4CB7B7;
+    color: var(--gg-accent-map-cyan-accent);
 }
 
 .notes-place-remove:hover,
 .notes-place-remove:focus-visible {
     border-color:
-        rgba(212,
-            107,
-            107,
-            .35);
+        color-mix(in srgb, var(--gg-accent-rose-sepia-accent) 35%, transparent);
 
     background:
-        rgba(212,
-            107,
-            107,
-            .1);
+        color-mix(in srgb, var(--gg-accent-rose-sepia-accent) 10%, transparent);
 
     color: var(--red);
 }
@@ -794,10 +761,7 @@
         var(--radius-md);
 
     background:
-        rgba(0,
-            0,
-            0,
-            .08);
+        color-mix(in srgb, var(--gg-scrim) 8%, transparent);
 
     overflow: hidden;
 }
@@ -819,10 +783,7 @@
         1px solid var(--border-default);
 
     background:
-        rgba(255,
-            255,
-            255,
-            .018);
+        color-mix(in srgb, var(--gg-text) 1.8%, transparent);
 }
 
 .notes-event-search-field {
@@ -1022,10 +983,7 @@
         1px solid var(--border-default);
 
     background:
-        rgba(255,
-            255,
-            255,
-            .018);
+        color-mix(in srgb, var(--gg-text) 1.8%, transparent);
 
     display: grid;
 
@@ -1133,10 +1091,7 @@
 
 .notes-event-result.is-selected {
     background:
-        rgba(93,
-            173,
-            236,
-            .09);
+        color-mix(in srgb, var(--gg-primary) 9%, transparent);
 }
 
 .notes-event-result.is-complete {
@@ -1148,20 +1103,14 @@
     height: 38px;
 
     border:
-        1px solid rgba(93,
-            173,
-            236,
-            .28);
+        1px solid color-mix(in srgb, var(--gg-accent-map-cyan-accent) 28%, transparent);
 
     border-radius: 9px;
 
     background:
-        rgba(93,
-            173,
-            236,
-            .11);
+        color-mix(in srgb, var(--gg-primary) 11%, transparent);
 
-    color: #8BC8F5;
+    color: var(--gg-status-info-accent);
 
     display: grid;
     place-items: center;
@@ -1214,7 +1163,7 @@
 }
 
 .notes-event-result-copy .notes-event-result-relationship {
-    color: #8BC8F5;
+    color: var(--gg-status-info-accent);
 }
 
 .notes-event-result-end {
@@ -1283,21 +1232,15 @@
     height: 48px;
 
     border:
-        1px solid rgba(93,
-            173,
-            236,
-            .24);
+        1px solid color-mix(in srgb, var(--gg-accent-map-cyan-accent) 24%, transparent);
 
     border-radius:
         var(--radius-md);
 
     background:
-        rgba(93,
-            173,
-            236,
-            .09);
+        color-mix(in srgb, var(--gg-primary) 9%, transparent);
 
-    color: #8BC8F5;
+    color: var(--gg-status-info-accent);
 
     display: grid;
     place-items: center;
@@ -1398,10 +1341,10 @@
 
 .albums-delete-copy {
     padding: var(--space-4);
-    border: 1px solid rgba(212, 107, 107, .24);
+    border: 1px solid color-mix(in srgb, var(--gg-accent-rose-sepia-accent) 24%, transparent);
     border-radius: var(--radius-sm);
-    background: rgba(212, 107, 107, .08);
-    color: #f0b8b8;
+    background: color-mix(in srgb, var(--gg-accent-rose-sepia-accent) 8%, transparent);
+    color: var(--gg-accent-rose-sepia-accent);
 }
 
 .albums-lightbox-photo {
@@ -1477,7 +1420,7 @@
     position: absolute;
     border: 2px solid var(--brand-green-300);
     border-radius: 4px;
-    box-shadow: 0 0 0 1px rgba(0, 0, 0, .7);
+    box-shadow: 0 0 0 1px color-mix(in srgb, var(--gg-scrim) 70%, transparent);
     pointer-events: none;
 }
 .albums-lightbox-face[hidden] { display: none; }

@@ -27,7 +27,7 @@
     font-size: 12px;
     line-height: 1.4;
 }
-.archive-document-import-notice > span:first-child { display: inline-flex; flex: 0 0 16px; color: var(--warning, #d8b460); }
+.archive-document-import-notice > span:first-child { display: inline-flex; flex: 0 0 16px; color: var(--warning, var(--gg-accent-sepia-gold-accent)); }
 .archive-document-import-notice svg { width: 16px; height: 16px; }
 .archive-document-import-summary:empty { display: none; }
 
@@ -79,7 +79,7 @@
 .archive-document-table th,
 .archive-document-table td {
     padding: 9px 12px;
-    border-bottom: 1px solid var(--border-color, #35403e);
+    border-bottom: 1px solid var(--border-color, var(--gg-border));
     text-align: left;
     max-width: 35ch;
     white-space: normal;
@@ -89,7 +89,7 @@
 .archive-document-table th {
     position: sticky;
     top: 0;
-    background: var(--surface-2, #1c2523);
+    background: var(--surface-2, var(--gg-panel));
     z-index: 1;
 }
 
@@ -108,7 +108,7 @@
 
 .archive-document-article td,
 .archive-document-article th {
-    border: 1px solid var(--border-color, #35403e);
+    border: 1px solid var(--border-color, var(--gg-border));
     padding: 8px;
 }
 
@@ -160,14 +160,14 @@
     justify-content: center;
     align-items: center;
     gap: 10px;
-    border: 1px dashed var(--border-color, #63726d);
+    border: 1px dashed var(--border-color, var(--gg-outline));
     border-radius: 8px;
     text-align: center;
     cursor: pointer;
 }
 
 .archive-document-drop:hover,
-.archive-document-drop.dragging { border-color: var(--accent, #2ba779); background: var(--surface-hover, #202b28); }
+.archive-document-drop.dragging { border-color: var(--accent, var(--gg-primary)); background: var(--surface-hover, var(--gg-raised)); }
 .archive-document-drop span { color: var(--text-secondary); }
 .archive-document-import-results { margin-top: 22px; }
 .archive-document-import-results[hidden] { display: none; }
@@ -183,12 +183,12 @@
 }
 .archive-document-import-row strong { min-width: 0; font-weight: 500; overflow-wrap: anywhere; }
 .archive-document-import-row span { flex: none; color: var(--text-secondary); }
-.archive-document-import-row.success span { color: var(--accent, #2ba779); }
-.archive-document-import-row.error span { color: var(--danger, #ed8b89); overflow-wrap: anywhere; }
+.archive-document-import-row.success span { color: var(--accent, var(--gg-primary)); }
+.archive-document-import-row.error span { color: var(--danger, var(--gg-status-error-accent)); overflow-wrap: anywhere; }
 
 .archive-document-drop.dragging,
 .archive-document-drop:focus-visible {
-    outline: 2px solid var(--accent, #2ba779);
+    outline: 2px solid var(--accent, var(--gg-primary));
     outline-offset: 2px;
 }
 

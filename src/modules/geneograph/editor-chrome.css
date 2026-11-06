@@ -613,7 +613,7 @@
 
     background: var(--surface-selected);
     color: var(--text-primary);
-    border-color: rgba(98, 217, 154, .24);
+    border-color: color-mix(in srgb, var(--gg-primary) 24%, transparent);
 }
 
 .geneo-tool-group .geneo-tool.active .geneo-tool-label {
@@ -623,7 +623,7 @@
 .geneo-toolbar-button.primary {
     background: var(--brand-green-500);
     color: var(--on-primary);
-    border-color: rgba(98, 217, 154, .35);
+    border-color: color-mix(in srgb, var(--gg-primary) 35%, transparent);
 }
 
 .geneo-editor-main {
@@ -692,10 +692,10 @@
 }
 
 .geneo-toolbar-object[aria-pressed="true"] {
-    border-color: rgba(98, 217, 154, .3);
+    border-color: color-mix(in srgb, var(--gg-primary) 30%, transparent);
     background: var(--surface-selected);
     color: var(--text-primary);
-    box-shadow: inset 0 0 0 1px rgba(98, 217, 154, .12);
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--gg-primary) 12%, transparent);
 }
 
 .geneo-toolbar-object:focus-visible {
@@ -870,7 +870,7 @@
     height: 40px;
     border: 1px solid var(--border-default);
     border-radius: var(--radius-sm);
-    background: rgba(255, 255, 255, .018);
+    background: color-mix(in srgb, var(--gg-text) 1.8%, transparent);
 }
 
 .tool-split-main,
@@ -918,7 +918,7 @@
 .tool-split.active,
 .tool-split:has([aria-expanded="true"]) {
     background: var(--surface-selected);
-    border-color: rgba(98, 217, 154, .35);
+    border-color: color-mix(in srgb, var(--gg-primary) 35%, transparent);
 }
 
 .tool-split.active .tool-split-main,
@@ -1022,7 +1022,7 @@
 }
 
 .geneo-object-context-menu button.danger:is(:hover, :focus-visible) {
-    color: #f2b3b3;
+    color: var(--gg-status-error-accent);
 }
 
 .tool-options-menu button {
@@ -1264,7 +1264,7 @@
     flex: 0 0 22px;
     display: block;
     border: 2px solid currentColor;
-    background: rgba(98, 217, 154, .12);
+    background: color-mix(in srgb, var(--gg-primary) 12%, transparent);
 }
 
 .geneo-shape-option-preview.shape-ellipse {
@@ -1333,11 +1333,11 @@
     position: absolute;
     inset: 12px;
     background:
-        linear-gradient(90deg, transparent 0 40%, rgba(47, 174, 116, .45) 41% 43%, transparent 44%),
-        radial-gradient(circle at 25% 30%, rgba(47, 174, 116, .65) 0 10px, transparent 11px),
-        radial-gradient(circle at 60% 28%, rgba(212, 170, 107, .65) 0 11px, transparent 12px),
-        radial-gradient(circle at 68% 68%, rgba(93, 173, 236, .65) 0 9px, transparent 10px),
-        radial-gradient(circle at 40% 72%, rgba(141, 108, 232, .65) 0 10px, transparent 11px);
+        linear-gradient(90deg, transparent 0 40%, color-mix(in srgb, var(--gg-primary) 45%, transparent) 41% 43%, transparent 44%),
+        radial-gradient(circle at 25% 30%, color-mix(in srgb, var(--gg-primary) 65%, transparent) 0 10px, transparent 11px),
+        radial-gradient(circle at 60% 28%, color-mix(in srgb, var(--gg-accent-sepia-gold-accent) 65%, transparent) 0 11px, transparent 12px),
+        radial-gradient(circle at 68% 68%, color-mix(in srgb, var(--gg-primary) 65%, transparent) 0 9px, transparent 10px),
+        radial-gradient(circle at 40% 72%, color-mix(in srgb, var(--gg-accent-evidence-slate-container) 65%, transparent) 0 10px, transparent 11px);
 }
 
 .geneo-minimap::after {
@@ -1348,7 +1348,7 @@
     width: 86px;
     height: 56px;
     border: 1px solid var(--text-secondary);
-    background: rgba(255, 255, 255, .04);
+    background: color-mix(in srgb, var(--gg-text) 4%, transparent);
 }
 
 .geneo-board-panel {
@@ -1512,13 +1512,13 @@
 }
 
 .geneo-layer-row:hover {
-    background: rgba(255, 255, 255, .035);
+    background: color-mix(in srgb, var(--gg-text) 3.5%, transparent);
     color: var(--text-primary);
 }
 
 .geneo-layer-row.selected {
     background: var(--surface-selected);
-    border-color: rgba(98, 217, 154, .12);
+    border-color: color-mix(in srgb, var(--gg-primary) 12%, transparent);
     color: var(--text-primary);
 }
 
@@ -1555,7 +1555,7 @@
 
 .geneo-layer-name-input:focus {
     box-shadow:
-        0 0 0 2px rgba(98, 217, 154, 0.2);
+        0 0 0 2px color-mix(in srgb, var(--gg-primary) 20%, transparent);
 }
 
 .geneo-layer-icon {
@@ -1564,7 +1564,7 @@
     border-radius: 5px;
     display: grid;
     place-items: center;
-    background: rgba(255, 255, 255, .05);
+    background: color-mix(in srgb, var(--gg-text) 5%, transparent);
     color: var(--brand-green-300);
     flex: 0 0 auto;
 }

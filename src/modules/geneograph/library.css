@@ -196,7 +196,7 @@
 .geneo-board-cover-shade {
     position: absolute;
     inset: 32% 0 0;
-    background: linear-gradient(transparent, rgba(6, 17, 13, .88));
+    background: linear-gradient(transparent, color-mix(in srgb, var(--gg-topbar) 88%, transparent));
 }
 
 .geneo-board-cover-title {
@@ -209,11 +209,11 @@
     display: -webkit-box;
     -webkit-box-orient: vertical;
     -webkit-line-clamp: 2;
-    color: #fff;
+    color: var(--gg-text);
     font-size: 18px;
     font-weight: 700;
     line-height: 1.2;
-    text-shadow: 0 1px 2px rgba(0, 0, 0, .35);
+    text-shadow: 0 1px 2px color-mix(in srgb, var(--gg-scrim) 35%, transparent);
 }
 
 .geneo-board-body {
@@ -296,7 +296,7 @@
 
     padding: 0 8px;
     border-radius: 5px;
-    background: rgba(255, 255, 255, .055);
+    background: color-mix(in srgb, var(--gg-text) 5.5%, transparent);
     color: var(--text-secondary);
 
     display: block;
@@ -311,10 +311,7 @@
 
 .geneo-board-collection-chip.no-collection {
     background:
-        rgba(255,
-            255,
-            255,
-            .03);
+        color-mix(in srgb, var(--gg-text) 3%, transparent);
 
     color:
         var(--text-tertiary);
@@ -529,10 +526,7 @@
         var(--radius-sm);
 
     background:
-        rgba(255,
-            255,
-            255,
-            .018);
+        color-mix(in srgb, var(--gg-text) 1.8%, transparent);
 }
 
 .geneo-inline-collection-actions {
@@ -644,16 +638,16 @@
         0;
 
     border:
-        1px solid rgba(255, 255, 255, .12);
+        1px solid color-mix(in srgb, var(--gg-text) 12%, transparent);
 
     border-radius:
         8px;
 
     background:
-        rgba(12, 23, 19, .72);
+        color-mix(in srgb, var(--gg-background) 72%, transparent);
 
     color:
-        rgba(255, 255, 255, .88);
+        color-mix(in srgb, var(--gg-text) 88%, transparent);
 
     display:
         inline-grid;
@@ -701,10 +695,10 @@
 .geneo-star:hover,
 .geneo-more:hover {
     border-color:
-        rgba(255, 255, 255, .28);
+        color-mix(in srgb, var(--gg-text) 28%, transparent);
 
     background:
-        rgba(20, 37, 31, .94);
+        color-mix(in srgb, var(--gg-details) 94%, transparent);
 
     color:
         var(--text-primary);
@@ -849,10 +843,7 @@
         var(--radius-sm);
 
     background:
-        rgba(255,
-            255,
-            255,
-            .012);
+        color-mix(in srgb, var(--gg-text) 1.2%, transparent);
 
     color:
         var(--text-primary);
@@ -893,16 +884,10 @@
         translateY(-1px);
 
     border-color:
-        rgba(98,
-            217,
-            154,
-            .42);
+        color-mix(in srgb, var(--gg-primary) 42%, transparent);
 
     background:
-        rgba(47,
-            174,
-            116,
-            .035);
+        color-mix(in srgb, var(--gg-primary) 3.5%, transparent);
 }
 
 .geneo-board-action-tile:focus-visible {
@@ -921,13 +906,13 @@
         42px;
 
     border:
-        1px solid rgba(98, 217, 154, .2);
+        1px solid color-mix(in srgb, var(--gg-primary) 20%, transparent);
 
     border-radius:
         10px;
 
     background:
-        rgba(47, 174, 116, .1);
+        color-mix(in srgb, var(--gg-primary) 10%, transparent);
 
     color:
         var(--brand-green-300);
