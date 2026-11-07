@@ -579,7 +579,7 @@
 
     border: 1px solid var(--border-default);
     border-radius: var(--radius-sm);
-    background: var(--surface-hover-tint);
+    background: color-mix(in srgb, var(--gg-text) 1.8%, transparent);
 }
 
 .geneo-tool-group .geneo-tool {

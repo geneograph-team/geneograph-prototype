@@ -338,20 +338,17 @@ function geneoDefaultCardAppearances()
         male: {
             ...structuredClone(neutral),
             fill: { color: geneoSemanticColor('--gg-accent-creative-blue-subtle-container'), opacity: 100, enabled: true },
-            stroke: { color: geneoSemanticColor('--gg-accent-creative-blue-outline'), opacity: 100, enabled: true },
-            text: { color: geneoSemanticColor('--gg-accent-creative-blue-on-container'), opacity: 100, enabled: true }
+            stroke: { color: geneoSemanticColor('--gg-accent-creative-blue-outline'), opacity: 100, enabled: true }
         },
         female: {
             ...structuredClone(neutral),
             fill: { color: geneoSemanticColor('--gg-accent-investigation-purple-subtle-container'), opacity: 100, enabled: true },
-            stroke: { color: geneoSemanticColor('--gg-accent-investigation-purple-outline'), opacity: 100, enabled: true },
-            text: { color: geneoSemanticColor('--gg-accent-investigation-purple-on-container'), opacity: 100, enabled: true }
+            stroke: { color: geneoSemanticColor('--gg-accent-investigation-purple-outline'), opacity: 100, enabled: true }
         },
         unknown: {
             ...structuredClone(neutral),
             fill: { color: geneoSemanticColor('--gg-status-offline-subtle-container'), opacity: 100, enabled: true },
-            stroke: { color: geneoSemanticColor('--gg-status-offline-outline'), opacity: 100, enabled: true },
-            text: { color: geneoSemanticColor('--gg-status-offline-on-container'), opacity: 100, enabled: true }
+            stroke: { color: geneoSemanticColor('--gg-status-offline-outline'), opacity: 100, enabled: true }
         }
     };
 }
