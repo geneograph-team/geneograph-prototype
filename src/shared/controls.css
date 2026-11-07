@@ -284,6 +284,7 @@
 .add-person-select {
     display: block;
     width: 100%;
+    font-weight: 500;
     height: var(--control-height);
     min-height: var(--control-height);
     max-height: var(--control-height);
@@ -346,6 +347,7 @@
 .field input {
     width: 100%;
     height: var(--control-height);
+    font-weight: 500;
     min-height: var(--control-height);
     max-height: var(--control-height);
     border: 1px solid var(--control-field-border);
@@ -360,6 +362,7 @@
 .field textarea {
     width: 100%;
     min-height: 104px;
+    font-weight: 500;
     border: 1px solid var(--control-field-border);
     background: var(--surface-input);
     color: var(--text-primary);
@@ -381,6 +384,7 @@
 .compact-select:not(.common-select):not(.add-person-select) {
     width: 100%;
     border: 1px solid var(--control-field-border);
+    font-weight: 500;
     border-radius: var(--radius-sm);
     background-color: var(--surface-input);
     color: var(--text-secondary);

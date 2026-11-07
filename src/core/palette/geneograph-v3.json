@@ -57,7 +57,7 @@
       "disabledText": "#637178",
       "scrollbarThumb": "#859098",
       "scrollbarThumbHover": "#6E7B81",
-      "textPlaceholder": "#68757B",
+      "textPlaceholder": "#79888f",
       "onMedia": "#FFFFFF"
     },
     "dark": {
@@ -104,7 +104,7 @@
       "disabledText": "#9BA8AE",
       "scrollbarThumb": "#647278",
       "scrollbarThumbHover": "#859299",
-      "textPlaceholder": "#909BA0",
+      "textPlaceholder": "#727a7e",
       "onMedia": "#FFFFFF"
     }
   },
