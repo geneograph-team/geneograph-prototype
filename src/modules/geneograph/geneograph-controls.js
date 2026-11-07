@@ -2824,7 +2824,9 @@ function bindGeneographEditor()
             if (!entity) return;
             const target = scope === 'connection' ? entity.style : entity.appearance;
             const nextPattern = scope === 'connection' && GENEO_CONNECTION_PATTERNS.includes(event.target.value) ? event.target.value : event.target.value === 'dashed' ? 'dashed' : 'solid';
-            if ((scope === 'connection' ? geneoEffectiveConnectionStyle(entity).pattern : target.strokePattern) === nextPattern) return;
+            const currentPattern = scope === 'connection' ? geneoEffectiveConnectionStyle(entity).pattern
+                : entity.type === 'person' ? geneoResolveVisibleNodeAppearance(entity).strokePattern : target.strokePattern;
+            if (currentPattern === nextPattern) return;
             geneoPushHistory();
             if (scope === 'connection')
             {
@@ -2855,14 +2857,16 @@ function bindGeneographEditor()
             if (!entity) return;
             const target = scope === 'connection' ? entity.style : entity.appearance;
             const key = scope === 'connection' ? 'width' : 'strokeWidth';
+            const currentWidth = scope === 'connection' ? geneoEffectiveConnectionStyle(entity).width
+                : entity.type === 'person' ? geneoResolveVisibleNodeAppearance(entity).strokeWidth : target[key];
             const nextWidth = Math.round(geneoNumber(
                 input.value,
-                scope === 'connection' ? geneoEffectiveConnectionStyle(entity).width : target[key],
+                currentWidth,
                 GENEO_STROKE_WIDTH_MIN,
                 GENEO_STROKE_WIDTH_MAX
             ));
             input.value = nextWidth;
-            if ((scope === 'connection' ? geneoEffectiveConnectionStyle(entity).width : target[key]) === nextWidth) return;
+            if (currentWidth === nextWidth) return;
             geneoPushHistory();
             if (scope === 'connection')
             {

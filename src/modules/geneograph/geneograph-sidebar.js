@@ -743,6 +743,9 @@ function resolveGeneoPaintTarget(reference)
             : property !== 'fill' || node.type !== 'image';
     if (!applicable) return null;
     const defaults = geneoNodeDefaults(node.type).appearance;
+    const person = node.type === 'person';
+    const inheritedPaint = person ? geneoPersonGenderAppearance(node)?.[property] : null;
+    const hasPaintOverride = person && node.appearance.paintOverrides?.[property] === true;
     return {
         scope, id, property, entity: node,
         label:
@@ -755,11 +758,14 @@ function resolveGeneoPaintTarget(reference)
               : property === 'text'
                   ? node.type === 'panel' ? 'Title text' : 'Text'
                   : 'Stroke',
-        paint: node.appearance[property],
+        // The inspector reads the same effective paint as the canvas.
+        // Do not expose an inherited preset for mutation: edits must be
+        // written as an individual node override instead.
+        paint: person && !hasPaintOverride ? structuredClone(inheritedPaint) : node.appearance[property],
         supportsOpacity: true,
         supportsNone: property !== 'text',
         resettable: property === 'text',
-        defaultPaint: defaults[property]
+        defaultPaint: inheritedPaint || defaults[property]
     };
 }
 
@@ -1114,6 +1120,7 @@ function applyGeneoPaintTargetToDom(reference)
             element.style.setProperty('--geneo-node-stroke', geneoPaintCssColor(visible.stroke));
             element.style.setProperty('--geneo-node-text', geneoPaintCssColor(visible.text));
             element.style.setProperty('--geneo-node-stroke-style', visible.stroke?.enabled ? visible.strokePattern : 'none');
+            element.style.setProperty('--geneo-node-stroke-width', `${visible.strokeWidth}px`);
         });
     }
     else if (target.scope === 'node')
@@ -1166,9 +1173,13 @@ function applyGeneoPaintTargetToDom(reference)
             element.style.setProperty(
                 '--geneo-node-stroke-style',
                 visibleStroke?.enabled
-                    ? node.appearance
-                        .strokePattern
+                    ? (visibleAppearance.strokePattern || node.appearance.strokePattern)
                     : 'none'
+            );
+
+            element.style.setProperty(
+                '--geneo-node-stroke-width',
+                `${visibleAppearance.strokeWidth ?? node.appearance.strokeWidth}px`
             );
 
             element.style.setProperty(
@@ -1484,6 +1495,16 @@ function setGeneoPaintOverrideState(
     const appearance =
         target.entity.appearance;
 
+    // A person may display the board's gender preset while keeping a
+    // different saved paint. Copy the edited effective value onto the node;
+    // never mutate the board preset (or discard another card's inheritance).
+    if (target.entity.type === 'person')
+    {
+        appearance[target.property] = Boolean(overridden)
+            ? structuredClone(target.paint)
+            : structuredClone(geneoPersonGenderAppearance(target.entity)?.[target.property]);
+    }
+
     const previous =
         appearance.paintOverrides
             ?.[target.property]
@@ -1553,6 +1574,11 @@ function beginGeneoPaintInteraction(
               target.paint
           ),
 
+        // Required to cancel a preview without changing an inherited
+        // node's dormant, saved paint or its override provenance.
+        beforeStoredPaint: target.scope === 'node' && target.entity.type === 'person'
+            ? structuredClone(target.entity.appearance[target.property]) : null,
+
         beforeOverride:
           geneoPaintOverrideState(
               target
@@ -1610,6 +1636,7 @@ function previewGeneoPaint(
         return true;
     }
 
+    const beforePaint = JSON.stringify(target.paint);
     Object.assign(
         target.paint,
         changes
@@ -1636,10 +1663,10 @@ function previewGeneoPaint(
         target.paint.enabled = true;
     }
 
-    /*
-       * A direct paint edit is an explicit
-       * object-level override.
-       */
+    if (target.scope === 'node' && target.entity.type === 'person'
+        && beforePaint === JSON.stringify(target.paint)) return false;
+
+    /* A direct paint edit creates an individual override. */
     setGeneoPaintOverrideState(
         target,
         true
@@ -1761,17 +1788,19 @@ function cancelGeneoPaintInteraction()
         return true;
     }
 
-    Object.assign(
-        target.paint,
-        structuredClone(
-            interaction.beforePaint
-        )
-    );
-
-    setGeneoPaintOverrideState(
-        target,
-        interaction.beforeOverride
-    );
+    if (target.scope === 'node' && target.entity.type === 'person')
+    {
+        // Restore the actual serialized node state, not the inherited
+        // display value that was captured when the interaction began.
+        target.entity.appearance.paintOverrides ||= {};
+        target.entity.appearance.paintOverrides[target.property] = interaction.beforeOverride;
+        target.entity.appearance[target.property] = structuredClone(interaction.beforeStoredPaint);
+    }
+    else
+    {
+        Object.assign(target.paint, structuredClone(interaction.beforePaint));
+        setGeneoPaintOverrideState(target, interaction.beforeOverride);
+    }
 
     syncGeneoPaintUi(
         target
@@ -1871,6 +1900,12 @@ function commitGeneoPaintAction(
     {
         target.paint.enabled = true;
     }
+
+    // Reapplying an inherited value is not a customization. A reset may
+    // still need to clear an existing override even when colors match.
+    if (target.scope === 'node' && target.entity.type === 'person'
+        && beforePaint === JSON.stringify(target.paint)
+        && (!resetOverride || !beforeOverride)) return false;
 
     setGeneoPaintOverrideState(
         target,
