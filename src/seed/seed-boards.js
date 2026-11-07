@@ -10,6 +10,7 @@ sampleData.boards = geneoSeedBoardEntries.map(entry =>
     geneoSeedBoardIds.add(entry.id);
     if (payload.viewport) state.geneoBoardViewports[entry.id] = structuredClone(payload.viewport);
     const diagram = structuredClone(payload.board.diagram);
+    diagram.connectionDefaults.width = 4;
     geneoMarkSeedThemeProvenance(diagram);
     geneoApplyThemeDefaultsToDiagram(diagram);
     return {

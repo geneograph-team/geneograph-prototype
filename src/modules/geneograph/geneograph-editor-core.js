@@ -2567,7 +2567,7 @@ function geneoCreationToolSettings(tool)
 
 function geneoDefaultConnectionStyle()
 {
-    return { line: { color: geneoThemeColor('#D9E5E1', '#526B5C'), opacity: 100, enabled: true }, lineOverride: false, width: 2, pattern: 'solid', arrows: 'none', cornerRadius: 0, showRelationshipDates: false };
+    return { line: { color: geneoThemeColor('#D9E5E1', geneoSemanticColor('--tree-connection')), opacity: 100, enabled: true }, lineOverride: false, width: 4, pattern: 'solid', arrows: 'none', cornerRadius: 0, showRelationshipDates: false };
 }
 
 function geneoNormalizeConnectionDefaults(value)
