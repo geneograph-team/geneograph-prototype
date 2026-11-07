@@ -354,8 +354,8 @@
     overflow: hidden;
     cursor: crosshair;
     background:
-        linear-gradient(to top, var(--gg-scrim), transparent),
-        linear-gradient(to right, var(--gg-status-pending-container), transparent),
+        linear-gradient(to top, hsl(0 0% 0%), transparent),
+        linear-gradient(to right, hsl(0 0% 100%), transparent),
         hsl(var(--geneo-hue) 100% 50%);
     touch-action: none;
 }
@@ -364,7 +364,7 @@
     position: absolute;
     width: 14px;
     height: 14px;
-    border: 2px solid var(--gg-accent-investigation-purple-accent);
+    border: 2px solid var(--text-primary);
     border-radius: 50%;
     box-shadow: 0 0 0 1px var(--gg-scrim), 0 2px 6px color-mix(in srgb, var(--gg-scrim) 45%, transparent);
     transform: translate(-50%, -50%);
@@ -393,14 +393,16 @@
     margin: 0;
     border: 1px solid color-mix(in srgb, var(--gg-text) 16%, transparent);
     border-radius: 999px;
-    background: linear-gradient(to right, var(--gg-status-error-accent), var(--gg-accent-sepia-gold-accent), var(--gg-accent-heritage-green-container), var(--gg-primary), var(--gg-accent-creative-blue-accent), var(--gg-accent-print-magenta-accent), var(--gg-status-error-accent));
+    background: linear-gradient(to right,
+        hsl(0 100% 50%), hsl(60 100% 50%), hsl(120 100% 50%),
+        hsl(180 100% 50%), hsl(240 100% 50%), hsl(300 100% 50%), hsl(360 100% 50%));
 }
 
 .geneo-paint-slider-row input[type="range"]::-webkit-slider-thumb {
     appearance: none;
     width: 16px;
     height: 16px;
-    border: 2px solid var(--gg-accent-investigation-purple-accent);
+    border: 2px solid var(--text-primary);
     border-radius: 50%;
     background: var(--gg-sidebar);
     box-shadow: 0 1px 5px color-mix(in srgb, var(--gg-scrim) 50%, transparent);
@@ -409,7 +411,7 @@
 .geneo-paint-slider-row input[type="range"]::-moz-range-thumb {
     width: 13px;
     height: 13px;
-    border: 2px solid var(--gg-accent-investigation-purple-accent);
+    border: 2px solid var(--text-primary);
     border-radius: 50%;
     background: var(--gg-sidebar);
     box-shadow: 0 1px 5px color-mix(in srgb, var(--gg-scrim) 50%, transparent);
@@ -426,24 +428,24 @@
         linear-gradient(to right,
             transparent,
             var(--geneo-paint-color)),
-        conic-gradient(var(--gg-primary) 25%,
-            var(--gg-accent-investigation-purple-container) 0 50%,
-            var(--gg-primary) 0 75%,
-            var(--gg-accent-investigation-purple-container) 0) 0 0 / 8px 8px;
+        conic-gradient(var(--gg-surface-bright) 25%,
+            var(--gg-surface-dim) 0 50%,
+            var(--gg-surface-bright) 0 75%,
+            var(--gg-surface-dim) 0) 0 0 / 8px 8px;
 }
 
 .geneo-paint-slider-row input[type="range"].geneo-paint-alpha::-webkit-slider-thumb {
     width: 18px;
     height: 18px;
-    border: 2px solid var(--gg-accent-investigation-purple-accent);
+    border: 2px solid var(--text-primary);
     border-radius: 50%;
     background:
         linear-gradient(var(--geneo-alpha-preview),
             var(--geneo-alpha-preview)),
-        conic-gradient(var(--gg-primary) 25%,
-            var(--gg-accent-investigation-purple-container) 0 50%,
-            var(--gg-primary) 0 75%,
-            var(--gg-accent-investigation-purple-container) 0) 0 0 / 6px 6px;
+        conic-gradient(var(--gg-surface-bright) 25%,
+            var(--gg-surface-dim) 0 50%,
+            var(--gg-surface-bright) 0 75%,
+            var(--gg-surface-dim) 0) 0 0 / 6px 6px;
     box-shadow:
         0 0 0 1px color-mix(in srgb, var(--gg-scrim) 75%, transparent),
         0 2px 6px color-mix(in srgb, var(--gg-scrim) 50%, transparent);
@@ -452,15 +454,15 @@
 .geneo-paint-slider-row input[type="range"].geneo-paint-alpha::-moz-range-thumb {
     width: 14px;
     height: 14px;
-    border: 2px solid var(--gg-accent-investigation-purple-accent);
+    border: 2px solid var(--text-primary);
     border-radius: 50%;
     background:
         linear-gradient(var(--geneo-alpha-preview),
             var(--geneo-alpha-preview)),
-        conic-gradient(var(--gg-primary) 25%,
-            var(--gg-accent-investigation-purple-container) 0 50%,
-            var(--gg-primary) 0 75%,
-            var(--gg-accent-investigation-purple-container) 0) 0 0 / 6px 6px;
+        conic-gradient(var(--gg-surface-bright) 25%,
+            var(--gg-surface-dim) 0 50%,
+            var(--gg-surface-bright) 0 75%,
+            var(--gg-surface-dim) 0) 0 0 / 6px 6px;
     box-shadow:
         0 0 0 1px color-mix(in srgb, var(--gg-scrim) 75%, transparent),
         0 2px 6px color-mix(in srgb, var(--gg-scrim) 50%, transparent);
