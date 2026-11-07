@@ -62,8 +62,9 @@
     align-items: center;
     gap: var(--space-2);
     background: transparent;
-    color: var(--text-secondary);
+    color: var(--text-primary);
     text-align: left;
+    font-weight: 600;
     cursor: pointer;
     transition:
         background var(--ease),
@@ -166,9 +167,9 @@
     align-items: center;
     gap: var(--space-3);
     background: transparent;
-    color: var(--text-secondary);
+    color: var(--text-primary);
     text-align: left;
-    font-weight: 400;
+    font-weight: 600;
     letter-spacing: .03em;
     cursor: pointer;
 }

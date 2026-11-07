@@ -1000,7 +1000,7 @@ body.mobile-surface-open:has(.archive-shell) .modal-backdrop.open {
     padding: 0 5px;
     border: 1px solid transparent;
     border-radius: 8px;
-    color: var(--text-secondary);
+    color: var(--text-primary);
 }
 
 .archive-folder-row:hover {
@@ -1055,7 +1055,7 @@ body.mobile-surface-open:has(.archive-shell) .modal-backdrop.open {
     text-align: left;
     font-size: 14px;
     line-height: 1.45;
-    font-weight: 400;
+    font-weight: 600;
     letter-spacing: 0;
 }
 
