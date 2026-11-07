@@ -1111,7 +1111,7 @@ body.mobile-person-details-open .modal-backdrop.open {
     position: fixed;
     z-index: 90;
     width: 360px;
-    border: 1px solid var(--border-strong);
+    border: 1px solid var(--border-default);
     background: var(--surface-card);
     border-radius: var(--radius-sm);
     box-shadow: var(--shadow-soft);
@@ -1146,8 +1146,8 @@ body.mobile-person-details-open .modal-backdrop.open {
 .relative-popover[data-arrow-side="left"]::before {
     left: -11px;
     right: auto;
-    border-left: 1px solid var(--border-strong);
-    border-bottom: 1px solid var(--border-strong);
+    border-left: 1px solid var(--border-default);
+    border-bottom: 1px solid var(--border-default);
     border-top: 0;
     border-right: 0;
 }
@@ -1155,8 +1155,8 @@ body.mobile-person-details-open .modal-backdrop.open {
 .relative-popover[data-arrow-side="right"]::before {
     right: -11px;
     left: auto;
-    border-right: 1px solid var(--border-strong);
-    border-top: 1px solid var(--border-strong);
+    border-right: 1px solid var(--border-default);
+    border-top: 1px solid var(--border-default);
     border-left: 0;
     border-bottom: 0;
 }
@@ -2523,7 +2523,7 @@ body.mobile-person-details-open .relative-popover-body {
     left: 0;
     right: 0;
     top: calc(100% + 6px);
-    border: 1px solid var(--border-strong);
+    border: 1px solid var(--border-default);
     background: var(--surface-card);
     border-radius: var(--radius-sm);
     box-shadow: var(--shadow-soft);
@@ -3303,7 +3303,7 @@ body.mobile-person-details-open .relative-popover-body {
 
 .add-person-fact-confirm-card {
     width: min(460px, 100%);
-    border: 1px solid var(--border-strong);
+    border: 1px solid var(--border-default);
     border-radius: var(--radius-lg);
     background: var(--surface-card);
     box-shadow: var(--shadow-soft);
@@ -3446,7 +3446,7 @@ body.mobile-person-details-open .relative-popover-body {
 
 .add-person-mini-card {
     width: min(520px, 100%);
-    border: 1px solid var(--border-strong);
+    border: 1px solid var(--border-default);
     border-radius: var(--radius-lg);
     background: var(--surface-card);
     box-shadow: var(--shadow-soft);
