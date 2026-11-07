@@ -460,6 +460,7 @@ function addPersonFactToModal(factId, personId = '')
     bindNameAffixComboboxes(insertedFact);
 
     updateAddPersonFactSummary();
+    insertedFact.scrollIntoView({ block: 'nearest' });
 }
 
 function removeAddPersonFactCard(section, factId)

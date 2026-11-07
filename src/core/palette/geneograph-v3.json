@@ -302,12 +302,12 @@
       "seed": "#B89463",
       "usage": "Archive · Files · Marriage",
       "light": {
-        "accent": "#77592B",
+        "accent": "#926600",
         "onAccent": "#FFFFFF",
-        "container": "#F0E1CC",
-        "onContainer": "#4D3415",
-        "subtleContainer": "#F4EEE3",
-        "outline": "#77592B"
+        "container": "#FFF0CC",
+        "onContainer": "#563600",
+        "subtleContainer": "#FFF6E4",
+        "outline": "#926600"
       },
       "dark": {
         "accent": "#E6AF58",
