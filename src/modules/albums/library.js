@@ -1511,16 +1511,17 @@ function renderAlbumsPhotoCard(photo, selectedIds, width = 0)
 function renderAlbumsGrid(photos)
 {
     const selectedIds = new Set(state.selectedPhotoIds || []);
+    const selectionClass = selectedIds.size ? ' is-selecting' : '';
     const measuredWidth = Number(state.albumsGridWidth);
     const hasMeasuredWidth = Number.isFinite(measuredWidth) && measuredWidth > 0;
 
     if (!hasMeasuredWidth)
     {
-        return `<div class="albums-justified-grid is-measuring" data-albums-justified-grid><div class="albums-justified-row">${photos.map(photo => renderAlbumsPhotoCard(photo, selectedIds)).join('')}</div></div>`;
+        return `<div class="albums-justified-grid is-measuring${selectionClass}" data-albums-justified-grid><div class="albums-justified-row">${photos.map(photo => renderAlbumsPhotoCard(photo, selectedIds)).join('')}</div></div>`;
     }
 
     const rows = buildJustifiedPhotoRows(photos, measuredWidth);
-    return `<div class="albums-justified-grid" data-albums-justified-grid>${rows.map(row => `<div class="albums-justified-row ${row.justified ? 'is-justified' : 'is-incomplete'}" style="--albums-row-preview-height:${row.height}px">${row.items.map(item => renderAlbumsPhotoCard(item.photo, selectedIds, item.width)).join('')}</div>`).join('')}</div>`;
+    return `<div class="albums-justified-grid${selectionClass}" data-albums-justified-grid>${rows.map(row => `<div class="albums-justified-row ${row.justified ? 'is-justified' : 'is-incomplete'}" style="--albums-row-preview-height:${row.height}px">${row.items.map(item => renderAlbumsPhotoCard(item.photo, selectedIds, item.width)).join('')}</div>`).join('')}</div>`;
 }
 
 function renderAlbumsList(photos)

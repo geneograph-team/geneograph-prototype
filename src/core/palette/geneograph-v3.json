@@ -557,14 +557,14 @@
     },
     "favorite": {
       "name": "Favorite",
-      "usage": "Starred items; independent status role using an existing approved gold value",
+      "usage": "Starred items; saturated amber in Light and gold in Dark",
       "light": {
-        "accent": "#77592B",
+        "accent": "#A56600",
         "onAccent": "#FFFFFF",
         "container": "#F0E1CC",
         "onContainer": "#4D3415",
         "subtleContainer": "#F4EEE3",
-        "outline": "#77592B"
+        "outline": "#A56600"
       },
       "dark": {
         "accent": "#F2C94C",
@@ -1384,8 +1384,8 @@
         "theme": "light",
         "pair": "favorite accent foreground",
         "foreground": "#FFFFFF",
-        "background": "#77592B",
-        "contrast": 6.47,
+        "background": "#A56600",
+        "contrast": 4.67,
         "minimum": 4.5,
         "result": "PASS"
       },

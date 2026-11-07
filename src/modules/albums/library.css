@@ -1833,6 +1833,7 @@ body.mobile-surface-open:has(.albums-shell) .menu-popover {
 
 .albums-check {
     left: 10px;
+    border-color: var(--border-strong);
 }
 
 .albums-fav-button {
@@ -1870,13 +1871,41 @@ body.mobile-surface-open:has(.albums-shell) .menu-popover {
 }
 
 .albums-check[aria-pressed="true"] {
-    border-color: color-mix(in srgb, var(--gg-primary) 55%, transparent);
-    background: var(--brand-green-500);
-    color: var(--gg-primary);
+    border-color: var(--gg-primary);
+    background: var(--gg-primary);
+    color: var(--gg-on-media);
+}
+
+.albums-fav-button svg path {
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.8;
+    stroke-linejoin: round;
 }
 
 .albums-fav-button.active {
     color: var(--gg-status-favorite-accent);
+}
+
+.albums-fav-button.active svg path {
+    fill: currentColor;
+}
+
+@media (hover: hover) {
+    .album-photo-card .albums-check[aria-pressed="false"],
+    .album-photo-card .albums-fav-button:not(.active) {
+        opacity: 0;
+    }
+
+    .albums-justified-grid.is-selecting .albums-check,
+    .album-photo-card:hover .albums-check,
+    .album-photo-card:hover .albums-fav-button,
+    .album-photo-card:focus-visible .albums-check,
+    .album-photo-card:focus-visible .albums-fav-button,
+    .album-photo-card:focus-within .albums-check,
+    .album-photo-card:focus-within .albums-fav-button {
+        opacity: 1;
+    }
 }
 
 .albums-card-body {
