@@ -16,6 +16,7 @@ This palette owns application UI colors. Authored Geneograph board colors, user-
 | Raised card | `--gg-raised` | `--surface-raised` |
 | Tip of the Day | `--gg-tip-background`, `--gg-tip-text`, `--gg-tip-link` | direct component roles |
 | Field, hover, divider | `--gg-field`, `--gg-hover`, `--gg-border` | `--surface-field`, `--surface-hover`, `--surface-divider` |
+| Life-status dots | `--gg-living-dot`, `--gg-deceased-dot`, `--gg-unknown-dot` | Used by Family Tree and Edit Person; independent of brand/action and archive colors |
 | Wide table selection | `--gg-selected-row` | `--table-row-selected` |
 | Currently inspected row | `--gg-selected-border` | `--table-current-marker` |
 

@@ -287,7 +287,8 @@
     height: var(--control-height);
     min-height: var(--control-height);
     max-height: var(--control-height);
-    border: 1px solid var(--border-default);
+    border: 1px solid var(--gg-control-border);
+    border-bottom-color: var(--border-strong);
     border-radius: var(--radius-sm);
     background: var(--surface-input);
     color: var(--text-secondary);
@@ -348,7 +349,8 @@
     height: var(--control-height);
     min-height: var(--control-height);
     max-height: var(--control-height);
-    border: 1px solid var(--border-default);
+    border: 1px solid var(--gg-control-border);
+    border-bottom-color: var(--border-strong);
     background: var(--surface-input);
     color: var(--text-primary);
     border-radius: var(--radius-sm);
@@ -360,7 +362,8 @@
 .field textarea {
     width: 100%;
     min-height: 104px;
-    border: 1px solid var(--border-default);
+    border: 1px solid var(--gg-control-border);
+    border-bottom-color: var(--border-strong);
     background: var(--surface-input);
     color: var(--text-primary);
     border-radius: var(--radius-sm);
@@ -370,10 +373,18 @@
     resize: vertical;
 }
 
+.field input::placeholder,
+.field textarea::placeholder {
+    color: var(--text-tertiary);
+    opacity: 1;
+    font-weight: 400;
+}
+
 .field select:not(.common-select):not(.add-person-select),
 .compact-select:not(.common-select):not(.add-person-select) {
     width: 100%;
-    border: 1px solid var(--border-default);
+    border: 1px solid var(--gg-control-border);
+    border-bottom-color: var(--border-strong);
     border-radius: var(--radius-sm);
     background-color: var(--surface-input);
     color: var(--text-secondary);

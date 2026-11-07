@@ -15,8 +15,8 @@
   --gg-panel: #FAFAF7;
   --gg-details: #F6F7F2;
   --gg-raised: #FFFFFF;
-  --gg-field: #F8FAF7;
-  --gg-hover: #E9F0E9;
+  --gg-field: #FAFAF8;
+  --gg-hover: #ECEEEF;
   --gg-border: #D6DED5;
   --gg-outline: #728575;
   /* Shared control and Projects-specific semantic roles */
@@ -33,16 +33,19 @@
   --gg-selected-row: #E7F2E9; /* softer tint for wide table rows */
   --gg-on-selected: #153D29;
   --gg-selected-border: #1C6B46;
-  --gg-tree-canvas: #F7F8F2;
-  --gg-tree-dots: #CFDBCF;
+  --gg-tree-canvas: #F1F2F3;
+  --gg-tree-dots: #D3DADC;
   --gg-tip-background: #EEF3EC;
   --gg-tip-text: #1B2520;
   --gg-tip-border: #D6DED5;
   --gg-tip-link: #1C6B46;
   --gg-folder-face: #F2C94C;
   --gg-folder-fold: #B98A2C;
-  --gg-deceased-dot: #B8564A;
-  --gg-tree-line: #7B8980;
+  /* Life-status dots are semantic: do not reuse action or archive accents. */
+  --gg-living-dot: #138652;
+  --gg-deceased-dot: #697580;
+  --gg-unknown-dot: #AD741D;
+  --gg-tree-line: #768184;
   --gg-timeline-line: #A3B3A9;
   --gg-surface-bright: #FFFFFF;
   --gg-surface-dim: #E8EBE4;
@@ -76,7 +79,7 @@
   --md-sys-color-surface-container-low: #F6F7F2;
   --md-sys-color-surface-container: #FAFAF7;
   --md-sys-color-surface-container-high: #EEF1EB;
-  --md-sys-color-surface-container-highest: #E9F0E9;
+  --md-sys-color-surface-container-highest: #ECEEEF;
   --md-sys-color-surface-tint: #1C6B46;
   --md-sys-color-surface-variant: #EEF1EB;
   --md-sys-color-on-surface-variant: #4D5C52;
@@ -204,12 +207,12 @@
   --gg-panel: #0F1413;
   --gg-details: #151A1A;
   --gg-raised: #1A201F;
-  --gg-field: #242B2A;
-  --gg-hover: #202726;
+  --gg-field: #29302E;
+  --gg-hover: #252B2B;
   --gg-border: #2D3634;
   --gg-outline: #708176;
   /* Shared control and Projects-specific semantic roles */
-  --gg-control-border: #708176;
+  --gg-control-border: #3D4945;
   --gg-create-tile-outline: #3B4C43;
   --gg-disabled-surface: #171D1B;
   --gg-disabled-text: #91A39A;
@@ -230,7 +233,9 @@
   --gg-tip-link: #89D7AB;
   --gg-folder-face: #F2C94C;
   --gg-folder-fold: #B98A2C;
-  --gg-deceased-dot: #E98578;
+  --gg-living-dot: #2FAE74;
+  --gg-deceased-dot: #B3BCC3;
+  --gg-unknown-dot: #E6AF58;
   --gg-tree-line: #798A80;
   --gg-timeline-line: #596D61;
   --gg-surface-bright: #2D3634;
@@ -265,9 +270,9 @@
   --md-sys-color-surface-container-low: #151A1A;
   --md-sys-color-surface-container: #151A1A;
   --md-sys-color-surface-container-high: #1A201F;
-  --md-sys-color-surface-container-highest: #202726;
+  --md-sys-color-surface-container-highest: #252B2B;
   --md-sys-color-surface-tint: #2FAE74;
-  --md-sys-color-surface-variant: #242B2A;
+  --md-sys-color-surface-variant: #29302E;
   --md-sys-color-on-surface-variant: #B4C0B9;
   --md-sys-color-outline: #708176;
   --md-sys-color-outline-variant: #2D3634;

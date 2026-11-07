@@ -1912,8 +1912,8 @@
     place-items: center;
     border: 2px solid var(--surface-sidebar);
     border-radius: 6px;
-    background: var(--purple);
-    color: var(--gg-text);
+    background: var(--gg-accent-investigation-purple-accent);
+    color: var(--gg-accent-investigation-purple-on-accent);
 }
 
 .notes-related-icon-link svg {

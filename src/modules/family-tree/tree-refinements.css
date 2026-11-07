@@ -378,12 +378,20 @@
 }
 
 .tree-person-card.selected {
-    box-shadow:
-        0 0 0 2px color-mix(in srgb, var(--gg-primary) 95%, transparent),
-        0 0 0 6px color-mix(in srgb, var(--gg-primary) 16%, transparent),
-        0 10px 28px color-mix(in srgb, var(--gg-scrim) 18%, transparent);
+    border-color: var(--gg-selected-border);
     background: var(--tree-selected-card);
+    box-shadow: 0 8px 22px color-mix(in srgb, var(--gg-scrim) 18%, transparent);
     z-index: 20;
+}
+
+.tree-person-card.is-focus-person:not(.selected) {
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--gg-primary) 48%, transparent),
+        0 5px 16px color-mix(in srgb, var(--gg-scrim) 12%, transparent);
+}
+
+.tree-person-card:focus-visible {
+    outline: 2px solid var(--gg-primary);
+    outline-offset: 3px;
 }
 
 .tree-person-card:not(.selected):hover {

@@ -1589,7 +1589,7 @@ body.mobile-person-details-open .relative-popover-body {
     border: 1px solid var(--border-default);
     border-radius: var(--radius-sm);
     overflow: auto;
-    background: color-mix(in srgb, var(--gg-scrim) 8%, transparent);
+    background: var(--surface-card);
 }
 
 .connect-person-result {
@@ -1614,7 +1614,11 @@ body.mobile-person-details-open .relative-popover-body {
     border-bottom: 0;
 }
 
-.connect-person-result:hover,
+.connect-person-result:hover {
+    background: var(--surface-card-hover);
+    color: var(--text-primary);
+}
+
 .connect-person-result.is-selected {
     background: var(--surface-selected);
     color: var(--text-primary);
@@ -2486,8 +2490,9 @@ body.mobile-person-details-open .relative-popover-body {
     height: var(--control-height);
     min-height: var(--control-height);
     max-height: var(--control-height);
-    border: 1px solid var(--border-default);
-    background: var(--surface-card);
+    border: 1px solid var(--gg-control-border);
+    border-bottom-color: var(--border-strong);
+    background: var(--surface-input);
     color: var(--text-secondary);
     border-radius: var(--radius-sm);
     padding: 0 var(--space-3);
@@ -2525,7 +2530,7 @@ body.mobile-person-details-open .relative-popover-body {
     height: 9px;
     border-radius: 50%;
     flex: 0 0 9px;
-    background: var(--brand-green-500);
+    background: var(--gg-living-dot);
 }
 
 .add-person-status-dot.deceased {
@@ -2533,7 +2538,7 @@ body.mobile-person-details-open .relative-popover-body {
 }
 
 .add-person-status-dot.unknown {
-    background: var(--gg-accent-sepia-gold-accent);
+    background: var(--gg-unknown-dot);
 }
 
 .add-person-status-menu {

@@ -4301,10 +4301,11 @@ body.mobile-details-open .geneo-inspector [data-geneo-inspector-toggle] {
     font-size: 13px;
 }
 
-/* Project Settings fields share the global field fill, with a stronger active boundary. */
+/* Project Settings uses the same tonal fill and bottom indicator as shared fields. */
 .project-settings-field :is(input:not(:disabled), textarea:not(:disabled), select:not(:disabled)) {
     background-color: var(--surface-input);
     border-color: var(--gg-control-border);
+    border-bottom-color: var(--border-strong);
 }
 
 .project-settings-select-field {
