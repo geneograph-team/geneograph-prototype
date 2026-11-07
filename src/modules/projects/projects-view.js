@@ -1099,7 +1099,7 @@ function renderStartupRecentActivityCard()
             module: 'Albums',
             context: 'Albums',
             icon: icon.image,
-            tone: 'red',
+            tone: 'photos',
             title: '4 photos added',
             detail:
             'Whiskerfield family album photos are ready to organize',
@@ -1112,7 +1112,7 @@ function renderStartupRecentActivityCard()
             module: 'People',
             context: 'People',
             icon: icon.people,
-            tone: 'purple',
+            tone: 'people',
             title: 'Profile updated',
             detail:
             'Luna Purrington now has a verified birth place',
@@ -1124,8 +1124,8 @@ function renderStartupRecentActivityCard()
             project: 'Whiskerfield Family Tree',
             module: 'Family Tree',
             context: 'Family Tree',
-            icon: icon.import,
-            tone: 'amber',
+            icon: icon.importOutline,
+            tone: 'files',
             title: 'GEDCOM import reviewed',
             detail:
             '17 people were added to the project',
@@ -1332,10 +1332,10 @@ function renderOpenProjectInsightsCard(project)
         getActivePlaceReviewIssues(place).length
     ).length;
     const items = [
-        missingFacts ? { module: 'People', icon: icon.people, tone: 'purple', title: 'Missing facts', detail: `${missingFacts} ${missingFacts === 1 ? 'person is' : 'people are'} missing birth details.` } : null,
-        missingSourceData ? { module: 'Archive', icon: icon.file, tone: 'amber', title: 'Missing source data', detail: `${missingSourceData} archive ${missingSourceData === 1 ? 'file is' : 'files are'} missing source information.` } : null,
-        unsortedPhotos ? { module: 'Albums', icon: icon.image, tone: 'red', title: 'Unsorted photos', detail: `${unsortedPhotos} ${unsortedPhotos === 1 ? 'photo is' : 'photos are'} not assigned to an album.` } : null,
-        placeCleanup ? { module: 'Places', icon: icon.mapPin, tone: 'blue', title: 'Place cleanup', detail: `${placeCleanup} ${placeCleanup === 1 ? 'place needs' : 'places need'} review.` } : null
+        missingFacts ? { module: 'People', icon: icon.people, tone: 'people', title: 'Missing facts', detail: `${missingFacts} ${missingFacts === 1 ? 'person is' : 'people are'} missing birth details.` } : null,
+        missingSourceData ? { module: 'Archive', icon: icon.file, tone: 'sources', title: 'Missing source data', detail: `${missingSourceData} archive ${missingSourceData === 1 ? 'file is' : 'files are'} missing source information.` } : null,
+        unsortedPhotos ? { module: 'Albums', icon: icon.image, tone: 'photos', title: 'Unsorted photos', detail: `${unsortedPhotos} ${unsortedPhotos === 1 ? 'photo is' : 'photos are'} not assigned to an album.` } : null,
+        placeCleanup ? { module: 'Places', icon: icon.mapPin, tone: 'places', title: 'Place cleanup', detail: `${placeCleanup} ${placeCleanup === 1 ? 'place needs' : 'places need'} review.` } : null
     ].filter(Boolean);
     return `<div class="right-card"><h2 class="project-insights-heading"><span aria-hidden="true">${icon.tip}</span>Project insights</h2><div class="startup-action-list">
         ${items.length ? items.map(item => `<button class="startup-action-row project-insight-row" type="button" data-open-project-module="${item.module}" aria-label="Open ${escapeHtml(item.module)} for ${escapeHtml(item.title)}">
@@ -1428,10 +1428,26 @@ function renderActivityRows(count)
     {
         return `<div class="project-activity-empty"><strong>${escapeHtml(t('No project activity yet'))}</strong><span>${escapeHtml(t('Activity will appear as you add and edit project records.'))}</span></div>`;
     }
-    return `<div class="project-activity-list">${rows.slice(0,count).map(row => `<button class="project-activity-row" type="button" data-open-project-module="${row.module}">
-        <span class="project-activity-icon ${row.tone || ''}">${activityIcons[row.module] || icon.clock}</span>
-        <span class="project-activity-copy"><strong>${escapeHtml(row.title)}</strong><span>${escapeHtml(row.detail)}</span></span>
-        <span class="project-activity-time">${escapeHtml(formatProjectDate(row.occurredAt))}</span>
-      </button>`).join('')}</div>`;
+    const toneByModule = {
+        Albums: 'photos',
+        People: 'people',
+        'Family Tree': 'people',
+        Notes: 'notes',
+        Archive: 'files',
+        Places: 'places',
+        Geneograph: 'boards'
+    };
+    return `<div class="project-activity-list">${rows.slice(0, count).map(row =>
+    {
+        const isGedcomImport = row.id === 'activity-gedcom-imported'
+            || (row.module === 'Family Tree' && /gedcom|import/i.test(row.title));
+        const tone = isGedcomImport ? 'files' : (toneByModule[row.module] || 'people');
+        const svg = isGedcomImport ? icon.importOutline : (activityIcons[row.module] || icon.clock);
+        return `<button class="project-activity-row" type="button" data-open-project-module="${row.module}">
+            <span class="project-activity-icon ${tone}">${svg}</span>
+            <span class="project-activity-copy"><strong>${escapeHtml(row.title)}</strong><span>${escapeHtml(row.detail)}</span></span>
+            <span class="project-activity-time">${escapeHtml(formatProjectDate(row.occurredAt))}</span>
+        </button>`;
+    }).join('')}</div>`;
 }
 

@@ -102,7 +102,7 @@
 
 :is(.text-action, .panel-action).is-inactive,
 :is(.text-action, .panel-action):disabled {
-    color: var(--text-tertiary);
+    color: var(--gg-disabled-text);
     cursor: default;
     text-decoration: none;
 }
@@ -114,9 +114,9 @@
     height: var(--control-height);
     min-width: 0;
     box-sizing: border-box;
-    border: 1px solid var(--border-default);
+    border: 1px solid var(--gg-control-border);
     border-radius: var(--radius-sm);
-    background: var(--surface-field);
+    background: var(--gg-search-background);
     display: flex;
     align-items: center;
     gap: var(--space-3);
@@ -129,7 +129,7 @@
 }
 
 .search-input.app-search-field {
-    background: var(--surface-field);
+    background: var(--gg-search-background);
     border-radius: var(--radius-sm);
 }
 
@@ -140,7 +140,8 @@
 
 .app-search-field:focus-within {
     border-color: var(--control-field-focus-color);
-    outline: none;
+    outline: 2px solid var(--control-field-focus-color);
+    outline-offset: 2px;
 }
 
 .app-search-field>svg {

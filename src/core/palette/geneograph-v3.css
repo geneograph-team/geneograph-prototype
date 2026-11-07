@@ -15,10 +15,16 @@
   --gg-panel: #FAFAF7;
   --gg-details: #F6F7F2;
   --gg-raised: #FFFFFF;
-  --gg-field: #EEF1EB;
+  --gg-field: #F8FAF7;
   --gg-hover: #E9F0E9;
   --gg-border: #D6DED5;
   --gg-outline: #728575;
+  /* Shared control and Projects-specific semantic roles */
+  --gg-search-background: #FFFFFF;
+  --gg-control-border: #7B917F;
+  --gg-create-tile-outline: #BBC8BE;
+  --gg-disabled-surface: #F2F4EF;
+  --gg-disabled-text: #657568;
   --gg-text: #1B2520;
   --gg-text-secondary: #4D5C52;
   --gg-text-muted: #627065;
@@ -30,9 +36,9 @@
   --gg-selected-border: #1C6B46;
   --gg-tree-canvas: #F7F8F2;
   --gg-tree-dots: #CFDBCF;
-  --gg-tip-background: #DCEFE4;
-  --gg-tip-text: #153D29;
-  --gg-tip-border: #B5D8C4;
+  --gg-tip-background: #EEF3EC;
+  --gg-tip-text: #1B2520;
+  --gg-tip-border: #D6DED5;
   --gg-tip-link: #1C6B46;
   --gg-folder-face: #F2C94C;
   --gg-folder-fold: #B98A2C;
@@ -203,6 +209,12 @@
   --gg-hover: #202726;
   --gg-border: #2D3634;
   --gg-outline: #708176;
+  /* Shared control and Projects-specific semantic roles */
+  --gg-search-background: #242B2A;
+  --gg-control-border: #708176;
+  --gg-create-tile-outline: #3B4C43;
+  --gg-disabled-surface: #171D1B;
+  --gg-disabled-text: #91A39A;
   --gg-text: #E2E9E5;
   --gg-text-secondary: #B4C0B9;
   --gg-text-muted: #95A59B;
@@ -214,9 +226,9 @@
   --gg-selected-border: #89D7AB;
   --gg-tree-canvas: #0B0F0E;
   --gg-tree-dots: #27312C;
-  --gg-tip-background: #123C2B;
-  --gg-tip-text: #E2F6E8;
-  --gg-tip-border: #1C6B46;
+  --gg-tip-background: #192420;
+  --gg-tip-text: #E2E9E5;
+  --gg-tip-border: #35443C;
   --gg-tip-link: #89D7AB;
   --gg-folder-face: #F2C94C;
   --gg-folder-fold: #B98A2C;
