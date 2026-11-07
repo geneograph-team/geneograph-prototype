@@ -817,7 +817,7 @@
     left: 50%;
     width: 2px;
     height: 8px;
-    background: color-mix(in srgb, var(--gg-status-pending-container) 72%, transparent);
+    background: var(--tree-canvas-dot);
     transform: translateX(-50%);
     pointer-events: none;
 }

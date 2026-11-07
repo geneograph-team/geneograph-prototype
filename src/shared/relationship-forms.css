@@ -2166,6 +2166,7 @@ body.mobile-person-details-open .relative-popover-body {
 
 .form-section-title {
     font-size: 16px;
+    font-weight: 700;
     margin: 0 0 var(--space-3);
     padding-bottom: var(--space-2);
     border-bottom: 1px solid var(--border-strong);
@@ -2197,17 +2198,13 @@ body.mobile-person-details-open .relative-popover-body {
     display: flex;
     flex-wrap: wrap;
     gap: var(--space-2);
-    padding: var(--space-3);
-    border: 1px solid var(--border-default);
-    border-radius: var(--radius-sm);
-    background: color-mix(in srgb, var(--gg-text) 1.2%, transparent);
 }
 
 .fact-button {
     min-height: 38px;
-    border: 1px solid transparent;
+    border: 1px solid var(--border-default);
     border-radius: var(--radius-sm);
-    background: var(--surface-input);
+    background: var(--surface-hover);
     color: var(--text-secondary);
     padding: 0 var(--space-3);
     display: inline-flex;
@@ -2215,15 +2212,20 @@ body.mobile-person-details-open .relative-popover-body {
     justify-content: center;
     gap: var(--space-2);
     line-height: 1;
-    font-weight: 700;
+    font-weight: 600;
     cursor: pointer;
     transition: background var(--ease), border-color var(--ease), color var(--ease);
 }
 
-.fact-button:hover:not(:disabled),
+.fact-button:hover:not(:disabled) {
+    background: color-mix(in srgb, var(--surface-hover) 92%, var(--text-primary));
+    border-color: var(--border-strong);
+    color: var(--text-primary);
+}
+
 .fact-button:focus-visible:not(:disabled) {
-    background: var(--surface-card-hover);
-    border-color: var(--border-default);
+    outline: var(--control-focus-width) solid var(--control-focus-color);
+    outline-offset: 2px;
     color: var(--text-primary);
 }
 
@@ -2244,7 +2246,7 @@ body.mobile-person-details-open .relative-popover-body {
 .fact-button:disabled {
     opacity: 1;
     cursor: default;
-    background: var(--surface-card);
+    background: transparent;
     border-color: var(--border-default);
     color: var(--text-tertiary);
 }
@@ -2293,31 +2295,6 @@ body.mobile-person-details-open .relative-popover-body {
 
 .attach-row:last-child {
     border-bottom: 0;
-}
-
-.attach-icon {
-    width: 34px;
-    height: 34px;
-    border-radius: 7px;
-    display: grid;
-    place-items: center;
-    border: 1px solid var(--red);
-    color: var(--gg-status-error-accent);
-}
-
-.attach-icon.photo {
-    color: var(--gg-accent-rose-sepia-accent);
-    background: var(--gg-accent-rose-sepia-subtle-container);
-}
-
-.attach-icon.file {
-    border-color: var(--amber);
-    color: var(--amber);
-}
-
-.attach-icon.note {
-    border-color: var(--purple);
-    color: var(--gg-accent-investigation-purple-accent);
 }
 
 .add-person-side-note {
@@ -2724,9 +2701,9 @@ body.mobile-person-details-open .relative-popover-body {
 
 .add-person-relationship-panel {
     border: 1px solid var(--border-default);
-    border-radius: var(--radius-md);
-    background: var(--surface-panel-soft);
-    overflow: hidden;
+    border-radius: var(--radius-sm);
+    background: var(--surface-person-section);
+    overflow: visible;
 }
 
 .add-person-relationship-header {
@@ -3087,14 +3064,7 @@ body.mobile-person-details-open .relative-popover-body {
 .add-person-facts-section {
     border: 1px solid var(--border-default);
     border-radius: var(--radius-md);
-    background: color-mix(in srgb, var(--gg-text) 1.2%, transparent);
-    overflow: visible;
-}
-
-.add-person-relationship-panel {
-    border: 1px solid var(--border-default);
-    border-radius: var(--radius-sm);
-    background: color-mix(in srgb, var(--gg-text) 1.8%, transparent);
+    background: var(--surface-person-section);
     overflow: visible;
 }
 
@@ -3111,7 +3081,7 @@ body.mobile-person-details-open .relative-popover-body {
     gap: var(--space-3);
     padding: 0 var(--space-4);
     text-align: left;
-    font-weight: 900;
+    font-weight: 700;
     cursor: pointer;
 }
 
@@ -3141,7 +3111,7 @@ body.mobile-person-details-open .relative-popover-body {
 .add-person-facts-meta {
     color: var(--text-tertiary);
     font-size: 12px;
-    font-weight: 800;
+    font-weight: 600;
     flex: 0 0 auto;
 }
 
@@ -3175,9 +3145,9 @@ body.mobile-person-details-open .relative-popover-body {
 }
 
 .add-person-fact-card {
-    border: 1px solid var(--border-strong);
+    border: 1px solid var(--border-default);
     border-radius: var(--radius-md);
-    background: var(--surface-card);
+    background: var(--surface-person-section);
     padding: var(--space-5);
     display: grid;
     gap: var(--space-4);
@@ -3199,7 +3169,7 @@ body.mobile-person-details-open .relative-popover-body {
     gap: var(--space-2);
     color: var(--text-primary);
     font-size: 15px;
-    font-weight: 900;
+    font-weight: 700;
     line-height: 1.2;
 }
 
@@ -3412,11 +3382,30 @@ body.mobile-person-details-open .relative-popover-body {
     width: 36px;
     height: 36px;
     border-radius: var(--radius-sm);
-    background: color-mix(in srgb, var(--gg-text) 4%, transparent);
+    border: 1px solid var(--border-default);
+    background: var(--surface-raised);
     color: var(--text-tertiary);
     display: grid;
     place-items: center;
     transition: background var(--ease), color var(--ease);
+}
+
+.attach-icon.photo {
+    color: var(--content-photo-accent);
+    border-color: var(--content-photo-accent);
+    background: var(--content-photo-subtle);
+}
+
+.attach-icon.file {
+    color: var(--content-file-accent);
+    border-color: var(--content-file-accent);
+    background: var(--content-file-subtle);
+}
+
+.attach-icon.note {
+    color: var(--content-note-accent);
+    border-color: var(--content-note-accent);
+    background: var(--content-note-subtle);
 }
 
 .attach-icon svg {

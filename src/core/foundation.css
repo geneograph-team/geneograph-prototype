@@ -38,6 +38,13 @@
     --text-primary: var(--gg-text);
     --text-secondary: var(--gg-text-secondary);
     --text-tertiary: var(--gg-text-muted);
+    --text-placeholder: var(--gg-text-placeholder);
+    --content-photo-accent: var(--gg-accent-rose-sepia-accent);
+    --content-photo-subtle: var(--gg-accent-rose-sepia-subtle-container);
+    --content-file-accent: var(--gg-accent-sepia-gold-accent);
+    --content-file-subtle: var(--gg-accent-sepia-gold-subtle-container);
+    --content-note-accent: var(--gg-accent-investigation-purple-accent);
+    --content-note-subtle: var(--gg-accent-investigation-purple-subtle-container);
     --border-default: var(--gg-border);
     --border-strong: var(--gg-outline);
     --amber: var(--gg-accent-sepia-gold-accent);
@@ -81,6 +88,8 @@
     --inverse-text: var(--gg-text);
     --surface-topbar: var(--gg-topbar);
     --surface-panel-soft: var(--gg-panel);
+    /* Shared solid surface for Add/Edit Person accordion sections and their fact cards. */
+    --surface-person-section: color-mix(in srgb, var(--surface-card) 98%, var(--text-primary));
     --surface-sidebar-soft: var(--gg-sidebar);
     --surface-hover-tint: var(--gg-hover);
     --surface-row-divider: var(--gg-border);
@@ -94,6 +103,7 @@
 
 :root[data-theme="light"] {
     color-scheme: light;
+    --surface-person-section: transparent;
     --shadow-soft: 0 12px 32px color-mix(in srgb, var(--gg-scrim) 12%, transparent);
 }
 

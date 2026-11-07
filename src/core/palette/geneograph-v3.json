@@ -56,7 +56,8 @@
       "disabledSurface": "#F0F2F3",
       "disabledText": "#637178",
       "scrollbarThumb": "#859098",
-      "scrollbarThumbHover": "#6E7B81"
+      "scrollbarThumbHover": "#6E7B81",
+      "textPlaceholder": "#68757B"
     },
     "dark": {
       "background": "#0D1112",
@@ -101,7 +102,8 @@
       "disabledSurface": "#1D2426",
       "disabledText": "#9BA8AE",
       "scrollbarThumb": "#647278",
-      "scrollbarThumbHover": "#859299"
+      "scrollbarThumbHover": "#859299",
+      "textPlaceholder": "#909BA0"
     }
   },
   "m3RoleAliases": {
