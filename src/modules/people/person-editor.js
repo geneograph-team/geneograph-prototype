@@ -424,8 +424,47 @@ function collectAddPersonActiveFactIds()
         .filter(Boolean);
 }
 
+// These facts describe events that require an explicitly deceased person.
+function isDeceasedOnlyPersonFact(factId)
+{
+    return factId === 'causeOfDeath' || factId === 'burialPlace';
+}
+
+function updateDeceasedOnlyFactButtons()
+{
+    const section = modalBackdrop?.querySelector('[data-add-person-facts]');
+    if (!section) return;
+
+    const isDeceased = modalBackdrop.querySelector('#addPersonLivingStatus')?.value === 'Deceased';
+    const message = t('The person must be deceased.');
+
+    section.querySelectorAll('[data-add-person-add-fact]').forEach(button =>
+    {
+        const factId = button.dataset.addPersonAddFact;
+        if (!isDeceasedOnlyPersonFact(factId)) return;
+
+        const added = Boolean(section.querySelector(`[data-add-person-fact-card="${CSS.escape(factId)}"]`));
+        // Use aria-disabled while unavailable so hover and keyboard focus can show the tooltip.
+        button.disabled = isDeceased && added;
+        if (isDeceased)
+        {
+            button.removeAttribute('aria-disabled');
+            button.removeAttribute('title');
+            button.removeAttribute('aria-label');
+        }
+        else
+        {
+            button.setAttribute('aria-disabled', 'true');
+            button.title = message;
+            button.setAttribute('aria-label', `${button.lastElementChild?.textContent?.trim() || factId}. ${message}`);
+        }
+    });
+}
+
 function addPersonFactToModal(factId, personId = '')
 {
+    if (isDeceasedOnlyPersonFact(factId)
+        && modalBackdrop?.querySelector('#addPersonLivingStatus')?.value !== 'Deceased') return;
     const section = modalBackdrop?.querySelector('[data-add-person-facts]');
     const target = section?.querySelector('[data-add-person-facts-added]');
     if (REPEATABLE_PERSON_FACTS[factId] && section && target)
@@ -460,6 +499,7 @@ function addPersonFactToModal(factId, personId = '')
     bindNameAffixComboboxes(insertedFact);
 
     updateAddPersonFactSummary();
+    updateDeceasedOnlyFactButtons();
     insertedFact.scrollIntoView({ block: 'nearest' });
 }
 
@@ -473,6 +513,7 @@ function removeAddPersonFactCard(section, factId)
         button.classList.remove('is-added');
     }
     updateAddPersonFactSummary();
+    updateDeceasedOnlyFactButtons();
 }
 
 function confirmRemoveAddPersonFact(
@@ -611,6 +652,7 @@ function bindAddPersonAdditionalFacts(personId = '')
         confirmRemoveAddPersonFact(factId, () => removeAddPersonFactCard(section, factId));
     });
     updateAddPersonFactSummary();
+    updateDeceasedOnlyFactButtons();
 }
 
 function collectCustomFactFields(
@@ -1123,6 +1165,7 @@ function updateAddPersonConditionalFields()
     const death = modalBackdrop.querySelector('#deathFieldsGroup');
     if (maiden) maiden.hidden = gender !== 'Female';
     if (death) death.hidden = status !== 'Deceased';
+    updateDeceasedOnlyFactButtons();
 }
 
 function defaultPeopleProfileDetails()

@@ -2217,7 +2217,7 @@ body.mobile-person-details-open .relative-popover-body {
     transition: background var(--ease), border-color var(--ease), color var(--ease);
 }
 
-.fact-button:hover:not(:disabled) {
+.fact-button:hover:not(:disabled):not([aria-disabled="true"]) {
     background: color-mix(in srgb, var(--surface-hover) 92%, var(--text-primary));
     border-color: var(--border-strong);
     color: var(--text-primary);
@@ -2226,7 +2226,6 @@ body.mobile-person-details-open .relative-popover-body {
 .fact-button:focus-visible:not(:disabled) {
     outline: var(--control-focus-width) solid var(--control-focus-color);
     outline-offset: 2px;
-    color: var(--text-primary);
 }
 
 .fact-button.fact-button-repeatable { padding-left: 0; gap: 0; }
@@ -2243,7 +2242,8 @@ body.mobile-person-details-open .relative-popover-body {
 .fact-button-repeatable > .fact-button-icon { margin-right: var(--space-2); }
 
 .fact-button.is-added,
-.fact-button:disabled {
+.fact-button:disabled,
+.fact-button[aria-disabled="true"] {
     opacity: 1;
     cursor: default;
     background: transparent;
