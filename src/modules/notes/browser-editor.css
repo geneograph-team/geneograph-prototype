@@ -1537,57 +1537,95 @@
     gap: var(--space-2);
 }
 
+/* Checklist row */
 .notes-checklist-row {
     min-width: 0;
-    min-height: 44px;
+    min-height: 48px;
     padding: 6px 7px 6px 10px;
+
     display: grid;
-    grid-template-columns: 22px minmax(0, 1fr) 32px;
+    grid-template-columns: 24px minmax(0, 1fr) 32px;
     align-items: center;
     gap: var(--space-2);
-    border: 1px solid color-mix(in srgb, var(--gg-text) 5.5%, transparent);
+
+    border: 1px solid var(--border-default);
     border-radius: var(--radius-sm);
-    background: color-mix(in srgb, var(--gg-text) 2.5%, transparent);
+    background: var(--surface-panel);
+
+    transition:
+        background var(--ease),
+        border-color var(--ease);
 }
 
+/* Row hover */
+.notes-checklist-row:hover {
+    background: var(--surface-hover);
+}
+
+/* Checkbox */
 .notes-checklist-row input[type="checkbox"] {
-    width: 16px;
-    height: 16px;
+    width: 20px;
+    height: 20px;
+    margin: 0;
 }
 
+/* Editable checklist text */
 .notes-checklist-text {
     width: 100%;
     min-width: 0;
     padding: 5px 7px;
+
     border: 1px solid transparent;
     border-radius: 6px;
     outline: 0;
     background: transparent;
-    color: var(--text-secondary);
+
+    color: var(--text-primary);
     font: inherit;
-    font-size: 13px;
+    font-size: 14px;
+    font-weight: 500;
+    line-height: 1.45;
 }
 
+/* Completed item */
 .notes-checklist-row.done .notes-checklist-text {
     color: var(--text-tertiary);
     text-decoration: line-through;
 }
 
+/* Editable text hover and focus */
 .notes-checklist-text:hover,
 .notes-checklist-text:focus {
     border-color: var(--border-default);
     background: var(--surface-input);
-    color: var(--text-primary);
 }
 
+/* Keyboard focus indicator */
+.notes-checklist-text:focus-visible {
+    outline: 2px solid var(--control-focus-color);
+    outline-offset: 1px;
+}
+
+/* Delete action */
 .notes-checklist-delete {
-    opacity: .18;
+    opacity: 0;
+    color: var(--text-secondary);
+    transition: opacity var(--ease);
 }
 
+/* Reveal delete on hover or keyboard focus */
 .notes-checklist-row:hover .notes-checklist-delete,
 .notes-checklist-row:focus-within .notes-checklist-delete {
     opacity: 1;
 }
+
+/* Touch devices: keep delete visible */
+@media (hover: none) {
+    .notes-checklist-delete {
+        opacity: 1;
+    }
+}
+
 
 .notes-linked-row {
     min-width: 0;
@@ -3072,9 +3110,6 @@
 
 .notes-event-item:hover .notes-event-avatar-badge,
 .notes-event-item:focus-within .notes-event-avatar-badge {
-    background:
-        var(--gg-accent-investigation-purple-container);
-
     transform:
         translateY(-1px);
 }
