@@ -28,6 +28,7 @@
     --surface-input: var(--gg-field);
     --control-field-border: var(--gg-control-border);
     --surface-selected: var(--gg-selected);
+    --text-on-selected: var(--gg-on-selected);
     --brand-green-300: var(--gg-primary);
     --brand-green-400: var(--gg-primary);
     --brand-green-500: var(--gg-primary);

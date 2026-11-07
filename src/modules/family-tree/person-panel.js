@@ -745,23 +745,26 @@ function renderFamilyTreePersonHero(
           ">
 
           <div class="tree-person-hero-top">
-            <button
-              class="
-                people-collapse-button
-                people-sidebar-toggle-icon
-                people-sidebar-toggle-collapse
-              "
-              type="button"
-              id="collapseInspector"
-              aria-label="Collapse person sidebar">
+            <div class="tree-person-hero-leading">
+              <button
+                class="
+                  people-collapse-button
+                  people-sidebar-toggle-icon
+                  people-sidebar-toggle-collapse
+                "
+                type="button"
+                id="collapseInspector"
+                aria-label="Collapse person sidebar">
 
-              ${icon.doublechevronSidebar}
-            </button>
+                ${icon.doublechevronSidebar}
+              </button>
+
+              ${isFocusPerson
+                    ? `<span class="tree-focus-status" role="img" aria-label="Current focus person" title="Current focus person">${icon.focus}</span>`
+                    : ''}
+            </div>
 
             <div class="tree-person-hero-actions">
-              ${isFocusPerson
-                    ? `<span class="tree-focus-status" aria-label="Current focus person">${icon.focus}<span>Current focus</span></span>`
-                    : ''}
               <button
                 class="text-action tree-person-hero-profile"
                 type="button"

@@ -587,7 +587,7 @@
     border: 1px solid color-mix(in srgb, var(--gg-primary) 42%, transparent);
     border-radius: 999px;
     background: color-mix(in srgb, var(--gg-primary) 10%, transparent);
-    color: var(--brand-green-300);
+    color: var(--text-on-selected);
     padding: 1px 6px;
     font-size: 10px;
     font-weight: 800;
@@ -987,45 +987,27 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
+    gap: var(--space-3);
     min-height: 30px;
 }
 
-.tree-person-hero-top .people-sidebar-toggle-collapse {
-    order: 0;
-    margin-right: auto;
+.tree-person-hero-leading {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+}
+
+.tree-person-hero-leading .people-sidebar-toggle-collapse {
+    margin: 0;
     width: 30px;
     height: 30px;
     color: var(--text-primary);
 }
 
-.tree-person-hero-top .people-sidebar-toggle-collapse:hover,
-.tree-person-hero-top .people-sidebar-toggle-collapse:focus-visible {
+.tree-person-hero-leading .people-sidebar-toggle-collapse:hover,
+.tree-person-hero-leading .people-sidebar-toggle-collapse:focus-visible {
     color: var(--text-primary);
-}
-
-.tree-person-hero-top .tree-person-hero-profile {
-    order: 1;
-    margin-left: auto;
-}
-
-.tree-person-hero .tree-person-hero-top {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: var(--space-3);
-}
-
-.tree-person-hero .tree-person-hero-top #collapseInspector {
-    order: 0;
-    margin-left: 0;
-    margin-right: auto;
-    margin-top: 0;
-}
-
-.tree-person-hero .tree-person-hero-top .tree-person-hero-profile {
-    order: 1;
-    margin-left: auto;
-    margin-right: 0;
 }
 
 .tree-person-hero-actions {
@@ -1038,32 +1020,27 @@
 }
 
 .tree-focus-status {
-    min-height: 30px;
-    padding: 0 8px;
-
     display: inline-flex;
     align-items: center;
-    gap: 6px;
-
+    justify-content: center;
+    width: 30px;
+    height: 30px;
+    flex: 0 0 30px;
     border: 1px solid color-mix(in srgb, var(--gg-primary) 28%, transparent);
     border-radius: var(--radius-sm);
-
     background: color-mix(in srgb, var(--gg-primary) 10%, transparent);
-    color: var(--brand-green-300);
-
-    font-size: 12px;
-    font-weight: 750;
-    line-height: 1.2;
-    white-space: nowrap;
+    color: var(--text-on-selected);
 }
 
 .tree-focus-status svg {
-    width: 15px;
-    height: 15px;
+    width: 16px;
+    height: 16px;
 }
 
 .tree-person-hero-profile {
+    margin: 0;
     white-space: nowrap;
+    color: var(--text-primary);
 }
 
 .tree-settings-modal {
