@@ -717,7 +717,6 @@ function renderTopbar()
           `).join('')}
           </nav>` : '<div style="flex:1"></div>'}
         <div class="top-actions">
-          ${showModules ? `<div class="global-search">${icon.search}<span>Search anything...</span><span class="shortcut">Ctrl + K</span></div>` : ''}
           <button class="top-icon" type="button" data-topbar-help aria-haspopup="dialog" aria-label="Help">${icon.help}</button>
           ${showModules ? `<button class="top-icon has-dot" type="button" data-topbar-notifications aria-haspopup="dialog" aria-label="Notifications">${icon.bell}${state.unreadNotifications ? '<span class="topbar-dot" aria-hidden="true"></span>' : ''}</button>` : ''}
           <button class="top-icon" type="button" data-topbar-settings aria-haspopup="dialog" aria-label="Settings">${icon.settings}</button>
