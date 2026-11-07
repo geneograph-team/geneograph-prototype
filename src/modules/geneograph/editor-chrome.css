@@ -1569,6 +1569,15 @@
     flex: 0 0 auto;
 }
 
+.geneo-layer-row[data-geneo-layer-type="person"] .geneo-layer-icon { color: var(--gg-accent-heritage-green-accent); background: var(--gg-accent-heritage-green-subtle-container); }
+.geneo-layer-row[data-geneo-layer-type="image"] .geneo-layer-icon { color: var(--gg-accent-rose-sepia-accent); background: var(--gg-accent-rose-sepia-subtle-container); }
+.geneo-layer-row[data-geneo-layer-type="sticky"] .geneo-layer-icon { color: var(--gg-accent-investigation-purple-accent); background: var(--gg-accent-investigation-purple-subtle-container); }
+.geneo-layer-row[data-geneo-layer-type="text"] .geneo-layer-icon { color: var(--gg-accent-evidence-slate-accent); background: var(--gg-accent-evidence-slate-subtle-container); }
+.geneo-layer-row[data-geneo-layer-type="place"] .geneo-layer-icon { color: var(--gg-accent-map-cyan-accent); background: var(--gg-accent-map-cyan-subtle-container); }
+.geneo-layer-row[data-geneo-layer-type="drawing"] .geneo-layer-icon { color: var(--gg-accent-creative-blue-accent); background: var(--gg-accent-creative-blue-subtle-container); }
+.geneo-layer-row[data-geneo-layer-type="shape"] .geneo-layer-icon { color: var(--gg-accent-chronicle-copper-accent); background: var(--gg-accent-chronicle-copper-subtle-container); }
+.geneo-layer-row[data-geneo-layer-type="panel"] .geneo-layer-icon { color: var(--gg-accent-sepia-gold-accent); background: var(--gg-accent-sepia-gold-subtle-container); }
+
 .geneo-layer-icon svg,
 .geneo-layer-toggle svg {
     width: 16px;

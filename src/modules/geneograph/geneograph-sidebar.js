@@ -54,6 +54,7 @@ function renderGeneographEditorSidebar(board)
                     : ''
             }"
             style="--layer-depth:${depth}"
+            data-geneo-layer-type="${escapeHtml(node.type)}"
             data-geneo-layer="${
                 escapeHtml(node.id)
             }"

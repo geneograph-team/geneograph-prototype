@@ -2050,7 +2050,7 @@ function bindGeneographEditor()
     {
         event.preventDefault();
         event.stopPropagation();
-        openGeneoConnectionStyleMenu(connectionMenuButton);
+        openGeneoConnectionPurposeMenu(connectionMenuButton, true);
     });
     /*
       * Notes & text main action.

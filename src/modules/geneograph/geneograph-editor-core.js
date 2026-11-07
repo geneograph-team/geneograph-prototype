@@ -276,7 +276,7 @@ function renderGeneoConnectionPurposeButton()
     return `<button type="button" class="geneo-connection-choice geneo-connection-purpose ${geneoConnectionToolRuntime.offerVisual ? 'needs-choice' : ''}" data-geneo-connection-purpose aria-label="${escapeHtml(label)}" title="${escapeHtml(title)}" aria-haspopup="menu" aria-expanded="false">${visual ? icon.link : icon.tree}${icon.chevron}</button>`;
 }
 
-function openGeneoConnectionPurposeMenu(anchor)
+function openGeneoConnectionPurposeMenu(anchor, activateTool = false)
 {
     if (closeGeneoOpenMenuOnTrigger(anchor)) return;
     closeMenu();
@@ -296,9 +296,23 @@ function openGeneoConnectionPurposeMenu(anchor)
     {
         const option = event.target.closest('[data-purpose]');
         if (!option) return;
+        if (activateTool)
+        {
+            cancelGeneographPencilStroke();
+            cancelGeneographConnectionDraft();
+            state.geneoPlacementReturnTool = null;
+            state.geneoTool = 'connect';
+            geneoConnectionToolStyle();
+            geneoConnectionToolRuntime.panelOpen = true;
+        }
         geneoConnectionToolRuntime.purpose = option.dataset.purpose;
         geneoConnectionToolRuntime.offerVisual = false;
         closeMenu();
+        if (activateTool)
+        {
+            renderGeneographEditorPreserveScroll();
+            return;
+        }
         anchor.innerHTML = `${option.dataset.purpose === 'visual' ? icon.link : icon.tree}${icon.chevron}`;
         anchor.classList.remove('needs-choice');
         const label = `${t('Connection type')}: ${t(option.dataset.purpose === 'visual' ? 'Visual only' : 'Automatic')}`;
@@ -344,14 +358,13 @@ function renderGeneoCreationToolPanel(tool)
 
 function renderGeneoConnectionSplitTool()
 {
-    const pattern = geneoConnectionToolStyle().pattern;
-    const styleLabel = GENEO_CONNECTION_PATTERN_LABELS[pattern];
+    const purposeLabel = geneoConnectionToolRuntime.purpose === 'visual' ? 'Visual only' : 'Automatic';
 
     const active =
         state.geneoTool === 'connect';
 
     const title =
-        `${t('Connect')}: ${t(styleLabel)}`;
+        `${t('Connect')}: ${t(purposeLabel)}`;
 
     return `
         <div
@@ -388,10 +401,10 @@ function renderGeneoConnectionSplitTool()
             data-geneo-connection-menu
             aria-label="${
                 escapeHtml(
-                    t('Choose connection style')
+                    t('Connection type')
                 )
             }"
-            title="${escapeHtml(t('Choose connection style'))}"
+            title="${escapeHtml(t('Connection type'))}"
             aria-haspopup="menu"
             aria-expanded="false">
 
