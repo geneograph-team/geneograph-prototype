@@ -325,9 +325,9 @@ function geneoDefaultPersonCardSettings(
 function geneoDefaultCardAppearances()
 {
     const neutral = {
-        fill: { color: geneoThemeColor('#173029', '#FFFFFF'), opacity: 100, enabled: true },
-        stroke: { color: geneoThemeColor('#62D99A', '#1B6847'), opacity: 100, enabled: false },
-        text: { color: geneoThemeColor('#F1F5F3', '#17251E'), opacity: 100, enabled: true },
+        fill: { color: geneoSemanticColor('--surface-card'), opacity: 100, enabled: true },
+        stroke: { color: geneoSemanticColor('--border-default'), opacity: 100, enabled: false },
+        text: { color: geneoSemanticColor('--text-primary'), opacity: 100, enabled: true },
         paintOverrides: { fill: false, stroke: false, text: false },
         strokeWidth: 2,
         strokePattern: 'solid',
@@ -337,17 +337,22 @@ function geneoDefaultCardAppearances()
         neutral,
         male: {
             ...structuredClone(neutral),
-            fill: { color: geneoThemeColor('#172A32', '#EAF3F8'), opacity: 100, enabled: true },
-            stroke: { color: geneoThemeColor('#5A9BD8', '#286B9B'), opacity: 100, enabled: true },
-            text: { color: geneoThemeColor('#F2F8FB', '#173047'), opacity: 100, enabled: true }
+            fill: { color: geneoSemanticColor('--gg-accent-creative-blue-subtle-container'), opacity: 100, enabled: true },
+            stroke: { color: geneoSemanticColor('--gg-accent-creative-blue-outline'), opacity: 100, enabled: true },
+            text: { color: geneoSemanticColor('--gg-accent-creative-blue-on-container'), opacity: 100, enabled: true }
         },
         female: {
             ...structuredClone(neutral),
-            fill: { color: geneoThemeColor('#2D2437', '#F4EFF9'), opacity: 100, enabled: true },
-            stroke: { color: geneoThemeColor('#8D6CE8', '#6D4AB8'), opacity: 100, enabled: true },
-            text: { color: geneoThemeColor('#F6F1FB', '#382647'), opacity: 100, enabled: true }
+            fill: { color: geneoSemanticColor('--gg-accent-investigation-purple-subtle-container'), opacity: 100, enabled: true },
+            stroke: { color: geneoSemanticColor('--gg-accent-investigation-purple-outline'), opacity: 100, enabled: true },
+            text: { color: geneoSemanticColor('--gg-accent-investigation-purple-on-container'), opacity: 100, enabled: true }
         },
-        unknown: structuredClone(neutral)
+        unknown: {
+            ...structuredClone(neutral),
+            fill: { color: geneoSemanticColor('--gg-status-offline-subtle-container'), opacity: 100, enabled: true },
+            stroke: { color: geneoSemanticColor('--gg-status-offline-outline'), opacity: 100, enabled: true },
+            text: { color: geneoSemanticColor('--gg-status-offline-on-container'), opacity: 100, enabled: true }
+        }
     };
 }
 

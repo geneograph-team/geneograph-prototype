@@ -376,8 +376,8 @@
 }
 
 .tree-person-card.unknown-gender {
-    --tree-gender-border: var(--gg-accent-heritage-green-outline);
-    --tree-gender-fill: var(--gg-accent-heritage-green-subtle-container);
+    --tree-gender-border: var(--gg-status-offline-outline);
+    --tree-gender-fill: var(--gg-status-offline-subtle-container);
 }
 
 .tree-person-card.selected {
