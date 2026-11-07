@@ -3474,7 +3474,7 @@ function normalizeGeneographBoardRecord(board, projectPeople)
                 backgroundPaint: geneoPaintFromLegacy(
                     canvas.backgroundPaint,
                     canvas.backgroundColor,
-                    { color: geneoThemeColor('#0F1413', '#F3F7F2'), opacity: 100, enabled: true },
+                    { color: geneoDefaultCanvasColor(), opacity: 100, enabled: true },
                     { forceEnabled: true, forceOpacity: 100 }
                 ),
                 backgroundOverride: canvas.backgroundOverride === true,
@@ -4082,11 +4082,11 @@ function geneoNodeDefaults(type)
             minHeight: 44,
             appearance: {
                 ...common.appearance,
-                fill: { color: '#18211F', opacity: 100, enabled: true },
-                stroke: { color: '#52615D', opacity: 100, enabled: true },
+                fill: { color: geneoSemanticColor('--geneo-place-fill'), opacity: 100, enabled: true },
+                stroke: { color: geneoSemanticColor('--geneo-place-stroke'), opacity: 100, enabled: true },
                 strokeWidth: 1,
                 strokePattern: 'solid',
-                text: { color: '#F1F5F3', opacity: 100, enabled: true },
+                text: { color: geneoSemanticColor('--geneo-place-text'), opacity: 100, enabled: true },
                 cornerRadius: 8,
                 fontSize: 13
             }

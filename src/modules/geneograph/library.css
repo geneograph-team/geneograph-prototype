@@ -195,8 +195,13 @@
 
 .geneo-board-cover-shade {
     position: absolute;
-    inset: 32% 0 0;
-    background: linear-gradient(transparent, color-mix(in srgb, var(--gg-topbar) 88%, transparent));
+    inset: 25% 0 0;
+    background: linear-gradient(
+        to bottom,
+        transparent 0%,
+        color-mix(in srgb, var(--gg-scrim) 38%, transparent) 45%,
+        color-mix(in srgb, var(--gg-scrim) 88%, transparent) 100%
+    );
 }
 
 .geneo-board-cover-title {
@@ -209,7 +214,7 @@
     display: -webkit-box;
     -webkit-box-orient: vertical;
     -webkit-line-clamp: 2;
-    color: var(--gg-text);
+    color: var(--text-on-media);
     font-size: 18px;
     font-weight: 700;
     line-height: 1.2;
@@ -461,6 +466,9 @@
     overflow-x: visible;
     overflow-y: visible;
     scrollbar-gutter: auto;
+    background: var(--surface-card);
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-sm);
 }
 
 .geneo-collection-results .album-picker-result {

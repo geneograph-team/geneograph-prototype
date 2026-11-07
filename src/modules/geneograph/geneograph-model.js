@@ -1812,12 +1812,22 @@ function geneoNodeCornerRadius(node)
     return 8;
 }
 
+function geneoSemanticColor(token)
+{
+    return getComputedStyle(document.documentElement).getPropertyValue(token).trim();
+}
+
+function geneoDefaultCanvasColor()
+{
+    return geneoSemanticColor('--tree-canvas-surface');
+}
+
 function createEmptyGeneographDiagram()
 {
     return {
         themeProvenanceVersion: 1,
         canvas: {
-            backgroundPaint: { color: geneoThemeColor('#0F1413', '#F3F7F2'), opacity: 100, enabled: true },
+            backgroundPaint: { color: geneoDefaultCanvasColor(), opacity: 100, enabled: true },
             backgroundOverride: false,
             backgroundPattern: 'dots',
             snapToGrid: true,

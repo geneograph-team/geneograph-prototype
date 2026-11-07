@@ -163,6 +163,7 @@ function geneoPreviewNode(node, board)
     const appearance = geneoResolveVisibleNodeAppearance(node, board.diagram);
     const fill = geneoPaintCssColor(appearance.fill, { disabledColor: '#1B2522' });
     const stroke = geneoPaintCssColor(appearance.stroke, { disabledColor: '#52615D' });
+    const previewInk = escapeHtml(geneoPaintCssColor(appearance.text, { disabledColor: 'var(--text-primary)' }));
     const outline = `fill="${escapeHtml(fill)}" stroke="${escapeHtml(stroke)}" stroke-width="2"`;
     if (node.type === 'drawing' && Array.isArray(node.points) && node.points.length > 1)
     {
@@ -184,22 +185,22 @@ function geneoPreviewNode(node, board)
     else if (node.type === 'person')
     {
         const photoSize = Math.min(height - 16, width * .27, 72);
-        content = `<rect x="${x + 8}" y="${y + 8}" width="${photoSize}" height="${photoSize}" rx="5" fill="#31423B"/>`
+        content = `<rect x="${x + 8}" y="${y + 8}" width="${photoSize}" height="${photoSize}" rx="5" fill="var(--surface-hover)"/>`
             + (image ? `<image href="${escapeHtml(image)}" x="${x + 8}" y="${y + 8}"
                 width="${photoSize}" height="${photoSize}" preserveAspectRatio="xMidYMid slice"/>` : '')
-            + `<rect x="${x + photoSize + 17}" y="${y + 15}" width="${Math.max(8, width - photoSize - 31)}" height="8" rx="4" fill="#DCE8E1" opacity=".82"/>`
-            + `<rect x="${x + photoSize + 17}" y="${y + 33}" width="${Math.max(8, (width - photoSize - 31) * .63)}" height="6" rx="3" fill="#A7BCB1" opacity=".55"/>`;
+            + `<rect x="${x + photoSize + 17}" y="${y + 15}" width="${Math.max(8, width - photoSize - 31)}" height="8" rx="4" fill="${previewInk}" opacity=".40"/>`
+            + `<rect x="${x + photoSize + 17}" y="${y + 33}" width="${Math.max(8, (width - photoSize - 31) * .63)}" height="6" rx="3" fill="${previewInk}" opacity=".27"/>`;
     }
     else if (node.type === 'sticky' || node.type === 'text' || node.type === 'panel')
     {
         const lines = node.type === 'panel' ? 1 : 3;
         content = Array.from({ length: lines }, (_, index) =>
             `<rect x="${x + 14}" y="${y + 16 + index * 19}" width="${Math.max(10, (width - 28) * (index === 0 ? .7 : index === 1 ? .86 : .54))}"
-                height="${index === 0 ? 8 : 5}" rx="3" fill="#DBE9E1" opacity="${index === 0 ? .58 : .3}"/>`).join('');
+                height="${index === 0 ? 8 : 5}" rx="3" fill="${previewInk}" opacity="${index === 0 ? .40 : .25}"/>`).join('');
     }
     else if (node.type === 'place')
-        content = `<circle cx="${x + 24}" cy="${y + height / 2}" r="9" fill="#80B9C6"/>
-            <rect x="${x + 42}" y="${y + height / 2 - 4}" width="${Math.max(10, width - 58)}" height="8" rx="4" fill="#DCE8E1" opacity=".72"/>`;
+        content = `<circle cx="${x + 24}" cy="${y + height / 2}" r="9" fill="var(--geneo-place-icon)"/>
+            <rect x="${x + 42}" y="${y + height / 2 - 4}" width="${Math.max(10, width - 58)}" height="8" rx="4" fill="${previewInk}" opacity=".40"/>`;
     return `<g><rect x="${x}" y="${y}" width="${width}" height="${height}" rx="${radius}" ${outline}/>${content}</g>`;
 }
 
@@ -208,12 +209,12 @@ function geneoPreviewFallback(board)
     const seed = [...board.id].reduce((sum, char) => sum + char.charCodeAt(0), 0);
     const offset = seed % 36;
     return `<svg class="geneo-preview-art" viewBox="0 0 400 184" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
-        <rect width="400" height="184" fill="#111A17"/>
-        <path d="M ${95 + offset} 68 H 198 V 112 H ${307 - offset}" fill="none" stroke="#638E7C" stroke-width="3"/>
-        <rect x="${45 + offset}" y="45" width="100" height="48" rx="6" fill="#20362D" stroke="#62977B"/>
-        <rect x="${258 - offset}" y="89" width="100" height="48" rx="6" fill="#31322A" stroke="#B49562"/>
-        <circle cx="${72 + offset}" cy="69" r="12" fill="#547D69"/>
-        <circle cx="${285 - offset}" cy="113" r="12" fill="#967A55"/>
+        <rect width="400" height="184" fill="var(--tree-canvas-surface)"/>
+        <path d="M ${95 + offset} 68 H 198 V 112 H ${307 - offset}" fill="none" stroke="var(--tree-connection)" stroke-width="3"/>
+        <rect x="${45 + offset}" y="45" width="100" height="48" rx="6" fill="var(--geneo-place-fill)" stroke="var(--geneo-place-stroke)"/>
+        <rect x="${258 - offset}" y="89" width="100" height="48" rx="6" fill="var(--geneo-place-fill)" stroke="var(--geneo-place-stroke)"/>
+        <circle cx="${72 + offset}" cy="69" r="12" fill="var(--geneo-place-icon)"/>
+        <circle cx="${285 - offset}" cy="113" r="12" fill="var(--geneo-place-icon)"/>
     </svg>`;
 }
 
@@ -252,15 +253,16 @@ function renderGeneographBoardPreview(board, mode = 'wide')
 {
     const cached = geneoBoardPreviewCache.get(board.id);
     const mediaSignature = geneoPreviewMediaSignature(board);
+    const theme = document.documentElement.dataset.theme;
     if (cached?.board === board && cached.modifiedAt === board.modifiedAt
-        && cached.mediaSignature === mediaSignature && cached[mode])
+        && cached.mediaSignature === mediaSignature && cached.theme === theme && cached[mode])
         return cached[mode];
     const nodes = geneoPreviewVisibleNodes(board.diagram);
     const scene = nodes.length ? geneoPreviewScene(nodes) : null;
     const html = scene ? geneoPreviewSvg(board, mode, nodes, scene) : geneoPreviewFallback(board);
     const entry = cached?.board === board && cached.modifiedAt === board.modifiedAt
-        && cached.mediaSignature === mediaSignature
-        ? cached : { board, modifiedAt: board.modifiedAt, mediaSignature };
+        && cached.mediaSignature === mediaSignature && cached.theme === theme
+        ? cached : { board, modifiedAt: board.modifiedAt, mediaSignature, theme };
     entry[mode] = html;
     geneoBoardPreviewCache.set(board.id, entry);
     return html;

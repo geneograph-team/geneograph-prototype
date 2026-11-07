@@ -10,7 +10,10 @@ function geneoSeedDarkPaintColors(type)
 function geneoMarkSeedThemeProvenance(diagram)
 {
     diagram.themeProvenanceVersion = 1;
-    diagram.canvas.backgroundOverride = diagram.canvas.backgroundPaint?.color !== '#0F1413';
+    const legacyCanvasDefaults = new Set(['#0F1413', '#F3F7F2', geneoDefaultCanvasColor().toUpperCase()]);
+    diagram.canvas.backgroundOverride = !legacyCanvasDefaults.has(
+        String(diagram.canvas.backgroundPaint?.color || '').toUpperCase()
+    );
     diagram.connectionDefaults.lineOverride = diagram.connectionDefaults.line?.color !== '#D9E5E1';
     for (const [gender, appearance] of Object.entries(diagram.cardAppearanceDefaults || {}))
     {
@@ -71,6 +74,9 @@ window.addEventListener('geneograph-theme-change', () =>
             if (appearance?.[key] && appearance.paintOverrides?.[key] !== true)
                 appearance[key].color = preset[key].color;
     }
-    if (state.activeModule === 'Geneograph' && state.geneoView === 'board')
+    if (state.activeModule !== 'Geneograph') return;
+    if (state.geneoView === 'board')
         renderGeneographEditorPreserveScroll({ preserveInspectorScroll: true, preserveSidebarScroll: true });
+    else
+        renderGeneographHome();
 });

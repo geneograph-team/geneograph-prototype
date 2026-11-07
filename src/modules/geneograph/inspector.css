@@ -570,14 +570,10 @@
 }
 
 .geneo-person-style-option.active {
-    border-color:
-        color-mix(in srgb, var(--gg-primary) 62%, transparent);
-
-    background:
-        var(--surface-selected);
-
-    color:
-        var(--text-primary);
+    border: 2px solid var(--brand-green-700);
+    padding: 7px; /* Maintain layout when the selected border increases. */
+    background: var(--surface-card);
+    color: var(--text-primary);
 }
 
 .geneo-person-style-option:focus-visible {

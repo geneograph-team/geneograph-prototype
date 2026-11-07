@@ -57,7 +57,8 @@
       "disabledText": "#637178",
       "scrollbarThumb": "#859098",
       "scrollbarThumbHover": "#6E7B81",
-      "textPlaceholder": "#68757B"
+      "textPlaceholder": "#68757B",
+      "onMedia": "#FFFFFF"
     },
     "dark": {
       "background": "#0D1112",
@@ -103,7 +104,8 @@
       "disabledText": "#9BA8AE",
       "scrollbarThumb": "#647278",
       "scrollbarThumbHover": "#859299",
-      "textPlaceholder": "#909BA0"
+      "textPlaceholder": "#909BA0",
+      "onMedia": "#FFFFFF"
     }
   },
   "m3RoleAliases": {

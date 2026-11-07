@@ -87,6 +87,7 @@
     --geneograph-cover-tree-image: url("../assets/covers/geneograph-cover-tree.png");
     --on-primary: var(--gg-on-primary);
     --inverse-text: var(--gg-text);
+    --text-on-media: var(--gg-on-media);
     --surface-topbar: var(--gg-topbar);
     --surface-panel-soft: var(--gg-panel);
     /* Shared solid surface for Add/Edit Person accordion sections and their fact cards. */
@@ -95,6 +96,11 @@
     --surface-hover-tint: var(--gg-hover);
     --surface-row-divider: var(--gg-border);
     --tree-canvas-surface: var(--gg-tree-canvas);
+    /* Geneograph document defaults: resolve when created, preserve explicit user paints. */
+    --geneo-place-fill: var(--surface-card);
+    --geneo-place-stroke: var(--border-default);
+    --geneo-place-text: var(--text-primary);
+    --geneo-place-icon: var(--gg-accent-map-cyan-accent);
     --tree-canvas-dot: var(--gg-tree-dots);
     --tree-connection: var(--gg-tree-line);
     --tree-connection-partner: var(--gg-tree-line);

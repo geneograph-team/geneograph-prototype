@@ -719,7 +719,7 @@ function resolveGeneoPaintTarget(reference)
             scope, id: selectedGeneographBoard()?.id || '', property,
             label: 'Background', paint: canvas.backgroundPaint,
             supportsOpacity: false, supportsNone: false, resettable: false,
-            defaultPaint: { color: geneoThemeColor('#0F1413', '#F3F7F2'), opacity: 100, enabled: true }
+            defaultPaint: { color: geneoDefaultCanvasColor(), opacity: 100, enabled: true }
         };
     }
     if (scope === 'connection')

@@ -2482,7 +2482,7 @@ html[lang="ru"] .geneo-node-person[data-geneo-person-card-style="standard"] .gen
     flex: 0 0 20px;
     display: grid;
     place-items: center;
-    color: var(--brand-green-300);
+    color: var(--geneo-place-icon);
 }
 
 .geneo-place-node-icon svg {

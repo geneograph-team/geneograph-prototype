@@ -55,6 +55,7 @@
   --gg-inverse-surface: #293136;
   --gg-inverse-on-surface: #FAFBFC;
   --gg-scrim: #000000;
+  --gg-on-media: #FFFFFF;
   /* Material 3-style role aliases (GeneoGraph customized surfaces) */
   --md-sys-color-primary: #1C6B46;
   --md-sys-color-on-primary: #FFFFFF;
@@ -249,6 +250,7 @@
   --gg-inverse-surface: #E5E9EB;
   --gg-inverse-on-surface: #202729;
   --gg-scrim: #000000;
+  --gg-on-media: #FFFFFF;
   /* Material 3-style role aliases (GeneoGraph customized surfaces) */
   --md-sys-color-primary: #2FAE74;
   --md-sys-color-on-primary: #002916;
