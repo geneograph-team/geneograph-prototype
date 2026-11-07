@@ -797,7 +797,7 @@ function renderFamilyTree()
             --tree-focus-control-height:
               ${TREE_GEOMETRY.focusControlHeight}px;
           ">
-          <div class="tree-workspace ${state.treeInspectorCollapsed ? 'inspector-collapsed' : ''}">
+          <div class="tree-workspace ${state.treeInspectorCollapsed ? 'inspector-collapsed' : ''} ${treeViewState.colorFill !== false ? 'has-color-fill' : ''}">
           <div class="tree-toolbar">
             <div class="tree-toolbar-left">
               <button class="tree-control tree-control-select" type="button" data-tree-person-picker aria-haspopup="dialog" aria-expanded="false" aria-label="${escapeHtml(t('Find person'))}: ${escapeHtml(selected?.name || '')}" title="${escapeHtml(selected?.name || '')}">

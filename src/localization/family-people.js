@@ -116,6 +116,12 @@ const RU_UI_FAMILY_TREE = {
     'Collateral branches are limited to cousins of the current focus person.':
         'Боковые ветви ограничены двоюродными родственниками текущего основного человека.',
 
+    'Color fill':
+        'Цветная заливка',
+
+    'Fill person cards with their gender color. Turn off to keep neutral cards with colored borders.':
+        'Окрашивать карточки по полу. Если выключить, останется нейтральный фон с цветной рамкой.',
+
     'Apply settings':
         'Применить настройки',
 

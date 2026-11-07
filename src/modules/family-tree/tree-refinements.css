@@ -366,15 +366,18 @@
 
 .tree-person-card {
     --tree-gender-border: var(--gg-accent-creative-blue-outline);
+    --tree-gender-fill: var(--gg-accent-creative-blue-subtle-container);
     border: 2px solid var(--tree-gender-border);
 }
 
 .tree-person-card.female {
-    --tree-gender-border: var(--gg-accent-rose-sepia-outline);
+    --tree-gender-border: var(--gg-accent-investigation-purple-outline);
+    --tree-gender-fill: var(--gg-accent-investigation-purple-subtle-container);
 }
 
 .tree-person-card.unknown-gender {
-    --tree-gender-border: var(--gg-accent-investigation-purple-outline);
+    --tree-gender-border: var(--gg-accent-heritage-green-outline);
+    --tree-gender-fill: var(--gg-accent-heritage-green-subtle-container);
 }
 
 .tree-person-card.selected {
@@ -403,6 +406,14 @@
     box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--gg-primary) 34%, transparent), 0 8px 22px color-mix(in srgb, var(--gg-scrim) 16%, transparent);
 }
 
+.tree-workspace.has-color-fill .tree-person-card:not(.selected) {
+    background: var(--tree-gender-fill);
+}
+
+.tree-workspace.has-color-fill .tree-person-card:not(.selected):hover {
+    background: color-mix(in srgb, var(--tree-gender-fill) 84%, var(--tree-gender-border));
+}
+
 .tree-name {
     font-size:
         13px;
@@ -423,9 +434,19 @@
     place-items: center;
     text-align: center;
     line-height: 1.1;
-    border-color: color-mix(in srgb, var(--gg-accent-investigation-purple-accent) 68%, transparent);
+    border-color: var(--tree-connection);
     color: var(--text-primary);
     background: color-mix(in srgb, var(--gg-topbar) 86%, transparent);
+}
+
+.add-parent-card:hover {
+    background: var(--tree-card-hover);
+    box-shadow: 0 8px 22px color-mix(in srgb, var(--gg-scrim) 16%, transparent);
+}
+
+.add-parent-card:focus-visible {
+    outline: 2px solid var(--gg-primary);
+    outline-offset: 3px;
 }
 
 .add-parent-card .add-plus {

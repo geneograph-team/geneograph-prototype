@@ -457,6 +457,7 @@ function treeProjectViewState(projectId = currentFamilyTreeProjectId())
             ancestorGenerations: 4,
             descendantGenerations: 3,
             showCousins: true,
+            colorFill: true,
             recentPersonIds:
             defaultPersonId
                 ? [defaultPersonId]
@@ -720,6 +721,13 @@ function openTreeSettingsModal()
                 <small>Collateral branches are limited to cousins of the current focus person.</small>
               </span>
             </label>
+            <label class="tree-settings-check">
+              <input id="treeColorFill" type="checkbox" ${view.colorFill !== false ? 'checked' : ''}>
+              <span>
+                <strong>Color fill</strong>
+                <small>Fill person cards with their gender color. Turn off to keep neutral cards with colored borders.</small>
+              </span>
+            </label>
           </div>
           <div class="modal-footer">
             <button class="button secondary" type="button" data-close>Cancel</button>
@@ -744,6 +752,7 @@ function openTreeSettingsModal()
             TREE_DESCENDANT_GENERATION_MAX
         );
         view.showCousins = Boolean(modalBackdrop.querySelector('#treeShowCousins')?.checked);
+        view.colorFill = Boolean(modalBackdrop.querySelector('#treeColorFill')?.checked);
         state.treeCenterTargetId = view.focusPersonId;
         closeModal();
         renderFamilyTree();
