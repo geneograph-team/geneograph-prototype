@@ -2490,8 +2490,7 @@ body.mobile-person-details-open .relative-popover-body {
     height: var(--control-height);
     min-height: var(--control-height);
     max-height: var(--control-height);
-    border: 1px solid var(--gg-control-border);
-    border-bottom-color: var(--border-strong);
+    border: 1px solid var(--control-field-border);
     background: var(--surface-input);
     color: var(--text-secondary);
     border-radius: var(--radius-sm);

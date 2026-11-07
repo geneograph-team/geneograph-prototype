@@ -9,23 +9,24 @@
     --surface-hover: var(--gg-hover);
     --surface-divider: var(--gg-border);
     --surface-selected-row: var(--gg-selected-row);
-    --table-surface: var(--gg-panel);
-    --table-header-surface: var(--gg-details);
-    --table-row-hover: var(--gg-hover);
-    --table-row-selected: var(--gg-selected-row);
-    --table-row-disabled: var(--gg-panel);
-    --table-disabled-text: var(--gg-text-muted);
-    --table-current-marker: var(--gg-selected-border);
-    --table-focus: var(--gg-primary);
-    --table-divider: var(--gg-border);
-    --table-text: var(--gg-text);
-    --table-secondary-text: var(--gg-text-secondary);
+    --table-surface: var(--surface-panel);
+    --table-header-surface: var(--surface-inspector);
+    --table-row-hover: var(--surface-hover);
+    --table-row-selected: var(--surface-selected-row);
+    --table-row-disabled: var(--surface-panel);
+    --table-disabled-text: var(--text-tertiary);
+    --table-current-marker: var(--brand-green-700);
+    --table-focus: var(--control-focus-color);
+    --table-divider: var(--border-default);
+    --table-text: var(--text-primary);
+    --table-secondary-text: var(--text-secondary);
     --surface-main: var(--gg-panel);
     --surface-sidebar: var(--gg-sidebar);
     --surface-card: var(--gg-raised);
     --surface-row: var(--gg-panel);
     --surface-card-hover: var(--gg-hover);
     --surface-input: var(--gg-field);
+    --control-field-border: var(--gg-control-border);
     --surface-selected: var(--gg-selected);
     --brand-green-300: var(--gg-primary);
     --brand-green-400: var(--gg-primary);
@@ -71,11 +72,10 @@
     --space-8: 32px;
     --shadow-soft: 0 12px 32px color-mix(in srgb, var(--gg-scrim) 18%, transparent);
     --ease: 170ms ease;
-    --scrollbar-track: var(--gg-background);
-    --scrollbar-track-soft: var(--gg-sidebar);
-    --scrollbar-thumb: var(--gg-outline);
-    --scrollbar-thumb-hover: var(--gg-text-muted);
-    --scrollbar-thumb-active: var(--gg-text-secondary);
+    --scrollbar-track: transparent;
+    --scrollbar-thumb: var(--gg-scrollbar-thumb);
+    --scrollbar-thumb-hover: var(--gg-scrollbar-thumb-hover);
+    --scrollbar-thumb-active: var(--gg-scrollbar-thumb-hover);
     --geneograph-cover-tree-image: url("../assets/covers/geneograph-cover-tree.png");
     --on-primary: var(--gg-on-primary);
     --inverse-text: var(--gg-text);
@@ -94,53 +94,7 @@
 
 :root[data-theme="light"] {
     color-scheme: light;
-    --table-surface: var(--gg-sidebar);
-    --surface-app: var(--gg-background);
-    --surface-main: var(--gg-panel);
-    --surface-sidebar: var(--gg-sidebar);
-    --surface-card: var(--gg-raised);
-    --surface-row: var(--gg-panel);
-    --surface-card-hover: var(--gg-hover);
-    --surface-input: var(--gg-field);
-    --surface-selected: var(--gg-selected);
-    --brand-green-300: var(--gg-primary);
-    --brand-green-400: var(--gg-primary);
-    --brand-green-500: var(--gg-primary);
-    --brand-green-600: var(--gg-primary);
-    --brand-green-700: var(--gg-selected-border);
-    --brand-green-800: var(--gg-accent-heritage-green-container);
-    --brand-green-900: var(--gg-accent-heritage-green-subtle-container);
-    --text-primary: var(--gg-text);
-    --text-secondary: var(--gg-text-secondary);
-    --text-tertiary: var(--gg-text-muted);
-    --border-default: var(--gg-border);
-    --border-strong: var(--gg-outline);
-    --amber: var(--gg-accent-sepia-gold-accent);
-    --red: var(--gg-status-error-accent);
-    --purple: var(--gg-accent-investigation-purple-accent);
-    --blue: var(--gg-accent-creative-blue-accent);
-    --control-focus-color: var(--gg-primary);
-    --control-field-focus-color: var(--gg-primary);
-    --select-chevron: var(--gg-select-chevron);
-    --select-chevron-open: var(--gg-select-chevron-open);
     --shadow-soft: 0 12px 32px color-mix(in srgb, var(--gg-scrim) 12%, transparent);
-    --scrollbar-track: var(--gg-background);
-    --scrollbar-track-soft: var(--gg-sidebar);
-    --scrollbar-thumb: var(--gg-outline);
-    --scrollbar-thumb-hover: var(--gg-text-muted);
-    --scrollbar-thumb-active: var(--gg-text-secondary);
-    --on-primary: var(--gg-on-primary);
-    --surface-topbar: var(--gg-topbar);
-    --surface-panel-soft: var(--gg-panel);
-    --surface-sidebar-soft: var(--gg-sidebar);
-    --surface-hover-tint: var(--gg-hover);
-    --surface-row-divider: var(--gg-border);
-    --tree-canvas-surface: var(--gg-tree-canvas);
-    --tree-canvas-dot: var(--gg-tree-dots);
-    --tree-connection: var(--gg-tree-line);
-    --tree-connection-partner: var(--gg-tree-line);
-    --tree-selected-card: var(--gg-selected);
-    --tree-card-hover: var(--gg-hover);
 }
 
 html {
@@ -166,7 +120,8 @@ html {
 
 *::-webkit-scrollbar-thumb {
     background: var(--scrollbar-thumb);
-    border: 2px solid var(--scrollbar-track);
+    border: 2px solid transparent;
+    background-clip: padding-box;
     border-radius: 999px;
     min-height: 42px;
     min-width: 42px;
@@ -231,9 +186,7 @@ button {
     height: 100%;
     display: grid;
     grid-template-rows: var(--topbar-h) 1fr;
-    background:
-        radial-gradient(circle at 76% 8%, color-mix(in srgb, var(--gg-primary) 9%, transparent), transparent 26%),
-        var(--surface-app);
+    background: var(--surface-app);
 }
 
 .topbar {
@@ -4301,11 +4254,10 @@ body.mobile-details-open .geneo-inspector [data-geneo-inspector-toggle] {
     font-size: 13px;
 }
 
-/* Project Settings uses the same tonal fill and bottom indicator as shared fields. */
+/* Project Settings follows the shared input surface and resting border. */
 .project-settings-field :is(input:not(:disabled), textarea:not(:disabled), select:not(:disabled)) {
     background-color: var(--surface-input);
-    border-color: var(--gg-control-border);
-    border-bottom-color: var(--border-strong);
+    border-color: var(--control-field-border);
 }
 
 .project-settings-select-field {

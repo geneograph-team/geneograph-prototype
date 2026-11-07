@@ -1,32 +1,32 @@
-/* GeneoGraph Design System v3.2.0 — custom MD3-inspired semantic scheme */
-/* Warm Neutral Light / Neutral Charcoal Dark; hue ramps are approximate OKLab, not official HCT. */
+/* GeneoGraph Design System v3.3.0 — custom MD3-inspired semantic scheme */
+/* Neutral Light / Neutral Charcoal Dark; hue ramps are approximate OKLab, not official HCT. */
 :root {
   --gg-brand-seed: #2FAE74;
 }
 
 [data-theme="light"] {
-  --gg-select-chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8'%3E%3Cpath d='m1 1 5 5 5-5' fill='none' stroke='%234D5C52' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
-  --gg-select-chevron-open: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8'%3E%3Cpath d='m1 7 5-5 5 5' fill='none' stroke='%234D5C52' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  --gg-select-chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8'%3E%3Cpath d='m1 1 5 5 5-5' fill='none' stroke='%23515E63' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  --gg-select-chevron-open: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8'%3E%3Cpath d='m1 7 5-5 5 5' fill='none' stroke='%23515E63' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
   color-scheme: light;
   /* Foundation surfaces, text, and global interaction */
-  --gg-background: #F1F2EC;
-  --gg-topbar: #FAFBF8;
-  --gg-sidebar: #F6F7F2;
-  --gg-panel: #FAFAF7;
-  --gg-details: #F6F7F2;
+  --gg-background: #F2F3F4;
+  --gg-topbar: #F8F9FA;
+  --gg-sidebar: #F7F8F9;
+  --gg-panel: #FCFCFD;
+  --gg-details: #F7F8F9;
   --gg-raised: #FFFFFF;
-  --gg-field: #FAFAF8;
-  --gg-hover: #ECEEEF;
-  --gg-border: #D6DED5;
-  --gg-outline: #728575;
+  --gg-field: #FAFBFC;
+  --gg-hover: #ECEFF1;
+  --gg-border: #D8DEE1;
+  --gg-outline: #718087;
   /* Shared control and Projects-specific semantic roles */
-  --gg-control-border: #7B917F;
-  --gg-create-tile-outline: #BBC8BE;
-  --gg-disabled-surface: #F2F4EF;
-  --gg-disabled-text: #657568;
-  --gg-text: #1B2520;
-  --gg-text-secondary: #4D5C52;
-  --gg-text-muted: #627065;
+  --gg-control-border: #87949B;
+  --gg-create-tile-outline: #B8C2C7;
+  --gg-disabled-surface: #F0F2F3;
+  --gg-disabled-text: #637178;
+  --gg-text: #202729;
+  --gg-text-secondary: #515E63;
+  --gg-text-muted: #637178;
   --gg-primary: #1C6B46;
   --gg-on-primary: #FFFFFF;
   --gg-selected: #DDEEE3; /* navigation / compact selected control */
@@ -35,7 +35,7 @@
   --gg-selected-border: #1C6B46;
   --gg-tree-canvas: #F1F2F3;
   --gg-tree-dots: #D3DADC;
-  --gg-tip-background: #EEF3EC;
+  --gg-tip-background: #DDEEE3;
   --gg-tip-text: #1B2520;
   --gg-tip-border: #D6DED5;
   --gg-tip-link: #1C6B46;
@@ -45,12 +45,14 @@
   --gg-living-dot: #138652;
   --gg-deceased-dot: #697580;
   --gg-unknown-dot: #AD741D;
+  --gg-scrollbar-thumb: #859098;
+  --gg-scrollbar-thumb-hover: #6E7B81;
   --gg-tree-line: #768184;
-  --gg-timeline-line: #A3B3A9;
+  --gg-timeline-line: #A7B0B5;
   --gg-surface-bright: #FFFFFF;
-  --gg-surface-dim: #E8EBE4;
-  --gg-inverse-surface: #29312D;
-  --gg-inverse-on-surface: #F6F9F6;
+  --gg-surface-dim: #E6E9EC;
+  --gg-inverse-surface: #293136;
+  --gg-inverse-on-surface: #FAFBFC;
   --gg-scrim: #000000;
   /* Material 3-style role aliases (GeneoGraph customized surfaces) */
   --md-sys-color-primary: #1C6B46;
@@ -69,24 +71,24 @@
   --md-sys-color-on-error: #FFFFFF;
   --md-sys-color-error-container: #FFDAD6;
   --md-sys-color-on-error-container: #410002;
-  --md-sys-color-background: #F1F2EC;
-  --md-sys-color-on-background: #1B2520;
-  --md-sys-color-surface: #F1F2EC;
-  --md-sys-color-on-surface: #1B2520;
-  --md-sys-color-surface-dim: #E8EBE4;
+  --md-sys-color-background: #F2F3F4;
+  --md-sys-color-on-background: #202729;
+  --md-sys-color-surface: #F2F3F4;
+  --md-sys-color-on-surface: #202729;
+  --md-sys-color-surface-dim: #E6E9EC;
   --md-sys-color-surface-bright: #FFFFFF;
   --md-sys-color-surface-container-lowest: #FFFFFF;
-  --md-sys-color-surface-container-low: #F6F7F2;
-  --md-sys-color-surface-container: #FAFAF7;
-  --md-sys-color-surface-container-high: #EEF1EB;
-  --md-sys-color-surface-container-highest: #ECEEEF;
+  --md-sys-color-surface-container-low: #F7F8F9;
+  --md-sys-color-surface-container: #FCFCFD;
+  --md-sys-color-surface-container-high: #ECEFF1;
+  --md-sys-color-surface-container-highest: #E5E9EC;
   --md-sys-color-surface-tint: #1C6B46;
-  --md-sys-color-surface-variant: #EEF1EB;
-  --md-sys-color-on-surface-variant: #4D5C52;
-  --md-sys-color-outline: #728575;
-  --md-sys-color-outline-variant: #D6DED5;
-  --md-sys-color-inverse-surface: #29312D;
-  --md-sys-color-inverse-on-surface: #F6F9F6;
+  --md-sys-color-surface-variant: #FAFBFC;
+  --md-sys-color-on-surface-variant: #515E63;
+  --md-sys-color-outline: #718087;
+  --md-sys-color-outline-variant: #D8DEE1;
+  --md-sys-color-inverse-surface: #293136;
+  --md-sys-color-inverse-on-surface: #FAFBFC;
   --md-sys-color-inverse-primary: #89D7AB;
   --md-sys-color-scrim: #000000;
   --md-sys-color-shadow: #000000;
@@ -188,37 +190,37 @@
   --gg-status-offline-on-container: #28221E;
   --gg-status-offline-subtle-container: #F2EEE8;
   --gg-status-offline-outline: #675C55;
-  --gg-status-neutral-accent: #4F6355;
+  --gg-status-neutral-accent: #55636B;
   --gg-status-neutral-on-accent: #FFFFFF;
-  --gg-status-neutral-container: #E2E9E0;
-  --gg-status-neutral-on-container: #1A251C;
-  --gg-status-neutral-subtle-container: #EDF2EC;
-  --gg-status-neutral-outline: #4F6355;
+  --gg-status-neutral-container: #E6EBEE;
+  --gg-status-neutral-on-container: #273035;
+  --gg-status-neutral-subtle-container: #F0F2F3;
+  --gg-status-neutral-outline: #55636B;
 }
 
 [data-theme="dark"] {
-  --gg-select-chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8'%3E%3Cpath d='m1 1 5 5 5-5' fill='none' stroke='%23B4C0B9' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
-  --gg-select-chevron-open: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8'%3E%3Cpath d='m1 7 5-5 5 5' fill='none' stroke='%23B4C0B9' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  --gg-select-chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8'%3E%3Cpath d='m1 1 5 5 5-5' fill='none' stroke='%23B7C1C5' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  --gg-select-chevron-open: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8'%3E%3Cpath d='m1 7 5-5 5 5' fill='none' stroke='%23B7C1C5' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
   color-scheme: dark;
   /* Foundation surfaces, text, and global interaction */
-  --gg-background: #0B0F0E;
-  --gg-topbar: #0C1110;
-  --gg-sidebar: #151A1A;
-  --gg-panel: #0F1413;
-  --gg-details: #151A1A;
-  --gg-raised: #1A201F;
-  --gg-field: #29302E;
-  --gg-hover: #252B2B;
-  --gg-border: #2D3634;
-  --gg-outline: #708176;
+  --gg-background: #0D1112;
+  --gg-topbar: #0E1213;
+  --gg-sidebar: #171C1D;
+  --gg-panel: #131819;
+  --gg-details: #171C1D;
+  --gg-raised: #1C2223;
+  --gg-field: #292F31;
+  --gg-hover: #283032;
+  --gg-border: #323B3E;
+  --gg-outline: #77848A;
   /* Shared control and Projects-specific semantic roles */
-  --gg-control-border: #3D4945;
-  --gg-create-tile-outline: #3B4C43;
-  --gg-disabled-surface: #171D1B;
-  --gg-disabled-text: #91A39A;
-  --gg-text: #E2E9E5;
-  --gg-text-secondary: #B4C0B9;
-  --gg-text-muted: #95A59B;
+  --gg-control-border: #465156;
+  --gg-create-tile-outline: #475157;
+  --gg-disabled-surface: #1D2426;
+  --gg-disabled-text: #9BA8AE;
+  --gg-text: #E5E9EB;
+  --gg-text-secondary: #B7C1C5;
+  --gg-text-muted: #9BA8AE;
   --gg-primary: #2FAE74;
   --gg-on-primary: #002916;
   --gg-selected: #123C2B;
@@ -236,12 +238,14 @@
   --gg-living-dot: #2FAE74;
   --gg-deceased-dot: #B3BCC3;
   --gg-unknown-dot: #E6AF58;
+  --gg-scrollbar-thumb: #647278;
+  --gg-scrollbar-thumb-hover: #859299;
   --gg-tree-line: #798A80;
-  --gg-timeline-line: #596D61;
-  --gg-surface-bright: #2D3634;
-  --gg-surface-dim: #0B0F0E;
-  --gg-inverse-surface: #E2E9E5;
-  --gg-inverse-on-surface: #1B2520;
+  --gg-timeline-line: #59666B;
+  --gg-surface-bright: #30393D;
+  --gg-surface-dim: #0D1112;
+  --gg-inverse-surface: #E5E9EB;
+  --gg-inverse-on-surface: #202729;
   --gg-scrim: #000000;
   /* Material 3-style role aliases (GeneoGraph customized surfaces) */
   --md-sys-color-primary: #2FAE74;
@@ -260,24 +264,24 @@
   --md-sys-color-on-error: #690005;
   --md-sys-color-error-container: #93000A;
   --md-sys-color-on-error-container: #FFDAD6;
-  --md-sys-color-background: #0B0F0E;
-  --md-sys-color-on-background: #E2E9E5;
-  --md-sys-color-surface: #0B0F0E;
-  --md-sys-color-on-surface: #E2E9E5;
-  --md-sys-color-surface-dim: #0B0F0E;
-  --md-sys-color-surface-bright: #2D3634;
-  --md-sys-color-surface-container-lowest: #0C1110;
-  --md-sys-color-surface-container-low: #151A1A;
-  --md-sys-color-surface-container: #151A1A;
+  --md-sys-color-background: #0D1112;
+  --md-sys-color-on-background: #E5E9EB;
+  --md-sys-color-surface: #0D1112;
+  --md-sys-color-on-surface: #E5E9EB;
+  --md-sys-color-surface-dim: #0D1112;
+  --md-sys-color-surface-bright: #30393D;
+  --md-sys-color-surface-container-lowest: #0E1213;
+  --md-sys-color-surface-container-low: #171C1D;
+  --md-sys-color-surface-container: #1C2223;
   --md-sys-color-surface-container-high: #1A201F;
-  --md-sys-color-surface-container-highest: #252B2B;
+  --md-sys-color-surface-container-highest: #293236;
   --md-sys-color-surface-tint: #2FAE74;
-  --md-sys-color-surface-variant: #29302E;
-  --md-sys-color-on-surface-variant: #B4C0B9;
-  --md-sys-color-outline: #708176;
-  --md-sys-color-outline-variant: #2D3634;
-  --md-sys-color-inverse-surface: #E2E9E5;
-  --md-sys-color-inverse-on-surface: #1B2520;
+  --md-sys-color-surface-variant: #292F31;
+  --md-sys-color-on-surface-variant: #B7C1C5;
+  --md-sys-color-outline: #77848A;
+  --md-sys-color-outline-variant: #323B3E;
+  --md-sys-color-inverse-surface: #E5E9EB;
+  --md-sys-color-inverse-on-surface: #202729;
   --md-sys-color-inverse-primary: #1C6B46;
   --md-sys-color-scrim: #000000;
   --md-sys-color-shadow: #000000;
@@ -379,12 +383,12 @@
   --gg-status-offline-on-container: #ECE0D7;
   --gg-status-offline-subtle-container: #32302C;
   --gg-status-offline-outline: #D1C2B7;
-  --gg-status-neutral-accent: #BEC9BD;
-  --gg-status-neutral-on-accent: #29392D;
-  --gg-status-neutral-container: #36483B;
-  --gg-status-neutral-on-container: #E2E9E0;
-  --gg-status-neutral-subtle-container: #28342D;
-  --gg-status-neutral-outline: #BEC9BD;
+  --gg-status-neutral-accent: #BFC9CE;
+  --gg-status-neutral-on-accent: #243036;
+  --gg-status-neutral-container: #353E42;
+  --gg-status-neutral-on-container: #DFE6E9;
+  --gg-status-neutral-subtle-container: #283236;
+  --gg-status-neutral-outline: #BFC9CE;
 }
 
 
