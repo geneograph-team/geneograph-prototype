@@ -20,7 +20,6 @@
   --gg-border: #D6DED5;
   --gg-outline: #728575;
   /* Shared control and Projects-specific semantic roles */
-  --gg-search-background: #FFFFFF;
   --gg-control-border: #7B917F;
   --gg-create-tile-outline: #BBC8BE;
   --gg-disabled-surface: #F2F4EF;
@@ -210,7 +209,6 @@
   --gg-border: #2D3634;
   --gg-outline: #708176;
   /* Shared control and Projects-specific semantic roles */
-  --gg-search-background: #242B2A;
   --gg-control-border: #708176;
   --gg-create-tile-outline: #3B4C43;
   --gg-disabled-surface: #171D1B;

@@ -114,9 +114,9 @@
     height: var(--control-height);
     min-width: 0;
     box-sizing: border-box;
-    border: 1px solid var(--gg-control-border);
+    border: 1px solid var(--border-default);
     border-radius: var(--radius-sm);
-    background: var(--gg-search-background);
+    background: var(--surface-raised);
     display: flex;
     align-items: center;
     gap: var(--space-3);
@@ -128,20 +128,15 @@
         background var(--ease);
 }
 
-.search-input.app-search-field {
-    background: var(--gg-search-background);
-    border-radius: var(--radius-sm);
+.app-search-field:hover,
+.search-input:hover {
+    border-color: var(--border-strong);
 }
 
-.app-search-field:hover {
-    border-color:
-        var(--border-strong);
-}
-
-.app-search-field:focus-within {
+/* Search wrappers follow the single-border focus of generic text fields. */
+.app-search-field:focus-within,
+.search-input:focus-within {
     border-color: var(--control-field-focus-color);
-    outline: 2px solid var(--control-field-focus-color);
-    outline-offset: 2px;
 }
 
 .app-search-field>svg {
