@@ -330,9 +330,12 @@
 {
     left:16px;
     right:16px;
-    color:var(--text-tertiary);
+    color:var(--text-placeholder);
+    font-family:inherit;
     font-style:normal;
-    font-size:15px;
+    font-size:14px;
+    font-weight:400;
+    letter-spacing:0;
     opacity:1;
 }
 
@@ -341,11 +344,6 @@
     padding:16px;
     font-size:15px;
     line-height:1.6;
-}
-
-.resource-picker-editor-modal [data-rp-note-rich]:focus-within .ql-editor.ql-blank::before
-{
-    color:var(--text-secondary);
 }
 
 .resource-picker-editor-modal #rpNoteToolbar
@@ -357,9 +355,25 @@
 }
 .resource-picker-editor-modal [data-rp-note-form] .rp-note-body-field { flex:1; min-height:0; gap:0; }
 .resource-picker-editor-modal [data-rp-note-form] .rp-note-body-field>label { margin-bottom:12px; }
-.resource-picker-editor-modal [data-rp-note-rich]:focus-within { border-color:var(--border-strong); }
+.resource-picker-editor-modal [data-rp-note-rich] .ql-editor:focus-visible {
+    outline: none;
+}
+/* Match the standard focused input border. */
+.resource-picker-editor-modal [data-rp-note-rich]:focus-within,
+.resource-picker-editor-modal .rp-note-body-field:has(
+    [data-rp-note-rich]:focus-within
+) #rpNoteToolbar {
+    border-color: var(--control-field-focus-color);
+}
+
 .resource-picker-editor-modal [data-rp-note-form] #rpNoteBody { flex:1; border:1px solid var(--border-default); border-radius:8px; }
-.resource-picker-editor-modal [data-rp-note-form] #rpNoteBody::placeholder { color:var(--text-tertiary); font-size:15px; }
+.resource-picker-editor-modal [data-rp-note-form] #rpNoteBody::placeholder
+{
+    color:var(--text-placeholder);
+    font-size:14px;
+    font-weight:400;
+    opacity:1;
+}
 .rp-record-title { display:flex; align-items:center; flex-wrap:wrap; gap:4px 8px; min-width:0; }
 .rp-record-title strong { min-width:0; max-width:100%; }
 .rp-uploaded-marker { color:var(--brand-green-400); font-size:11px; font-weight:600; flex:none; }
