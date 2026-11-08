@@ -159,12 +159,18 @@ function rpOpenNotePicker(options = {})
         afterCommit: (ids, result, session) =>
         {
             options.afterSave?.();
+
             const changes = session?.getChanges?.();
-            const message = changes?.removedIds.length ? rpText('Connections updated.', 'Связи обновлены.') : typeof options.successMessage === 'function'
-                ? options.successMessage(Number.isFinite(result?.addedLinkCount) ? result.addedLinkCount : changes?.addedIds.length ?? ids.length)
-                : options.successMessage;
+            const added = changes?.addedIds?.length || 0;
+            const removed = changes?.removedIds?.length || 0;
+
+            if ((!added && !removed) || options.suppressLinkToast === true) return;
+
+            const message = rpLinkChangeMessage('notes', added, removed);
+
             if (message) showToast(message);
         }
+
     };
     return openResourcePicker(adapter, options);
 }
@@ -226,13 +232,19 @@ function rpOpenSourcePicker(options = {})
                 return Array.isArray(saved) && saved.length === next.length && next.every(id => saved.includes(id));
             });
         },
-        afterCommit: () =>
+        afterCommit: (ids, result, session) =>
         {
             options.afterSave?.();
-            if (!draftMode)
-            {
-                showToast(rpText('Source links updated.', 'Связи с источниками обновлены.'));
-            }
+
+            const changes = session?.getChanges?.();
+            const added = changes?.addedIds?.length || 0;
+            const removed = changes?.removedIds?.length || 0;
+
+            if (!added && !removed) return;
+
+            const message = rpLinkChangeMessage('sources', added, removed);
+
+            if (message) showToast(message);
         }
     };
     return openResourcePicker(adapter, options);
@@ -334,7 +346,10 @@ function rpOpenPlacePicker(options = {})
             if (context) (context.afterSave || context.renderContext)?.();
             else (options.renderContext || renderNotesPreservingInteraction)();
             options.afterSave?.(ids, result, session);
-            showToast(context?.successMessage || rpText('Place links updated.', 'Связи с местами обновлены.'));
+            const changes = session?.getChanges?.();
+            const message = rpLinkChangeMessage('places', changes?.addedIds?.length || 0,
+                changes?.removedIds?.length || 0);
+            if (message) showToast(message);
         }
     };
     const session = openResourcePicker(adapter, options);

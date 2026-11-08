@@ -14,15 +14,21 @@
     {
         return { key: 'favorite', label: rpText('Favorites only', 'Только избранное'), type: 'checkbox' };
     }
-
-    function rpMediaAfterCommit(config, ids, result, session)
+    function rpMediaAfterCommit(config, ids, result, session, kind)
     {
         config.afterSave?.(ids, result, session);
+
         const changes = session?.getChanges?.();
-        const message = changes?.removedIds.length ? rpText('Connections updated.', 'Связи обновлены.')
-            : typeof config.successMessage === 'function' ? config.successMessage(changes?.addedIds.length ?? ids.length, result) : config.successMessage;
+        const added = changes?.addedIds?.length || 0;
+        const removed = changes?.removedIds?.length || 0;
+
+        if ((!added && !removed) || config.suppressLinkToast === true) return;
+
+        const message = rpLinkChangeMessage(kind, added, removed);
+
         if (message) showToast(message);
     }
+
 
     function rpMediaThumbnail(source, title)
     {
@@ -238,8 +244,8 @@
                 if (result?.cancelled) return result;
                 return rpMediaSaved(result) ? result : { ok: false, message: rpText('Photos could not be linked.', 'Не удалось связать фотографии.') };
             },
-            afterCommit: (ids, result, session) => rpMediaAfterCommit(config, ids, result, session),
-            successMessage: config.successMessage
+            afterCommit: (ids, result, session) =>
+                rpMediaAfterCommit(config, ids, result, session, 'photos'),
         };
         return openResourcePicker(adapter, config);
     }
@@ -457,8 +463,8 @@
                 const result = await options.onSave(ids, context);
                 return rpMediaSaved(result) ? result : { ok: false, message: rpText('File connections could not be saved.', 'Не удалось сохранить связи файлов.') };
             },
-            afterCommit: (ids, result, session) => rpMediaAfterCommit(options, ids, result, session),
-            successMessage: options.successMessage
+            afterCommit: (ids, result, session) =>
+                rpMediaAfterCommit(options, ids, result, session, 'files')
         };
         return openResourcePicker(adapter, options);
     }

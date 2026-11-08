@@ -30,9 +30,7 @@ function openPeopleLinkModal({
     onSave,
     afterSave =
         () =>
-        {},
-    successMessage =
-        'People links updated.'
+        {}
 } = {})
 {
     if (
@@ -857,21 +855,12 @@ function openPeopleLinkModal({
 
                 afterSave();
 
-                const savedCount =
-                    Number.isFinite(
-                        saved?.addedLinkCount
-                    )
-                        ? saved.addedLinkCount
-                        : nextIds.length;
-
-                showToast(
-                    typeof successMessage
-                === 'function'
-                        ? successMessage(
-                            savedCount
-                        )
-                        : successMessage
-                );
+                const added = [...selectedIds].filter(id =>
+                    !initialSelectedIds.has(id) && !existingPersonIdSet.has(id)).length;
+                const removed = [...initialSelectedIds].filter(id => !selectedIds.has(id)).length;
+                const message = rpLinkChangeMessage('people', added, removed)
+                    || (areaChanged() ? rpText('Connections updated.', 'Связи обновлены.') : '');
+                if (message) showToast(message);
             }
         }
     );
@@ -963,8 +952,6 @@ function openNotesPeopleModal()
         afterSave:
           renderNotesPreservingInteraction,
 
-        successMessage:
-          'People links updated.'
     });
 }
 
@@ -1121,15 +1108,6 @@ function openArchiveFilesPeopleModal(
                   );
               },
 
-        successMessage:
-          singleFile
-              ? 'People links updated.'
-              : count =>
-                  `${count} ${
-                      count === 1
-                          ? 'link was'
-                          : 'links were'
-                  } added to ${files.length} files.`
     });
 
     const imageSource = singleFile && archiveFileKind(singleFile) === 'img'
@@ -1270,13 +1248,6 @@ function openNotesPhotosModal()
         afterSave:
           renderNotesPreservingInteraction,
 
-        successMessage:
-          count =>
-              `${count} ${
-                  count === 1
-                      ? 'photo'
-                      : 'photos'
-              } added to note.`
     });
 }
 
@@ -1300,14 +1271,7 @@ function openEventLinkModal({
         () =>
         {},
     autoFocusSearch =
-        true,
-    successMessage =
-        count =>
-            `${count} ${
-                count === 1
-                    ? 'event'
-                    : 'events'
-            } added.`
+        true
 } = {})
 {
     if (
@@ -2678,25 +2642,11 @@ function openEventLinkModal({
                     return;
                 }
 
-                const addedCount =
-                    Number.isFinite(
-                        saved?.addedLinkCount
-                    )
-                        ? saved.addedLinkCount
-                        : nextIds.length;
-
                 closeModal();
-
                 afterSave();
 
-                showToast(
-                    typeof successMessage
-                === 'function'
-                        ? successMessage(
-                            addedCount
-                        )
-                        : successMessage
-                );
+                const message = rpLinkedCountMessage('events', nextIds.length);
+                if (message) showToast(message);
             }
         }
     );
@@ -2817,13 +2767,6 @@ function openNotesEventsModal()
         afterSave:
           renderNotesPreservingInteraction,
 
-        successMessage:
-          count =>
-              `${count} ${
-                  count === 1
-                      ? 'event'
-                      : 'events'
-              } added to note.`
     });
 }
 
@@ -2983,20 +2926,6 @@ function openArchiveFilesEventsModal(
                   );
               },
 
-        successMessage:
-          singleFile
-              ? count =>
-                  `${count} ${
-                      count === 1
-                          ? 'event'
-                          : 'events'
-                  } added to file.`
-              : count =>
-                  `${count} ${
-                      count === 1
-                          ? 'link was'
-                          : 'links were'
-                  } added to ${files.length} files.`
     });
 }
 
@@ -3127,13 +3056,6 @@ function openNoteFilesModal(
               renderNotesPreservingInteraction();
           },
 
-        successMessage:
-          count =>
-              `${count} ${
-                  count === 1
-                      ? 'file'
-                      : 'files'
-              } added to note.`,
 
         autoFocusSearch:
           false

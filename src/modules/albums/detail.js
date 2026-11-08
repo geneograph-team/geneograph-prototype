@@ -1136,14 +1136,6 @@ function openAlbumsPhotoNotesModal(
 
         afterSave:
           renderAlbumsPreserveViewport,
-
-        successMessage:
-          count =>
-              `${count} ${
-                  count === 1
-                      ? 'note was'
-                      : 'notes were'
-              } linked to the photo.`
     });
 }
 

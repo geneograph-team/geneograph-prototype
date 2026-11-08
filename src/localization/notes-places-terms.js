@@ -340,6 +340,9 @@ const RU_UI_NOTES = {
     'The note could not be unlinked.':
         'Не удалось удалить связь с заметкой.',
 
+    'Note unlinked from person.':
+        'Связь заметки с человеком удалена.',
+
     // ========================================
     // Note-specific linked-record flows
     // ========================================
@@ -350,8 +353,6 @@ const RU_UI_NOTES = {
     'The source is no longer available.':
         'Этот источник больше недоступен.',
 
-    'Notes linked to source.':
-        'Заметки связаны с источником.',
 
     'Place links could not be updated.':
         'Не удалось обновить связи с местами.',
@@ -362,11 +363,7 @@ const RU_UI_NOTES = {
     'People links could not be updated.':
         'Не удалось обновить связи с людьми.',
 
-    'Linked people updated.':
-        'Связанные люди обновлены.',
 
-    'People links updated.':
-        'Связи заметки с людьми обновлены.',
 
     'Create a place before linking it to this note.':
         'Создайте место, прежде чем связывать его с этой заметкой.',

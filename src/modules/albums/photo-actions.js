@@ -1001,6 +1001,7 @@ function openUnifiedImagePeopleModal(photoId, { mode = 'tag', activePersonId = n
                 modalMode = 'preview';
                 refreshOwner();
                 refresh();
+                showToast(rpLinkedCountMessage('people', 1));
                 focusActiveArea();
                 return;
             }

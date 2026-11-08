@@ -2311,14 +2311,6 @@ function openArchiveSourceFilesModal(
 
         afterSave:
           renderArchivePreservingSourceInspectorScroll,
-
-        successMessage:
-          count =>
-              `${count} ${
-                  count === 1
-                      ? 'file'
-                      : 'files'
-              } added to source.`
     });
 }
 

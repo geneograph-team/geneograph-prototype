@@ -480,21 +480,6 @@ function openArchiveFilesNoteModal(
                       ids
                   );
               },
-
-        successMessage:
-          singleFile
-              ? count =>
-                  `${count} ${
-                      count === 1
-                          ? 'note was'
-                          : 'notes were'
-                  } linked to the file.`
-              : count =>
-                  `${count} ${
-                      count === 1
-                          ? 'link was'
-                          : 'links were'
-                  } added to ${files.length} files.`
     });
 }
 
@@ -530,7 +515,6 @@ function openArchiveFilePlacesModal(fileId, query = '', resolveLegacy = false)
                     showToast(t('Places could not be updated.'));
                     return false;
                 }
-                showToast(t('Place links updated.'));
                 return true;
             },
             afterSave: renderArchive
@@ -724,7 +708,8 @@ function openArchiveFilesPlaceModal(
                 )
             );
 
-            showToast(`${t('Files linked:')} ${changedCount}`);
+            const message = rpLinkedCountMessage('files', changedCount);
+            if (message) showToast(message);
         }
     );
 
@@ -941,9 +926,6 @@ function openArchiveSourcePeopleModal(
 
         afterSave:
           renderArchivePreservingSourceInspectorScroll,
-
-        successMessage:
-          'Linked people updated.'
     });
 }
 
@@ -1139,14 +1121,6 @@ function openArchiveSourceEventsModal(
 
         afterSave:
           renderArchivePreservingSourceInspectorScroll,
-
-        successMessage:
-          count =>
-              `${count} ${
-                  count === 1
-                      ? 'event'
-                      : 'events'
-              } added to source.`
     });
 }
 
@@ -1320,9 +1294,6 @@ function openArchiveSourceNotesModal(
 
         afterSave:
           renderArchivePreservingSourceInspectorScroll,
-
-        successMessage:
-          'Notes linked to source.'
     });
 }
 
@@ -1468,14 +1439,6 @@ function openArchiveSourcePhotosModal(
 
         afterSave:
           renderArchivePreservingSourceInspectorScroll,
-
-        successMessage:
-          count =>
-              `${count} ${
-                  count === 1
-                      ? 'photo'
-                      : 'photos'
-              } added to source.`
     });
 }
 
@@ -1703,10 +1666,7 @@ function openArchiveSourcePlacesModal(
             },
 
             afterSave:
-            renderArchivePreservingSourceInspectorScroll,
-
-            successMessage:
-            'Place links updated.'
+            renderArchivePreservingSourceInspectorScroll
         }
     });
 }
@@ -1824,9 +1784,7 @@ function openArchiveConnectionPicker({ ownerType, ownerIds, entityType })
 
                       renderArchive();
 
-                      showToast(
-                          'Source created and linked.'
-                      );
+                      showToast(rpLinkedCountMessage('sources', 1));
                   }
                     }
                 );
@@ -1878,19 +1836,9 @@ function openArchiveConnectionPicker({ ownerType, ownerIds, entityType })
                     ids
                 );
 
-                showToast(
-                    `${result.addedLinkCount} ${
-                        result.addedLinkCount === 1
-                            ? 'link was'
-                            : 'links were'
-                    } added to ${
-                        result.changedFileCount
-                    } ${
-                        result.changedFileCount === 1
-                            ? 'file'
-                            : 'files'
-                    }.`
-                );
+                const kind = entityType === 'person' ? 'people' : 'events';
+                const message = rpLinkedCountMessage(kind, selected.size);
+                if (result.addedLinkCount > 0 && message) showToast(message);
 
                 return;
             }
@@ -1950,13 +1898,9 @@ function openArchiveConnectionPicker({ ownerType, ownerIds, entityType })
                 renderArchive();
             }
 
-            showToast(
-                `${addedCount} ${
-                    addedCount === 1
-                        ? 'link was'
-                        : 'links were'
-                } added.`
-            );
+            const kind = entityType === 'person' ? 'people' : 'events';
+            const message = rpLinkedCountMessage(kind, new Set(writes.map(write => write.entityId)).size);
+            if (message) showToast(message);
         }
     );
     refresh();

@@ -795,11 +795,7 @@ const RU_UI_ARCHIVE = {
     'Source links could not be updated.':
         'Не удалось обновить связи с источниками.',
 
-    'Source links updated.':
-        'Связи с источниками обновлены.',
 
-    'Source created and linked.':
-        'Источник создан и связан.',
 
     'Source created, but it could not be linked.':
         'Источник создан, но связать его не удалось.',

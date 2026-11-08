@@ -3267,8 +3267,8 @@ function bindAddPersonSideCards(options = {}, editPerson = null)
                 afterSave:
               refreshAddPersonAttachmentCounts,
 
-                successMessage:
-              null
+                suppressLinkToast:
+              true
             });
         });
 
@@ -3346,8 +3346,8 @@ function bindAddPersonSideCards(options = {}, editPerson = null)
                 afterSave:
               refreshAddPersonAttachmentCounts,
 
-                successMessage:
-              null
+                suppressLinkToast:
+              true
             });
         });
 

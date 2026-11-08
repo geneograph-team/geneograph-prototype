@@ -690,16 +690,6 @@ function translateDynamicPhrase(core)
     );
 
     repl(
-        /^(\d+)\s+events?\s+added to source\.$/i,
-        (_, number) =>
-            `К источнику добавлено ${
-                countPhrase(
-                    number,
-                    'event'
-                )
-            }.`
-    );
-    repl(
         /^(\d+)\s+sources?\s+linked$/i,
         (_, number) =>
             `Связано: ${
@@ -1580,25 +1570,7 @@ function translateDynamicPhrase(core)
             `Добавить файлы — ${translateValue(personName)}`
     );
 
-    repl(
-        /^(\d+)\s+files?\s+added to\s+(.+)\.$/i,
-        (_, count, personName) =>
-        {
-            const form = RU_PLURAL_RULES_FORMATTER.select(Number(count));
-            const verb = form === 'one' ? 'добавлен' : form === 'few' ? 'добавлены' : 'добавлено';
-            return `${translateValue(personName)}: ${verb} ${countPhrase(count, 'file')}.`;
-        }
-    );
 
-    repl(
-        /^(\d+)\s+notes?\s+(?:was|were)\s+linked to\s+(.+)\.$/i,
-        (_, count, personName) =>
-        {
-            const form = RU_PLURAL_RULES_FORMATTER.select(Number(count));
-            const verb = form === 'one' ? 'связана' : form === 'few' ? 'связаны' : 'связано';
-            return `${translateValue(personName)}: ${verb} ${countPhrase(count, 'note')}.`;
-        }
-    );
 
     repl(
         /^Link existing notes to\s+[“"](.+)[”"]\.$/i,

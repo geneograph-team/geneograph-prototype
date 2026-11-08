@@ -71,6 +71,38 @@ function rpText(english, russian)
     return state.language === 'ru' ? russian : english;
 }
 
+
+/* One shared confirmation for every module that links project records. */
+function rpLinkedCountMessage(kind, count)
+{
+    const singular = {
+        people: 'person', events: 'event', places: 'place',
+        sources: 'source', notes: 'note', files: 'file',
+        photos: 'photo', albums: 'album', collections: 'collection'
+    };
+    if (!Object.hasOwn(singular, kind) || !Number.isSafeInteger(count) || count < 1) return '';
+
+    if (state.language !== 'ru') return `${count} ${count === 1 ? singular[kind] : kind} linked.`;
+
+    const form = RU_PLURAL_RULES_FORMATTER.select(count);
+    const noun = RU_PLURALS[kind][form] || RU_PLURALS[kind].other;
+    const feminine = ['notes', 'photos', 'collections'].includes(kind);
+    const verb = form === 'one' ? (feminine ? 'связана' : 'связан')
+        : form === 'few' ? 'связаны' : 'связано';
+    // Neuter singular: место/событие связано.
+    const agreement = form === 'one' && ['places', 'events'].includes(kind) ? 'связано' : verb;
+    return `${count} ${noun} ${agreement}.`;
+}
+
+/* Mixed add/remove selections cannot accurately be described as only new links. */
+function rpLinkChangeMessage(kind, added, removed = 0)
+{
+    return removed > 0
+        ? rpText('Connections updated.', 'Связи обновлены.')
+        : rpLinkedCountMessage(kind, added);
+}
+
+
 function rpInitMembershipPicker(modal)
 {
     modal.classList.add('membership-picker');

@@ -1903,7 +1903,10 @@ function openAddToAlbumModal()
                 closeModal();
                 renderAlbums();
 
-                showToast(rpText('Album memberships updated.', 'Связи с альбомами обновлены.'));
+                const added = [...albumDecisions.values()].filter(Boolean).length;
+                const removed = albumDecisions.size - added;
+                const message = rpLinkChangeMessage('albums', added, removed);
+                if (message) showToast(message);
             }
         }
     );

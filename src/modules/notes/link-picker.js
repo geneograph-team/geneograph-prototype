@@ -307,14 +307,6 @@ function openNotesRelatedModal()
 
         afterSave:
           renderNotesPreservingInteraction,
-
-        successMessage:
-          count =>
-              `${count} ${
-                  count === 1
-                      ? 'note was'
-                      : 'notes were'
-              } related in both notes.`
     });
 }
 

@@ -224,7 +224,6 @@ const RU_UI_SHARED = Object.freeze({
     'Choose or create a place. Existing file places will stay linked.': 'Выберите или создайте место. Существующие связи файлов с местами сохранятся.',
     'Files to link:': 'Связать файлов:',
     'This place is already linked to every selected file': 'Это место уже связано со всеми выбранными файлами',
-    'Files linked:': 'Связано файлов:',
     'Places could not be updated.': 'Не удалось обновить связи с местами.',
     'Your unsaved source details will be lost.': 'Несохранённые изменения источника будут потеряны.',
     'Enter a source name before saving.': 'Укажите название источника перед сохранением.',

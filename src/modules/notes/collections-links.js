@@ -947,7 +947,10 @@ function openNoteCollectionsModal(
 
                 renderNotesPreservingInteraction();
 
-                showToast(rpText('Collection memberships updated.', 'Связи с коллекциями обновлены.'));
+                const added = [...collectionDecisions.values()].filter(Boolean).length;
+                const removed = collectionDecisions.size - added;
+                const message = rpLinkChangeMessage('collections', added, removed);
+                if (message) showToast(message);
             }
         }
     );

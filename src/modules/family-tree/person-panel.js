@@ -178,14 +178,6 @@ function openPersonFilesModal(
           {
               renderAfterPersonConnectedResourcesChanged();
           },
-
-        successMessage:
-          count =>
-              `${count} ${
-                  count === 1
-                      ? 'file'
-                      : 'files'
-              } added to ${name}.`
     });
 }
 
@@ -592,14 +584,6 @@ function openPersonNotesModal(
                   }
               );
           },
-
-        successMessage:
-          count =>
-              `${count} ${
-                  count === 1
-                      ? 'note was'
-                      : 'notes were'
-              } linked to ${personLabel}.`
     });
 }
 

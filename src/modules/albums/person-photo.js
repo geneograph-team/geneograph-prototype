@@ -2247,13 +2247,7 @@ function commitPersonPhotosAdder()
 
     renderAfterPersonConnectedResourcesChanged();
 
-    showToast(
-        `${totalAdded} ${
-            totalAdded === 1
-                ? 'photo'
-                : 'photos'
-        } added to ${name}.`
-    );
+    showToast(rpLinkedCountMessage('photos', totalAdded));
 }
 
 function bindPersonPhotosAdderModal()
