@@ -166,6 +166,7 @@ const PROJECT_COVER_STYLES = [
     'photo'
 ];
 const GOLDEN_TREE_COVER_SRC = 'assets/covers/panoramic-golden-family-tree-landscape.jpg';
+const PAPER_COVER_SRC = 'assets/covers/archival-project-cover.jpg';
 
 function normalizeProjectCoverPosition(position)
 {
@@ -195,9 +196,17 @@ function normalizeProjectCoverStyle(
         : 'paper';
 }
 
+function projectCoverPresetImageSource(coverStyle)
+{
+    if (coverStyle === 'paper') return PAPER_COVER_SRC;
+    if (coverStyle === 'golden-tree') return GOLDEN_TREE_COVER_SRC;
+    return '';
+}
+
 function projectCoverImageSource(project)
 {
-    if (project?.cover === 'golden-tree') return GOLDEN_TREE_COVER_SRC;
+    const presetSource = projectCoverPresetImageSource(project?.cover);
+    if (presetSource) return presetSource;
     if (!project || project.cover !== 'photo') return '';
     const photo = project.coverPhotoId
         ? getPhoto(project.coverPhotoId, { projectId: project.id })
@@ -235,23 +244,15 @@ function projectCoverStyleAttribute(
             coverStyle
         );
 
-    if (
-        normalizedCover === 'paper'
-    )
-    {
-        return `--cover:url('${projectCoverCssUrl('assets/covers/archival-project-cover.jpg')}');background-size:cover;background-position:center;`;
-    }
-
-    const imageSource = normalizedCover === 'golden-tree'
-        ? GOLDEN_TREE_COVER_SRC : photoSource;
-    if ((normalizedCover === 'photo' || normalizedCover === 'golden-tree') && imageSource)
+    const imageSource = projectCoverPresetImageSource(normalizedCover) || photoSource;
+    if (normalizedCover !== 'tree' && imageSource)
     {
         const safeSource = projectCoverCssUrl(imageSource);
         const point = normalizeProjectCoverPosition(position);
         return `--cover:url('${safeSource}');background-color:var(--surface-card);background-size:cover;background-position:${point.x}% ${point.y}%;`;
     }
 
-    if (normalizedCover === 'photo') return projectCoverStyleAttribute('paper');
+    if (normalizedCover === 'photo') return projectCoverStyleAttribute('paper', '', position);
 
     return `--cover:url('${projectCoverCssUrl('assets/covers/full-tree-project-cover.png')}');background-color:var(--surface-card);background-size:contain;background-position:center;`;
 }
@@ -1392,8 +1393,8 @@ function openProjectCoverModal(
     const currentPhotoSource = () => selectedPhoto.uploadDraft?.src
         || (selectedPhoto.photoId ? getPhoto(selectedPhoto.photoId, { projectId: project.id })?.src : '')
         || selectedPhoto.imageSrc || '';
-    const activeSource = () => selectedCover === 'golden-tree'
-        ? GOLDEN_TREE_COVER_SRC : selectedCover === 'photo' ? currentPhotoSource() : '';
+    const activeSource = () => projectCoverPresetImageSource(selectedCover)
+        || (selectedCover === 'photo' ? currentPhotoSource() : '');
     const positioner = bindProjectCoverPositioner(preview, {
         getSource: activeSource,
         getPosition: () => selectedPosition,

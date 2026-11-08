@@ -2272,7 +2272,7 @@ button {
     overflow: hidden;
 }
 
-.project-hero.has-photo-cover {
+.project-hero.has-image-cover {
     --text-primary: var(--gg-text);
     --text-secondary: var(--gg-text-secondary);
     --text-tertiary: var(--gg-text-muted);
@@ -2282,7 +2282,7 @@ button {
     background-size: cover;
     background-position: center, var(--cover-position, center);
 }
-.project-hero.has-photo-cover::after { display: none; }
+.project-hero.has-image-cover::after { display: none; }
 
 .project-hero::after {
     content: "";
@@ -4315,7 +4315,8 @@ body.mobile-details-open .geneo-inspector [data-geneo-inspector-toggle] {
 }
 
 .project-cover-preview {
-    height: 152px;
+    width: 100%;
+    aspect-ratio: 7 / 2;
     border: 1px solid var(--border-default);
     border-radius: var(--radius-sm);
     background: var(--cover, linear-gradient(145deg, color-mix(in srgb, var(--gg-selected) 90%, transparent), color-mix(in srgb, var(--gg-panel) 82%, transparent)));
@@ -4358,17 +4359,6 @@ body.mobile-details-open .geneo-inspector [data-geneo-inspector-toggle] {
 .project-cover-modal-body {
     display: grid;
     gap: var(--space-4);
-}
-
-.project-cover-modal-preview {
-    width: 100%;
-    height: 184px;
-}
-
-@media (max-width: 600px) {
-    .project-cover-modal-preview {
-        height: 140px;
-    }
 }
 
 .project-cover-options {
@@ -4429,13 +4419,12 @@ body.mobile-details-open .geneo-inspector [data-geneo-inspector-toggle] {
 .project-cover-photo-error { margin: 0; color: var(--red); }
 .project-cover-photo-preview-pane { min-width: 0; padding: var(--space-4); border-left: 1px solid var(--border-default); background: var(--surface-main); }
 .project-cover-photo-preview-pane h3 { margin: 0 0 var(--space-3); font-size: 16px; }
-.project-cover-photo-preview { height: 180px; background-size: cover; }
+.project-cover-photo-preview { background-size: cover; }
 .project-cover-photo-modal [data-cover-photo-confirm]:disabled { opacity: .45; cursor: not-allowed; }
 
 @media (max-width: 700px) {
     .project-cover-photo-body { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr); }
     .project-cover-photo-preview-pane { grid-row: 1; border-left: 0; border-bottom: 1px solid var(--border-default); padding: var(--space-3); }
-    .project-cover-photo-preview { height: 100px; }
     .project-cover-photo-library { grid-row: 2; padding: var(--space-3); }
     .project-cover-photo-toolbar { flex-wrap: wrap; }
     .project-cover-photo-library .project-cover-photo-search { flex-basis: 100%; }
@@ -4641,10 +4630,6 @@ body.mobile-details-open .geneo-inspector [data-geneo-inspector-toggle] {
 
 .project-settings-cover-card .project-settings-section-body {
     align-content: start;
-}
-
-.project-settings-cover-card .project-cover-preview {
-    height: 184px;
 }
 
 .project-settings-full-card,

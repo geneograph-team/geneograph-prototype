@@ -486,7 +486,7 @@ function renderOpenProject()
       ` : `
         <div class="page-grid open-project-page project-wide-hero-page">
           <section class="main-column">
-            <div class="project-hero${projectCoverImageSource(project) ? ' has-photo-cover' : ''}"
+            <div class="project-hero${projectCoverImageSource(project) ? ' has-image-cover' : ''}"
               ${projectCoverImageSource(project) ? `style="${projectHeroCoverStyleAttribute(project)}"` : ''}>
               <div class="project-hero-layout">
                 <div class="hero-content">
@@ -628,7 +628,8 @@ function getProjectSettingsDraft(project)
 function projectSettingsCoverSource(draft)
 {
     if (!draft) return '';
-    if (draft.cover === 'golden-tree') return GOLDEN_TREE_COVER_SRC;
+    const presetSource = projectCoverPresetImageSource(draft.cover);
+    if (presetSource) return presetSource;
     if (draft.cover !== 'photo') return '';
     return draft.coverSelection.uploadDraft?.src
         || (draft.coverSelection.photoId
