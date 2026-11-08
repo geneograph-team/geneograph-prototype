@@ -759,6 +759,9 @@ function openResourcePicker(adapter, options = {})
     });
     modalBackdrop.beforeClose = requestClose;
     session.render();
+    // The opener localized the modal before the first results were rendered.
+    // Localize this first batch now, while its mutation-observer replay is suppressed.
+    localizeUI(root, { suppressObserverReplay: true });
     requestAnimationFrame(() => root.querySelector('[data-rp-heading]')?.focus({ preventScroll: true }));
     return session;
 }
