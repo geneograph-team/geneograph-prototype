@@ -1915,10 +1915,14 @@
 .places-inspector-section>summary>span:first-child {
     min-width: 0;
     flex: 1 1 auto;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .places-inspector-section-summary-meta {
-    flex: 0 0 auto;
+    min-width: 0;
+    flex: 0 1 auto;
 
     display:
         inline-flex;
@@ -1934,7 +1938,10 @@
 }
 
 .places-inspector-section-count {
-    flex: 0 0 auto;
+    min-width: 0;
+    flex: 0 1 auto;
+    overflow: hidden;
+    text-overflow: ellipsis;
 
     color:
         var(--text-tertiary);
@@ -1958,6 +1965,8 @@
 
     height:
         16px;
+
+    flex: 0 0 16px;
 
     display:
         inline-flex;
@@ -3295,7 +3304,6 @@
 
     .notes-panel-section[data-note-editor-section="collections"] .panel-section-heading {
         min-width: 0;
-        flex-wrap: wrap;
         column-gap: 8px;
     }
 

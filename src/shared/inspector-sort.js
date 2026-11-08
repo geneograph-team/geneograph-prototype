@@ -74,7 +74,7 @@ function renderInspectorSection(
 
                 ${
                     meta
-                        ? `<span>${escapeHtml(meta)}</span>`
+                        ? `<span class="panel-section-count" title="${escapeHtml(meta)}">${escapeHtml(meta)}</span>`
                         : ''
                 }
               </span>
