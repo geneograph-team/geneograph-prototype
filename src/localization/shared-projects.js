@@ -530,7 +530,7 @@ const RU_UI_SHARED = Object.freeze({
     'About GeneoGraph': 'О GeneoGraph',
     'Prototype information and useful links.': 'Информация о прототипе и полезные ссылки.',
     'GeneoGraph prototype': 'Прототип GeneoGraph',
-    'Version 0.1 prototype - local-first genealogy workspace': 'Версия 0.1 — прототип локального рабочего пространства для генеалогии',
+    'Version 1.2.0 prototype': 'Версия 1.2.0',
     'Product tour': 'Экскурсия по продукту',
     'Coming soon': 'Скоро появится',
     'Privacy policy': 'Политика конфиденциальности',
