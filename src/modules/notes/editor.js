@@ -164,6 +164,7 @@ function touchNote(
 
     note.updatedAt =
         new Date().toISOString();
+    markPrototypeSessionEdited();
 
     setNotesSaveStatus(
         'Saving'
@@ -966,6 +967,7 @@ function duplicateCentralNote(
     sampleData.notes.unshift(
         copy
     );
+    markPrototypeSessionEdited();
 
     setNoteEntityLinks(
         copy.id,

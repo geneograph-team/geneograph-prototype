@@ -95,6 +95,7 @@ function openGeneographBoardChooser(personIds)
         const now = new Date().toISOString();
         const board = { id: createRuntimeId('board'), projectId, title, description: '', collectionIds: [], modified: 'Just now', modifiedAt: now, createdAt: now, favorite: false, archived: false, diagram: createEmptyGeneographDiagram() };
         sampleData.boards.unshift(board);
+        markPrototypeSessionEdited();
         geneoAddPeopleToBoard(board.id);
     });
     renderList();

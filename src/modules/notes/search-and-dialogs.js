@@ -359,6 +359,7 @@ function deleteNotePermanently(
         index,
         1
     );
+    markPrototypeSessionEdited();
 
     sampleData.notes.forEach(
         note =>
@@ -1337,6 +1338,7 @@ function createCentralNote(
     sampleData.notes.unshift(
         newNote
     );
+    markPrototypeSessionEdited();
 
     if (creationContext)
     {

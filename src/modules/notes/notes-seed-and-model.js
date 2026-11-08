@@ -1973,6 +1973,7 @@ function setNoteEntityLinks(
 
     if (touchUpdatedAt)
     {
+        markPrototypeSessionEdited();
         if (
             state.activeModule === 'Notes'
           && state.selectedNoteId
@@ -2513,6 +2514,7 @@ function setNoteCollections(
 
     note.collectionIds =
         nextCollectionIds;
+    if (touchUpdatedAt) markPrototypeSessionEdited();
 
     if (touchUpdatedAt)
     {

@@ -2563,6 +2563,7 @@ function deleteGeneographBoard(
 
     // Remove the canvas container, not the records it references.
     sampleData.boards.splice(index, 1);
+    markPrototypeSessionEdited();
 
     return true;
 }

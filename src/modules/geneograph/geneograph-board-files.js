@@ -368,6 +368,7 @@ function importGeneographBoardPayload(payload, projectId = currentProjectId())
     }, projectPeople);
     // Commit only after normalization has succeeded.
     sampleData.boards.unshift(board);
+    markPrototypeSessionEdited();
     if (payload.viewport)
         state.geneoBoardViewports[board.id] = {
             zoom: Math.max(25, Math.min(200, Math.round(payload.viewport.zoom))),

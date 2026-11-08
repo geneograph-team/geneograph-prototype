@@ -121,6 +121,7 @@ function createArchiveFolderRecord(
         .push(
             folder
         );
+    markPrototypeSessionEdited();
 
     if (
         normalizedParentId
@@ -1109,6 +1110,7 @@ function openArchiveSourceModal(
 
             target.updatedAt =
                 now;
+            markPrototypeSessionEdited();
 
             const created =
                 !source;

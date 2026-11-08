@@ -1030,6 +1030,7 @@ function saveEditPersonModalValues(personId)
     syncFamilyReciprocalLinks();
 
     markPersonUpdated(person);
+    markPrototypeSessionEdited();
     rebuildSampleEventsAndPruneSourceLinks();
 
     closeModal({ force: true });

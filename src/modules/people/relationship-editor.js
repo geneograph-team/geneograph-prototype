@@ -2183,6 +2183,7 @@ function connectPeopleByRelationship({
 
     syncFamilyReciprocalLinks();
     rebuildSampleEventsAndPruneSourceLinks();
+    markPrototypeSessionEdited();
 
     return {
         ...result,
@@ -2595,6 +2596,7 @@ function commitAddPersonModalCreate(title, subtitle, options = {})
     }
 
     applyAddPersonAttachmentDrafts(newPerson.id);
+    markPrototypeSessionEdited();
 
     rebuildSampleEventsAndPruneSourceLinks();
 
@@ -3768,6 +3770,7 @@ function unlinkParentChildRelationship({ parentId, childId, familyId = '' } = {}
 
     unlinkApplyFamilyAliases(family);
     unlinkRemoveFamilyIfEmptyAndOrphaned(family);
+    markPrototypeSessionEdited();
 
     return {
         ok: true,
@@ -3825,6 +3828,7 @@ function unlinkPartnerRelationship({ personAId, personBId, familyId = '', keepCh
     }
 
     unlinkRemoveFamilyById(family.id);
+    markPrototypeSessionEdited();
 
     return {
         ok: true,
@@ -4749,6 +4753,7 @@ function saveRelationshipEdit(context)
         };
     }
     family.updatedAt = 'Just now';
+    markPrototypeSessionEdited();
     return true;
 }
 

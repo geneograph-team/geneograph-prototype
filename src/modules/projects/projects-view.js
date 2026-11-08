@@ -664,20 +664,12 @@ function projectSettingsHasUnsavedChanges()
         || draftPosition.y !== savedPosition.y;
 }
 
-function projectSettingsBeforeUnload(event)
-{
-    if (!projectSettingsHasUnsavedChanges()) return;
-    event.preventDefault();
-    event.returnValue = '';
-}
-
 function updateProjectSettingsDirtyState()
 {
     const dirty = projectSettingsHasUnsavedChanges();
     const actions = main.querySelector('.project-settings-page-actions');
     if (actions) actions.hidden = !dirty;
-    window.removeEventListener('beforeunload', projectSettingsBeforeUnload);
-    if (dirty) window.addEventListener('beforeunload', projectSettingsBeforeUnload);
+    updatePrototypeSessionUnloadGuard();
 }
 
 function runAfterProjectSettingsGuard(commit)

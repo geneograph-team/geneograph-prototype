@@ -2359,6 +2359,7 @@ function createGeneographCollection({
     sampleData.boardCollections.push(
         collection
     );
+    markPrototypeSessionEdited();
 
     return collection;
 }

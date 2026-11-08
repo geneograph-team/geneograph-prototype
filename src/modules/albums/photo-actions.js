@@ -1844,6 +1844,7 @@ function toggleAlbumPhotoFavourite(
         !photo.favorite;
     photo.favoriteUpdatedAt =
         new Date().toISOString();
+    markPrototypeSessionEdited();
 
     renderAlbumsPreserveViewport({
         focusPhotoId: photo.id,
@@ -1970,6 +1971,7 @@ function deletePhotosPermanently(
             )
         );
 
+    markPrototypeSessionEdited();
     sampleData.projects.forEach(project =>
     {
         if (!ids.has(project.coverPhotoId)) return;

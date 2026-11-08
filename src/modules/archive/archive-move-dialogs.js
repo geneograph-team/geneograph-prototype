@@ -1634,6 +1634,8 @@ function openArchiveMoveModal({
                     ? 1
                     : stats.movableCount;
 
+            if (movedCount) markPrototypeSessionEdited();
+
             const movedMessage =
                 movingFolder
                     ? `${

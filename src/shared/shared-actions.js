@@ -146,7 +146,9 @@ function formatProjectModified(
 
 function touchProjectModified(project)
 {
-    if (project) project.modifiedAt = new Date().toISOString();
+    if (!project) return;
+    project.modifiedAt = new Date().toISOString();
+    markPrototypeSessionEdited();
 }
 
 function updateProjectName(projectId, value)
@@ -1210,6 +1212,7 @@ function duplicateProject(projectId)
         desc: project.desc || ''
     };
     sampleData.projects.unshift(copy);
+    markPrototypeSessionEdited();
     state.selectedProjectId = copy.id;
     renderStartup();
     showToast('Project duplicated.');
@@ -1580,6 +1583,7 @@ function deleteProject(projectId)
         sampleData[collectionName] = sampleData[collectionName].filter(record => record?.projectId !== project.id);
     });
     sampleData.projects = sampleData.projects.filter(item => item.id !== project.id);
+    markPrototypeSessionEdited();
 
     if (sampleData.projectContinuation?.projectId === project.id) sampleData.projectContinuation = null;
     if (state.projectContinuation?.projectId === project.id) clearProjectContinuation();
@@ -1961,6 +1965,7 @@ function createBlankProject({ name, description = '' })
     };
 
     sampleData.projects.push(project);
+    markPrototypeSessionEdited();
     return project;
 }
 

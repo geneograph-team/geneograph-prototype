@@ -257,6 +257,7 @@ function markPersonUpdated(
 
     person.updatedAt =
         now;
+    markPrototypeSessionEdited();
 }
 
 function toPeopleRecord(

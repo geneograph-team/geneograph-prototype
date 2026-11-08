@@ -227,6 +227,7 @@ function setPhotoPersonRegion(photo, personId, region)
     const person = getPerson(personId);
     if (normalized && person?.primaryPhotoId === photo.id) person.primaryPhotoCrop = null;
     photo.updatedAt = new Date().toISOString();
+    markPrototypeSessionEdited();
     return true;
 }
 const PERSON_PHOTO_ZOOM_MIN = 1;
@@ -288,6 +289,7 @@ function setPhotoPersonIds(photoId, personIds, { rerender = true } = {})
         );
     }
     photo.updatedAt = new Date().toISOString();
+    markPrototypeSessionEdited();
     repairPrimaryPhotoReferences([photo.id]);
     if (rerender) render();
     return true;
@@ -312,6 +314,7 @@ function setPersonPhotoIds(personId, photoIds, { rerender = true } = {})
         photo.updatedAt = new Date().toISOString();
     });
     repairPrimaryPhotoReferences();
+    markPrototypeSessionEdited();
     if (rerender) render();
     return true;
 }

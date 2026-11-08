@@ -308,6 +308,8 @@ function addPhotosToAlbums(
         );
     });
 
+    if (changedPhotoIds.size) markPrototypeSessionEdited();
+
     return {
         changedPhotoCount:
           changedPhotoIds.size,

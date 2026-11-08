@@ -1224,6 +1224,7 @@ function saveArchiveFileEdit()
 
     file.updated =
         'Just now';
+    markPrototypeSessionEdited();
 
     resetArchiveFileEditState();
     renderArchive();
@@ -1375,6 +1376,7 @@ function saveArchiveFileRename()
     file.name = name;
     file.updatedAt = new Date().toISOString();
     file.updated = 'Just now';
+    markPrototypeSessionEdited();
     state.archiveFileNameEditingId = '';
     state.archiveFileNameOriginal = '';
     renderArchiveMain();

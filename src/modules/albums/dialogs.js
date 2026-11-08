@@ -115,6 +115,7 @@ function openNewAlbumModal()
                 sampleData.albums.push(
                     album
                 );
+                markPrototypeSessionEdited();
 
                 state.albumsView =
                     'album';
@@ -271,6 +272,7 @@ function openEditAlbumModal()
 
                 album.description =
                     nextDescription;
+                markPrototypeSessionEdited();
 
                 closeModal();
                 renderAlbums();
@@ -290,7 +292,11 @@ function openDeleteAlbumConfirm(albumId)
     modalBackdrop.querySelector('[data-confirm-album-delete]')?.addEventListener('click', () =>
     {
         const albumIndex = sampleData.albums.findIndex(item => item.id === album.id);
-        if (albumIndex >= 0) sampleData.albums.splice(albumIndex, 1);
+        if (albumIndex >= 0)
+        {
+            sampleData.albums.splice(albumIndex, 1);
+            markPrototypeSessionEdited();
+        }
         const now = new Date().toISOString();
         sampleData.media.forEach(photo =>
         {
@@ -1752,6 +1758,7 @@ function openAddToAlbumModal()
             sampleData.albums.push(
                 album
             );
+            markPrototypeSessionEdited();
 
             selectedAlbumIds.add(
                 album.id
@@ -1932,6 +1939,7 @@ function removePhotoFromAlbum(
 
     photo.updatedAt =
         new Date().toISOString();
+    markPrototypeSessionEdited();
 
     return true;
 }

@@ -2263,6 +2263,7 @@ function openGeneographBoardDetailsModal({
                 sampleData.boards.unshift(
                     newBoard
                 );
+                markPrototypeSessionEdited();
 
                 state.selectedGeneoBoardId =
                     newBoard.id;
@@ -4182,6 +4183,7 @@ function touchGeneographBoard(board = selectedGeneographBoard())
     if (!board) return;
     board.modifiedAt = new Date().toISOString();
     board.modified = 'Just now';
+    markPrototypeSessionEdited();
     invalidateGeneographBoardPreview(board.id);
 }
 

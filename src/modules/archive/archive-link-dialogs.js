@@ -2466,6 +2466,7 @@ function deleteArchiveFilesPermanently(fileIds)
         note.linkedArchiveFileIds = (note.linkedArchiveFileIds || []).filter(id => !ids.has(id));
     });
     sampleData.archiveFiles = (sampleData.archiveFiles || []).filter(file => !ids.has(file.id));
+    if (ids.size) markPrototypeSessionEdited();
     state.archiveSelectedFileIds = [];
     if (ids.has(state.archiveSelectedFileId)) state.archiveSelectedFileId = null;
 }
@@ -2538,6 +2539,7 @@ function openArchiveDeleteFolderConfirm(folderId)
                             item.id
                         )
                     );
+                if (ids.size) markPrototypeSessionEdited();
 
                 closeModal();
 
@@ -2609,6 +2611,7 @@ function archiveMoveBulkItems(items, destinationId)
     const now = new Date().toISOString();
     items.folders.forEach(folder => { folder.parentId = destinationId; folder.updatedAt = now; });
     items.files.forEach(file => { file.folderId = destinationId; file.updatedAt = now; file.updated = 'Just now'; });
+    markPrototypeSessionEdited();
     state.archiveSelectedFolderIds = [];
     state.archiveSelectedFileIds = [];
     state.archiveSelectedFolderItemId = null;
@@ -2845,6 +2848,7 @@ function openArchiveBulkDeleteConfirm(folderIds, fileIds)
     modalBackdrop.querySelector('[data-archive-bulk-delete-confirm]')?.addEventListener('click', () => {
         deleteArchiveFilesPermanently([...deletedFiles]);
         sampleData.archiveFolders = (sampleData.archiveFolders || []).filter(folder => !deletedFolderIds.has(folder.id));
+        if (deletedFolderIds.size) markPrototypeSessionEdited();
         state.archiveSelectedFolderIds = [];
         state.archiveSelectedFileIds = [];
         state.archiveSelectedFolderItemId = null;
@@ -2867,6 +2871,7 @@ function openArchiveDeleteSourceConfirm(sourceId)
             source.id
         );
         sampleData.sources = (sampleData.sources || []).filter(item => item.id !== source.id);
+        markPrototypeSessionEdited();
         state.archiveSelectedSourceId = null;
         closeModal();
         renderArchive();

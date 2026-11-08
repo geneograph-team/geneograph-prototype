@@ -1,3 +1,33 @@
+// "Save" in the prototype writes to memory, not durable project storage.
+// Track committed edits for the remainder of the browser session. Do not treat
+// navigation, filtering, selection or project viewing as edits.
+let prototypeSessionHasEdits = false;
+let prototypeSessionUnloadListening = false;
+
+function markPrototypeSessionEdited()
+{
+    if (prototypeSessionHasEdits) return;
+    prototypeSessionHasEdits = true;
+    updatePrototypeSessionUnloadGuard();
+}
+
+function prototypeSessionBeforeUnload(event)
+{
+    if (!prototypeSessionHasEdits && !projectSettingsHasUnsavedChanges()) return;
+    event.preventDefault();
+    event.returnValue = '';
+}
+
+function updatePrototypeSessionUnloadGuard()
+{
+    const shouldListen = prototypeSessionHasEdits || projectSettingsHasUnsavedChanges();
+    if (shouldListen === prototypeSessionUnloadListening) return;
+    prototypeSessionUnloadListening = shouldListen;
+    window[shouldListen ? 'addEventListener' : 'removeEventListener'](
+        'beforeunload', prototypeSessionBeforeUnload
+    );
+}
+
 document.addEventListener('keydown', event =>
 {
     if (event.key !== 'Escape') return;

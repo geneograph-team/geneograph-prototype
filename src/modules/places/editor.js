@@ -874,6 +874,7 @@ function commitPlaceEditorDraft({ allowDuplicate = false } = {})
         clearPlaceReviewDismissals(place.id, PLACE_REVIEW_COORDINATE_ISSUE_TYPES);
     }
     if (!existing) sampleData.places.unshift(place);
+    markPrototypeSessionEdited();
     state.selectedPlaceId =
         place.id;
 
@@ -1651,6 +1652,7 @@ function openDeletePlaceModal(placeId, { returnToEditor = false } = {})
             place.id
         );
         sampleData.places = sampleData.places.filter(item => item.id !== place.id);
+        markPrototypeSessionEdited();
         sampleData.placeIssues = (sampleData.placeIssues || []).filter(issue => issue.placeId !== place.id);
         sampleData.people.forEach(person => [person, person.birth, person.death, ...(person.events || []), ...(person.attributes || [])].filter(Boolean).forEach(record => clearStructuredPlaceReferences(record, place.id)));
         centralFamilyRecords().forEach(family => [family, ...(family.events || [])].forEach(record => clearStructuredPlaceReferences(record, place.id)));

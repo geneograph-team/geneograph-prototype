@@ -2176,6 +2176,7 @@ function saveArchiveSourceDetailEdit()
         return;
     }
     Object.assign(source, draft, { updatedAt: new Date().toISOString() });
+    markPrototypeSessionEdited();
     resetArchiveSourceDetailEdit();
     renderArchiveMain();
     requestAnimationFrame(() => main.querySelector('[data-archive-edit-source-details]')?.focus({ preventScroll: true }));

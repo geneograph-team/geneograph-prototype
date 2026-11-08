@@ -281,6 +281,7 @@ function saveAlbumsPhotoEdit()
 
     photo.updatedAt =
         new Date().toISOString();
+    markPrototypeSessionEdited();
 
     resetAlbumsPhotoEditState();
     renderAlbums();
@@ -408,6 +409,7 @@ function saveAlbumsPhotoRename()
     }
     photo.title = name;
     photo.updatedAt = new Date().toISOString();
+    markPrototypeSessionEdited();
     state.albumsNameEditingId = '';
     state.albumsNameOriginal = '';
     renderAlbums();

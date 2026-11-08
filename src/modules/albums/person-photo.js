@@ -1030,6 +1030,7 @@ function createMediaFromPhotoUpload({
     sampleData.media.push(
         photo
     );
+    markPrototypeSessionEdited();
 
     return photo;
 }

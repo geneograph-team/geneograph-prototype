@@ -147,6 +147,7 @@ function deletePeopleRecords(personIds)
 
     syncFamilyReciprocalLinks();
     rebuildSampleEventsAndPruneSourceLinks();
+    markPrototypeSessionEdited();
     closeModal();
     render();
     showToast(validIds.length === 1 ? 'Person deleted.' : `${validIds.length} people deleted.`);
