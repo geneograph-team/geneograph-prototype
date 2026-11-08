@@ -32,6 +32,19 @@ The original monolithic `index.html` has been split: the application now lives i
 - Stylesheets: `src/core/palette/geneograph-v3.css` owns approved UI colors; `src/core/foundation.css` defines semantic compatibility aliases and resets; `src/shared/controls.css` owns reusable control appearance and loads immediately after foundation. Feature and other shared styles follow in the order shown in `src/index.html`. Check the cascade before changing selectors.
 - Static media live in `src/assets/photos/`, `documents/`, `covers/`, `ui/`, and `boards/`.
 
+## ChatGPT GitHub Pull Request Workflow
+
+These rules apply when ChatGPT works through the connected GitHub repository from a chat. The local-workspace instructions above still apply to agents operating in a local checkout.
+
+- Treat the current pushed GitHub branch as the source for remote edits; check the repository's default branch and current file content before changing anything. Local uncommitted or unpushed changes are not available through the GitHub connection.
+- Respect the user's requested stage: for **review/audit/report only**, do not write code; an explicit **implement/fix/create a patch or PR** request authorizes implementation. Otherwise, present findings and wait for approval before writing.
+- For an authorized GitHub change, create a **new, descriptively named branch from the current default branch** for that focused issue. Never commit directly to the default branch, force-push, or overwrite unrelated work.
+- Keep edits minimal and consistent with the repository's code, styling, localization, and file-format rules. Fetch the latest affected files and their SHAs; if a branch has diverged or changes conflict, inspect and resolve safely rather than silently replacing someone else's work.
+- Verify the proposed change with appropriate available checks (syntax, targeted tests, diff/whitespace, and behavior where testable). Distinguish automated checks from browser/manual QA and explicitly disclose anything not tested.
+- Commit only the intended files to the feature branch, then open a pull request targeting the repository's default branch. The PR description must include the problem/root cause, changes made, affected scope, checks performed, remaining risks, and any manual verification steps.
+- Return the PR link and a concise summary to the user. Leave the PR **unmerged** for their review; do not merge, close, or change the default branch unless the user explicitly instructs it.
+- When the user requests a revision to an open PR, update its existing feature branch when feasible instead of creating duplicate PRs. Use downloadable patches only when requested or when direct GitHub changes are unavailable.
+
 ## OpenSpec Handoff
 
 OpenSpec is initialized in this repository with Codex integration. Keep `openspec/config.yaml` concise: project-wide facts and workflow rules only. Keep verified current behavior in `openspec/specs/` and one change's proposal, design, tasks, and delta specs in `openspec/changes/`. Do not copy this document or the full design guide into every change.
