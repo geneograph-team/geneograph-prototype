@@ -33,41 +33,17 @@ function openPlacesMapContextMenu(event)
     bindMenuLifecycle();
 }
 
-function createPlaceLeafletMarker(place)
+function createPlaceMapMarker(place)
 {
     const latLng = placeLatLng(place);
-    if (!latLng || !window.L) return null;
-    const marker = L.marker(latLng, {
-        icon: createPlaceMarkerIcon(place, place.id === state.selectedPlaceId),
-        keyboard: true,
-        title: place.name,
-        alt: place.name,
-        riseOnHover: true
-    });
-    marker.placeId = place.id;
-    marker.bindTooltip(escapeHtml(place.name), { direction: 'top', offset: [0, -12] });
-    marker.on('click', () => selectPlace(place.id, { source: 'map', focusMap: false }));
-    marker.on('add', () => bindPlaceMarkerElement(marker, place));
-    return marker;
-}
-
-function bindPlaceMarkerElement(marker, place)
-{
-    const markerElement = marker?.getElement();
-    if (!markerElement || markerElement.dataset.placeMarkerBound === 'true') return;
-    markerElement.dataset.placeMarkerBound = 'true';
-    markerElement.setAttribute('aria-label', `Select ${place.name}`);
-    markerElement.addEventListener('click', event =>
-    {
-        event.stopPropagation();
-        selectPlace(place.id, { source: 'map', focusMap: false });
-    }, { capture: true });
-    markerElement.addEventListener('keydown', event =>
-    {
-        if (!['Enter', ' '].includes(event.key)) return;
-        event.preventDefault();
-        event.stopPropagation();
-        selectPlace(place.id, { source: 'map', focusMap: false });
+    if (!latLng || !placesMapReady()) return null;
+    return placesMapAdapter.createMarker(placesMapRuntime.map, latLng, {
+        className: 'places-map-marker-icon',
+        html: createPlaceMarkerHtml(place.id === state.selectedPlaceId),
+        title: t('Select place') + ': ' + place.name,
+        selected: place.id === state.selectedPlaceId,
+        onSelect: () => selectPlace(place.id, { source: 'map', focusMap: false }),
+        tooltipHtml: escapeHtml(place.name)
     });
 }
 
@@ -84,12 +60,15 @@ function capturePlacesMapView()
 function restorePlacesMapView(places)
 {
     const map = placesMapRuntime.map;
-    if (!map) return;
+    if (!placesMapReady()) return;
     const view = state.placesMapView;
     placesMapRuntime.suppressViewCapture = true;
     if (view?.center && validLatitude(view.center.lat) && validLongitude(view.center.lng))
     {
-        map.setView([view.center.lat, view.center.lng], Number.isFinite(view.zoom) ? view.zoom : PLACES_MAP_CONFIG.defaultZoom, { animate: false });
+        map.jumpTo({
+            center: [Number(view.center.lng), Number(view.center.lat)],
+            zoom: Number.isFinite(view.zoom) ? view.zoom : PLACES_MAP_CONFIG.defaultZoom
+        });
     }
     else
     {
@@ -101,107 +80,160 @@ function restorePlacesMapView(places)
     });
 }
 
-function destroyPlacesMap()
+function destroyPlacesMap({ preserveWaiters = false } = {})
 {
+    ++placesMapRuntime.requestId;
     clearTimeout(placesSearchTimer);
+    clearTimeout(placesMapRuntime.loadTimeout);
+    placesMapRuntime.loadTimeout = null;
     removePlacesDraftMarker();
     if (placesMapRuntime.resizeObserver) placesMapRuntime.resizeObserver.disconnect();
     placesMapRuntime.resizeObserver = null;
-    if (placesMapRuntime.tileLayer) placesMapRuntime.tileLayer.off();
+    placesMapRuntime.markersById.forEach(marker => marker.remove());
+    placesMapRuntime.markersById.clear();
+    if (placesMapRuntime.routeLayer)
+    {
+        placesMapRuntime.routeLayer.remove();
+        placesMapRuntime.routeLayer = null;
+    }
     if (placesMapRuntime.map)
     {
-        placesMapRuntime.map.off();
         placesMapRuntime.map.remove();
     }
     placesMapRuntime.map = null;
     placesMapRuntime.host = null;
-    placesMapRuntime.tileLayer = null;
     placesMapRuntime.markerLayer = null;
-    placesMapRuntime.routeLayer = null;
-    placesMapRuntime.markersById.clear();
-    placesMapRuntime.tileErrorCount = 0;
+    placesMapRuntime.errorCount = 0;
     placesMapRuntime.tilesAvailable = false;
+    placesMapRuntime.status = 'idle';
     placesMapRuntime.mode = 'browse';
     placesMapRuntime.editingPlaceId = null;
     placesMapRuntime.mountedListKey = '';
     placesMapRuntime.currentPlaces = [];
     placesMapRuntime.suppressViewCapture = false;
+    if (!preserveWaiters) resolvePlacesMapWaiters(false);
 }
 
 function mountPlacesMap(places)
 {
-    const host = document.getElementById('placesLeafletMap');
+    const host = document.getElementById('placesVectorMap');
     if (!host || state.activeModule !== 'Places' || state.placesViewMode === 'list') return;
-    if (!window.L)
+    if (!placesMapAdapter.supportedProtocol())
     {
-        setPlacesMapStatus('Map library unavailable', 'Leaflet could not be loaded. The place list and editor remain available.', { retry: true, list: true });
+        failPlacesMap('Interactive maps require a hosted page. Use List view and Advanced coordinates to manage places locally.');
         return;
     }
-    if (placesMapRuntime.map && placesMapRuntime.host === host)
+    if (placesMapRuntime.host === host
+        && placesMapRuntime.status === 'ready')
     {
         updatePlacesMapData(places);
         return;
     }
-    destroyPlacesMap();
+    if (placesMapRuntime.host === host
+        && placesMapRuntime.status === 'loading')
+    {
+        placesMapRuntime.currentPlaces = [...(places || [])];
+        return;
+    }
+    destroyPlacesMap({ preserveWaiters: true });
     placesMapRuntime.host = host;
     placesMapRuntime.currentPlaces = [...(places || [])];
-    placesMapRuntime.map = L.map(host, {
-        zoomControl: false,
-        attributionControl: true,
-        minZoom: PLACES_MAP_CONFIG.minZoom,
-        maxZoom: PLACES_MAP_CONFIG.maxZoom,
-        preferCanvas: false
-    });
-    placesMapRuntime.map.attributionControl.setPrefix('<a href="" target="_blank" rel="noopener noreferrer">Leaflet</a>');
-    placesMapRuntime.markerLayer = L.featureGroup().addTo(placesMapRuntime.map);
-    placesMapRuntime.tileLayer = createPlacesTileLayer();
-    if (placesMapRuntime.tileLayer)
-    {
-        placesMapRuntime.tileLayer.addTo(placesMapRuntime.map);
-    }
-    else
-    {
-        setPlacesMapStatus('Map configuration required', 'Add a protected MapTiler browser key to window.GENEOGRAPH_CONFIG.maptilerKey.', { retry: true });
-    }
-    placesMapRuntime.map.on('moveend zoomend', capturePlacesMapView);
-    placesMapRuntime.map.on(
-        'click',
-        handlePlacesMapClick
-    );
-    placesMapRuntime.map.on('contextmenu', openPlacesMapContextMenu);
-    placesMapRuntime.resizeObserver = new ResizeObserver(() =>
-    {
-        placesMapRuntime.map?.invalidateSize({ pan: false, debounceMoveend: true });
-    });
-    placesMapRuntime.resizeObserver.observe(host.parentElement || host);
-    updatePlacesMapData(places, { force: true });
-    restorePlacesMapView(places);
-    updatePlacesMapToolControls();
+    placesMapRuntime.status = 'loading';
+    const requestId = placesMapRuntime.requestId;
+    setPlacesMapStatus('Loading vector map', 'Connecting to OpenFreeMap…', { list: true });
+    placesMapAdapter.load()
+        .then(() =>
+        {
+            if (requestId !== placesMapRuntime.requestId
+                || !host.isConnected
+                || placesMapRuntime.host !== host)
+            {
+                return;
+            }
+            const theme = document.documentElement.dataset.theme === 'dark'
+                ? 'dark' : 'light';
+            const map = placesMapAdapter.createMap(host, theme);
+            placesMapRuntime.map = map;
+            map.on('click', event => handlePlacesMapClick({ latlng: event.lngLat }));
+            map.on('contextmenu', event => openPlacesMapContextMenu({
+                latlng: event.lngLat,
+                originalEvent: event.originalEvent
+            }));
+            map.on('moveend', capturePlacesMapView);
+            map.on('style.load', () =>
+            {
+                if (placesMapRuntime.map !== map) return;
+                placesMapRuntime.errorCount = 0;
+                if (placesMapReady())
+                {
+                    renderPlacesRouteLayer();
+                    setPlacesMapStatus();
+                }
+            });
+            map.on('load', () =>
+            {
+                if (placesMapRuntime.map !== map
+                    || requestId !== placesMapRuntime.requestId) return;
+                clearTimeout(placesMapRuntime.loadTimeout);
+                placesMapRuntime.loadTimeout = null;
+                placesMapRuntime.status = 'ready';
+                placesMapRuntime.tilesAvailable = true;
+                setPlacesMapStatus();
+                updatePlacesMapData(placesMapRuntime.currentPlaces, { force: true });
+                restorePlacesMapView(placesMapRuntime.currentPlaces);
+                updatePlacesMapToolControls();
+                resolvePlacesMapWaiters(true);
+            });
+            map.on('error', event =>
+            {
+                if (placesMapRuntime.map !== map) return;
+                console.warn('GeneoGraph map resource error:', event.error);
+                ++placesMapRuntime.errorCount;
+                if (placesMapRuntime.errorCount >= PLACES_MAP_CONFIG.errorThreshold)
+                {
+                    failPlacesMap('The map could not load. Check your connection or WebGL2 support. Place editing remains available.');
+                }
+            });
+            if (typeof ResizeObserver !== 'undefined')
+            {
+                placesMapRuntime.resizeObserver = new ResizeObserver(() => map.resize());
+                placesMapRuntime.resizeObserver.observe(host.parentElement || host);
+            }
+            placesMapRuntime.loadTimeout = setTimeout(() =>
+            {
+                if (requestId === placesMapRuntime.requestId
+                    && !placesMapReady())
+                {
+                    failPlacesMap('The map could not load. Check your connection or WebGL2 support. Place editing remains available.');
+                }
+            }, PLACES_MAP_CONFIG.loadTimeoutMs);
+        })
+        .catch(error =>
+        {
+            if (requestId !== placesMapRuntime.requestId) return;
+            console.warn('GeneoGraph could not initialize MapLibre:', error);
+            failPlacesMap('The map could not load. Check your connection or WebGL2 support. Place editing remains available.');
+        });
 }
 
 function updatePlacesMapData(places, { force = false } = {})
 {
-    const map = placesMapRuntime.map;
-    const markerLayer = placesMapRuntime.markerLayer;
-    if (!map || !markerLayer) return;
     const list = (places || []).filter(place => !place.deleted);
-    const key = placesMapDataKey(list);
     placesMapRuntime.currentPlaces = [...list];
+    if (!placesMapReady()) return;
+    const key = placesMapDataKey(list);
     if (!force && key === placesMapRuntime.mountedListKey)
     {
         updatePlacesMapSelection(state.selectedPlaceId);
         renderPlacesRouteLayer();
         return;
     }
-    markerLayer.clearLayers();
+    placesMapRuntime.markersById.forEach(marker => marker.remove());
     placesMapRuntime.markersById.clear();
     list.filter(placeHasCoordinates).forEach(place =>
     {
-        const marker = createPlaceLeafletMarker(place);
-        if (!marker) return;
-        marker.addTo(markerLayer);
-        bindPlaceMarkerElement(marker, place);
-        placesMapRuntime.markersById.set(place.id, marker);
+        const marker = createPlaceMapMarker(place);
+        if (marker) placesMapRuntime.markersById.set(place.id, marker);
     });
     placesMapRuntime.mountedListKey = key;
     updatePlacesMapSelection(state.selectedPlaceId);
@@ -214,17 +246,14 @@ function updatePlacesMapSelection(placeId, { focusMap = false } = {})
 {
     placesMapRuntime.markersById.forEach((marker, id) =>
     {
-        const place = getPlace(id);
-        if (place) marker.setIcon(createPlaceMarkerIcon(place, id === placeId));
+        placesMapAdapter.updateSelection(marker, id === placeId);
     });
     const place = getPlace(placeId);
-    if (focusMap && placeHasCoordinates(place) && placesMapRuntime.map)
+    if (focusMap && placeHasCoordinates(place) && placesMapReady())
     {
-        const padding = placesMapPadding();
-        placesMapRuntime.map.panInside(placeLatLng(place), {
-            paddingTopLeft: padding.topLeft,
-            paddingBottomRight: padding.bottomRight
-        });
+        placesMapAdapter.focusPoint(
+            placesMapRuntime.map, placeLatLng(place), placesMapPadding()
+        );
     }
 }
 
