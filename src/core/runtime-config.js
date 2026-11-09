@@ -18,12 +18,6 @@ const PLACES_MAP_CONFIG = Object.freeze({
     loadTimeoutMs: 20000
 });
 
-// Kept temporarily for the independent geocoding migration (#158).
-const PLACES_GEOCODING_CONFIG = Object.freeze({
-    provider: 'maptiler',
-    key: window.GENEOGRAPH_CONFIG?.maptilerKey || ''
-});
-
 const placesMapRuntime = {
     map: null,
     host: null,
