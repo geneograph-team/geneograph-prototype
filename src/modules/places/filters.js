@@ -893,12 +893,42 @@ function getPlacesNeedingReview()
     return projectPlaces().filter(placeNeedsReview);
 }
 
+const PLACE_REVIEW_DEFAULT_MISSING_REASON = 'Exact position not identified';
+
+function placeReviewDismissalReason(issue)
+{
+    const reason = String(issue?.reason || '').trim();
+    return reason || (issue?.type === 'missing_coordinates'
+        ? PLACE_REVIEW_DEFAULT_MISSING_REASON
+        : '');
+}
+
+function getDismissedPlaceReviewItems()
+{
+    return (sampleData.placeIssues || [])
+        .filter(issue =>
+            issue.projectId === currentProjectId()
+            && issue.status === 'dismissed'
+        )
+        .map(issue =>
+        {
+            const place = getPlace(issue.placeId);
+            if (!place || place.deleted || place.projectId !== currentProjectId()) return null;
+            const review = getPlaceReviewIssues(place).find(item => item.type === issue.type);
+            return review ? { place, issue, review } : null;
+        })
+        .filter(Boolean);
+}
+
 function dismissPlaceReviewIssue(placeId, issueType)
 {
     const place = getPlace(placeId);
     if (!place || place.deleted || place.projectId !== currentProjectId()) return false;
     if (!getPlaceReviewIssues(place).some(issue => issue.type === issueType)) return false;
-    const existing = (sampleData.placeIssues || []).find(issue =>
+    if (isPlaceReviewIssueDismissed(placeId, issueType)) return false;
+
+    if (!Array.isArray(sampleData.placeIssues)) sampleData.placeIssues = [];
+    const existing = sampleData.placeIssues.find(issue =>
         issue.projectId === currentProjectId()
         && issue.placeId === placeId
         && issue.type === issueType
@@ -908,18 +938,56 @@ function dismissPlaceReviewIssue(placeId, issueType)
     {
         existing.status = 'dismissed';
         existing.dismissedAt = dismissedAt;
+        existing.reason = issueType === 'missing_coordinates'
+            ? PLACE_REVIEW_DEFAULT_MISSING_REASON
+            : '';
     }
     else
     {
         sampleData.placeIssues.push({
-            id: `place-issue-dismissal-${Date.now()}`,
+            id: `place-issue-dismissal-${Date.now()}-${sampleData.placeIssues.length}`,
             projectId: currentProjectId(),
             placeId,
             type: issueType,
             status: 'dismissed',
-            dismissedAt
+            dismissedAt,
+            reason: issueType === 'missing_coordinates'
+                ? PLACE_REVIEW_DEFAULT_MISSING_REASON
+                : ''
         });
     }
+    markPrototypeSessionEdited();
+    return true;
+}
+
+function restorePlaceReviewIssue(placeId, issueType)
+{
+    const issue = (sampleData.placeIssues || []).find(item =>
+        item.projectId === currentProjectId()
+        && item.placeId === placeId
+        && item.type === issueType
+        && item.status === 'dismissed'
+    );
+    if (!issue) return false;
+    sampleData.placeIssues = sampleData.placeIssues.filter(item => item !== issue);
+    markPrototypeSessionEdited();
+    return true;
+}
+
+function updatePlaceReviewDismissalReason(placeId, issueType, value)
+{
+    const issue = (sampleData.placeIssues || []).find(item =>
+        item.projectId === currentProjectId()
+        && item.placeId === placeId
+        && item.type === issueType
+        && item.status === 'dismissed'
+    );
+    if (!issue) return false;
+    const reason = String(value || '').trim().slice(0, 240)
+        || (issueType === 'missing_coordinates' ? PLACE_REVIEW_DEFAULT_MISSING_REASON : '');
+    if (placeReviewDismissalReason(issue) === reason) return true;
+    issue.reason = reason;
+    markPrototypeSessionEdited();
     return true;
 }
 
@@ -981,10 +1049,18 @@ function selectPlace(
                 selected
             );
 
-            row.setAttribute(
-                'aria-selected',
-                String(selected)
-            );
+            if (row.classList.contains('places-review-list-row'))
+            {
+                if (selected) row.setAttribute('aria-current', 'true');
+                else row.removeAttribute('aria-current');
+            }
+            else
+            {
+                row.setAttribute(
+                    'aria-selected',
+                    String(selected)
+                );
+            }
         });
 
     sidebar
