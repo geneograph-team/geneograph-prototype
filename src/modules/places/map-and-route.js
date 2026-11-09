@@ -187,6 +187,19 @@ function mountPlacesMap(places)
                 restorePlacesMapView(placesMapRuntime.currentPlaces);
                 updatePlacesMapToolControls();
                 resolvePlacesMapWaiters(true);
+                const resolvedTheme = document.documentElement.dataset.theme === 'dark'
+                    ? 'dark' : 'light';
+                if (map.getStyleUrl?.() !== placesMapAdapter.styleUrl(resolvedTheme))
+                {
+                    handlePlacesMapThemeChange({ detail: { theme: resolvedTheme } });
+                }
+            });
+            map.on('idle', () =>
+            {
+                if (placesMapRuntime.map === map)
+                {
+                    placesMapRuntime.errorCount = 0;
+                }
             });
             map.on('error', event =>
             {
