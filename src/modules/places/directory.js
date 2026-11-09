@@ -1361,20 +1361,66 @@ function renderPlacesInspectorAside(place)
     return `<aside class="places-inspector ${state.placesInspectorCollapsed ? 'collapsed' : ''}" data-places-inspector aria-label="Selected place inspector">${renderPlacesInspector(place)}</aside>`;
 }
 
-function placesReviewSearchResults()
+function placeReviewMatchesSearch(item, query)
+{
+    if (!query) return true;
+    const { place, issue, dismissal } = item;
+    const label = issue.type === 'invalid_coordinates'
+        ? t('Coordinates need correction')
+        : t('Missing map positions');
+    return [
+        placePrimaryName(place),
+        placeSecondaryName(place),
+        ...placeAlternativeNames(place),
+        t(issue.title),
+        label,
+        dismissal ? t('Dismissed') : '',
+        dismissal ? placeReviewDismissalReason(dismissal) : ''
+    ].join(' ').toLowerCase().includes(query);
+}
+
+function placesReviewGroups()
 {
     const query = String(state.placesSearch || '').trim().toLowerCase();
-    return getPlacesNeedingReview()
-        .filter(place =>
-        {
-            if (!query) return true;
-            const issueTitles = getActivePlaceReviewIssues(place).map(issue => issue.title);
-            return [place.name, ...placeAlternativeNames(place), ...issueTitles]
-                .join(' ')
-                .toLowerCase()
-                .includes(query);
-        })
-        .sort((a, b) => a.name.localeCompare(b.name));
+    const active = getPlacesNeedingReview()
+        .flatMap(place => getActivePlaceReviewIssues(place)
+            .map(issue => ({ place, issue, dismissal: null })));
+    const dismissed = getDismissedPlaceReviewItems()
+        .map(({ place, issue, review }) => ({
+            place, issue: review, dismissal: issue
+        }));
+    const sort = items => items
+        .filter(item => placeReviewMatchesSearch(item, query))
+        .sort((a, b) => placePrimaryName(a.place)
+            .localeCompare(placePrimaryName(b.place)));
+
+    return {
+        activeCount: active.length,
+        dismissedCount: dismissed.length,
+        groups: [
+            {
+                key: 'invalid_coordinates',
+                title: 'Coordinates need correction',
+                description: 'The saved coordinates are incomplete or outside the valid range.',
+                empty: 'No coordinates need correction.',
+                items: sort(active.filter(item => item.issue.type === 'invalid_coordinates'))
+            },
+            {
+                key: 'missing_coordinates',
+                title: 'Missing map positions',
+                description: 'These places have no identified map position. An exact position is optional.',
+                empty: 'No map positions are missing.',
+                items: sort(active.filter(item => item.issue.type === 'missing_coordinates'))
+            },
+            {
+                key: 'dismissed',
+                title: 'Dismissed',
+                description: 'Dismissed warnings can be restored or given an updated reason.',
+                empty: 'No dismissed review items.',
+                items: sort(dismissed)
+            }
+        ]
+    };
 }
 
 function placeReviewConnectionTotal(place)
@@ -1383,52 +1429,125 @@ function placeReviewConnectionTotal(place)
         .reduce((total, count) => total + Number(count || 0), 0);
 }
 
-function renderPlaceReviewListRow(place)
+function renderPlaceReviewListRow(item)
 {
-    const issues = getActivePlaceReviewIssues(place);
+    const { place, issue, dismissal } = item;
+    const placeId = escapeHtml(place.id);
+    const issueType = escapeHtml(issue.type);
+    const placeName = escapeHtml(placePrimaryName(place));
     const linked = placeReviewConnectionTotal(place);
-    const issueSummary = issues.map(issue => `<span><strong>${escapeHtml(issue.title)}</strong><span>${escapeHtml(issue.description)}</span></span>`).join('');
-    const quickActions = issues.map(issue => `<button class="button secondary" type="button" data-place-review-fix="${escapeHtml(place.id)}" data-place-review-type="${escapeHtml(issue.type)}">${escapeHtml(issue.actionLabel)}</button><button class="button ghost places-review-dismiss-button" type="button" data-place-review-dismiss="${escapeHtml(place.id)}" data-place-review-type="${escapeHtml(issue.type)}">Dismiss</button>`).join('');
-    const mobileIssues = issues.map(issue => `<div class="places-review-mobile-issue"><strong>${escapeHtml(issue.title)}</strong><span>${escapeHtml(issue.description)}</span><div class="places-review-row-actions"><button class="button secondary" type="button" data-place-review-fix="${escapeHtml(place.id)}" data-place-review-type="${escapeHtml(issue.type)}">${escapeHtml(issue.actionLabel)}</button><button class="button ghost places-review-dismiss-button" type="button" data-place-review-dismiss="${escapeHtml(place.id)}" data-place-review-type="${escapeHtml(issue.type)}">Dismiss</button></div></div>`).join('');
-    return `<div class="places-list-row places-review-list-row ${place.id === state.selectedPlaceId ? 'active' : ''}" data-place-id="${escapeHtml(place.id)}" tabindex="0" role="row" aria-selected="${place.id === state.selectedPlaceId}">
-        <div><strong>${escapeHtml(placePrimaryName(place))}</strong><span>${escapeHtml(placeSecondaryName(place) || 'No broader place recorded')}</span></div>
-        <div class="places-review-issue-summary">${issueSummary}</div>
-        <span>${linked} ${linked === 1 ? 'record' : 'records'}</span>
-        <span>${escapeHtml(formatPlaceUpdatedAt(place.updatedAt))}</span>
-        <div class="places-review-row-actions">${quickActions}</div>
-        <div class="places-review-mobile-issues">${mobileIssues}</div>
+    const selected = place.id === state.selectedPlaceId;
+    const issueLabel = issue.type === 'invalid_coordinates'
+        ? t('Coordinates need correction')
+        : t('Missing map positions');
+    const actions = dismissal
+        ? `<button class="button secondary" type="button"
+              data-place-review-edit-reason="${placeId}"
+              data-place-review-type="${issueType}">${escapeHtml(t('Edit reason'))}</button>
+            <button class="button ghost" type="button"
+              data-place-review-restore="${placeId}"
+              data-place-review-type="${issueType}">${escapeHtml(t('Restore'))}</button>`
+        : `<button class="button secondary" type="button"
+              data-place-review-fix="${placeId}"
+              data-place-review-type="${issueType}">${escapeHtml(t(issue.actionLabel))}</button>
+            <button class="button ghost places-review-dismiss-button" type="button"
+              data-place-review-dismiss="${placeId}"
+              data-place-review-type="${issueType}">${escapeHtml(t('Dismiss'))}</button>`;
+    const reason = dismissal ? placeReviewDismissalReason(dismissal) : '';
+    const reasonMarkup = dismissal
+        ? `<div class="places-review-reason" data-place-review-reason-editor>
+              <p data-place-review-reason-display>
+                <strong>${escapeHtml(t('Reason'))}:</strong>
+                ${escapeHtml(reason || t('No reason provided'))}
+              </p>
+              <form hidden data-place-review-reason-form
+                data-place-review-place="${placeId}" data-place-review-type="${issueType}">
+                <label for="placeReviewReason-${placeId}-${issueType}">${escapeHtml(t('Reason'))}</label>
+                <textarea id="placeReviewReason-${placeId}-${issueType}" maxlength="240"
+                  rows="2">${escapeHtml(reason)}</textarea>
+                <div class="places-review-reason-actions">
+                  <button class="button primary" type="submit">${escapeHtml(t('Save reason'))}</button>
+                  <button class="button secondary" type="button" data-place-review-cancel-reason>
+                    ${escapeHtml(t('Cancel'))}
+                  </button>
+                </div>
+              </form>
+            </div>`
+        : '';
+    return `<div class="places-list-row places-review-list-row
+          ${selected ? 'active' : ''}" data-place-id="${placeId}"
+          role="listitem" tabindex="0"
+          aria-label="${placeName}" ${selected ? 'aria-current="true"' : ''}>
+        <div class="places-review-place-info">
+          <strong>${placeName}</strong>
+          <span>${escapeHtml(placeSecondaryName(place) || t('No broader place recorded'))}</span>
+          <small>${linked} ${escapeHtml(t('Linked records'))}</small>
+          ${dismissal ? `<small class="places-review-issue-type">${escapeHtml(issueLabel)}</small>` : ''}
+          ${reasonMarkup}
+        </div>
+        <div class="places-review-row-actions">${actions}</div>
       </div>`;
+}
+
+function renderPlaceReviewGroup(group, query)
+{
+    const isOpen = Boolean(query && group.items.length)
+        || Boolean(state.placesReviewExpandedGroups?.[group.key]);
+    return `<details class="places-review-group"
+        data-place-review-group="${group.key}" ${isOpen ? 'open' : ''}>
+        <summary>
+          <strong>${escapeHtml(t(group.title))}</strong>
+          <span class="places-review-group-count" aria-label="${group.items.length} ${escapeHtml(t('review items'))}">
+            ${group.items.length}
+          </span>
+        </summary>
+        <div class="places-review-group-body">
+          <p class="places-review-group-description">${escapeHtml(t(group.description))}</p>
+          ${group.items.length
+            ? `<div class="places-review-rows" role="list">
+                ${group.items.map(renderPlaceReviewListRow).join('')}
+              </div>`
+            : `<p class="places-review-group-empty">${escapeHtml(t(group.empty))}</p>`}
+        </div>
+      </details>`;
 }
 
 function renderPlacesNeedsReviewPage()
 {
-    const allReviewPlaces = getPlacesNeedingReview();
-    const reviewPlaces = placesReviewSearchResults();
-    const selected = selectedPlaceFromVisibleList(reviewPlaces);
+    const review = placesReviewGroups();
     const query = String(state.placesSearch || '').trim();
-    let content = '';
-
-    if (!reviewPlaces.length)
-    {
-        content = query
-            ? `<div class="places-review-empty"><strong>No matching review items</strong><span>Try a different search.</span></div>`
-            : `<div class="places-review-empty"><strong>All clear</strong><span>No places currently need review.<br>New flags will appear here when a place has an obvious issue.</span></div>`;
-    }
-    else
-    {
-        content = `<div class="places-list-panel places-review-list-panel" role="table" aria-label="Places needing review"><div class="places-list-head places-review-list-head" role="row"><span>Place</span><span>Issue</span><span>Connected</span><span>Updated</span><span>Quick actions</span></div>${reviewPlaces.map(renderPlaceReviewListRow).join('')}</div>`;
-    }
+    const visiblePlaces = review.groups.flatMap(group => group.items.map(item => item.place));
+    const selected = selectedPlaceFromVisibleList(visiblePlaces);
+    const matches = review.groups.reduce((sum, group) => sum + group.items.length, 0);
+    const noResults = query && !matches
+        ? `<p class="places-review-no-results" role="status">
+            ${escapeHtml(t('No matching review items'))}. ${escapeHtml(t('Try a different search.'))}
+          </p>`
+        : '';
 
     main.innerHTML = `<div class="${placesInspectorShellClasses()}">
         <section class="places-main"><div class="places-review-shell">
           <header class="places-page-head places-review-head">
-            <div class="places-title"><h1 class="app-page-title">Needs review</h1><p>Places with details that may need your attention.</p></div>
-            <strong class="places-review-total">${allReviewPlaces.length} ${allReviewPlaces.length === 1 ? 'place' : 'places'}</strong>
+            <div class="places-title"><h1 class="app-page-title">${escapeHtml(t('Needs review'))}</h1>
+              <p>${escapeHtml(t('Places with details that may need your attention.'))}</p>
+            </div>
+            <strong class="places-review-total">${review.activeCount}
+              ${escapeHtml(t('active review items'))}</strong>
           </header>
           <div class="places-review-controls">
-            <label class="app-search-field" aria-label="Search places needing review">${icon.search}<input id="placesReviewSearch" type="search" placeholder="Search review items..." value="${escapeHtml(state.placesSearch || '')}"></label>
+            <label class="app-search-field" aria-label="${escapeHtml(t('Search places needing review'))}">
+              ${icon.search}<input id="placesReviewSearch" type="search"
+                placeholder="${escapeHtml(t('Search review items...'))}"
+                value="${escapeHtml(state.placesSearch || '')}">
+            </label>
           </div>
-          <div class="places-review-content">${content}</div>
+          <div class="places-review-content">
+            ${noResults}
+            <div class="places-list-panel places-review-list-panel"
+              aria-label="${escapeHtml(t('Places needing review'))}">
+              ${review.groups.map(group => renderPlaceReviewGroup(group, query)).join('')}
+            </div>
+          </div>
         </div></section>
         ${renderPlacesInspectorAside(selected)}
       </div>`;
@@ -1439,46 +1558,130 @@ function renderPlacesNeedsReviewPage()
     if (focusId) requestAnimationFrame(() =>
     {
         const row = main.querySelector(`.places-review-list-panel [data-place-id="${CSS.escape(focusId)}"]`);
+        const details = row?.closest('[data-place-review-group]');
+        if (details)
+        {
+            details.open = true;
+            state.placesReviewExpandedGroups[details.dataset.placeReviewGroup] = true;
+        }
         row?.scrollIntoView({ behavior: 'smooth', block: 'center' });
         row?.focus({ preventScroll: true });
     });
+}
+
+function rerenderPlacesReviewAfterAction(focusPlaceId = '', groupKey = '')
+{
+    const scrollTop = main.querySelector('.places-review-list-panel')?.scrollTop || 0;
+    renderPlaces();
+    const panel = main.querySelector('.places-review-list-panel');
+    if (panel) panel.scrollTop = scrollTop;
+    const group = groupKey && panel?.querySelector(
+        `[data-place-review-group="${CSS.escape(groupKey)}"]`
+    );
+    const row = focusPlaceId && group?.querySelector(
+        `[data-place-id="${CSS.escape(focusPlaceId)}"]`
+    );
+    if (row)
+    {
+        group.open = true;
+        state.placesReviewExpandedGroups[groupKey] = true;
+    }
+    (row || group?.querySelector('summary'))?.focus({ preventScroll: true });
 }
 
 function bindPlacesNeedsReviewControls()
 {
     bindSearchInput(main, '#placesReviewSearch', 'placesSearch', renderPlaces);
     bindPlaceListRows(main);
+
+    main.querySelectorAll('[data-place-review-group]').forEach(details =>
+    {
+        details.addEventListener('toggle', () =>
+        {
+            state.placesReviewExpandedGroups[details.dataset.placeReviewGroup] = details.open;
+        });
+    });
+
     main.querySelectorAll('[data-place-review-fix]').forEach(button => button.addEventListener('click', () =>
     {
         const placeId = button.dataset.placeReviewFix;
         selectPlace(placeId, { focusMap: false });
-        if (button.dataset.placeReviewType === 'invalid_coordinates') openPlaceModalForCoordinateReview(placeId);
-        else openPlaceModal(placeId);
+        openPlaceModalForCoordinateReview(placeId);
     }));
+
     main.querySelectorAll('[data-place-review-dismiss]').forEach(button => button.addEventListener('click', () =>
     {
-        const mobileReview = innerWidth <= 900;
-        const panel = mobileReview ? main.querySelector('.places-review-list-panel') : null;
-        const scrollTop = panel?.scrollTop || 0;
-        const rows = mobileReview ? [...main.querySelectorAll('.places-review-list-row')] : [];
-        const rowIndex = rows.findIndex(row => row.contains(button));
         const placeId = button.dataset.placeReviewDismiss;
-        if (!dismissPlaceReviewIssue(button.dataset.placeReviewDismiss, button.dataset.placeReviewType)) return;
-        renderPlaces();
-        const nextPanel = mobileReview ? main.querySelector('.places-review-list-panel') : null;
-        if (nextPanel)
-        {
-            nextPanel.scrollTop = scrollTop;
-            const nextRows = [...nextPanel.querySelectorAll('.places-review-list-row')];
-            (nextRows.find(row => row.dataset.placeId === placeId)
-                || nextRows[Math.min(rowIndex, nextRows.length - 1)])?.focus({ preventScroll: true });
-        }
-        showToast('Review item dismissed.');
+        const groupKey = button.dataset.placeReviewType;
+        if (!dismissPlaceReviewIssue(placeId, groupKey)) return;
+        rerenderPlacesReviewAfterAction('', groupKey);
+        showToast(t('Review item dismissed.'));
     }));
+
+    main.querySelectorAll('[data-place-review-restore]').forEach(button => button.addEventListener('click', () =>
+    {
+        const placeId = button.dataset.placeReviewRestore;
+        const groupKey = button.dataset.placeReviewType;
+        if (!restorePlaceReviewIssue(placeId, groupKey)) return;
+        rerenderPlacesReviewAfterAction(placeId, groupKey);
+        showToast(t('Review item restored.'));
+    }));
+
+    main.querySelectorAll('[data-place-review-reason-editor]').forEach(editor =>
+    {
+        editor.addEventListener('click', event => event.stopPropagation());
+    });
+    main.querySelectorAll('[data-place-review-edit-reason]').forEach(button => button.addEventListener('click', () =>
+    {
+        const row = button.closest('.places-review-list-row');
+        const form = row?.querySelector('[data-place-review-reason-form]');
+        const display = row?.querySelector('[data-place-review-reason-display]');
+        if (!form || !display) return;
+        form.hidden = false;
+        display.hidden = true;
+        button.hidden = true;
+        form.querySelector('textarea')?.focus();
+    }));
+    main.querySelectorAll('[data-place-review-reason-form]').forEach(form =>
+    {
+        const cancel = () =>
+        {
+            form.hidden = true;
+            form.closest('.places-review-list-row')
+                ?.querySelector('[data-place-review-reason-display]').hidden = false;
+            const edit = form.closest('.places-review-list-row')
+                ?.querySelector('[data-place-review-edit-reason]');
+            if (edit)
+            {
+                edit.hidden = false;
+                edit.focus();
+            }
+        };
+        form.addEventListener('submit', event =>
+        {
+            event.preventDefault();
+            const placeId = form.dataset.placeReviewPlace;
+            const issueType = form.dataset.placeReviewType;
+            if (!updatePlaceReviewDismissalReason(placeId, issueType, form.querySelector('textarea')?.value)) return;
+            rerenderPlacesReviewAfterAction(placeId, 'dismissed');
+            main.querySelector(`[data-place-review-edit-reason="${CSS.escape(placeId)}"]`)
+                ?.focus({ preventScroll: true });
+            showToast(t('Review reason saved.'));
+        });
+        form.querySelector('[data-place-review-cancel-reason]')
+            ?.addEventListener('click', cancel);
+        form.addEventListener('keydown', event =>
+        {
+            if (event.key !== 'Escape') return;
+            event.stopPropagation();
+            event.preventDefault();
+            cancel();
+        });
+    });
+
     bindPlacesInspectorControls(main.querySelector('[data-places-inspector]') || main);
     bindToasts(main);
 }
-
 
 function renderPlacesMain()
 {
