@@ -478,7 +478,6 @@ const RU_UI_COMPLETION = {
     'Loading interactive map…': 'Загрузка интерактивной карты…',
     'Interactive mapping is unavailable here. Use the place editor to enter coordinates manually.': 'Интерактивная карта здесь недоступна. Укажите координаты вручную в редакторе места.',
     'Create place saves a new record. Map placement was unavailable, so the tour will not create one; manual coordinates remain available.': 'Кнопка «Создать место» сохраняет запись. Карта недоступна, поэтому экскурсия не создаст место; координаты можно указать вручную.',
-    'Draft place position': 'Черновая позиция места',
     'Select place': 'Выбрать место',
     'Needs attention': 'Требует внимания',
     'No mapped places': 'Нет мест на карте',
