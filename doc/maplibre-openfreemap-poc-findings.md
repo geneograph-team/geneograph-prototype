@@ -1,7 +1,7 @@
 # MapLibre + OpenFreeMap proof-of-concept findings
 
-**Issue:** [#156](https://github.com/geneograph-team/geneograph-prototype/issues/156)  
-**Related work:** [#157 — renderer migration](https://github.com/geneograph-team/geneograph-prototype/issues/157), [#154 — approximate places](https://github.com/geneograph-team/geneograph-prototype/issues/154), [#158 — geocoding](https://github.com/geneograph-team/geneograph-prototype/issues/158)  
+**Issue:** [#156](https://github.com/geneograph-team/geneograph-prototype/issues/156)
+**Related work:** [#157 — renderer migration](https://github.com/geneograph-team/geneograph-prototype/issues/157), [#154 — approximate places](https://github.com/geneograph-team/geneograph-prototype/issues/154), [#158 — geocoding](https://github.com/geneograph-team/geneograph-prototype/issues/158)
 **Reviewed:** 2026-11-09
 
 ## Outcome
