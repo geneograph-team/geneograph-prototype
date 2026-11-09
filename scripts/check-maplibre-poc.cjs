@@ -66,7 +66,7 @@ assert.match(js, /map\.on\('error'/);
 assert.match(js, /geo\.geodesicCircle/);
 assert.doesNotMatch(js, /api\.maptiler\.com|leaflet/ig);
 assert.doesNotMatch(main, /maplibre-poc|maplibre-gl@/);
-assert.doesNotMatch(css, /#[\da-f]{3}(?:[\da-f]{3})?\b/i);
+assert.doesNotMatch(css.replace(/\/\*[\s\S]*?\*\//g, ''), /#[\da-f]{3}(?:[\da-f]{3})?\b/i);
 
 for (const [filename, data] of [
     ['index.html', html], ['poc.js', js], ['poc.css', css],
