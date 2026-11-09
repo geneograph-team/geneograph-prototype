@@ -1081,7 +1081,7 @@
     font-size: 12px;
 }
 
-.places-map-panel.is-picking .leaflet-container {
+.places-map-panel.is-picking .maplibregl-map {
     cursor: crosshair;
 }
 
