@@ -1385,9 +1385,9 @@ function geneoTourCardCopy()
             ? 'The tour is complete. Now explore the demo at your own pace and try the features you’ve just seen.'
             : step.body);
     if (step?.id === 'places-add-map' && (!placesMapReady()))
-        body = t('Map placement is unavailable here. When the map loads, click to position a draft marker, then choose Use position to return its coordinates to the place window.');
+        body = t('Interactive mapping is unavailable here. Use the place editor to enter coordinates manually.');
     if (step?.id === 'places-add-create' && (!placesMapReady()))
-        body = t('After choosing a map position, this window reopens with coordinates. Create place saves the new record. Map placement was unavailable here, so the tour will not create one.');
+        body = t('Create place saves a new record. Map placement was unavailable, so the tour will not create one; manual coordinates remain available.');
     return { title, body };
 }
 
