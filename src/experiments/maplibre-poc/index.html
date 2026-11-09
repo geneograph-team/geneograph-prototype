@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <title>GeneoGraph — MapLibre / OpenFreeMap proof of concept</title>
+        <link rel="icon" href="../../assets/ui/logo.svg" type="image/svg+xml">
+        <link rel="stylesheet" href="../../core/palette/geneograph-v3.css">
+        <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@6.16.0/dist/maplibre-gl.css">
+        <link rel="stylesheet" href="poc.css">
+        <script src="poc.js" defer></script>
+    </head>
+    <body>
+        <a class="skip-link" href="#controls" data-i18n="skip">Skip to map controls</a>
+        <header class="page-header">
+            <div class="header-inner">
+                <a class="brand" href="../../index.html">GeneoGraph</a>
+                <span class="tag" data-i18n="tag">Isolated experiment · Issue #156</span>
+            </div>
+            <h1 data-i18n="title">Places map — renderer proof of concept</h1>
+            <p data-i18n="intro">MapLibre GL JS and OpenFreeMap vector tiles. This fixture is separate from the GeneoGraph prototype and never changes project records.</p>
+        </header>
+
+        <main class="layout">
+            <section class="map-panel" aria-labelledby="mapTitle">
+                <div class="section-heading">
+                    <div>
+                        <h2 id="mapTitle" data-i18n="mapTitle">Interactive map</h2>
+                        <p data-i18n="mapHint">Click the map to move the approximate-place center, or drag the green marker.</p>
+                    </div>
+                    <span class="tag" data-i18n="hosted">Hosted HTTP(S) only</span>
+                </div>
+                <div class="map-frame">
+                    <div id="pocMap" role="region" aria-label="Interactive vector map" data-i18n-aria-label="mapRegion"></div>
+                    <div id="mapFallback" class="map-fallback" hidden role="alert">
+                        <h3 data-i18n="fallbackTitle">Map unavailable</h3>
+                        <p id="fallbackMessage"></p>
+                        <button id="retryFallback" type="button" data-i18n="retry">Retry map</button>
+                    </div>
+                </div>
+                <p id="mapStatus" class="map-status" role="status" aria-live="polite"></p>
+                <p class="map-attribution-note" data-i18n="attributionNote">Map data from OpenStreetMap via OpenFreeMap / OpenMapTiles. Attribution is also displayed on the map.</p>
+            </section>
+
+            <aside id="controls" class="controls" aria-labelledby="controlsTitle">
+                <h2 id="controlsTitle" data-i18n="controls">Experiment controls</h2>
+                <p class="help" data-i18n="fixture">Illustrative Kraków → approximate Lviv → Warsaw route; dates and locations are test fixtures, not family-history facts.</p>
+
+                <div class="control-grid">
+                    <label for="language" data-i18n="language">Language</label>
+                    <select id="language">
+                        <option value="en">English</option>
+                        <option value="ru">Русский</option>
+                    </select>
+                    <label for="theme" data-i18n="theme">Map and UI theme</label>
+                    <select id="theme">
+                        <option value="light">Light · Liberty</option>
+                        <option value="dark">Dark · Dark</option>
+                    </select>
+                </div>
+
+                <fieldset>
+                    <legend data-i18n="routeLegend">Historical-route fixture</legend>
+                    <div class="stop-list" id="stopList">
+                        <button class="stop-button" type="button" data-stop="krakow" aria-pressed="false" data-i18n="stop1">1 · Kraków · 1875</button>
+                        <button class="stop-button" type="button" data-stop="approx" aria-pressed="true" data-i18n="stop2">2 · Approximate Lviv area · 1905</button>
+                        <button class="stop-button" type="button" data-stop="warsaw" aria-pressed="false" data-i18n="stop3">3 · Warsaw · 1920</button>
+                    </div>
+                    <div class="action-row">
+                        <button id="fitRoute" type="button" data-i18n="fit">Fit route</button>
+                        <button id="toggleRoute" type="button" aria-pressed="true" data-i18n="hideRoute">Hide route</button>
+                    </div>
+                </fieldset>
+
+                <fieldset>
+                    <legend data-i18n="areaLegend">Approximate place · geographic radius</legend>
+                    <div class="field-pair">
+                        <label for="latitude" data-i18n="latitude">Latitude</label>
+                        <input id="latitude" type="number" min="-85" max="85" step="any" value="49.8397">
+                        <label for="longitude" data-i18n="longitude">Longitude</label>
+                        <input id="longitude" type="number" min="-180" max="180" step="any" value="24.0297">
+                        <label for="radiusKm" data-i18n="radius">Radius (km)</label>
+                        <input id="radiusKm" type="number" min="0.1" max="100" step="0.1" value="5">
+                    </div>
+                    <div class="action-row">
+                        <button id="applyArea" type="button" class="primary" data-i18n="apply">Apply center and radius</button>
+                        <button id="resetArea" type="button" data-i18n="reset">Reset area</button>
+                    </div>
+                    <p id="areaStatus" class="area-status" role="status" aria-live="polite"></p>
+                    <p class="help" data-i18n="radiusInfo">The outline is a geodesic GeoJSON polygon, not a screen-pixel circle. Numeric inputs also work without a map.</p>
+                </fieldset>
+
+                <fieldset>
+                    <legend data-i18n="lifecycle">Lifecycle and fallback checks</legend>
+                    <div class="action-row">
+                        <button id="restartMap" type="button" data-i18n="restart">Reinitialize map</button>
+                        <button id="destroyMap" type="button" data-i18n="destroy">Destroy map</button>
+                    </div>
+                    <p class="help" data-i18n="session">Camera view is restored within this tab when storage is available. Test refresh, zoom, resize and map teardown.</p>
+                </fieldset>
+
+                <p class="links">
+                    <a href="https://openfreemap.org/" target="_blank" rel="noopener noreferrer">OpenFreeMap</a>
+                    · <a href="https://maplibre.org/maplibre-gl-js/docs/" target="_blank" rel="noopener noreferrer">MapLibre GL JS</a>
+                    · <a href="https://github.com/geneograph-team/geneograph-prototype/issues/156" target="_blank" rel="noopener noreferrer">#156</a>
+                </p>
+            </aside>
+        </main>
+    </body>
+</html>
