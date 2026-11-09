@@ -198,4 +198,69 @@ selectionContext.placesMapRuntime.pendingFocusPlaceId = 'p1';
 selectionContext.selectMapPlace('p2', { focusMap: false });
 assert.equal(selectionContext.placesMapRuntime.pendingFocusPlaceId, null);
 
+// OpenFreeMap Dark uses circle-11 in three place-name layers. Its sprite
+// may not include the image. Resolve only that known icon, and make the
+// resolver survive style changes; do not replace unrelated provider icons.
+const spriteImages = [];
+const mockLibrary = {
+    Map: class
+    {
+        constructor(options)
+        {
+            this.options = options;
+        }
+        setMissingStyleImageResolver(resolver)
+        {
+            this.resolver = resolver;
+        }
+        addImage(id, image, options)
+        {
+            spriteImages.push({ id, image, options });
+        }
+        setStyle(style)
+        {
+            this.options.style = style;
+        }
+    }
+};
+const spriteContext = {
+    window: {
+        location: { protocol: 'https:' },
+        __testLibrary: mockLibrary
+    },
+    PLACES_MAP_CONFIG: {
+        styles: { light: 'liberty', dark: 'dark' },
+        defaultCenter: { lat: 0, lng: 0 },
+        defaultZoom: 3, minZoom: 1, maxZoom: 18
+    }
+};
+const adapterWithMapStub = adapterText.replace(
+    'let library = null;', 'let library = window.__testLibrary;'
+);
+assert.notEqual(adapterWithMapStub, adapterText,
+    'MapLibre library test injection should remain available');
+vm.runInNewContext(adapterWithMapStub
+    + '\nthis.adapter = placesMapAdapter;', spriteContext);
+const mapWithMissingSprite = spriteContext.adapter.createMap({}, 'dark');
+assert.equal(mapWithMissingSprite.options.style, 'dark');
+assert.equal(typeof mapWithMissingSprite.resolver, 'function');
+mapWithMissingSprite.resolver('unrelated-provider-icon');
+assert.equal(spriteImages.length, 0,
+    'Do not replace unknown upstream sprite images');
+mapWithMissingSprite.resolver('circle-11');
+assert.equal(spriteImages.length, 1);
+assert.equal(spriteImages[0].id, 'circle-11');
+assert.equal(spriteImages[0].image.width, 11);
+assert.equal(spriteImages[0].image.height, 11);
+assert.equal(spriteImages[0].image.data.length, 11 * 11 * 4);
+assert.equal(spriteImages[0].image.data[(5 * 11 + 5) * 4 + 3], 255,
+    'Town dot should have an opaque center');
+assert.equal(spriteImages[0].image.data[3], 0,
+    'Town dot corner should be transparent');
+assert.equal(spriteImages[0].options.pixelRatio, 1);
+mapWithMissingSprite.setStyle('light');
+mapWithMissingSprite.resolver('circle-11');
+assert.equal(spriteImages.length, 2,
+    'MapLibre resolver should remain registered across style changes');
+
 console.log('Places MapLibre adapter, integration and fallback checks passed.');
