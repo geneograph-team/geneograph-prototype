@@ -12,7 +12,7 @@ The original monolithic `index.html` has been split: the application now lives i
 
 ## Current Architecture
 
-- `src/index.html` contains CDN references, ordered stylesheets, the application shell, runtime map configuration, and classic deferred scripts. **Stylesheet and script order is load-order significant — inspect the current file before editing it.**
+- `src/index.html` contains CDN references, ordered stylesheets, the application shell, and classic deferred scripts; `src/core/runtime-config.js` owns runtime map configuration. **Stylesheet and script order is load-order significant — inspect the current file before editing it.**
 - All scripts are classic (non-module) scripts sharing one global scope: top-level `const`/`let`/`function` declarations in one file are visible to all later files, so top-level identifiers must be unique across files.
 - Extracted JS files retain the original 4-space indentation of the former inline script block (code starts at column 4); match it when editing those files.
 - Key modules:
@@ -55,6 +55,18 @@ These rules apply when ChatGPT works through the connected GitHub repository fro
 - Return the PR link and a concise summary to the user. Leave the PR **unmerged** for their review; do not merge, close, or change the default branch unless the user explicitly instructs it.
 - When the user requests a revision to an open PR, update its existing feature branch when feasible instead of creating duplicate PRs. Use downloadable patches only when requested or when direct GitHub changes are unavailable.
 
+## Protected Deployment and Lightweight Verification
+
+These rules apply to all agents, including local and GitHub-connected work.
+
+- **Explicit approval gate:** Never modify deployment or CI infrastructure without the founder's explicit approval for that specific change. This includes GitHub Actions workflows, Pages configuration, publishing triggers, build/deployment scripts, secret injection, test jobs, and CI settings. An implementation request does not implicitly approve such changes, even when they seem beneficial.
+- If a task appears to require an infrastructure change, explain why, identify the smallest safe alternative, and request approval **before** modifying it. Do not add or adjust CI merely to run a feature's tests.
+- Keep the prototype lightweight: prefer existing tooling, targeted static checks, and proportionate manual/browser QA. Do not add testing frameworks, dependencies, helper scripts, configuration, or permanent fixtures without a specific ongoing need.
+- Temporary investigation scripts, generated artifacts, debug logging, and one-off browser harnesses should normally stay outside the repository; if used on a working branch, remove them before the PR when no longer needed.
+- Retain concise, valuable regression coverage for repeated failures and high-risk behavior (especially record relationships, data integrity, board import/export, and recovery). Evaluate maintenance cost and reuse existing checks first. **Never remove existing useful tests solely to tidy the repository or make CI pass.**
+- Before completing a PR, inspect its changed-file list and diff for unrelated edits or leftover artifacts. Remove only task-created disposable files; preserve user work. Record exactly which automated and manual checks ran, which did not, and any residual risk.
+- Keep repository maintenance and cleanup separate from functional changes unless the cleanup is directly required for the approved task.
+
 ## OpenSpec Handoff
 
 OpenSpec is initialized in this repository with Codex integration. Keep `openspec/config.yaml` concise: project-wide facts and workflow rules only. Keep verified current behavior in `openspec/specs/` and one change's proposal, design, tasks, and delta specs in `openspec/changes/`. Do not copy this document or the full design guide into every change.
@@ -96,7 +108,7 @@ Several extracted files are still very large. **Never read them end-to-end.**
 
 - No build step; Quill and MapLibre CSS load from pinned CDNs, while MapLibre's ES module is imported lazily for hosted Places maps. Local browser libraries live in `src/vendor/`. Do not add new runtime dependencies without asking.
 - JavaScript: Allman-style braces (opening brace on its own line), single quotes for strings, semicolons never omitted. Icons are inline SVG strings in the `icon` dictionary (`src/core/icons.js`) — reuse them rather than duplicating markup.
-- CSS: approved v3 light/dark UI colors live only in `src/core/palette/geneograph-v3.css`; components use semantic roles or aliases, never new literal UI colors. Run `node scripts/check-ui-colors.js` after color edits. Add a new color to the library only after user approval. Theme preference is System initially, with Dark and Light choices in Global settings. Branded heroes use the pale Light and deep Dark Heritage Green container/on-container pair.
+- CSS: approved v3 light/dark UI colors live only in `src/core/palette/geneograph-v3.css`; components use semantic roles or aliases, never new literal UI colors. After palette edits, check JSON/CSS role parity, literals, and contrast with available tools and targeted browser QA; do not assume a standalone UI-color checker is present. Add a new color to the library only after user approval. Theme preference is System initially, with Dark and Light choices in Global settings. Branded heroes use the pale Light and deep Dark Heritage Green container/on-container pair.
 - HTML: semantic elements (`section`, `figure`, `article`, `nav`), `aria-*` attributes, `role="status"`/`aria-live` for the toast. Explicit `width`/`height` on images, `loading="lazy"`/`decoding="async"` for non-critical images.
 
 ## Content and Design Rules
@@ -135,7 +147,7 @@ Maintain on every change:
 ## Deployment
 
 - The site is static: open `src/index.html` directly or serve `src/` as static files; no build step is required.
-- The current root-based GitHub Pages configuration does **not** publish the application from `src/` — do not assume the deployed Pages site reflects `src/` until the Pages configuration is updated.
+- The current GitHub Pages workflow copies `src/` into a generated `dist/`, injects deployment-only browser geocoder configuration, and publishes `dist/` after relevant pushes to `default`. Feature-branch PRs do not deploy this artifact; verify hosted behavior separately.
 - Preserve direct `file://` compatibility in source paths and load order. The interactive Places map requires HTTP(S), but list/editor/manual-coordinate workflows must remain usable via file://. Codex browser security blocks local `file://` navigation, so use the localhost procedure below for browser QA. Do not change browser security settings.
 
 ## Browser QA on this Windows host
