@@ -1242,7 +1242,8 @@ async function startPlaceEditorMapSelection()
         if (button) button.disabled = true;
         placesMapRuntime.status = 'loading';
         state.placesViewMode = 'map';
-        renderPlacesMain();
+        if (draft.reviewContext) renderPlaces();
+        else renderPlacesMain();
         const ready = await waitForPlacesMapReady();
         if (placeEditorDraft !== draft || !modalBackdrop.querySelector('[data-place-editor]'))
         {
