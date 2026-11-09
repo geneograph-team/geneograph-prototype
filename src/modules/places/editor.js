@@ -365,6 +365,10 @@ async function searchPlaceEditorMapResults(query, { retry = false } = {})
         draft.externalError = 'Map search is unavailable. You can retry or use the entered text.';
         draft.externalQuery = normalizedQuery;
     }
+    finally
+    {
+        if (placeGeocoderController === controller) placeGeocoderController = null;
+    }
     renderPlaceEditorSuggestions();
 }
 
@@ -375,6 +379,7 @@ function schedulePlaceEditorMapSearch(query, { immediate = false } = {})
     clearTimeout(placeGeocoderTimer);
     placeGeocoderTimer = null;
     placeGeocoderController?.abort();
+    placeGeocoderController = null;
     const value = String(query || '').trim();
     if (value.length < PLACE_EDITOR_GEOCODER_MIN_LENGTH)
     {
