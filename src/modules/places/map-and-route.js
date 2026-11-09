@@ -163,11 +163,11 @@ function mountPlacesMap(places)
             map.on('style.load', () =>
             {
                 if (placesMapRuntime.map !== map) return;
-                clearTimeout(placesMapRuntime.loadTimeout);
-                placesMapRuntime.loadTimeout = null;
                 placesMapRuntime.errorCount = 0;
                 if (placesMapReady())
                 {
+                    clearTimeout(placesMapRuntime.loadTimeout);
+                    placesMapRuntime.loadTimeout = null;
                     renderPlacesRouteLayer();
                     setPlacesMapStatus();
                 }
