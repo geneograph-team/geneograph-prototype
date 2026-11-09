@@ -285,6 +285,7 @@ function cancelPlacesMapEditing({ reopenEditor = true } = {})
     }
     if (session?.returnToModal && reopenEditor)
     {
+        restorePlaceEditorReviewContext(draft);
         requestAnimationFrame(() => openPlaceModal(draft.placeId, { draft }));
     }
     else if (!session?.returnToModal)
@@ -417,6 +418,7 @@ function completePlaceEditorMapSelection()
     draft.disclosures.coordinates = true;
     updatePlaceEditorDraftDirty(draft);
     resetPlacesMapEditingUi();
+    restorePlaceEditorReviewContext(draft);
     openPlaceModal(draft.placeId, { draft });
 }
 
