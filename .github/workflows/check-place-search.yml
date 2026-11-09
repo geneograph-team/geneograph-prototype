@@ -1,6 +1,9 @@
 name: Check place autocomplete
 
 on:
+    push:
+        branches:
+            - "fix/place-search-lifecycle"
     pull_request:
         paths:
             - "src/core/geocoder-adapter.js"
@@ -20,7 +23,7 @@ jobs:
         timeout-minutes: 6
         steps:
             - name: Check out source
-              uses: actions/checkout@v4
+              uses: actions/checkout@v7
 
             - name: Run Node lifecycle regression
               run: node scripts/check-place-search-lifecycle.cjs
