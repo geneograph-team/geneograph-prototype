@@ -1,7 +1,7 @@
 # GeneoGraph browser geocoding — setup and terms
 
-**Issue:** [#158](https://github.com/geneograph-team/geneograph-prototype/issues/158)  
-**Architecture:** Geoapify primary → LocationIQ fallback, direct browser requests, no backend.  
+**Issue:** [#158](https://github.com/geneograph-team/geneograph-prototype/issues/158)
+**Architecture:** Geoapify primary → LocationIQ fallback, direct browser requests, no backend.
 **Reviewed:** 2026-11-09
 
 ## 1. Configure GitHub Pages keys
