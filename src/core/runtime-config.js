@@ -3,27 +3,39 @@ const modules = ['Family Tree', 'People', 'Geneograph', 'Albums', 'Archive', 'No
 const PLACE_MAP_MODES = Object.freeze(['browse', 'add', 'move', 'center']);
 
 const PLACES_MAP_CONFIG = Object.freeze({
-    provider: 'maptiler',
-    maptilerKey: window.GENEOGRAPH_CONFIG?.maptilerKey || '',
-    tileUrl: 'https://api.maptiler.com/maps/streets-v4/256/{z}/{x}/{y}.png?key={key}',
-    attribution: '<a href="https://www.maptiler.com/copyright/" target="_blank">&copy; MapTiler</a> <a href="https://www.openstreetmap.org/copyright" target="_blank">&copy; OpenStreetMap contributors</a>',
+    provider: 'openfreemap',
+    moduleUrl: 'https://unpkg.com/maplibre-gl@6.16.0/dist/maplibre-gl.mjs',
+    styles: Object.freeze({
+        light: 'https://tiles.openfreemap.org/styles/liberty',
+        dark: 'https://tiles.openfreemap.org/styles/dark'
+    }),
     minZoom: 2,
     maxZoom: 19,
     defaultZoom: 5,
     defaultCenter: Object.freeze({ lat: 50.05, lng: 20.25 }),
     fitMaxZoom: 12,
-    tileErrorThreshold: 3
+    errorThreshold: 3,
+    loadTimeoutMs: 20000
+});
+
+// Kept temporarily for the independent geocoding migration (#158).
+const PLACES_GEOCODING_CONFIG = Object.freeze({
+    provider: 'maptiler',
+    key: window.GENEOGRAPH_CONFIG?.maptilerKey || ''
 });
 
 const placesMapRuntime = {
     map: null,
     host: null,
-    tileLayer: null,
     markerLayer: null,
     routeLayer: null,
     markersById: new Map(),
     resizeObserver: null,
-    tileErrorCount: 0,
+    loadTimeout: null,
+    errorCount: 0,
+    requestId: 0,
+    readyWaiters: [],
+    status: 'idle',
     mountedListKey: '',
     currentPlaces: [],
     suppressViewCapture: false,
