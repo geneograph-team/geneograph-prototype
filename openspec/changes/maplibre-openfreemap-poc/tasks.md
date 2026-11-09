@@ -21,7 +21,7 @@
 - [ ] 2.3 Run the Node checks in a checkout and record their results.
 - [ ] 2.4 Run the hosted browser matrix: map tiles, attribution, WebGL,
   worker startup, routes, dragging, radius, resize, themes, EN/RU and retry.
-- [ ] 2.5 Verify the main \`src/index.html\` still runs directly via
-  \`file://\` and map failure does not block manual place editing there.
+- [ ] 2.5 Verify the main `src/index.html` still runs directly via
+  `file://` and map failure does not block manual place editing there.
 - [ ] 2.6 Publish final go/no-go for production migration #157 after manual
   browser checks, then archive this change if all checks pass.
