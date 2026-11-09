@@ -282,12 +282,12 @@ button.primary:hover {
     font-size: 21px;
 }
 
-.maplibregl-ctrl-attrib {
-    color: var(--gg-text) !important;
-    background: var(--gg-panel) !important;
+.map-frame .maplibregl-ctrl-attrib {
+    color: var(--gg-text);
+    background: var(--gg-panel);
 }
 
-.maplibregl-ctrl-attrib a {
+.map-frame .maplibregl-ctrl-attrib a {
     color: var(--gg-primary);
 }
 
