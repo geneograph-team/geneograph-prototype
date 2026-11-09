@@ -106,7 +106,7 @@ async function run()
         const h = harness(provider => Promise.resolve(success(provider)));
         const caller = new AbortController();
         caller.abort();
-        assert.deepEqual(await h.sharedSearch('Odesa', caller.signal), []);
+        assert.equal((await h.sharedSearch('Odesa', caller.signal)).length, 0);
         assert.equal(h.requests.length, 0);
     }
     for (const legacy of [false, true])
@@ -123,7 +123,7 @@ async function run()
         await requested;
         const reason = new DOMException('Superseded place query', 'AbortError');
         caller.abort(reason);
-        assert.deepEqual(await searching, []);
+        assert.equal((await searching).length, 0);
         assert.equal(h.requests.length, 1, 'Cancellation must not call fallback');
         assert.equal(h.requests[0].signal.aborted, true);
         assert.equal(h.requests[0].signal.reason, reason,
@@ -155,7 +155,7 @@ async function run()
         const searching = h.sharedSearch('Odesa', caller.signal);
         await startedBody;
         caller.abort();
-        assert.deepEqual(await searching, []);
+        assert.equal((await searching).length, 0);
         assert.equal(h.requests.length, 1);
     }
     console.log('Place search lifecycle: success, fallback, cancellation, timeout and parsing passed.');
