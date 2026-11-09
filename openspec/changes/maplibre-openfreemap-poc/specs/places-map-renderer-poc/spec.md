@@ -33,7 +33,7 @@ The standalone page SHALL offer a clear unavailable-map state and retain
 numeric center/radius editing regardless of map availability.
 
 #### Scenario: Open from disk
-- **WHEN** a user opens the standalone page via \`file://\`
+- **WHEN** a user opens the standalone page via `file://`
 - **THEN** the map is explicitly unavailable, but numeric editing remains
 
 #### Scenario: Change language and theme
