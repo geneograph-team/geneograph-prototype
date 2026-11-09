@@ -1647,8 +1647,9 @@ function bindPlacesNeedsReviewControls()
         const cancel = () =>
         {
             form.hidden = true;
-            form.closest('.places-review-list-row')
-                ?.querySelector('[data-place-review-reason-display]').hidden = false;
+            const display = form.closest('.places-review-list-row')
+                ?.querySelector('[data-place-review-reason-display]');
+            if (display) display.hidden = false;
             const edit = form.closest('.places-review-list-row')
                 ?.querySelector('[data-place-review-edit-reason]');
             if (edit)
