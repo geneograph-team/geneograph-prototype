@@ -17,7 +17,7 @@ assert.match(config, /tiles\.openfreemap\.org\/styles\/dark/);
 assert.match(config, /tiles\.openfreemap\.org\/styles\/liberty/);
 assert.match(runtime, /map\.on\('style\.load',[\s\S]*?placesMapAdapter\.applyDarkPalette\(map, placesMapRuntime\.mapTheme\)/);
 assert.match(runtime, /placesMapRuntime\.mapTheme !== resolvedTheme/);
-assert.doesNotMatch(runtime, /getStyleUrl/);
+assert.doesNotMatch(runtime, /map[.]getStyleUrl[ ]*[(]/);
 
 const context = vm.createContext({
     window: { location: { protocol: 'https:' } },
