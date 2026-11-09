@@ -107,6 +107,14 @@ async function run()
         assert.equal(calls.length, 2);
     }
     {
+        // An internal provider timeout must fall back, unlike a caller abort.
+        const { geocoder, calls } = createContext([
+            new DOMException('Provider timed out', 'AbortError'), ok([liqResult])
+        ]);
+        assert.equal((await geocoder.search('Lviv')).length, 1);
+        assert.equal(calls.length, 2);
+    }
+    {
         const { geocoder } = createContext([httpError(500), httpError(500)]);
         await assert.rejects(() => geocoder.search('Lviv'), /temporarily unavailable/);
     }
