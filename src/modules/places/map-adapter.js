@@ -84,9 +84,34 @@ const placesMapAdapter = (function ()
         return applied;
     }
 
+    // OpenFreeMap Dark references "circle-11" for town/city dots, but
+    // its sprite can omit this image. Resolve only that known missing icon.
+    // MapLibre v6 requires the resolver, not a styleimagemissing listener,
+    // because listeners run too late for the current image request.
+    function missingTownDotImage()
+    {
+        const size = 11;
+        const data = new Uint8Array(size * size * 4);
+        const radius = 4.5;
+        for (let y = 0; y < size; ++y)
+        {
+            for (let x = 0; x < size; ++x)
+            {
+                const distance = Math.hypot(x - 5, y - 5);
+                const alpha = Math.max(0, Math.min(1, radius + 0.5 - distance));
+                const pixel = (y * size + x) * 4;
+                data[pixel] = 255;
+                data[pixel + 1] = 255;
+                data[pixel + 2] = 255;
+                data[pixel + 3] = Math.round(alpha * 255);
+            }
+        }
+        return { width: size, height: size, data };
+    }
+
     function createMap(host, theme)
     {
-        return new library.Map({
+        const map = new library.Map({
             container: host,
             style: styleUrl(theme),
             center: [PLACES_MAP_CONFIG.defaultCenter.lng, PLACES_MAP_CONFIG.defaultCenter.lat],
@@ -98,6 +123,14 @@ const placesMapAdapter = (function ()
             pitchWithRotate: false,
             attributionControl: true
         });
+        map.setMissingStyleImageResolver(id =>
+        {
+            if (id === 'circle-11')
+            {
+                map.addImage(id, missingTownDotImage(), { pixelRatio: 1 });
+            }
+        });
+        return map;
     }
 
     function createMarker(map, latLng, {
