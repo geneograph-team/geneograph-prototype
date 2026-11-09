@@ -1,6 +1,6 @@
 # GeneoGraph Prototype
 
-Static browser prototype for genealogy research. Open `src/index.html` directly or serve `src/` as static files. There is no framework, package manager, build step, backend, or durable project database. The current root-based GitHub Pages configuration does not publish the application from `src/`.
+Static browser prototype for genealogy research. Open `src/index.html` directly or serve `src/` as static files. There is no framework, package manager, build step, backend, or durable project database. The GitHub Pages workflow builds the hosted demo by copying `src/` to `dist/` and publishes `dist/` from the `default` branch.
 
 ## Source layout
 
@@ -13,8 +13,16 @@ Static browser prototype for genealogy research. Open `src/index.html` directly 
 
 See [the source map](doc/source-map.md) for dependency boundaries, [AGENTS.md](AGENTS.md) for coding rules, and [the design guide](doc/design-document.md) for current product context. `doc/` also holds the normative git branching model and commit style guides; `openspec/` contains verified specs and focused change folders.
 
+## Places map and geocoding
+
+- The **map** uses MapLibre GL JS and OpenFreeMap vector styles on HTTP(S).
+- **Place-name search** uses the browser-only **Geoapify → LocationIQ** chain: Geoapify is primary; LocationIQ is tried automatically on no results or a provider error/timeout. No provider selector is shown. Deliberate search cancellation does not trigger fallback.
+- Both providers receive linked credits below place-search suggestions in Places and Geneograph and under **Settings → About → Data providers**.
+- `src/browser-config.js` contains **no keys**. The Pages workflow injects the restricted public browser tokens from GitHub Actions repository secrets `GEOAPIFY_BROWSER_KEY` and `LOCATIONIQ_BROWSER_KEY` into **deployed** `dist/browser-config.js`. Token values are visible to browser visitors, even though not stored in Git history. Restrict and monitor them at both providers.
+- Direct `file://` use, missing credentials or provider failures must not prevent manual place creation and coordinate editing. The map and hosted geocoding need permitted network access; no backend manages quotas.
+
+**Setup and troubleshooting:** [Browser geocoder setup, security, limits and verification](doc/browser-geocoder-setup.md). **Design rationale:** [Places maps and browser geocoding](doc/design-document.md#places-maps-and-browser-geocoding-issue-158).
+
 ## License
 
 Repository contents are licensed under GNU GPL 3 unless otherwise specified. See [LICENSE.txt](LICENSE.txt) and bundled vendor licenses.
-
-Browser-only place search uses a Geoapify → LocationIQ automatic fallback. Tokens are never committed: configure GitHub Actions repository secrets as described in [`doc/browser-geocoder-setup.md`](doc/browser-geocoder-setup.md). The deployed token values are intentionally visible to visitors; restrict them at both providers.
