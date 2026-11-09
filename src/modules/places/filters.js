@@ -1046,6 +1046,12 @@ function showPlaceOnMap(
     state.placesViewMode =
         'map';
 
+    // A newly rendered map is not ready until its style finishes loading.
+    if (placeHasCoordinates(place))
+    {
+        placesMapRuntime.pendingFocusPlaceId = place.id;
+    }
+
     if (
         state.activeModule !== 'Places'
         || !main.querySelector(
@@ -1088,7 +1094,7 @@ function showPlaceOnMap(
                 'Choose Edit position to add a map point.'
             );
         }
-        else
+        else if (placesMapReady())
         {
             setPlacesMapStatus();
         }
