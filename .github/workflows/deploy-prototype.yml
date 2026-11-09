@@ -43,6 +43,9 @@ jobs:
               with:
                   fetch-depth: 0
 
+            - name: Validate localization catalog
+              run: node scripts/check-localization-catalog.cjs
+
             - name: Build prototype
               run: |
                   mkdir `
