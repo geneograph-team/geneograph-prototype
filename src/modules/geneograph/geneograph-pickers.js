@@ -769,7 +769,9 @@ function openGeneographPlaceModal(
     const scheduleMapSearch = (immediate = false) =>
     {
         clearTimeout(mapTimer);
+        mapTimer = null;
         mapController?.abort();
+        mapController = null;
         const query = searchInput.value.trim();
         mapResults = [];
         if (query && findExactPlaceMatch(query, board.projectId))
@@ -786,23 +788,38 @@ function openGeneographPlaceModal(
         }
         mapState = 'loading';
         renderMapResults();
-        mapTimer = setTimeout(async () =>
+        mapTimer = setTimeout(() =>
         {
+            mapTimer = null;
             const controller = new AbortController();
             mapController = controller;
-            try
+            const run = async () =>
             {
-                const results = await searchSharedPlaceMapResults(query, controller.signal);
-                if (controller.signal.aborted || !form.isConnected || searchInput.value.trim() !== query) return;
-                mapResults = results;
-                mapState = results.length ? 'ready' : 'empty';
-            }
-            catch (error)
+                try
+                {
+                    const results = await searchSharedPlaceMapResults(query, controller.signal);
+                    if (controller.signal.aborted || !form.isConnected || searchInput.value.trim() !== query) return;
+                    mapResults = results;
+                    mapState = results.length ? 'ready' : 'empty';
+                }
+                catch (error)
+                {
+                    if (controller.signal.aborted || !form.isConnected || searchInput.value.trim() !== query) return;
+                    mapState = 'unavailable';
+                }
+                finally
+                {
+                    if (mapController === controller) mapController = null;
+                }
+                renderMapResults();
+            };
+            run().catch(error =>
             {
-                if (controller.signal.aborted || !form.isConnected || searchInput.value.trim() !== query) return;
-                mapState = 'unavailable';
-            }
-            renderMapResults();
+                if (!controller.signal.aborted)
+                {
+                    console.warn('GeneoGraph place picker update failed:', error);
+                }
+            });
         }, immediate ? 0 : PLACE_EDITOR_GEOCODER_DEBOUNCE_MS);
     };
 
