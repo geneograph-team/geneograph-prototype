@@ -3,6 +3,7 @@
 **Issue:** [#158](https://github.com/geneograph-team/geneograph-prototype/issues/158)
 **Architecture:** Geoapify primary → LocationIQ fallback, direct browser requests, no backend.
 **Reviewed:** 2026-11-09
+**Credential status:** The owner reported both Actions repository secrets configured on 2026-11-09. GitHub does not disclose secret values to this review; actual deployment and authorized requests still need validation.
 
 ## 1. Configure GitHub Pages keys
 
@@ -32,6 +33,41 @@ independently optional; a missing primary key triggers the secondary.
 A direct `file://` checkout can still create places manually. API
 testing should use an approved hosted origin; a token restricted to
 GitHub Pages cannot usually make requests from localhost or `file://`.
+
+### When will the configured secrets be used?
+
+**Only after PR #161 is merged into `default`.** The deploy workflow is
+triggered by pushes to `default` affecting `src/` or the workflow,
+**not** by a feature-branch PR. Opening PR #161 or running a local
+`src/index.html` checkout will **not** automatically inject secrets.
+
+A successful deployment performs these steps:
+
+1. Check out `default` and copy `src/*` into `dist/`.
+2. Read the two **repository Actions secrets** in the build job.
+3. Overwrite **only the generated copy** `dist/browser-config.js`
+   with `window.GENEOGRAPH_CONFIG = { geoapifyKey, locationiqKey }`.
+4. Upload and publish `dist/` via GitHub Pages. The tracked
+   `src/browser-config.js` remains empty and unchanged.
+
+When checking the deployed website, verify in its browser console
+**without printing the tokens**:
+
+```js
+Boolean(window.GENEOGRAPH_CONFIG?.geoapifyKey)
+Boolean(window.GENEOGRAPH_CONFIG?.locationiqKey)
+```
+
+Both should return `true` after a successful deploy. The developer
+tools **Network** panel should show requests to
+`api.geoapify.com` for normal searches, and to `api.locationiq.com`
+only after primary failure/zero matches. Request URLs contain API
+keys as query parameters: **redact them before sharing screenshots,
+logs or network exports**. Verify the complete request and response
+privately, never publish bearer values.
+
+See [the design guide](design-document.md#places-maps-and-browser-geocoding-issue-158)
+for the architecture and record-lifetime boundaries.
 
 ## 2. Restrict browser credentials
 
@@ -85,6 +121,28 @@ Geoapify describes free limits as soft. LocationIQ currently offers
 **not** a combined guaranteed 8,000 searches/day. Monitor each provider's
 usage statistics and preserve manual editing if either quota is reached.
 
+### Fallback semantics
+
+| Primary Geoapify result | LocationIQ behavior | User-visible result |
+| --- | --- | --- |
+| Valid matches | Not called | Normal place suggestions |
+| HTTP error (including 401, 403, 429, 5xx), timeout, network or invalid payload | Attempt fallback | Suggestions if fallback succeeds |
+| Zero valid matches | Attempt fallback | Suggestions if fallback succeeds; otherwise no matches |
+| Both services fail | Attempted and failed | Generic search unavailable; manual entry still works |
+| Caller deliberately cancels / types another query | **Not called** | Superseded search produces no stale suggestions |
+
+A failed primary receives a short cooldown (five minutes for
+401/403/429, 30 seconds for 5xx, 15 seconds for fetch errors/timeouts).
+Each provider request uses a 6.5-second timeout, so an initial
+provider timeout can delay the fallback. A successful **empty** primary
+followed by failed fallback is treated as *no results*, not proof of
+service-wide failure.
+
+The adapter does not expose a provider selector or fallback status in
+either UI. Displayed place name and coordinates are suggestions, not
+verified historical findings. Ambiguous village names must be reviewed
+against historical sources before assignment.
+
 ## 4. Storage and attribution
 
 Geoapify permits permanent use of geocoded output provided relevant
@@ -124,7 +182,29 @@ About credits and `file://` manual editing.
 **Revoke the obsolete MapTiler key** after the new geocoder has passed
 hosted QA; its former value was committed in repository history.
 
-## 6. Provider references
+## 6. Troubleshooting and release gate
+
+| Symptom | Check / action |
+| --- | --- |
+| Search works before merge only when manually configured | Expected: repository Actions secrets reach **the published Pages artifact only** on a push to `default`. |
+| Both searches unavailable after deployment | Confirm Pages action succeeded and check the two **Boolean** values above; verify Actions secret **names**, not values. |
+| HTTP 401/403 | Confirm key validity and per-provider referrer/origin patterns. Cross-origin browser `Referer` often includes the origin rather than `/geneograph-prototype/`. |
+| HTTP 429 or quota exceeded | Monitor both accounts; client pacing cannot enforce a shared daily quota. Wait for provider resets or reduce usage; manual entry stays available. |
+| Geoapify has no result | The fallback runs automatically; verify LocationIQ separately in Network if needed. |
+| Local `file://` or localhost cannot search | Keys are absent locally or blocked by restricted origins. Use direct GitHub Pages for API testing. Manual names and coordinates remain available. |
+| Unexpected place coordinates | Check source settlement identity and its modern/historical names. Do not blindly accept autocomplete suggestions. |
+| After deploy old MapTiler requests remain | Hard-reload the website (or use a private window), confirm the new script/Pages artifact, and inspect current request hosts. |
+
+**Before closing #158 or revoking MapTiler access:** run
+`node scripts/check-browser-geocoder.cjs`, verify real hosted
+Geoapify → LocationIQ fallback and attribution in both pickers, test
+English/Russian and small screens, and ensure the application can
+still create places without either provider. The obsolete MapTiler
+browser token existed in Git history; revoke/rotate it independently
+after the replacement is validated. Never display provider keys in
+issues, screenshots or CI logs.
+
+## 7. Provider references
 
 - [Geoapify autocomplete API](https://apidocs.geoapify.com/docs/geocoding/address-autocomplete/)
 - [Geoapify pricing and attribution](https://www.geoapify.com/pricing/)
