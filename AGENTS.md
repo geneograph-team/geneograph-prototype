@@ -32,9 +32,19 @@ The original monolithic `index.html` has been split: the application now lives i
 - Stylesheets: `src/core/palette/geneograph-v3.css` owns approved UI colors; `src/core/foundation.css` defines semantic compatibility aliases and resets; `src/shared/controls.css` owns reusable control appearance and loads immediately after foundation. Feature and other shared styles follow in the order shown in `src/index.html`. Check the cascade before changing selectors.
 - Static media live in `src/assets/photos/`, `documents/`, `covers/`, `ui/`, and `boards/`.
 
+## Agent Git Workflow
+
+`doc/git-branching-model.md` and `doc/git-commit-style.md` are normative for every change an agent makes in this repository, whether in a local checkout or through a connected GitHub repository. Follow them strictly; the summary below does not replace them. If a rule here or elsewhere conflicts with those documents, the documents win.
+
+- Branch from `default` for one logically complete change and do not commit directly to `default`. Use `feature/<short-descriptive-name>` or `fix/<short-descriptive-name>`: lowercase, hyphen-separated words, no special characters, at most 30 characters.
+- Keep branches short-lived, rebase onto `default` regularly, resolve conflicts in the working branch, and delete merged branches.
+- Write commit headers as `<Verb> <noun>` in the imperative mood, capitalized, with no prefixes such as `[Fix]`, and at most 72 characters. Add an optional body that explains what changed and why with lines of at most 72 characters, and optional footers for issue references and co-authors.
+- Merge only through the documented procedure: create a branch from `default`, work and commit, open a merge or pull request, pass review and CI/CD checks, rebase onto the latest `default`, squash commits if necessary, obtain maintainer approval, and merge with the fast-forward strategy.
+- Leave merge or pull requests unmerged for review unless the user explicitly instructs otherwise.
+
 ## ChatGPT GitHub Pull Request Workflow
 
-These rules apply when ChatGPT works through the connected GitHub repository from a chat. The local-workspace instructions above still apply to agents operating in a local checkout.
+These rules apply when ChatGPT works through the connected GitHub repository from a chat. The local-workspace instructions above still apply to agents operating in a local checkout. Branch naming, commit messages, and the merge procedure follow the Agent Git Workflow section above and the documents it references.
 
 - Treat the current pushed GitHub branch as the source for remote edits; check the repository's default branch and current file content before changing anything. Local uncommitted or unpushed changes are not available through the GitHub connection.
 - Respect the user's requested stage: for **review/audit/report only**, do not write code; an explicit **implement/fix/create a patch or PR** request authorizes implementation. Otherwise, present findings and wait for approval before writing.
@@ -51,7 +61,7 @@ OpenSpec is initialized in this repository with Codex integration. Keep `openspe
 
 For substantive changes, inspect current behavior, create and validate one focused OpenSpec change, review its proposal before implementation, complete and test its tasks, then archive it after verification. Small, unambiguous fixes need not generate a large specification. Existing working-tree changes belong to the user; never discard them during setup.
 
-`Prototype_Design_Document.md` is the current product and engineering guide, not a backlog or an OpenSpec change. Verify its claims against code before promoting them to durable specs. For Geneograph sample-board work, `src/seed/seed-boards.js` validates and installs the data-only asset in `src/assets/boards/`. The checked-in seed asset is a data-only `window.GENEO_SEED_BOARD_ASSETS.push(...)` script. Keep its board and project IDs valid and preserve direct `file://` loading when replacing it; no conversion tool is currently checked in.
+`doc/design-document.md` is the current product and engineering guide, not a backlog or an OpenSpec change. Verify its claims against code before promoting them to durable specs. For Geneograph sample-board work, `src/seed/seed-boards.js` validates and installs the data-only asset in `src/assets/boards/`. The checked-in seed asset is a data-only `window.GENEO_SEED_BOARD_ASSETS.push(...)` script. Keep its board and project IDs valid and preserve direct `file://` loading when replacing it; no conversion tool is currently checked in.
 
 ## Critical File-Handling Rule
 
@@ -75,6 +85,8 @@ Several extracted files are still very large. **Never read them end-to-end.**
 ## Repository Structure
 
 - `src/` — the entire application (see Current Architecture).
+- `doc/` — design guide, source map, and normative git workflow documents (`git-branching-model.md`, `git-commit-style.md`).
+- `openspec/` — verified specs and focused change folders.
 - `.github/` — issue and pull request templates.
 - `.markdownlint.yaml`, `.markdownlint-cli2.yaml` — Markdown lint settings.
 - `LICENSE.txt` — GNU GPL 3.

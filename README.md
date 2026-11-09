@@ -11,7 +11,7 @@ Static browser prototype for genealogy research. Open `src/index.html` directly 
 - `src/assets/photos/`, `documents/`, `covers/`, and `ui/` hold static media. `src/assets/boards/whiskerfield-tree-research.js` registers the seeded board before `src/seed/seed-boards.js` loads.
 - `src/vendor/` holds pinned local browser libraries, including `html-to-image`. Leaflet and Quill load from pinned CDNs.
 
-See [the source map](docs/source-map.md) for dependency boundaries, [AGENTS.md](AGENTS.md) for coding rules, and [Prototype_Design_Document.md](Prototype_Design_Document.md) for current product context. `openspec/` contains verified specs and focused change folders.
+See [the source map](doc/source-map.md) for dependency boundaries, [AGENTS.md](AGENTS.md) for coding rules, and [the design guide](doc/design-document.md) for current product context. `doc/` also holds the normative git branching model and commit style guides; `openspec/` contains verified specs and focused change folders.
 
 ## License
 
