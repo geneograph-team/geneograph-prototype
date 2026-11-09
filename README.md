@@ -16,3 +16,5 @@ See [the source map](doc/source-map.md) for dependency boundaries, [AGENTS.md](A
 ## License
 
 Repository contents are licensed under GNU GPL 3 unless otherwise specified. See [LICENSE.txt](LICENSE.txt) and bundled vendor licenses.
+
+Browser-only place search uses a Geoapify → LocationIQ automatic fallback. Tokens are never committed: configure GitHub Actions repository secrets as described in [`doc/browser-geocoder-setup.md`](doc/browser-geocoder-setup.md). The deployed token values are intentionally visible to visitors; restrict them at both providers.
