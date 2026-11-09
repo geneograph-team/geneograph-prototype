@@ -1014,18 +1014,18 @@
     isolation: isolate;
 }
 
-.places-leaflet-map {
+.places-vector-map {
     position: absolute;
     inset: 0;
     z-index: 0;
 }
 
-.places-leaflet-map .leaflet-control-attribution {
+.places-vector-map .maplibregl-ctrl-attrib {
     background: var(--surface-card);
     color: var(--text-tertiary);
 }
 
-.places-leaflet-map .leaflet-control-attribution a {
+.places-vector-map .maplibregl-ctrl-attrib a {
     color: var(--text-secondary);
 }
 
@@ -1272,9 +1272,30 @@
         3px dashed var(--brand-green-300);
 }
 
+.places-map-marker-icon {
+    width: 24px;
+    height: 24px;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    cursor: pointer;
+}
+
+.places-map-marker-icon.is-selected,
+.places-map-marker-icon.draft {
+    width: 30px;
+    height: 30px;
+}
+
+.places-map-marker-icon:focus-visible,
+.places-route-marker-icon:focus-visible {
+    outline: 2px solid var(--gg-primary);
+    outline-offset: 3px;
+}
+
 /* Places map pins */
 
-.leaflet-place-marker {
+.map-place-marker {
     position: relative;
 
     width: 100%;
@@ -1313,7 +1334,7 @@
 * Small dark centre improves visibility on both pale and dark
 * map areas without adding another place-status symbol.
 */
-.leaflet-place-marker::after {
+.map-place-marker::after {
     content: '';
 
     position: absolute;
@@ -1337,8 +1358,8 @@
 
 /* Hover and keyboard focus */
 
-.leaflet-marker-icon:hover .leaflet-place-marker,
-.leaflet-marker-icon:focus-visible .leaflet-place-marker {
+.places-map-marker-icon:hover .map-place-marker,
+.places-map-marker-icon:focus-visible .map-place-marker {
     filter:
         brightness(1.12);
 
@@ -1353,7 +1374,7 @@
 
 /* Selected place */
 
-.leaflet-place-marker.selected {
+.map-place-marker.selected {
     background:
         var(--gg-primary);
 
@@ -1366,7 +1387,7 @@
         0 6px 16px color-mix(in srgb, var(--gg-scrim) 60%, transparent);
 }
 
-.leaflet-place-marker.selected::after {
+.map-place-marker.selected::after {
     background:
         var(--gg-accent-map-cyan-container);
 
@@ -1376,7 +1397,7 @@
 
 /* Temporary position-editing marker */
 
-.leaflet-place-marker.draft {
+.map-place-marker.draft {
     background:
         var(--gg-accent-map-cyan-container);
 
@@ -1389,18 +1410,18 @@
         0 6px 16px color-mix(in srgb, var(--gg-scrim) 58%, transparent);
 }
 
-.leaflet-place-marker.draft::after {
+.map-place-marker.draft::after {
     background:
         color-mix(in srgb, var(--gg-accent-creative-blue-subtle-container) 78%, transparent);
 }
 
-.places-leaflet-route {
-    pointer-events: none;
-}
-
 .places-route-marker-icon {
+    width: 32px;
+    height: 32px;
+    padding: 0;
     background: transparent;
     border: 0;
+    cursor: pointer;
 }
 
 .places-route-marker {
