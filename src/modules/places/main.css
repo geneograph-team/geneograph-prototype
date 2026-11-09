@@ -3867,69 +3867,35 @@ body.mobile-surface-open:has(.places-shell) .menu-popover {
     }
 
     .places-review-list-panel {
-        height: calc(100% - 12px);
+        flex: 1 1 auto;
+        height: auto;
         margin: 0 12px 12px;
     }
 
-    .places-review-list-row {
-        display: block;
-        min-width: 0;
-        padding: 14px;
+    .places-review-group > summary {
+        min-height: 52px;
+        padding: var(--space-3);
     }
 
-    .places-review-list-row > div:first-child {
-        display: grid;
-        gap: 2px;
-        margin-bottom: 12px;
+    .places-review-group-description,
+    .places-review-group-empty {
+        padding-inline: var(--space-3);
     }
 
-    .places-review-list-row > div:first-child strong {
-        font-size: 15px;
+    .places-review-list-panel .places-review-list-row {
+        grid-template-columns: minmax(0, 1fr);
+        gap: var(--space-3);
+        padding: var(--space-3);
     }
 
-    .places-review-list-row > .places-review-issue-summary,
-    .places-review-list-row > .places-review-row-actions,
-    .places-review-list-row > span {
-        display: none;
+    .places-review-row-actions {
+        justify-content: flex-start;
     }
 
-    .places-review-list-row .places-review-mobile-issues {
-        display: grid;
-        gap: 12px;
-    }
-
-    .places-review-mobile-issue {
-        display: grid;
-        gap: 4px;
-        min-width: 0;
-    }
-
-    .places-review-mobile-issue > strong {
-        color: var(--text-primary);
-        font-size: 13px;
-    }
-
-    .places-review-mobile-issue > span {
-        color: var(--text-tertiary);
-        font-size: 12px;
-        line-height: 1.4;
-        white-space: normal;
-        overflow-wrap: anywhere;
-    }
-
-    .places-review-mobile-issue .places-review-row-actions {
-        display: grid;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: 8px;
-        margin-top: 6px;
-    }
-
-    .places-review-mobile-issue .places-review-row-actions .button {
-        width: 100%;
+    .places-review-row-actions .button,
+    .places-review-reason-actions .button {
         min-height: 44px;
-        padding-inline: 8px;
         white-space: normal;
-        text-align: center;
     }
 
     .places-inspector-tags {
