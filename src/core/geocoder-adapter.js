@@ -146,15 +146,36 @@ const geneographGeocoder = (function ()
         await wait(readyAt - Date.now(), signal);
 
         if (signal?.aborted) throw abortError();
-        const controller = new AbortController();
-        const forwardAbort = () => controller.abort();
-        signal?.addEventListener('abort', forwardAbort, { once: true });
-        if (signal?.aborted) controller.abort();
-        const watchdog = setTimeout(() => controller.abort(), timeoutMs);
+        // Modern browsers can compose the user's cancellation and our
+        // timeout without a second abort event/forwarding listener.
+        // This avoids manufacturing a new AbortError inside forwardAbort.
+        const nativeSignals = typeof AbortSignal.any === 'function'
+            && typeof AbortSignal.timeout === 'function';
+        let fallbackController = null;
+        let forwardAbort = null;
+        let watchdog = null;
+        let requestSignal;
+        if (nativeSignals)
+        {
+            const timeout = AbortSignal.timeout(timeoutMs);
+            requestSignal = signal
+                ? AbortSignal.any([signal, timeout])
+                : timeout;
+        }
+        else
+        {
+            // Compatibility with older browsers lacking AbortSignal.any.
+            fallbackController = new AbortController();
+            forwardAbort = () => fallbackController.abort();
+            signal?.addEventListener('abort', forwardAbort, { once: true });
+            if (signal?.aborted) fallbackController.abort();
+            watchdog = setTimeout(() => fallbackController.abort(), timeoutMs);
+            requestSignal = fallbackController.signal;
+        }
         try
         {
             const response = await fetch(urlFor(source, query, key, limit, language), {
-                signal: controller.signal,
+                signal: requestSignal,
                 cache: 'no-store'
             });
             if (!response.ok)
@@ -174,7 +195,8 @@ const geneographGeocoder = (function ()
         catch (error)
         {
             if (signal?.aborted) throw abortError();
-            if (error.name === 'AbortError' || error instanceof TypeError)
+            if (error.name === 'AbortError' || error.name === 'TimeoutError'
+                || error instanceof TypeError)
             {
                 cooldownUntil[source] = Date.now() + 15 * 1000;
             }
@@ -182,8 +204,8 @@ const geneographGeocoder = (function ()
         }
         finally
         {
-            clearTimeout(watchdog);
-            signal?.removeEventListener('abort', forwardAbort);
+            if (watchdog !== null) clearTimeout(watchdog);
+            if (forwardAbort) signal?.removeEventListener('abort', forwardAbort);
         }
     }
 
