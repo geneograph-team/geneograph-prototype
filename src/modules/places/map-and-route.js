@@ -106,6 +106,7 @@ function destroyPlacesMap({ preserveWaiters = false } = {})
     placesMapRuntime.errorCount = 0;
     placesMapRuntime.tilesAvailable = false;
     placesMapRuntime.status = 'idle';
+    placesMapRuntime.styleLoading = false;
     placesMapRuntime.mode = 'browse';
     placesMapRuntime.editingPlaceId = null;
     placesMapRuntime.mountedListKey = '';
@@ -166,6 +167,7 @@ function mountPlacesMap(places)
                 placesMapRuntime.errorCount = 0;
                 if (placesMapReady())
                 {
+                    placesMapRuntime.styleLoading = false;
                     clearTimeout(placesMapRuntime.loadTimeout);
                     placesMapRuntime.loadTimeout = null;
                     renderPlacesRouteLayer();
@@ -227,6 +229,7 @@ function handlePlacesMapThemeChange(event)
     if (map.getStyleUrl?.() === nextStyle) return;
     try
     {
+        placesMapRuntime.styleLoading = true;
         setPlacesMapStatus('Loading vector map', 'Connecting to OpenFreeMap…', { list: true });
         clearTimeout(placesMapRuntime.loadTimeout);
         placesMapRuntime.loadTimeout = setTimeout(() =>
@@ -541,7 +544,7 @@ function createPlacesRouteStopHtml(stop, totalStops)
 
 function renderPlacesRouteLayer()
 {
-    if (!placesMapReady()) return;
+    if (!placesMapReady() || placesMapRuntime.styleLoading) return;
     const map = placesMapRuntime.map;
     if (placesMapRuntime.routeLayer)
     {
