@@ -250,7 +250,7 @@ function updatePlacesMapToolControls()
         confirmButton.disabled =
             !pendingValid;
 
-        confirmButton.textContent = 'Use position';
+        confirmButton.textContent = t('Use position');
     }
 
     updatePlacesMapModeUi();
@@ -271,7 +271,7 @@ function resetPlacesMapEditingUi()
     showPlacesCoordinateBar(false);
     updatePlacesMapInstruction();
     const output = document.querySelector('[data-places-coordinate-output]');
-    if (output) output.textContent = 'No point selected';
+    if (output) output.textContent = t('No point selected');
     updatePlacesMapToolControls();
 }
 
