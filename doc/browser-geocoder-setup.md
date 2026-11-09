@@ -36,10 +36,9 @@ GitHub Pages cannot usually make requests from localhost or `file://`.
 
 ### When will the configured secrets be used?
 
-**Only after PR #161 is merged into `default`.** The deploy workflow is
-triggered by pushes to `default` affecting `src/` or the workflow,
-**not** by a feature-branch PR. Opening PR #161 or running a local
-`src/index.html` checkout will **not** automatically inject secrets.
+PR #161 has been merged. The current deploy workflow is triggered by
+qualifying pushes to `default`, **not** by a feature-branch PR. Opening
+a PR or running a local `src/index.html` checkout does not inject secrets.
 
 A successful deployment performs these steps:
 
@@ -73,12 +72,9 @@ for the architecture and record-lifetime boundaries.
 
 Confirm restrictions separately in **both** provider dashboards and
 test actual requests from the deployed host. **Geoapify Allowed HTTP
-referrers accept regular expressions, not shell-style wildcards.** Two
-candidate whole-URL patterns (verify against the observed `Referer`
-header and Geoapify's matching behavior) are:
-
-The second pattern permits the apex domain as well as subdomains; if
-only a single subdomain is used, restrict it specifically instead.
+referrers accept regular expressions, not shell-style wildcards.**
+Choose the narrowest supported restrictions based on the observed
+`Referer` header and provider matching behavior.
 Do not use `https://geneograph-team.github.io/*` as a regex: the
 unescaped periods and trailing `/*` do **not** mean "any path".
 
@@ -167,16 +163,15 @@ launches LocationIQ; **provider timeout/failure** remains eligible for
 fallback. All three search surfaces now handle timer-launched promises
 and clear completed controllers. Genuine errors still surface normally.
 
-**Verification:** Run `node scripts/check-place-search-lifecycle.cjs`.
-The PR-only browser regression at
-`tests/browser/place-search-cancellation.html` loads the real shared
-combobox and adapter under Chromium with mock requests, observing
-`unhandledrejection` without suppressing it. It checks slow and rapid
-typing, Escape, stale results and provider fallbacks; no API keys or
-external network are needed. A separate GitHub Actions check runs it
-before merge. The production-only intermittent rejection reported
-before #168 was **not** reproduced by the initial isolated Chromium
-harness; treat hosted manual QA as a release gate, not a unit-test pass.
+**Verification status:** The one-off Node and Chromium regression
+harnesses used during #168 were removed after the change; their former
+paths (`scripts/check-place-search-lifecycle.cjs` and
+`tests/browser/place-search-cancellation.html`) are **not** current
+commands or required repository artifacts. The original intermittent
+hosted rejection was not reproduced by the initial isolated harness.
+Verify slow and rapid typing, cancellation, Escape, stale results and
+provider fallback on the actual hosted app; do not infer a regression
+pass from the former temporary tests.
 
 Ambiguous village names must still be reviewed against historical
 sources before assignment.
@@ -199,14 +194,19 @@ modern geographic location.
 
 ## 5. Checks
 
-From a feature-branch checkout:
+For a code change involving geocoding, use relevant available checks
+from the feature branch (the prior one-off geocoder test scripts are
+not currently part of the repository):
 
 ```sh
-node scripts/check-browser-geocoder.cjs
 node --check src/core/geocoder-adapter.js
 node --check src/shared/date-and-place-fields.js
-git diff --check default...feature/hybrid-browser-geocoder
+git diff --check default...HEAD
 ```
+
+For changes to localization, also run the existing
+`node scripts/check-localization-catalog.cjs`. These checks do not
+replace real hosted-browser verification.
 
 After deploying with **both** Actions secrets, test EN/RU queries
 (`Lviv`, `Lwów`, `Lemberg`, `Львів`, `Львов`,
@@ -228,16 +228,14 @@ About credits and `file://` manual editing.
 | Geoapify has no result | The fallback runs automatically; verify LocationIQ separately in Network if needed. |
 | Local `file://` or localhost cannot search | Keys are absent locally or blocked by restricted origins. Use direct GitHub Pages for API testing. Manual names and coordinates remain available. |
 | Unexpected place coordinates | Check source settlement identity and its modern/historical names. Do not blindly accept autocomplete suggestions. |
-| After deploy old MapTiler requests remain | Hard-reload the website (or use a private window), confirm the new script/Pages artifact, and inspect current request hosts. |
+| Unexpected requests to a legacy provider (such as MapTiler) | Hard-reload the website (or use a private window), confirm the current Pages artifact, and inspect request hosts. |
 
-**Before closing #158 or revoking MapTiler access:** run
-`node scripts/check-browser-geocoder.cjs`, verify real hosted
-Geoapify → LocationIQ fallback and attribution in both pickers, test
-English/Russian and small screens, and ensure the application can
-still create places without either provider. The obsolete MapTiler
-browser token existed in Git history; revoke/rotate it independently
-after the replacement is validated. Never display provider keys in
-issues, screenshots or CI logs.
+**Hosted-release verification:** Confirm real Geoapify → LocationIQ
+fallback and attribution in both pickers, check English/Russian and
+small screens, and ensure manual place creation still works without
+either provider. If any old MapTiler credentials remain active, revoke
+or rotate them separately after checking they are no longer needed.
+Never display provider keys in issues, screenshots or CI logs.
 
 ## 7. Provider references
 
