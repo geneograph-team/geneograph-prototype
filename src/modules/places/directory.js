@@ -1484,7 +1484,7 @@ function renderPlaceReviewListRow(item)
         <div class="places-review-place-info">
           <strong>${placeName}</strong>
           <span>${escapeHtml(placeSecondaryName(place) || t('No broader place recorded'))}</span>
-          <small>${linked} ${escapeHtml(t('Linked records'))}</small>
+          <small>${escapeHtml(t('Linked records'))}: ${linked}</small>
           ${dismissal ? `<small class="places-review-issue-type">${escapeHtml(issueLabel)}</small>` : ''}
           ${reasonMarkup}
         </div>
@@ -1500,7 +1500,7 @@ function renderPlaceReviewGroup(group, query)
         data-place-review-group="${group.key}" ${isOpen ? 'open' : ''}>
         <summary>
           <strong>${escapeHtml(t(group.title))}</strong>
-          <span class="places-review-group-count" aria-label="${group.items.length} ${escapeHtml(t('review items'))}">
+          <span class="places-review-group-count">
             ${group.items.length}
           </span>
         </summary>
@@ -1534,8 +1534,8 @@ function renderPlacesNeedsReviewPage()
             <div class="places-title"><h1 class="app-page-title">${escapeHtml(t('Needs review'))}</h1>
               <p>${escapeHtml(t('Places with details that may need your attention.'))}</p>
             </div>
-            <strong class="places-review-total">${review.activeCount}
-              ${escapeHtml(t('active review items'))}</strong>
+            <strong class="places-review-total">${escapeHtml(t('Active items'))}:
+              ${review.activeCount}</strong>
           </header>
           <div class="places-review-controls">
             <label class="app-search-field" aria-label="${escapeHtml(t('Search places needing review'))}">
