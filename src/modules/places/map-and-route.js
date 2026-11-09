@@ -187,9 +187,13 @@ function mountPlacesMap(places)
                 updatePlacesMapData(placesMapRuntime.currentPlaces, { force: true });
                 restorePlacesMapView(placesMapRuntime.currentPlaces);
                 const focusPlaceId = placesMapRuntime.pendingFocusPlaceId;
-                if (focusPlaceId)
+                if (focusPlaceId && state.selectedPlaceId === focusPlaceId)
                 {
                     updatePlacesMapSelection(focusPlaceId, { focusMap: true });
+                }
+                else
+                {
+                    placesMapRuntime.pendingFocusPlaceId = null;
                 }
                 updatePlacesMapToolControls();
                 resolvePlacesMapWaiters(true);
@@ -302,6 +306,11 @@ function updatePlacesMapSelection(placeId, { focusMap = false } = {})
         placesMapAdapter.updateSelection(marker, id === placeId);
     });
     const place = getPlace(placeId);
+    if (!focusMap && placesMapRuntime.pendingFocusPlaceId !== placeId)
+    {
+        // A newer selection supersedes an earlier queued navigation.
+        placesMapRuntime.pendingFocusPlaceId = null;
+    }
     if (focusMap && placeHasCoordinates(place))
     {
         // MapLibre initializes asynchronously; do not lose explicit focus.
@@ -311,6 +320,12 @@ function updatePlacesMapSelection(placeId, { focusMap = false } = {})
             placesMapAdapter.focusPoint(
                 placesMapRuntime.map, placeLatLng(place), placesMapPadding()
             );
+            // Keep explicit navigation after a map shell re-render, even if
+            // restorePlacesMapView temporarily suppresses moveend capture.
+            const center = placesMapRuntime.map.getCenter();
+            state.placesMapView.center = { lat: center.lat, lng: center.lng };
+            state.placesMapView.zoom = placesMapRuntime.map.getZoom();
+            state.placesMapView.userMoved = true;
             placesMapRuntime.pendingFocusPlaceId = null;
         }
     }
