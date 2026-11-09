@@ -163,6 +163,8 @@ function mountPlacesMap(places)
             map.on('style.load', () =>
             {
                 if (placesMapRuntime.map !== map) return;
+                clearTimeout(placesMapRuntime.loadTimeout);
+                placesMapRuntime.loadTimeout = null;
                 placesMapRuntime.errorCount = 0;
                 if (placesMapReady())
                 {
@@ -225,6 +227,15 @@ function handlePlacesMapThemeChange(event)
     if (map.getStyleUrl?.() === nextStyle) return;
     try
     {
+        setPlacesMapStatus('Loading vector map', 'Connecting to OpenFreeMap…', { list: true });
+        clearTimeout(placesMapRuntime.loadTimeout);
+        placesMapRuntime.loadTimeout = setTimeout(() =>
+        {
+            if (placesMapRuntime.map === map)
+            {
+                failPlacesMap('The map could not load. Check your connection or WebGL2 support. Place editing remains available.');
+            }
+        }, PLACES_MAP_CONFIG.loadTimeoutMs);
         map.setStyle(nextStyle);
     }
     catch (error)
