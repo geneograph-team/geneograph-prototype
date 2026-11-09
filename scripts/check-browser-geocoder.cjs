@@ -11,6 +11,18 @@ const read = file => fs.readFileSync(path.join(root, file), 'utf8');
 const adapterText = read('src/core/geocoder-adapter.js');
 const html = read('src/index.html');
 const shared = read('src/shared/date-and-place-fields.js');
+
+const sharedSearchStart = shared.indexOf('async function searchSharedPlaceMapResults(');
+const sharedSearchEnd = shared.indexOf('\nfunction bindPlaceComboboxes(', sharedSearchStart);
+assert.ok(sharedSearchStart >= 0 && sharedSearchEnd > sharedSearchStart,
+    'Cannot locate the shared place-search wrapper');
+const sharedSearchCode = shared.slice(sharedSearchStart, sharedSearchEnd);
+function sharedSearch(context, query, signal)
+{
+    vm.runInNewContext(sharedSearchCode
+        + '\nthis.sharedSearch = searchSharedPlaceMapResults;', context);
+    return context.sharedSearch(query, signal);
+}
 const workflow = read('.github/workflows/deploy-prototype.yml');
 const geocoderConfig = read('src/browser-config.js');
 const places = read('src/modules/places/editor.js');
@@ -143,6 +155,52 @@ async function run()
         await assert.rejects(() => geocoder.search('Lviv', controller.signal),
             error => error.name === 'AbortError');
         assert.equal(calls.length, 1);
+    }
+    {
+        // Cancellation before a request starts must never hit either provider.
+        const { context, calls } = createContext([]);
+        const caller = new AbortController();
+        caller.abort();
+        const results = await sharedSearch(context, 'Odesa', caller.signal);
+        assert.equal(results.length, 0);
+        assert.equal(calls.length, 0);
+    }
+    {
+        // In-flight cancellation is normal when the user edits the query.
+        // The wrapper consumes the AbortError and never tries LocationIQ.
+        let releaseRequest;
+        const started = new Promise(resolve => { releaseRequest = resolve; });
+        const caller = new AbortController();
+        const { context, calls } = createContext([
+            options => new Promise((_resolve, reject) =>
+            {
+                options.signal.addEventListener('abort', () =>
+                    reject(new DOMException('signal is aborted without reason',
+                        'AbortError')), { once: true });
+                releaseRequest();
+            })
+        ]);
+        const searchPromise = sharedSearch(context, 'Odesa', caller.signal);
+        await started;
+        caller.abort();
+        const results = await searchPromise;
+        assert.equal(results.length, 0);
+        assert.equal(calls.length, 1);
+    }
+    {
+        // Legitimate service errors still reject so the UI can show retry.
+        const { context } = createContext([httpError(500), httpError(500)]);
+        await assert.rejects(
+            () => sharedSearch(context, 'Odesa', new AbortController().signal),
+            /temporarily unavailable/
+        );
+    }
+    {
+        // A successful lookup still flows through the same shared API.
+        const { context } = createContext([ok({ results: [geoResult] })]);
+        const results = await sharedSearch(context, 'Odesa', new AbortController().signal);
+        assert.equal(results.length, 1);
+        assert.equal(results[0].name, 'Lviv, Ukraine');
     }
     console.log('Browser geocoder fallback, normalization and cancellation checks passed.');
 }
