@@ -19,7 +19,7 @@
   normalization, cancellation and source-config isolation.
 - [x] Run these test assertions with simulated browser APIs in V8.
 - [ ] Run native Node script and git diff whitespace checks on checkout.
-- [ ] User adds both Actions repository secrets before deployment.
+- [x] Owner confirmed both Actions repository secrets configured (2026-11-09); values cannot be read back from GitHub and hosted requests still need verification after deployment.
 - [ ] Verify real Geoapify/LocationIQ calls on allowed deployment
   origins, blocked keys, and both-provider outage fallback.
 - [ ] Verify EN/RU, keyboard, mobile, user-visible credits, About.
