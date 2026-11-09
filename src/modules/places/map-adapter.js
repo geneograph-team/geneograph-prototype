@@ -178,20 +178,17 @@ const placesMapAdapter = (function ()
 
     function focusPoint(map, point, padding)
     {
-        const projected = map.project(toLngLat(point));
-        const container = map.getContainer();
-        const left = padding.topLeft[0];
-        const top = padding.topLeft[1];
-        const right = Math.max(left, container.clientWidth - padding.bottomRight[0]);
-        const bottom = Math.max(top, container.clientHeight - padding.bottomRight[1]);
-        const targetX = Math.max(left, Math.min(right, projected.x));
-        const targetY = Math.max(top, Math.min(bottom, projected.y));
-        if (targetX !== projected.x || targetY !== projected.y)
-        {
-            map.panBy([targetX - projected.x, targetY - projected.y], {
-                duration: 0
-            });
-        }
+        // Always center explicit place navigation in the usable map area.
+        // Left/right and top/bottom padding may differ because of overlays.
+        const offset = [
+            (padding.topLeft[0] - padding.bottomRight[0]) / 2,
+            (padding.topLeft[1] - padding.bottomRight[1]) / 2
+        ];
+        map.easeTo({
+            center: toLngLat(point),
+            offset,
+            duration: 0
+        });
     }
 
     function setLineSegments(map, segments, color)
