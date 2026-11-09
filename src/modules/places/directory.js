@@ -1375,7 +1375,8 @@ function placeReviewMatchesSearch(item, query)
         t(issue.title),
         label,
         dismissal ? t('Dismissed') : '',
-        dismissal ? placeReviewDismissalReason(dismissal) : ''
+        dismissal ? placeReviewDismissalReason(dismissal) : '',
+        dismissal ? t(placeReviewDismissalReason(dismissal)) : ''
     ].join(' ').toLowerCase().includes(query);
 }
 
@@ -1396,7 +1397,6 @@ function placesReviewGroups()
 
     return {
         activeCount: active.length,
-        dismissedCount: dismissed.length,
         groups: [
             {
                 key: 'invalid_coordinates',
@@ -1454,17 +1454,20 @@ function renderPlaceReviewListRow(item)
               data-place-review-dismiss="${placeId}"
               data-place-review-type="${issueType}">${escapeHtml(t('Dismiss'))}</button>`;
     const reason = dismissal ? placeReviewDismissalReason(dismissal) : '';
+    const localizedReason = reason === PLACE_REVIEW_DEFAULT_MISSING_REASON
+        ? t(reason)
+        : reason;
     const reasonMarkup = dismissal
         ? `<div class="places-review-reason" data-place-review-reason-editor>
               <p data-place-review-reason-display>
                 <strong>${escapeHtml(t('Reason'))}:</strong>
-                ${escapeHtml(reason || t('No reason provided'))}
+                ${escapeHtml(localizedReason || t('No reason provided'))}
               </p>
               <form hidden data-place-review-reason-form
                 data-place-review-place="${placeId}" data-place-review-type="${issueType}">
                 <label for="placeReviewReason-${placeId}-${issueType}">${escapeHtml(t('Reason'))}</label>
                 <textarea id="placeReviewReason-${placeId}-${issueType}" maxlength="240"
-                  rows="2">${escapeHtml(reason)}</textarea>
+                  rows="2">${escapeHtml(localizedReason)}</textarea>
                 <div class="places-review-reason-actions">
                   <button class="button primary" type="submit">${escapeHtml(t('Save reason'))}</button>
                   <button class="button secondary" type="button" data-place-review-cancel-reason>
@@ -1664,7 +1667,12 @@ function bindPlacesNeedsReviewControls()
             event.preventDefault();
             const placeId = form.dataset.placeReviewPlace;
             const issueType = form.dataset.placeReviewType;
-            if (!updatePlaceReviewDismissalReason(placeId, issueType, form.querySelector('textarea')?.value)) return;
+            const entered = form.querySelector('textarea')?.value || '';
+            const reason = issueType === 'missing_coordinates'
+                && entered.trim() === t(PLACE_REVIEW_DEFAULT_MISSING_REASON)
+                ? PLACE_REVIEW_DEFAULT_MISSING_REASON
+                : entered;
+            if (!updatePlaceReviewDismissalReason(placeId, issueType, reason)) return;
             rerenderPlacesReviewAfterAction(placeId, 'dismissed');
             main.querySelector(`[data-place-review-edit-reason="${CSS.escape(placeId)}"]`)
                 ?.focus({ preventScroll: true });
