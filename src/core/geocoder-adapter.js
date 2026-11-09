@@ -204,7 +204,7 @@ const geneographGeocoder = (function ()
         }
         catch (error)
         {
-            if (signal?.aborted || error.name === 'AbortError') throw error;
+            if (signal?.aborted) throw abortError();
             primaryError = error;
         }
 
@@ -215,7 +215,7 @@ const geneographGeocoder = (function ()
         }
         catch (error)
         {
-            if (signal?.aborted || error.name === 'AbortError') throw error;
+            if (signal?.aborted) throw abortError();
             if (primaryError) throw new Error('Geocoding is temporarily unavailable');
             return []; // Primary succeeded with no matches; fallback was unavailable.
         }
