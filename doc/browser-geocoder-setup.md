@@ -72,13 +72,27 @@ for the architecture and record-lifetime boundaries.
 ## 2. Restrict browser credentials
 
 Confirm restrictions separately in **both** provider dashboards and
-test real network requests:
+test actual requests from the deployed host. **Geoapify Allowed HTTP
+referrers accept regular expressions, not shell-style wildcards.** Two
+candidate whole-URL patterns (verify against the observed `Referer`
+header and Geoapify's matching behavior) are:
 
-- `https://geneograph-team.github.io/*`
-- `https://*.geneograph.com/` (if the provider accepts this exact
-  syntax; alternatively use its documented regex/glob syntax)
-- Add `https://geneograph.com/*` separately if the apex domain hosts
-  the application.
+```text
+^https://geneograph-team\.github\.io(/.*)?$
+^https://([A-Za-z0-9-]+\.)*geneograph\.com(/.*)?$
+```
+
+The second pattern permits the apex domain as well as subdomains; if
+only a single subdomain is used, restrict it specifically instead.
+Do not use `https://geneograph-team.github.io/*` as a regex: the
+unescaped periods and trailing `/*` do **not** mean "any path".
+
+For **Geoapify Allowed origins**, use actual origin values such as
+`https://geneograph-team.github.io` (no trailing slash or path).
+Add individual production domains only if supported by the dashboard;
+do not assume the `*.geneograph.com` syntax works in that field.
+Avoid Allowed IP address restrictions for browser requests, and don't
+mistake `CORS Access-Control-Allow-Origin` for an authorization control.
 
 **Important:** Cross-origin `Referer` commonly contains the **origin
 only**, not the full `/geneograph-prototype/` path, due to browser
