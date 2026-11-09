@@ -34,6 +34,7 @@ function setPlacesMapStatus(title = '', message = '', { retry = false, list = fa
     status.querySelector('[data-places-map-list]')?.addEventListener('click', () =>
     {
         state.placesViewMode = 'list';
+        destroyPlacesMap();
         renderPlaces();
     });
     status.querySelector('[data-places-map-retry]')?.addEventListener('click', () =>
