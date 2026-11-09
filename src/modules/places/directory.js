@@ -315,7 +315,8 @@ function bindPlacesSidebarControls()
                 {
                     selectPlace(
                         button.dataset
-                            .placeTreeSelect
+                            .placeTreeSelect,
+                        { focusMap: false }
                     );
                 }
             );
