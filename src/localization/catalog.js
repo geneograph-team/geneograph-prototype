@@ -476,6 +476,8 @@ const RU_UI_COMPLETION = {
     'The map could not load. Check your connection or WebGL2 support. Place editing remains available.': 'Не удалось загрузить карту. Проверьте подключение и поддержку WebGL2. Редактирование мест по-прежнему доступно.',
     'Interactive mapping is unavailable. You can enter coordinates manually or save the place without a position.': 'Карта недоступна. Вы можете ввести координаты вручную или сохранить место без указания положения.',
     'Loading interactive map…': 'Загрузка интерактивной карты…',
+    'Interactive mapping is unavailable here. Use the place editor to enter coordinates manually.': 'Интерактивная карта здесь недоступна. Укажите координаты вручную в редакторе места.',
+    'Create place saves a new record. Map placement was unavailable, so the tour will not create one; manual coordinates remain available.': 'Кнопка «Создать место» сохраняет запись. Карта недоступна, поэтому экскурсия не создаст место; координаты можно указать вручную.',
     'Draft place position': 'Черновая позиция места',
     'Select place': 'Выбрать место',
     'Needs attention': 'Требует внимания',
