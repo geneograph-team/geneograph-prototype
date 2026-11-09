@@ -305,7 +305,7 @@ function renderPlaceEditorSuggestions({ open = true } = {})
     html += `<button class="place-editor-suggestion manual" id="placeEditorOption${manualIndex}" type="button" role="option" aria-selected="false" data-place-editor-option="${manualIndex}">${icon.edit}<span><strong>Use “${escapeHtml(entered)}” as entered</strong><small>Keep a historical or custom place name</small></span></button>`;
     draft.renderedSuggestions = suggestions;
     draft.activeSuggestionIndex = Math.min(draft.activeSuggestionIndex, suggestions.length - 1);
-    list.innerHTML = html;
+    list.innerHTML = html + geneographGeocoder.attributionHtml();
     list.hidden = !open;
     input.setAttribute('aria-expanded', String(open));
     updatePlaceEditorActiveSuggestion();
