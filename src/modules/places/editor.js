@@ -881,6 +881,16 @@ function commitPlaceEditorDraft({ allowDuplicate = false } = {})
     const completion =
         placeEditorCompletion;
 
+    // Newly created or repositioned places should be centered after the
+    // map is rendered again. Geneograph completion callbacks are separate.
+    if (!completion
+        && state.activeModule === 'Places'
+        && state.placesViewMode === 'map'
+        && placeHasCoordinates(place))
+    {
+        placesMapRuntime.pendingFocusPlaceId = place.id;
+    }
+
     resetPlaceEditorDraft();
 
     closeModal({
