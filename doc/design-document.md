@@ -138,7 +138,7 @@ Shapes and drawings have separate creation-strip settings, copied into new objec
 
 **Places** provides project place records and map-oriented browsing/search. Map tiles and geographic search depend on the configured provider and network, so map-unavailable states must not block non-map choices. The Geneograph Add/Change Place modal combines project places, map results, and a board-only option in one results list. Selecting a map result adds a project Place; choosing board-only does not. Merely typing a query never creates a place.
 
-**Places map navigation:** Single-click a place in the Countries sidebar to select it; double-click to switch to map view (if needed) and center its marker within the unobscured viewport. Creating or repositioning a place with valid coordinates in the Places editor centers that marker after the map has reloaded, including while MapLibre is still initializing. Map loading/error notices are centered within the map panel and use a neutral List view escape action. If a place lacks coordinates, keep the manual position-editing path rather than guessing a location. The current dark basemap is the OpenFreeMap `dark` preset; changing map colors is a separate style decision and does not change the app's dark theme automatically.
+**Places map navigation:** Single-click a place in the Countries sidebar to select it; double-click to switch to map view (if needed) and center its marker within the unobscured viewport. Creating or repositioning a place with valid coordinates in the Places editor centers that marker after the map has reloaded, including while MapLibre is still initializing. Map loading/error notices are centered within the map panel and use a neutral List view escape action. If a place lacks coordinates, keep the manual position-editing path rather than guessing a location. The dark basemap uses OpenFreeMap `dark` with GeneoGraph paint overrides; the map colors and application theme tokens remain separate.
 
 ### Places maps and browser geocoding (issue #158)
 
@@ -165,6 +165,31 @@ A user-cancelled or superseded search **never** falls through to LocationIQ. Req
 **Fallback and limits:** Without allowed keys, network access or provider availability, the application still supports project-place selection, creating places with names alone, and entering decimal coordinates manually; `file://` remains a non-map workflow. Daily free allowances are **account-wide**, while this adapter only throttles **each browser instance**; it cannot enforce a global usage ceiling. Silent fallback improves reliability but does not guarantee extra usable quota. Both required provider links appear *beneath autocomplete suggestions* in both place pickers and again under **Settings → About → Data providers**, independently of the active provider. The map's OpenFreeMap/OpenStreetMap attribution is separate.
 
 **Data and verification boundary:** There is no persistent raw geocoder response cache, and saved prototype place edits are still browser-memory-only. Any future durable genealogy store must document geocoded source attribution and honor each provider's storage/caching terms. Hosted EN/RU, historical-name coverage, referrer restrictions, failure/cancellation, credits and keyboard/mobile behavior require actual browser checks before merging; static adapter tests alone do not validate third-party API behavior. For exact deployment steps, quotas, terms, troubleshooting and manual QA, see [Browser geocoder setup](browser-geocoder-setup.md).
+
+### Dark map palette ownership (issue #163)
+
+The interactive Places map keeps OpenFreeMap's **upstream `dark` style URL**, vector tiles, sprite images, glyph fonts and map attribution. Rather than copying and hosting a potentially stale style JSON, GeneoGraph applies a small **charcoal paint-only overlay** through MapLibre's `setPaintProperty` API:
+
+- **Palette to edit:** `PLACES_DARK_MAP_PAINT` in `src/core/runtime-config.js`. Keys correspond to OpenFreeMap dark-style layer IDs; values are standard MapLibre paint colors. This is *basemap artwork*, not a change to `src/core/palette/geneograph-v3.css` or shared UI button/focus colors.
+- **Application:** `placesMapAdapter.applyDarkPalette(map, theme)` in `src/modules/places/map-adapter.js` runs on every `style.load` event in `map-and-route.js`. Unknown upstream layers are skipped. Only paint colors change; layer order, sources, overlays, markers, routes, fonts and attribution are not replaced.
+- **Theme stability:** `placesMapRuntime.mapTheme` tracks the latest requested style, so redundant theme events do not reload tiles. The light theme still uses OpenFreeMap `liberty` untouched. After a real light ↔ dark switch, the dark palette reapplies as soon as the replacement style loads and route overlays are restored.
+- **Boundaries:** It is not a map filter and does not alter place data, geocoding, nearby-search providers, map interaction or `file://` manual place entry. Recheck layer IDs if OpenFreeMap upgrades its Dark style.
+
+Representative **before → after color comparison** (original upstream Dark values were verified against OpenFreeMap's published style repository on 2026-11-09):
+
+| Map feature | Upstream Dark | GeneoGraph charcoal |
+| --- | --- | --- |
+| Land/background | `#0C0C0C` | `#293139` |
+| Water | `#1B1B1D` | `#244354` |
+| Parkland | `#202020` | `#355045` |
+| Minor roads | `#181818` | `#536371` |
+| Village labels | `#656565` | `#D2DCE4` |
+| Major roads | very dark gray | `#74818D` |
+| Country boundaries | dark gray | `#8594A1` |
+
+**Visual approval gate:** Compare upstream dark and the customized dark map at the **same city, zoom and viewport** (for example, Warsaw at zoom 10 and a rural settlement at zoom 13). Confirm legibility of major/minor roads, place labels, boundaries, water and parks; inspect markers, selected/draft pins, route lines, the status overlay and attribution. Repeat on mobile and desktop, in EN/RU, and after repeated light ↔ dark switches. This comparison requires hosted MapLibre browser QA; unit tests cannot substitute for actual appearance review.
+
+**Automated regression:** Run `node scripts/check-places-dark-palette.cjs` and `node scripts/check-places-maplibre.cjs`. The GitHub Pages workflow runs both before deployment. Source attribution: [OpenFreeMap styles](https://github.com/hyperknot/openfreemap-styles), including its [dark style license](https://github.com/hyperknot/openfreemap-styles/blob/main/styles/dark/LICENSE.md). Preserve OpenFreeMap, OpenMapTiles and OpenStreetMap credit wherever the map is displayed.
 
 ## 10. Publish and other unfinished capabilities
 
