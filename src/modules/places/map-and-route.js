@@ -111,6 +111,7 @@ function destroyPlacesMap({ preserveWaiters = false } = {})
     placesMapRuntime.editingPlaceId = null;
     placesMapRuntime.mountedListKey = '';
     placesMapRuntime.currentPlaces = [];
+    if (!preserveWaiters) placesMapRuntime.pendingFocusPlaceId = null;
     placesMapRuntime.suppressViewCapture = false;
     if (!preserveWaiters) resolvePlacesMapWaiters(false);
 }
@@ -185,6 +186,11 @@ function mountPlacesMap(places)
                 setPlacesMapStatus();
                 updatePlacesMapData(placesMapRuntime.currentPlaces, { force: true });
                 restorePlacesMapView(placesMapRuntime.currentPlaces);
+                const focusPlaceId = placesMapRuntime.pendingFocusPlaceId;
+                if (focusPlaceId)
+                {
+                    updatePlacesMapSelection(focusPlaceId, { focusMap: true });
+                }
                 updatePlacesMapToolControls();
                 resolvePlacesMapWaiters(true);
                 const resolvedTheme = document.documentElement.dataset.theme === 'dark'
@@ -296,11 +302,17 @@ function updatePlacesMapSelection(placeId, { focusMap = false } = {})
         placesMapAdapter.updateSelection(marker, id === placeId);
     });
     const place = getPlace(placeId);
-    if (focusMap && placeHasCoordinates(place) && placesMapReady())
+    if (focusMap && placeHasCoordinates(place))
     {
-        placesMapAdapter.focusPoint(
-            placesMapRuntime.map, placeLatLng(place), placesMapPadding()
-        );
+        // MapLibre initializes asynchronously; do not lose explicit focus.
+        placesMapRuntime.pendingFocusPlaceId = place.id;
+        if (placesMapReady())
+        {
+            placesMapAdapter.focusPoint(
+                placesMapRuntime.map, placeLatLng(place), placesMapPadding()
+            );
+            placesMapRuntime.pendingFocusPlaceId = null;
+        }
     }
 }
 
