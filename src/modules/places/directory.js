@@ -2205,8 +2205,8 @@ function renderPlacesMapShell(list)
           aria-label="Places map">
 
           <div
-            id="placesLeafletMap"
-            class="places-leaflet-map">
+            id="placesVectorMap"
+            class="places-vector-map">
           </div>
 
           ${renderPlacesRouteSummary()}
