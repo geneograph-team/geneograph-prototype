@@ -14,7 +14,7 @@ GeneoGraph is a project-based family-history research workspace. The prototype c
 - Open `src/index.html` directly or serve `src/` as static files. There is no framework, package manager, compile step, or backend.
 - `src/index.html` contains the shell, CDN references, runtime map configuration, and ordered stylesheet and classic deferred script tags. The order is significant: the scripts share a global scope rather than importing modules.
 - Styles, behavior, seed records, state, and localization are grouped under `src/core/`, `modules/`, `shared/`, `seed/`, and `localization/`. Static media lives in `src/assets/{photos,documents,covers,ui,boards}/`; local vendor files support document and board export/preview paths.
-- Quill and MapLibre CSS are pinned CDN dependencies; hosted Places lazily imports the pinned MapLibre GL JS ES module and uses OpenFreeMap vector basemaps. The separate MapTiler geocoder still requires its configured browser key and network access until #158. Direct file-open sessions retain Places list and manual coordinate editing without an interactive map.
+- Quill and MapLibre CSS are pinned CDN dependencies; hosted Places lazily imports the pinned MapLibre GL JS ES module and uses OpenFreeMap vector basemaps. Geoapify geocoding runs directly in the browser with invisible LocationIQ fallback. GitHub Pages injects restricted browser credentials into the published artifact from Actions secrets; they remain visible to browser visitors. See `doc/browser-geocoder-setup.md`. Direct file-open sessions retain Places list and manual coordinate editing without an interactive map.
 - The current root-based GitHub Pages configuration does not publish the application from `src/`. Local behavior and a Pages deployment are not interchangeable evidence.
 
 The main shell exposes a top bar, project/module navigation, workspace, right inspector, modals, and toasts. The visible modules are **Family Tree, People, Geneograph, Albums, Archive, Notes, and Places**. `Publish` has implementation files but is intentionally absent from the active module list in `src/core/runtime-config.js`.
@@ -147,7 +147,7 @@ Other important boundaries:
 - No durable project database, account authentication, permissions, or collaborative synchronization.
 - No real GEDCOM parser/import workflow or verified round-trip interchange.
 - No production upload/storage service for photos and archive files.
-- No general server-side map/geocoding authority; mapping relies on browser configuration and an external provider.
+- No general server-side map/geocoding authority; map rendering and geocoding rely on browser configuration and external providers; there is no private geocoding proxy.
 - A local undo stack and a downloaded board file do not constitute project-wide persistence or backup.
 
 ### Capability and lifetime matrix
