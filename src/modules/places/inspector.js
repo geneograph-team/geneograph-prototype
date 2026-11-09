@@ -1790,8 +1790,7 @@ function bindPlacesInspectorControls(
     root.querySelector('[data-place-review-fix]')?.addEventListener('click', event =>
     {
         const button = event.currentTarget;
-        if (button.dataset.placeReviewType === 'invalid_coordinates') openPlaceModalForCoordinateReview(button.dataset.placeReviewFix);
-        else openPlaceModal(button.dataset.placeReviewFix);
+        openPlaceModalForCoordinateReview(button.dataset.placeReviewFix);
     });
 
     root.querySelector('[data-place-review-view]')?.addEventListener('click', event =>
