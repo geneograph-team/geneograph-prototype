@@ -613,7 +613,9 @@ function bindPlaceComboboxes(root = document)
         function scheduleMapSearch(query, immediate = false)
         {
             clearTimeout(searchTimer);
+            searchTimer = null;
             searchController?.abort();
+            searchController = null;
             const trimmed = query.trim();
             if (trimmed && findExactPlaceMatch(trimmed, projectId))
             {
@@ -632,31 +634,50 @@ function bindPlaceComboboxes(root = document)
             mapResults = [];
             mapState = 'loading';
             refresh();
-            searchTimer = setTimeout(async () =>
+            searchTimer = setTimeout(() =>
             {
+                searchTimer = null;
                 const controller = new AbortController();
                 searchController = controller;
-                try
+                // Timer callbacks are fire-and-forget. Always observe their
+                // terminal promise, including unexpected rendering errors.
+                const run = async () =>
                 {
-                    const results = await searchSharedPlaceMapResults(trimmed, controller.signal);
-                    if (controller.signal.aborted || input.value.trim() !== trimmed || !field.isConnected) return;
-                    mapResults = results;
-                    mapState = results.length ? 'ready' : 'empty';
-                }
-                catch (error)
+                    try
+                    {
+                        const results = await searchSharedPlaceMapResults(trimmed, controller.signal);
+                        if (controller.signal.aborted || input.value.trim() !== trimmed || !field.isConnected) return;
+                        mapResults = results;
+                        mapState = results.length ? 'ready' : 'empty';
+                    }
+                    catch (error)
+                    {
+                        if (controller.signal.aborted || input.value.trim() !== trimmed || !field.isConnected) return;
+                        mapState = 'unavailable';
+                        mapError = error.message;
+                    }
+                    finally
+                    {
+                        if (searchController === controller) searchController = null;
+                    }
+                    if (document.activeElement === input) refresh();
+                };
+                run().catch(error =>
                 {
-                    if (controller.signal.aborted || input.value.trim() !== trimmed || !field.isConnected) return;
-                    mapState = 'unavailable';
-                    mapError = error.message;
-                }
-                if (document.activeElement === input) refresh();
+                    if (!controller.signal.aborted)
+                    {
+                        console.warn('GeneoGraph place combobox update failed:', error);
+                    }
+                });
             }, immediate ? 0 : PLACE_EDITOR_GEOCODER_DEBOUNCE_MS);
         }
 
         function close()
         {
             clearTimeout(searchTimer);
+            searchTimer = null;
             searchController?.abort();
+            searchController = null;
             list.hidden = true;
             list.innerHTML = '';
             input.setAttribute('aria-expanded', 'false');
@@ -669,7 +690,9 @@ function bindPlaceComboboxes(root = document)
         {
             if (!opt) return;
             clearTimeout(searchTimer);
+            searchTimer = null;
             searchController?.abort();
+            searchController = null;
             mapState = 'idle';
             if (opt.type === 'place')
             {
