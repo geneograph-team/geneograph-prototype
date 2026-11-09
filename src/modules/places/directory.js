@@ -1547,7 +1547,7 @@ function renderPlacesNeedsReviewPage()
           <div class="places-review-content">
             ${noResults}
             <div class="places-list-panel places-review-list-panel"
-              aria-label="${escapeHtml(t('Places needing review'))}">
+              role="region" aria-label="${escapeHtml(t('Places needing review'))}">
               ${review.groups.map(group => renderPlaceReviewGroup(group, query)).join('')}
             </div>
           </div>
