@@ -1,6 +1,6 @@
 # Source map
 
-`src/index.html` is the authoritative order for CSS and classic deferred JavaScript. Each script shares one global scope; do not duplicate top-level bindings or move an eager initializer before its dependencies. Direct `file://` opening remains required.
+`src/index.html` is the authoritative order for CSS and classic deferred JavaScript. `src/browser-config.js` carries empty public credential defaults, replaced only in GitHub Pages deployment by repository Actions secrets. `src/core/geocoder-adapter.js` precedes `src/shared/date-and-place-fields.js` and both place-search screens; it owns browser-only Geoapify → LocationIQ lookup. Each script shares one global scope; do not duplicate top-level bindings or move an eager initializer before its dependencies. Direct `file://` opening remains required.
 
 ## Owners
 
