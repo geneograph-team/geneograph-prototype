@@ -423,30 +423,9 @@ function setPlaceAddressDisclosureState(
     }
 }
 
-function placeEditorMapResult(feature, index)
-{
-    const center = Array.isArray(feature?.center) ? feature.center : [];
-    const lng = Number(center[0]);
-    const lat = Number(center[1]);
-    if (!validLatitude(lat) || !validLongitude(lng)) return null;
-    const name = cleanEditFieldValue(feature.place_name || feature.text);
-    if (!name) return null;
-    const primary = cleanEditFieldValue(feature.text || name.split(',')[0]);
-    const context = Array.isArray(feature.context)
-        ? feature.context.map(item => cleanEditFieldValue(item.text)).filter(Boolean).join(', ')
-        : cleanEditFieldValue(name.split(',').slice(1).join(','));
-    return { id: `map-result-${index}`, kind: 'map', name, primary: primary || name, context, coordinates: { lat, lng } };
-}
-
 async function searchSharedPlaceMapResults(query, signal)
 {
-    const key = placesMaptilerKey();
-    if (!key) throw new Error('Map search is unavailable because no MapTiler browser key is configured.');
-    const response = await fetch(`https://api.maptiler.com/geocoding/${encodeURIComponent(query)}.json?key=${encodeURIComponent(key)}&limit=5`, { signal });
-    if (!response.ok) throw new Error('Map search could not be completed.');
-    const data = await response.json();
-    return (Array.isArray(data.features) ? data.features : [])
-        .map(placeEditorMapResult).filter(Boolean);
+    return geneographGeocoder.search(query, signal, 5);
 }
 
 function bindPlaceComboboxes(root = document)
