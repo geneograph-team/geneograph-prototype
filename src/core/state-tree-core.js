@@ -306,6 +306,11 @@ const state = {
     selectedPlaceId: 'place-pawford',
     placesSearch: '',
     placesReviewFocusId: '',
+    placesReviewExpandedGroups: {
+        invalid_coordinates: true,
+        missing_coordinates: true,
+        dismissed: false
+    },
     placesViewMode: 'map',
     placesInspectorCollapsed: false,
     placesInspectorSections: {
