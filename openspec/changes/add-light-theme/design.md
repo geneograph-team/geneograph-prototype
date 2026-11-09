@@ -20,7 +20,7 @@ Store the preference (`system`, `dark`, `light`) in local storage, defaulting to
 
 Keep the present dark token values unchanged. Define the light equivalents at the same token layer: page `#F8FAF6`, primary surface `#FFFFFF`, sidebar `#EFF3EC`, input `#E7EEE7`, selected surface `#E4EDE7`, primary text `#17251E`, secondary text `#52635A`, and primary action `#1B6847` with white foreground. Add explicit semantic roles where one existing token serves conflicting light-theme purposes (for example, on-primary text, strong control outline, inverse hero foreground); do not repurpose the bright dark-theme accent as light-theme body text. Use theme-aware scrollbars, select chevrons, shadows, and focus colors.
 
-Apply role tokens in `foundation.css` and shared controls, then reconcile fixed dark assumptions in each owning module stylesheet. Preserve dark green People and other branded heroes with local inverse-surface roles. Theme the surrounding Geneograph editor, modal, board library, Notes/Quill controls, and Places/Leaflet controls; map tiles and authored imagery remain content. Avoid a final override stylesheet and avoid CSS rules whose only purpose is to counter an earlier module rule.
+Apply role tokens in `foundation.css` and shared controls, then reconcile fixed dark assumptions in each owning module stylesheet. Preserve dark green People and other branded heroes with local inverse-surface roles. Theme the surrounding Geneograph editor, modal, board library, Notes/Quill controls, and Places controls; map tiles and authored imagery remain content. Avoid a final override stylesheet and avoid CSS rules whose only purpose is to counter an earlier module rule.
 
 ### Board color ownership
 

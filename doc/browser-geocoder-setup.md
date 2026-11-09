@@ -77,11 +77,6 @@ referrers accept regular expressions, not shell-style wildcards.** Two
 candidate whole-URL patterns (verify against the observed `Referer`
 header and Geoapify's matching behavior) are:
 
-```text
-^https://geneograph-team\.github\.io(/.*)?$
-^https://([A-Za-z0-9-]+\.)*geneograph\.com(/.*)?$
-```
-
 The second pattern permits the apex domain as well as subdomains; if
 only a single subdomain is used, restrict it specifically instead.
 Do not use `https://geneograph-team.github.io/*` as a regex: the
@@ -221,9 +216,6 @@ ambiguity. Verify Geoapify primary results, simulated blocked Geoapify
 fallback, no-results fallback, cancellation, restricted-key denial,
 both-provider outage, credits in both place pickers, keyboard, mobile,
 About credits and `file://` manual editing.
-
-**Revoke the obsolete MapTiler key** after the new geocoder has passed
-hosted QA; its former value was committed in repository history.
 
 ## 6. Troubleshooting and release gate
 

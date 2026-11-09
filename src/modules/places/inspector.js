@@ -2005,10 +2005,6 @@ function togglePlacesInspector()
           false
     });
 
-    /*
-      * First frame applies the inspector-width change.
-      * The second lets Leaflet measure the final map.
-      */
     requestAnimationFrame(() =>
     {
         requestAnimationFrame(() =>
