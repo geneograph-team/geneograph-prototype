@@ -9,7 +9,7 @@ Static browser prototype for genealogy research. Open `src/index.html` directly 
 - `src/modules/` groups Projects, Family Tree, People, Geneograph, Albums, Archive, Notes, Places, and disabled Publish behavior and styles by feature. `src/shared/` owns cross-view helpers and controls. `shared/controls.css` owns recurring control appearance and focus states; module CSS owns layout and unique variants. `shared/resource-picker.css` owns picker-specific layout.
 - `src/seed/` holds sample records and load-time seed adapters. `src/localization/` holds ordered English/Russian dictionaries and the language runtime.
 - `src/assets/photos/`, `documents/`, `covers/`, and `ui/` hold static media. `src/assets/boards/whiskerfield-tree-research.js` registers the seeded board before `src/seed/seed-boards.js` loads.
-- `src/vendor/` holds pinned local browser libraries, including `html-to-image`. Leaflet and Quill load from pinned CDNs.
+- `src/vendor/` holds pinned local browser libraries, including `html-to-image`. MapLibre CSS and Quill load from pinned CDNs; the Places renderer imports the pinned MapLibre ES module only on hosted HTTP(S) pages. Opening via file:// retains the Places list and manual coordinates without an interactive map.
 
 See [the source map](doc/source-map.md) for dependency boundaries, [AGENTS.md](AGENTS.md) for coding rules, and [the design guide](doc/design-document.md) for current product context. `doc/` also holds the normative git branching model and commit style guides; `openspec/` contains verified specs and focused change folders.
 
