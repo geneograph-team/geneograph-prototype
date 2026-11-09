@@ -46,6 +46,9 @@ jobs:
             - name: Validate localization catalog
               run: node scripts/check-localization-catalog.cjs
 
+            - name: Validate place search lifecycle
+              run: node scripts/check-place-search-lifecycle.cjs
+
             - name: Build prototype
               run: |
                   mkdir `
