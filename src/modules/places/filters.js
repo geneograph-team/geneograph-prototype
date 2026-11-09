@@ -1047,10 +1047,8 @@ function showPlaceOnMap(
         'map';
 
     // A newly rendered map is not ready until its style finishes loading.
-    if (placeHasCoordinates(place))
-    {
-        placesMapRuntime.pendingFocusPlaceId = place.id;
-    }
+    placesMapRuntime.pendingFocusPlaceId =
+        placeHasCoordinates(place) ? place.id : null;
 
     if (
         state.activeModule !== 'Places'
