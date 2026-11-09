@@ -25,7 +25,7 @@ function setPlacesMapStatus(title = '', message = '', { retry = false, list = fa
         return;
     }
     status.hidden = false;
-    status.innerHTML = `<strong>${escapeHtml(t(title))}</strong><span>${escapeHtml(t(message))}</span>${list ? `<button class="button primary" type="button" data-places-map-list>${escapeHtml(t('List view'))}</button>` : ''}${retry ? `<button class="button secondary" type="button" data-places-map-retry>${escapeHtml(t('Retry'))}</button>` : ''}`;
+    status.innerHTML = `<strong>${escapeHtml(t(title))}</strong><span>${escapeHtml(t(message))}</span>${list ? `<button class="button secondary" type="button" data-places-map-list>${escapeHtml(t('List view'))}</button>` : ''}${retry ? `<button class="button secondary" type="button" data-places-map-retry>${escapeHtml(t('Retry'))}</button>` : ''}`;
     status.querySelector('[data-places-map-list]')?.addEventListener('click', () =>
     {
         state.placesViewMode = 'list';
