@@ -388,7 +388,18 @@ function schedulePlaceEditorMapSearch(query, { immediate = false } = {})
     draft.externalState = 'loading';
     draft.externalQuery = value;
     renderPlaceEditorSuggestions();
-    placeGeocoderTimer = setTimeout(() => searchPlaceEditorMapResults(value, { retry: immediate }), immediate ? 0 : PLACE_EDITOR_GEOCODER_DEBOUNCE_MS);
+    placeGeocoderTimer = setTimeout(() =>
+    {
+        // Timer callbacks do not await promises; never leave a rejected
+        // request unobserved, especially while rapidly editing the query.
+        searchPlaceEditorMapResults(value, { retry: immediate }).catch(error =>
+        {
+            if (error?.name !== 'AbortError')
+            {
+                console.warn('GeneoGraph place search failed:', error);
+            }
+        });
+    }, immediate ? 0 : PLACE_EDITOR_GEOCODER_DEBOUNCE_MS);
 }
 
 function placeEditorNameSimilarity(left, right)
