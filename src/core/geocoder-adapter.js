@@ -166,10 +166,12 @@ const geneographGeocoder = (function ()
         {
             // Compatibility with older browsers lacking AbortSignal.any.
             fallbackController = new AbortController();
-            forwardAbort = () => fallbackController.abort();
+            forwardAbort = () => fallbackController.abort(signal?.reason);
             signal?.addEventListener('abort', forwardAbort, { once: true });
-            if (signal?.aborted) fallbackController.abort();
-            watchdog = setTimeout(() => fallbackController.abort(), timeoutMs);
+            if (signal?.aborted) fallbackController.abort(signal.reason);
+            watchdog = setTimeout(() => fallbackController.abort(
+                new DOMException('Provider request timed out', 'TimeoutError')
+            ), timeoutMs);
             requestSignal = fallbackController.signal;
         }
         try
