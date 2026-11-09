@@ -6,7 +6,7 @@ The canonical local checkout is `E:\Geneograph\Concept\geneograph-prototype`. Op
 
 ## Project Overview
 
-GeneoGraph prototype is a static single-page interactive concept of the GeneoGraph genealogy research workspace. It is the target of the landing site's "Try Demo" CTA. It has no build tooling, no package manager and no framework: plain HTML, CSS and vanilla JavaScript served as static files. Third-party libraries load from CDNs: Leaflet 1.9.4 (maps) and Quill 2.0.3 (rich text), with SRI `integrity` hashes where provided.
+GeneoGraph prototype is a static single-page interactive concept of the GeneoGraph genealogy research workspace. It is the target of the landing site's "Try Demo" CTA. It has no build tooling, no package manager and no framework: plain HTML, CSS and vanilla JavaScript served as static files. Third-party libraries include Quill 2.0.3 (rich text) and MapLibre GL JS 6.16.0 (hosted Places map). MapLibre CSS loads from a pinned CDN and the ES module is imported lazily only on HTTP(S); file:// keeps non-map Places workflows.
 
 The original monolithic `index.html` has been split: the application now lives in `src/` as `index.html` plus external stylesheets and classic deferred scripts (see Current Architecture below).
 
@@ -17,7 +17,7 @@ The original monolithic `index.html` has been split: the application now lives i
 - Extracted JS files retain the original 4-space indentation of the former inline script block (code starts at column 4); match it when editing those files.
 - Key modules:
   - `core/icons.js` — the `icon` dictionary of inline SVG strings.
-  - `src/core/runtime-config.js` — the active module list and map configuration; Places map runtime lives in `src/modules/places/map-runtime.js`.
+  - `src/core/runtime-config.js` — the active module list and basemap/geocoder configuration; Places loads `src/modules/places/map-adapter.js` before `map-runtime.js` and `map-and-route.js`.
   - `src/localization/` — ordered UI/data dictionaries and catalog; `localization/runtime.js` — language runtime (`en`, `ru`) and storage keys.
   - `seed/sample-data.js` — the central `sampleData` object (Whiskerfield sample project).
   - `seed/seed-genealogy.js`, `seed/seed-boards.js` — load-time mutations of `sampleData`; the Geneograph seed payload lives in `src/assets/boards/whiskerfield-tree-research.js`.
@@ -94,7 +94,7 @@ Several extracted files are still very large. **Never read them end-to-end.**
 
 ## Coding Conventions
 
-- No build step; Leaflet and Quill load from pinned CDNs, and local browser libraries live in `src/vendor/`. Do not add new runtime dependencies without asking.
+- No build step; Quill and MapLibre CSS load from pinned CDNs, while MapLibre's ES module is imported lazily for hosted Places maps. Local browser libraries live in `src/vendor/`. Do not add new runtime dependencies without asking.
 - JavaScript: Allman-style braces (opening brace on its own line), single quotes for strings, semicolons never omitted. Icons are inline SVG strings in the `icon` dictionary (`src/core/icons.js`) — reuse them rather than duplicating markup.
 - CSS: approved v3 light/dark UI colors live only in `src/core/palette/geneograph-v3.css`; components use semantic roles or aliases, never new literal UI colors. Run `node scripts/check-ui-colors.js` after color edits. Add a new color to the library only after user approval. Theme preference is System initially, with Dark and Light choices in Global settings. Branded heroes use the pale Light and deep Dark Heritage Green container/on-container pair.
 - HTML: semantic elements (`section`, `figure`, `article`, `nav`), `aria-*` attributes, `role="status"`/`aria-live` for the toast. Explicit `width`/`height` on images, `loading="lazy"`/`decoding="async"` for non-critical images.
@@ -136,7 +136,7 @@ Maintain on every change:
 
 - The site is static: open `src/index.html` directly or serve `src/` as static files; no build step is required.
 - The current root-based GitHub Pages configuration does **not** publish the application from `src/` — do not assume the deployed Pages site reflects `src/` until the Pages configuration is updated.
-- Preserve direct `file://` compatibility in source paths and load order. Codex browser security blocks local `file://` navigation, so use the localhost procedure below for browser QA. Do not change browser security settings.
+- Preserve direct `file://` compatibility in source paths and load order. The interactive Places map requires HTTP(S), but list/editor/manual-coordinate workflows must remain usable via file://. Codex browser security blocks local `file://` navigation, so use the localhost procedure below for browser QA. Do not change browser security settings.
 
 ## Browser QA on this Windows host
 
