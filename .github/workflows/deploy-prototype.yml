@@ -46,6 +46,11 @@ jobs:
             - name: Validate localization catalog
               run: node scripts/check-localization-catalog.cjs
 
+            - name: Validate Places map styles
+              run: |
+                  node scripts/check-places-maplibre.cjs
+                  node scripts/check-places-dark-palette.cjs
+
             - name: Build prototype
               run: |
                   mkdir `
