@@ -1033,9 +1033,10 @@
     position: absolute;
     z-index: 530;
     left: 50%;
-    top: 72px;
-    transform: translateX(-50%);
-    max-width: min(460px, calc(100% - 32px));
+    top: 50%;
+    transform: translate(-50%, -50%);
+    width: min(440px, calc(100% - 32px));
+    box-sizing: border-box;
     padding: 12px 14px;
     display: grid;
     gap: 4px;
