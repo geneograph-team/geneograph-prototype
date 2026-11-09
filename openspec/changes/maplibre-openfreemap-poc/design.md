@@ -4,15 +4,15 @@
 
 The current Places map uses Leaflet marker, feature group and polyline APIs.
 The desktop/browser prototype has no build step and must still open its main
-\`src/index.html\` directly via \`file://\`. Interactive vector maps do not need
-to work from \`file://\`, but manual place and coordinate workflows must remain
+`src/index.html` directly via `file://`. Interactive vector maps do not need
+to work from `file://`, but manual place and coordinate workflows must remain
 possible in the production migration.
 
 ## Approach
 
-- **Isolation.** \`src/experiments/maplibre-poc/index.html\` is a standalone
+- **Isolation.** `src/experiments/maplibre-poc/index.html` is a standalone
   fixture, not part of the application load order or project state. GitHub
-  Pages' existing \`src/\` artifact deployment will include the page once merged.
+  Pages' existing `src/` artifact deployment will include the page once merged.
 - **Renderer.** Dynamically import the pinned MapLibre 6.16.0 ES module from
   UNPKG; v6 removed its older UMD bundle. Do not require a bundler. The dynamic
   import allows an explicit error state if the CDN cannot load. Use
@@ -33,11 +33,11 @@ possible in the production migration.
   kilometres. Do not use the pixel-valued MapLibre circle paint property.
   Update the GeoJSON polygon and line source when the representative center
   or radius changes. The numeric fields work even when mapping is unavailable.
-- **Lifecycle.** Recreate sources and layers on \`style.load\`, clear markers,
+- **Lifecycle.** Recreate sources and layers on `style.load`, clear markers,
   observer and timeouts on teardown, and provide an explicit failure state for
   CDN, style/tile or WebGL initialization problems.
 - **Theme/color ownership.** Reuse the project's approved semantic
-  \`--gg-*\` palette tokens; never add hard-coded UI colors. The underlying
+  `--gg-*` palette tokens; never add hard-coded UI colors. The underlying
   basemap styling is supplied by OpenFreeMap.
 
 ## Out of scope
@@ -68,11 +68,11 @@ No attempt to implement offline vector tiles.
 
 ## Verification
 
-Run \`node --check\` on the new JS and
-\`node scripts/check-maplibre-poc.cjs\`. Then serve \`src/\` over HTTP and
+Run `node --check` on the new JS and
+`node scripts/check-maplibre-poc.cjs`. Then serve `src/` over HTTP and
 exercise all workflows in both themes and languages, including mobile widths,
 keyboard controls, failed network and blocked WebGL. Finally open
-\`src/index.html\` directly via \`file://\` to confirm the unmodified normal
+`src/index.html` directly via `file://` to confirm the unmodified normal
 prototype's list/editor remain usable. Do not mark hosted browser criteria
 passed from the static checks alone.
 
