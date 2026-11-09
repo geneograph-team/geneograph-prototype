@@ -107,6 +107,7 @@ function destroyPlacesMap({ preserveWaiters = false } = {})
     placesMapRuntime.tilesAvailable = false;
     placesMapRuntime.status = 'idle';
     placesMapRuntime.styleLoading = false;
+    placesMapRuntime.mapTheme = null;
     placesMapRuntime.mode = 'browse';
     placesMapRuntime.editingPlaceId = null;
     placesMapRuntime.mountedListKey = '';
@@ -156,6 +157,7 @@ function mountPlacesMap(places)
                 ? 'dark' : 'light';
             const map = placesMapAdapter.createMap(host, theme);
             placesMapRuntime.map = map;
+            placesMapRuntime.mapTheme = theme;
             map.on('click', event => handlePlacesMapClick({ latlng: event.lngLat }));
             map.on('contextmenu', event => openPlacesMapContextMenu({
                 latlng: event.lngLat,
@@ -166,6 +168,9 @@ function mountPlacesMap(places)
             {
                 if (placesMapRuntime.map !== map) return;
                 placesMapRuntime.errorCount = 0;
+                // style.load fires for initial load and every setStyle().
+                // Paint overrides do not replace the upstream style or the route.
+                placesMapAdapter.applyDarkPalette(map, placesMapRuntime.mapTheme);
                 if (placesMapReady())
                 {
                     placesMapRuntime.styleLoading = false;
@@ -199,7 +204,7 @@ function mountPlacesMap(places)
                 resolvePlacesMapWaiters(true);
                 const resolvedTheme = document.documentElement.dataset.theme === 'dark'
                     ? 'dark' : 'light';
-                if (map.getStyleUrl?.() !== placesMapAdapter.styleUrl(resolvedTheme))
+                if (placesMapRuntime.mapTheme !== resolvedTheme)
                 {
                     handlePlacesMapThemeChange({ detail: { theme: resolvedTheme } });
                 }
@@ -248,8 +253,10 @@ function handlePlacesMapThemeChange(event)
     if (!placesMapReady()) return;
     const theme = event.detail?.theme === 'dark' ? 'dark' : 'light';
     const map = placesMapRuntime.map;
+    // MapLibre does not provide a reliable public getStyleUrl method.
+    // Track our requested theme to avoid reloading the style on every map load.
+    if (placesMapRuntime.mapTheme === theme) return;
     const nextStyle = placesMapAdapter.styleUrl(theme);
-    if (map.getStyleUrl?.() === nextStyle) return;
     try
     {
         placesMapRuntime.styleLoading = true;
@@ -262,6 +269,7 @@ function handlePlacesMapThemeChange(event)
                 failPlacesMap('The map could not load. Check your connection or WebGL2 support. Place editing remains available.');
             }
         }, PLACES_MAP_CONFIG.loadTimeoutMs);
+        placesMapRuntime.mapTheme = theme;
         map.setStyle(nextStyle);
     }
     catch (error)
