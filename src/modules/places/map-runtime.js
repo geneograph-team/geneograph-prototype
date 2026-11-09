@@ -1,8 +1,3 @@
-function placesMaptilerKey()
-{
-    return window.GENEOGRAPH_CONFIG?.maptilerKey || PLACES_GEOCODING_CONFIG.key || '';
-}
-
 function placesMapDataKey(places)
 {
     return (places || []).map(place =>
