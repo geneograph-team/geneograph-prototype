@@ -188,7 +188,7 @@ hosted QA; its former value was committed in repository history.
 | --- | --- |
 | Search works before merge only when manually configured | Expected: repository Actions secrets reach **the published Pages artifact only** on a push to `default`. |
 | Both searches unavailable after deployment | Confirm Pages action succeeded and check the two **Boolean** values above; verify Actions secret **names**, not values. |
-| HTTP 401/403 | Confirm key validity and per-provider referrer/origin patterns. Cross-origin browser `Referer` often includes the origin rather than `/geneograph-prototype/`. |
+| HTTP 401/403 from Geoapify | The primary provider denied access; LocationIQ should silently handle the query if authorized. Inspect the failing request's **Request Headers → Referer and Origin** and the page URL in DevTools. Compare with the *Geoapify-specific* allowed-referrer/origin regular expressions, key validity and project. Hosted `https://geneograph-team.github.io/` and local `http://localhost:8000/` are different origins. Do not use a production key without restrictions or confuse response CORS configuration with API-key authorization. |
 | HTTP 429 or quota exceeded | Monitor both accounts; client pacing cannot enforce a shared daily quota. Wait for provider resets or reduce usage; manual entry stays available. |
 | Geoapify has no result | The fallback runs automatically; verify LocationIQ separately in Network if needed. |
 | Local `file://` or localhost cannot search | Keys are absent locally or blocked by restricted origins. Use direct GitHub Pages for API testing. Manual names and coordinates remain available. |
