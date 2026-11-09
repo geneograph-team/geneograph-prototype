@@ -140,4 +140,48 @@ assert.equal(styles[1], 'light-style');
 assert.equal(themeCtx.placesMapRuntime.mapTheme, 'light');
 assert.equal(status.length, 2);
 
+// Simulate the actual MapLibre style.load callback after a Dark reload.
+// It must repaint the dark map *before* restoring the route and hiding status.
+const styleStart = runtime.indexOf("map.on('style.load', () =>");
+const styleEnd = runtime.indexOf("\n            map.on('load'", styleStart);
+assert.ok(styleStart >= 0 && styleEnd > styleStart,
+    'Cannot locate style.load callback');
+const handlers = {};
+const eventLog = [];
+const onStyleMap = {
+    on: (event, callback) => { handlers[event] = callback; },
+    getLayer: id => layerIds.has(id) ? { id } : null,
+    setPaintProperty: (id, property) =>
+        eventLog.push('paint:' + id + ':' + property)
+};
+const callbackState = {
+    map: onStyleMap, mapTheme: 'dark', errorCount: 3,
+    styleLoading: true, loadTimeout: 123
+};
+const styleCtx = vm.createContext({
+    map: onStyleMap,
+    placesMapRuntime: callbackState,
+    placesMapReady: () => true,
+    placesMapAdapter: adapter,
+    clearTimeout: () => eventLog.push('timeout-cleared'),
+    renderPlacesRouteLayer: () => eventLog.push('route-restored'),
+    setPlacesMapStatus: () => eventLog.push('status-cleared')
+});
+vm.runInContext(runtime.slice(styleStart, styleEnd), styleCtx);
+assert.equal(typeof handlers['style.load'], 'function');
+handlers['style.load']();
+assert.equal(callbackState.errorCount, 0);
+assert.equal(callbackState.styleLoading, false);
+assert.equal(callbackState.loadTimeout, null);
+assert.ok(eventLog[0].startsWith('paint:background:'));
+assert.ok(eventLog.indexOf('route-restored') > eventLog.indexOf('paint:place_city:text-color'));
+assert.equal(eventLog[eventLog.length - 1], 'status-cleared');
+eventLog.length = 0;
+callbackState.mapTheme = 'light';
+handlers['style.load']();
+assert.equal(eventLog.filter(message => message.startsWith('paint:')).length, 0,
+    'Light style.load should not receive any dark paint colors');
+assert.ok(eventLog.includes('route-restored'),
+    'Route must still be restored on light style loads');
+
 console.log('Dark map palette, contrast and theme-switch checks passed.');
