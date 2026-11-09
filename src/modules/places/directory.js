@@ -1630,6 +1630,7 @@ function bindPlacesNeedsReviewControls()
     main.querySelectorAll('[data-place-review-reason-editor]').forEach(editor =>
     {
         editor.addEventListener('click', event => event.stopPropagation());
+        editor.addEventListener('keydown', event => event.stopPropagation());
     });
     main.querySelectorAll('[data-place-review-edit-reason]').forEach(button => button.addEventListener('click', () =>
     {
