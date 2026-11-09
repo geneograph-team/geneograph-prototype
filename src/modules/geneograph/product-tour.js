@@ -877,7 +877,7 @@ function geneoTourTarget(index)
     if (id === 'people-saved-filters') return target?.parentElement?.parentElement || null;
     if (['places-navigation', 'places-countries', 'places-saved-filters'].includes(id))
         return target?.closest('.places-sidebar-section') || target;
-    if (id === 'places-map' && (!window.L || !target || !target.getBoundingClientRect().width
+    if (id === 'places-map' && (!placesMapReady() || !target || !target.getBoundingClientRect().width
         || document.querySelector('[data-places-map-status]:not([hidden])')))
         return document.querySelector('[data-places-inspector] .places-inspector-summary');
     if (target?.getBoundingClientRect().width) return target;
