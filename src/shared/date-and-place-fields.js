@@ -425,7 +425,19 @@ function setPlaceAddressDisclosureState(
 
 async function searchSharedPlaceMapResults(query, signal)
 {
-    return geneographGeocoder.search(query, signal, 5);
+    // Superseded autocomplete requests are expected, not UI failures.
+    // Every caller ignores results once its AbortSignal is cancelled.
+    if (signal?.aborted) return [];
+    try
+    {
+        const results = await geneographGeocoder.search(query, signal, 5);
+        return signal?.aborted ? [] : results;
+    }
+    catch (error)
+    {
+        if (signal?.aborted) return [];
+        throw error;
+    }
 }
 
 function bindPlaceComboboxes(root = document)
