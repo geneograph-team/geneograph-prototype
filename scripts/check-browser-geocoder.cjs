@@ -202,6 +202,49 @@ async function run()
         assert.equal(results.length, 1);
         assert.equal(results[0].name, 'Lviv, Ukraine');
     }
+    {
+        // Timer-started editor lookups are fire-and-forget: their promise
+        // rejection must be observed even if an unexpected error escapes.
+        const begin = places.indexOf('function schedulePlaceEditorMapSearch(');
+        const end = places.indexOf('\nfunction placeEditorNameSimilarity(', begin);
+        assert.ok(begin >= 0 && end > begin);
+        const queued = [];
+        const warnings = [];
+        const editorContext = {
+            placeEditorDraft: {
+                searchTouched: true, original: { name: '' }, externalState: 'idle'
+            },
+            placeGeocoderTimer: null,
+            placeGeocoderController: null,
+            PLACE_EDITOR_GEOCODER_MIN_LENGTH: 3,
+            PLACE_EDITOR_GEOCODER_DEBOUNCE_MS: 300,
+            clearTimeout: () => {},
+            setTimeout: callback =>
+            {
+                queued.push(callback);
+                return queued.length;
+            },
+            renderPlaceEditorSuggestions: () => {},
+            normalizePlaceLookupText: value => String(value).toLowerCase(),
+            searchPlaceEditorMapResults: () =>
+                Promise.reject(new DOMException('cancelled', 'AbortError')),
+            console: { warn: (...args) => warnings.push(args) }
+        };
+        vm.runInNewContext(places.slice(begin, end)
+            + '\nthis.schedule = schedulePlaceEditorMapSearch;', editorContext);
+        editorContext.schedule('Odesa');
+        assert.equal(queued.length, 1);
+        queued.shift()();
+        await Promise.resolve();
+        assert.equal(warnings.length, 0, 'Cancellation should not log a warning');
+        editorContext.searchPlaceEditorMapResults = () =>
+            Promise.reject(new Error('Unexpected editor failure'));
+        editorContext.schedule('Lviv');
+        queued.shift()();
+        await Promise.resolve();
+        assert.equal(warnings.length, 1,
+            'Unexpected timer rejection should be handled and reported');
+    }
     console.log('Browser geocoder fallback, normalization and cancellation checks passed.');
 }
 
