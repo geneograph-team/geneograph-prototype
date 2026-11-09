@@ -36,6 +36,7 @@ const placesMapRuntime = {
     requestId: 0,
     readyWaiters: [],
     status: 'idle',
+    styleLoading: false,
     mountedListKey: '',
     currentPlaces: [],
     suppressViewCapture: false,
