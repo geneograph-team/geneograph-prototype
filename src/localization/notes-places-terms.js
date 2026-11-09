@@ -646,6 +646,54 @@ const RU_UI_PLACES = Object.freeze({
     // Needs review
     // ========================================
 
+    'Coordinates need correction':
+        'Координаты нужно исправить',
+
+    'Missing map positions':
+        'Нет позиции на карте',
+
+    'These places have no identified map position. An exact position is optional.':
+        'Для этих мест не установлена позиция на карте. Точная позиция необязательна.',
+
+    'No coordinates need correction.':
+        'Нет координат, требующих исправления.',
+
+    'No map positions are missing.':
+        'Нет мест без позиции на карте.',
+
+    'Dismissed':
+        'Скрытые',
+
+    'Dismissed warnings can be restored or given an updated reason.':
+        'Скрытые предупреждения можно вернуть или изменить причину скрытия.',
+
+    'No dismissed review items.':
+        'Нет скрытых предупреждений.',
+
+    'Reason':
+        'Причина',
+
+    'No reason provided':
+        'Причина не указана',
+
+    'Edit reason':
+        'Изменить причину',
+
+    'Save reason':
+        'Сохранить причину',
+
+    'Review item restored.':
+        'Предупреждение возвращено на проверку.',
+
+    'Review reason saved.':
+        'Причина скрытия сохранена.',
+
+    'active review items':
+        'на проверке',
+
+    'review items':
+        'элементов проверки',
+
     'Coordinates need attention':
         'Координаты требуют проверки',
 
