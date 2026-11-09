@@ -64,7 +64,7 @@ When removing or replacing a record, inspect all references to its ID and the ef
 
 ### Localization
 
-`src/localization/` supplies ordered English/Russian translation data; `src/localization/runtime.js` owns language runtime and state. New visible actions, empty states, errors, tooltips, and accessibility names need both languages. Keep canonical data and machine identifiers separate from translated display text. Some older feature copy may still be literal English; localization completeness needs testing rather than assumption.
+`src/localization/` supplies ordered English/Russian translation data; `src/localization/runtime.js` owns language runtime and state. New visible actions, empty states, errors, tooltips, and accessibility names need both languages. Keep canonical data and machine identifiers separate from translated display text. Some older feature copy may still be literal English; localization completeness needs testing rather than assumption. The Russian dictionaries initialize at startup, and a duplicate key across UI blocks can prevent `RU_UI`/`RU_EXACT` construction and break the whole prototype. Run `node scripts/check-localization-catalog.cjs` after localization edits; the Pages workflow also runs it before publishing.
 
 ## 5. Shared application flows
 
