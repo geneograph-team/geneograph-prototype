@@ -178,22 +178,27 @@ const placesMapAdapter = (function ()
 
     function focusPoint(map, point, padding)
     {
-        const topLeft = padding.topLeft;
-        const bottomRight = padding.bottomRight;
-        map.panInside(toLngLat(point), {
-            padding: {
-                top: topLeft[1], right: bottomRight[0],
-                bottom: bottomRight[1], left: topLeft[0]
-            },
-            duration: 0
-        });
+        const projected = map.project(toLngLat(point));
+        const container = map.getContainer();
+        const left = padding.topLeft[0];
+        const top = padding.topLeft[1];
+        const right = Math.max(left, container.clientWidth - padding.bottomRight[0]);
+        const bottom = Math.max(top, container.clientHeight - padding.bottomRight[1]);
+        const targetX = Math.max(left, Math.min(right, projected.x));
+        const targetY = Math.max(top, Math.min(bottom, projected.y));
+        if (targetX !== projected.x || targetY !== projected.y)
+        {
+            map.panBy([targetX - projected.x, targetY - projected.y], {
+                duration: 0
+            });
+        }
     }
 
     function setLineSegments(map, segments, color)
     {
         const sourceId = 'places-route-lines';
         const layerId = 'places-route-line';
-        if (!map.isStyleLoaded()) return;
+        if (!map.getStyle()) return;
         const data = {
             type: 'FeatureCollection',
             features: segments.filter(segment => segment.length >= 2)
@@ -227,7 +232,7 @@ const placesMapAdapter = (function ()
 
     function clearLineSegments(map)
     {
-        if (!map || !map.isStyleLoaded()) return;
+        if (!map || !map.getStyle()) return;
         if (map.getLayer('places-route-line')) map.removeLayer('places-route-line');
         if (map.getSource('places-route-lines')) map.removeSource('places-route-lines');
     }
@@ -237,7 +242,7 @@ const placesMapAdapter = (function ()
         fillColor, outlineColor, fillOpacity = 0.16
     })
     {
-        if (!map.isStyleLoaded()) return;
+        if (!map.getStyle()) return;
         const sourceId = 'places-area-' + id;
         if (map.getSource(sourceId))
         {
@@ -257,7 +262,7 @@ const placesMapAdapter = (function ()
 
     function removeArea(map, id)
     {
-        if (!map || !map.isStyleLoaded()) return;
+        if (!map || !map.getStyle()) return;
         const sourceId = 'places-area-' + id;
         for (const suffix of ['-fill', '-outline'])
         {
