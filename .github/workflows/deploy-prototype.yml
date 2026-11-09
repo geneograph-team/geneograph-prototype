@@ -52,6 +52,24 @@ jobs:
                       -Destination ${{ github.workspace }}/dist/ `
                       -Recurse
 
+            # Browser tokens are public in the deployed artifact. Repository secrets
+            # prevent committing them to source; provider restrictions remain essential.
+            - name: Inject public geocoder tokens into deployment copy
+              env:
+                  GEOAPIFY_BROWSER_KEY: ${{ secrets.GEOAPIFY_BROWSER_KEY }}
+                  LOCATIONIQ_BROWSER_KEY: ${{ secrets.LOCATIONIQ_BROWSER_KEY }}
+              run: |
+                  $config = @{
+                      geoapifyKey = [string]$env:GEOAPIFY_BROWSER_KEY
+                      locationiqKey = [string]$env:LOCATIONIQ_BROWSER_KEY
+                  } | ConvertTo-Json -Compress
+                  $destination = Join-Path '${{ github.workspace }}' 'dist/browser-config.js'
+                  [System.IO.File]::WriteAllText($destination, "window.GENEOGRAPH_CONFIG = $config;")
+                  if ([string]::IsNullOrWhiteSpace($env:GEOAPIFY_BROWSER_KEY) -or
+                      [string]::IsNullOrWhiteSpace($env:LOCATIONIQ_BROWSER_KEY)) {
+                      Write-Warning 'Geocoder keys missing; manual place entry remains available.'
+                  }
+
             - name: Upload prototype
               id: deployment
               uses: actions/upload-pages-artifact@v5
