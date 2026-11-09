@@ -27,7 +27,7 @@ function openPlacesMapContextMenu(event)
             enterPlacesMapMoveMode(selected.id); updatePlacesDraftCoordinates(event.latlng);
         }
         if (action === 'copy') navigator.clipboard?.writeText(formatMapCoordinatePair(event.latlng));
-        if (action === 'centre') placesMapRuntime.map?.panTo(event.latlng);
+        if (action === 'centre') placesMapRuntime.map?.panTo([event.latlng.lng, event.latlng.lat], { duration: 0 });
         closeMenu();
     });
     bindMenuLifecycle();
@@ -498,63 +498,66 @@ function clearPlacesRoute()
     state.placesShowRoute = false;
 }
 
-function createPlacesRouteStopIcon(stop, totalStops)
+function createPlacesRouteStopHtml(stop, totalStops)
 {
     const isStart = stop.sequence === 1;
     const isEnd = stop.sequence === totalStops;
-    return L.divIcon({
-        className: 'places-route-marker-icon',
-        html: `<span class="places-route-marker ${isStart ? 'is-start' : ''} ${isEnd ? 'is-end' : ''}" aria-hidden="true"><span>${stop.sequence}</span></span>`,
-        iconSize: [32, 32],
-        iconAnchor: [16, 16]
-    });
+    return '<span class="places-route-marker'
+        + (isStart ? ' is-start' : '')
+        + (isEnd ? ' is-end' : '')
+        + '" aria-hidden="true"><span>' + stop.sequence + '</span></span>';
 }
 
 function renderPlacesRouteLayer()
 {
+    if (!placesMapReady()) return;
     const map = placesMapRuntime.map;
-    if (!map || !window.L) return;
     if (placesMapRuntime.routeLayer)
     {
         placesMapRuntime.routeLayer.remove();
         placesMapRuntime.routeLayer = null;
     }
+    placesMapAdapter.clearLineSegments(map);
     const route = normalizePlacesRouteSelection();
     if (!state.placesShowRoute || !route.available) return;
-    const layer = L.layerGroup().addTo(map);
-    const routeColor = getComputedStyle(document.documentElement).getPropertyValue('--gg-primary').trim();
-    derivePlacesRouteSegments(route).forEach(segment =>
-    {
-        if (segment.length < 2) return;
-        L.polyline(segment.map(stop => stop.coordinates), {
-            className: 'places-leaflet-route',
-            color: routeColor,
-            weight: 3,
-            opacity: 0.78,
-            dashArray: '9 8'
-        }).addTo(layer);
-    });
+    const color = getComputedStyle(document.documentElement)
+        .getPropertyValue('--gg-primary').trim();
+    placesMapAdapter.setLineSegments(
+        map,
+        derivePlacesRouteSegments(route).map(segment =>
+            segment.map(stop => stop.coordinates)
+        ),
+        color
+    );
+    const markers = [];
     route.stops.forEach(stop =>
     {
         const eventContext = stop.events
             .map(item => item.event?.title || item.event?.type || t('Event'))
             .join(', ');
-        const accessibleName = `${stop.sequence} of ${route.stops.length}: ${stop.place.name}; ${stop.dateLabel}; ${route.subject}; ${eventContext}`;
-        const marker = L.marker(stop.coordinates, {
-            icon: createPlacesRouteStopIcon(stop, route.stops.length),
-            keyboard: true,
-            title: accessibleName,
-            alt: accessibleName,
-            riseOnHover: true,
-            zIndexOffset: 600
-        }).addTo(layer);
-        marker.bindTooltip(`
-          <strong>${stop.sequence}. ${escapeHtml(stop.place.name)}</strong><br>
-          ${escapeHtml(stop.dateLabel)}${eventContext ? `<br>${escapeHtml(eventContext)}` : ''}
-        `, { direction: 'top', offset: [0, -14], opacity: 0.96 });
-        marker.on('click', () => selectPlace(stop.placeId, { focusMap: false }));
+        const name = stop.sequence + ' of ' + route.stops.length + ': '
+            + stop.place.name + '; ' + stop.dateLabel + '; '
+            + route.subject + '; ' + eventContext;
+        const tooltip = '<strong>' + stop.sequence + '. '
+            + escapeHtml(stop.place.name) + '</strong><br>'
+            + escapeHtml(stop.dateLabel)
+            + (eventContext ? '<br>' + escapeHtml(eventContext) : '');
+        markers.push(placesMapAdapter.createMarker(map, stop.coordinates, {
+            className: 'places-route-marker-icon',
+            html: createPlacesRouteStopHtml(stop, route.stops.length),
+            title: name,
+            anchor: 'center',
+            tooltipHtml: tooltip,
+            onSelect: () => selectPlace(stop.placeId, { focusMap: false })
+        }));
     });
-    placesMapRuntime.routeLayer = layer;
+    placesMapRuntime.routeLayer = {
+        remove()
+        {
+            markers.forEach(marker => marker.remove());
+            placesMapAdapter.clearLineSegments(map);
+        }
+    };
 }
 
 function updatePlacesRouteControl()
@@ -574,27 +577,30 @@ function updatePlacesRouteControl()
 
 function fitPlacesMap(places = placesMapRuntime.currentPlaces || [], { markUserMoved = true } = {})
 {
+    if (!placesMapReady()) return;
     const map = placesMapRuntime.map;
-    if (!map) return;
     const points = (places || []).filter(placeHasCoordinates);
     const padding = placesMapPadding();
     placesMapRuntime.suppressViewCapture = !markUserMoved;
     if (points.length > 1)
     {
-        map.fitBounds(L.latLngBounds(points.map(placeLatLng)), {
-            paddingTopLeft: padding.topLeft,
-            paddingBottomRight: padding.bottomRight,
-            maxZoom: PLACES_MAP_CONFIG.fitMaxZoom,
-            animate: false
-        });
+        placesMapAdapter.fitPoints(
+            map, points.map(placeLatLng), padding, PLACES_MAP_CONFIG.fitMaxZoom
+        );
     }
     else if (points.length === 1)
     {
-        map.setView(placeLatLng(points[0]), Math.min(11, PLACES_MAP_CONFIG.fitMaxZoom), { animate: false });
+        map.jumpTo({
+            center: placesMapAdapter.toLngLat(placeLatLng(points[0])),
+            zoom: Math.min(11, PLACES_MAP_CONFIG.fitMaxZoom)
+        });
     }
     else
     {
-        map.setView([PLACES_MAP_CONFIG.defaultCenter.lat, PLACES_MAP_CONFIG.defaultCenter.lng], PLACES_MAP_CONFIG.defaultZoom, { animate: false });
+        map.jumpTo({
+            center: [PLACES_MAP_CONFIG.defaultCenter.lng, PLACES_MAP_CONFIG.defaultCenter.lat],
+            zoom: PLACES_MAP_CONFIG.defaultZoom
+        });
         setPlacesMapStatus('No mapped places', 'Add coordinates to a place to show it on the map.');
     }
     state.placesMapView.lastFitKey = placesMapDataKey(points);
