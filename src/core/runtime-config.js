@@ -33,6 +33,7 @@ const placesMapRuntime = {
     styleLoading: false,
     mountedListKey: '',
     currentPlaces: [],
+    pendingFocusPlaceId: null,
     suppressViewCapture: false,
     mode: 'browse',
     draftMarker: null,
