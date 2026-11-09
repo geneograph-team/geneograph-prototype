@@ -190,7 +190,7 @@ Representative **before → after color comparison** (original upstream Dark val
 
 **Visual approval gate:** Compare upstream dark and the customized dark map at the **same city, zoom and viewport** (for example, Warsaw at zoom 10 and a rural settlement at zoom 13). Confirm legibility of major/minor roads, place labels, boundaries, water and parks; inspect markers, selected/draft pins, route lines, the status overlay and attribution. Repeat on mobile and desktop, in EN/RU, and after repeated light ↔ dark switches. This comparison requires hosted MapLibre browser QA; unit tests cannot substitute for actual appearance review.
 
-**Automated regression:** Run `node scripts/check-places-dark-palette.cjs` and `node scripts/check-places-maplibre.cjs`. The GitHub Pages workflow runs both before deployment. Source attribution: [OpenFreeMap styles](https://github.com/hyperknot/openfreemap-styles), including its [dark style license](https://github.com/hyperknot/openfreemap-styles/blob/main/styles/dark/LICENSE.md). Preserve OpenFreeMap, OpenMapTiles and OpenStreetMap credit wherever the map is displayed.
+**Verification note:** The map-specific temporary check scripts from earlier changes are no longer checked in. Validate map palette/theme behavior with targeted hosted-browser QA; do not infer that current CI verifies it. Source attribution: [OpenFreeMap styles](https://github.com/hyperknot/openfreemap-styles), including its [dark style license](https://github.com/hyperknot/openfreemap-styles/blob/main/styles/dark/LICENSE.md). Preserve OpenFreeMap, OpenMapTiles and OpenStreetMap credit wherever the map is displayed.
 
 ## 10. Publish and other unfinished capabilities
 
@@ -249,6 +249,12 @@ OpenSpec is initialized here with Codex integration. Keep its config short and w
 4. Keep project IDs, board assets, person references, and per-property default/override semantics intact. A view-only choice should not mutate saved records.
 5. Validate transitions, not only appearance: selection, Cancel, undo/redo, reload, import/export, missing assets, external-service failures, and mixed bulk values.
 6. Inspect the browser console and run `git diff --check`. For structural changes, open `src/index.html` locally and exercise the relevant workflow at desktop and phone widths.
+
+### Repository footprint and deployment safety
+
+The prototype should not accumulate permanent scripts, test harnesses, or tooling for one-off investigations. Keep temporary checks outside the final PR unless they provide clear lasting regression protection; preserve existing valuable coverage for data integrity and recurring failures. Scope verification to the actual risk, report untested behavior, and keep unrelated cleanup separate.
+
+Deployment and CI infrastructure are protected: **every change requires explicit founder approval**, including changes made only to run tests. Current Pages publishing, secret injection, and workflow triggers must not be altered as a side effect of product work. The detailed agent rules and PR cleanup gate are in `AGENTS.md`.
 
 ### CSS ownership
 
