@@ -151,4 +151,51 @@ adapter.focusPoint(fakeMap, [50, 20], {
 });
 assert.equal(fakeMap.cameraCalls, 2);
 
+// Regression: a place navigation requested during map loading must survive
+// until MapLibre is ready, and should keep the new viewport center.
+const focusFunctionStart = routes.indexOf('function updatePlacesMapSelection(');
+const focusFunctionEnd = routes.indexOf('\nfunction placesMapPadding()', focusFunctionStart);
+assert.ok(focusFunctionStart >= 0 && focusFunctionEnd > focusFunctionStart);
+const selectionContext = {
+    placesMapRuntime: {
+        markersById: new Map(),
+        status: 'loading',
+        map: {
+            getCenter: () => ({ lat: 50, lng: 20 }),
+            getZoom: () => 8
+        },
+        pendingFocusPlaceId: null
+    },
+    state: { placesMapView: {} },
+    getPlace: id => id === 'p1' || id === 'p2'
+        ? { id, coordinates: { lat: 50, lng: 20 } }
+        : null,
+    placeHasCoordinates: place => Boolean(place?.coordinates),
+    placeLatLng: place => place.coordinates,
+    placesMapPadding: () => ({ topLeft: [150, 40], bottomRight: [80, 100] }),
+    placesMapReady: () => selectionContext.placesMapRuntime.status === 'ready',
+    placesMapAdapter: {
+        updateSelection: () => {},
+        focusPoint: () =>
+        {
+            selectionContext.cameraCalls = (selectionContext.cameraCalls || 0) + 1;
+        }
+    }
+};
+vm.runInNewContext(routes.slice(focusFunctionStart, focusFunctionEnd)
+    + '\nthis.selectMapPlace = updatePlacesMapSelection;', selectionContext);
+selectionContext.selectMapPlace('p1', { focusMap: true });
+assert.equal(selectionContext.placesMapRuntime.pendingFocusPlaceId, 'p1');
+assert.equal(selectionContext.cameraCalls || 0, 0);
+selectionContext.placesMapRuntime.status = 'ready';
+selectionContext.selectMapPlace('p1', { focusMap: true });
+assert.equal(selectionContext.cameraCalls, 1);
+assert.equal(selectionContext.placesMapRuntime.pendingFocusPlaceId, null);
+assert.equal(selectionContext.state.placesMapView.center.lng, 20);
+assert.equal(selectionContext.state.placesMapView.userMoved, true);
+// Changing selection while loading supersedes the earlier queued focus.
+selectionContext.placesMapRuntime.pendingFocusPlaceId = 'p1';
+selectionContext.selectMapPlace('p2', { focusMap: false });
+assert.equal(selectionContext.placesMapRuntime.pendingFocusPlaceId, null);
+
 console.log('Places MapLibre adapter, integration and fallback checks passed.');
