@@ -830,7 +830,7 @@ function geneoTourTarget(index)
         'places-add-button': '#placesAddPlace',
         'places-add-modal': '#modalBackdrop .place-editor-modal',
         'places-add-coordinates': '#modalBackdrop [data-place-choose-map]',
-        'places-add-map': '.places-leaflet-marker-icon.draft',
+        'places-add-map': '.places-map-marker-icon.draft',
         'places-add-create': '#modalBackdrop [data-place-editor] [type="submit"]',
         'places-routes': '#projectMenu.places-route-popover',
         'places-inspector': '[data-places-inspector]',
@@ -872,7 +872,7 @@ function geneoTourTarget(index)
     const target = id === 'archive-folder-actions' && innerWidth <= 1100
         ? document.querySelector(geneoTourTertiarySelectors[id])
         : document.querySelector(mobileGeneographTarget || mobileArchiveTarget || selectors[id]);
-    if (id === 'places-add-map' && (!window.L || !placesMapRuntime.map))
+    if (id === 'places-add-map' && (!placesMapReady()))
         return document.querySelector('[data-places-map-status]:not([hidden])');
     if (id === 'people-saved-filters') return target?.parentElement?.parentElement || null;
     if (['places-navigation', 'places-countries', 'places-saved-filters'].includes(id))
@@ -1054,13 +1054,13 @@ function geneoTourOpenPreview(step)
         try
         {
             if (step.id === 'places-add-create')
-                openPlaceModal(null, { initialCoordinates: window.L && placesMapRuntime.map
+                openPlaceModal(null, { initialCoordinates: placesMapReady()
                     ? geneoTourExamplePlaceCoordinates() : null });
             else openPlaceModal(null);
             if (modalBackdrop.classList.contains('open'))
             {
                 if (step.id === 'places-add-coordinates'
-                    || step.id === 'places-add-create' && window.L && placesMapRuntime.map)
+                    || step.id === 'places-add-create' && placesMapReady())
                     modalBackdrop.querySelector('[data-place-coordinate-details]').open = true;
                 if (step.id === 'places-add-coordinates')
                 {
@@ -1078,30 +1078,46 @@ function geneoTourOpenPreview(step)
             geneoTourRuntime.openingPreview = false;
         }
     }
-    if (step.id === 'places-add-map' && window.L && placesMapRuntime.map)
+    if (step.id === 'places-add-map' && placesMapAdapter.supportedProtocol())
     {
         geneoTourRuntime.openingPreview = true;
         try
         {
             geneoTourRuntime.placesDraftCoordinates = null;
             openPlaceModal();
-            startPlaceEditorMapSelection();
             geneoTourRuntime.ownedPreview = 'places-map-selection';
-            requestAnimationFrame(() => requestAnimationFrame(() => requestAnimationFrame(() =>
+            startPlaceEditorMapSelection().then(() =>
             {
-                const map = placesMapRuntime.map;
-                if (geneoTourRuntime.ownedPreview !== 'places-map-selection' || !map) return;
-                const mapRect = map.getContainer().getBoundingClientRect();
-                const barTop = main.querySelector('[data-places-coordinate-bar]')?.getBoundingClientRect().top;
-                const markerY = Math.max(40, Math.min(mapRect.height * .58,
-                    (barTop || mapRect.bottom) - mapRect.top - 32));
-                handlePlacesMapClick({ latlng: map.containerPointToLatLng([
-                    mapRect.width * .55, markerY
-                ]) });
-                const pending = placesMapRuntime.pendingLatLng;
-                if (pending)
-                    geneoTourRuntime.placesDraftCoordinates = { lat: pending.lat, lng: pending.lng };
-            })));
+                if (!placesMapReady() || geneoTourRuntime.ownedPreview !== 'places-map-selection')
+                {
+                    geneoTourQueuePosition();
+                    return;
+                }
+                requestAnimationFrame(() => requestAnimationFrame(() =>
+                {
+                    const map = placesMapRuntime.map;
+                    if (!placesMapReady()
+                        || geneoTourRuntime.ownedPreview !== 'places-map-selection') return;
+                    const mapRect = map.getContainer().getBoundingClientRect();
+                    const barTop = main.querySelector('[data-places-coordinate-bar]')?.getBoundingClientRect().top;
+                    const markerY = Math.max(40, Math.min(mapRect.height * .58,
+                        (barTop || mapRect.bottom) - mapRect.top - 32));
+                    handlePlacesMapClick({ latlng: map.unproject([
+                        mapRect.width * .55, markerY
+                    ]) });
+                    const pending = placesMapRuntime.pendingLatLng;
+                    if (pending)
+                    {
+                        geneoTourRuntime.placesDraftCoordinates = {
+                            lat: pending.lat, lng: pending.lng
+                        };
+                    }
+                    geneoTourQueuePosition();
+                }));
+            }).catch(error =>
+            {
+                console.warn('Map tour placement failed:', error);
+            });
         }
         finally
         {
@@ -1368,9 +1384,9 @@ function geneoTourCardCopy()
         : index >= geneoTourSteps.length
             ? 'The tour is complete. Now explore the demo at your own pace and try the features you’ve just seen.'
             : step.body);
-    if (step?.id === 'places-add-map' && (!window.L || !placesMapRuntime.map))
+    if (step?.id === 'places-add-map' && (!placesMapReady()))
         body = t('Map placement is unavailable here. When the map loads, click to position a draft marker, then choose Use position to return its coordinates to the place window.');
-    if (step?.id === 'places-add-create' && (!window.L || !placesMapRuntime.map))
+    if (step?.id === 'places-add-create' && (!placesMapReady()))
         body = t('After choosing a map position, this window reopens with coordinates. Create place saves the new record. Map placement was unavailable here, so the tour will not create one.');
     return { title, body };
 }
