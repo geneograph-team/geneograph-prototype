@@ -4020,3 +4020,21 @@ body.mobile-surface-open:has(.places-shell) .menu-popover {
     .places-toolbar .app-sort-field { grid-column: 9 / span 4; }
 }
 
+
+/* Linked geocoding credits remain visible beneath search suggestions. */
+.place-search-attribution {
+    display: block;
+    padding: 8px 12px;
+    font-size: 11px;
+    line-height: 1.4;
+    color: var(--text-tertiary);
+}
+.place-search-attribution a {
+    color: var(--text-secondary);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+}
+.place-search-attribution a:focus-visible {
+    outline: 2px solid var(--gg-primary);
+    outline-offset: 2px;
+}
