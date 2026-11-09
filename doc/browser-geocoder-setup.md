@@ -154,7 +154,17 @@ service-wide failure.
 
 The adapter does not expose a provider selector or fallback status in
 either UI. Displayed place name and coordinates are suggestions, not
-verified historical findings. Ambiguous village names must be reviewed
+verified historical findings.
+
+**Search cancellation:** When a person types again, changes fields or
+closes the editor, the previous request is intentionally aborted.
+The shared UI search wrapper resolves these superseded requests to
+an ignored empty result instead of propagating an `AbortError` to
+timer-launched autocomplete callbacks. The Places editor also observes
+any unexpected timer promise rejection. Aborted requests must never
+replace newer suggestions, emit an unhandled rejection, or trigger
+a LocationIQ fallback. Provider errors from still-active searches
+continue to show normal retry/unavailable states. Ambiguous village names must be reviewed
 against historical sources before assignment.
 
 ## 4. Storage and attribution
