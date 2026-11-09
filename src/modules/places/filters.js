@@ -1049,7 +1049,7 @@ function showPlaceOnMap(
     if (
         state.activeModule !== 'Places'
         || !main.querySelector(
-            '#placesLeafletMap'
+            '#placesVectorMap'
         )
     )
     {
