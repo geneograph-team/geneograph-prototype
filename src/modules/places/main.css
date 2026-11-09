@@ -931,6 +931,18 @@
     cursor: pointer;
 }
 
+.places-review-group > summary::before {
+    content: '▸';
+    flex: 0 0 auto;
+    color: var(--text-secondary);
+    font-size: 17px;
+    line-height: 1;
+}
+
+.places-review-group[open] > summary::before {
+    transform: rotate(90deg);
+}
+
 .places-review-group > summary:hover {
     background: var(--table-row-hover);
 }
