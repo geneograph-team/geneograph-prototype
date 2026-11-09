@@ -327,7 +327,14 @@
 
     function changeCenter(newCenter, fromDrag = false)
     {
-        center = [...newCenter];
+        if (!newCenter.every(Number.isFinite)
+            || newCenter[1] < -85 || newCenter[1] > 85)
+        {
+            showStatus('invalid');
+            return;
+        }
+        const normalizedLongitude = ((newCenter[0] + 180) % 360 + 360) % 360 - 180;
+        center = [normalizedLongitude, newCenter[1]];
         reflectInputs();
         selectStop('approx', false);
         if (map && ready)
@@ -597,7 +604,12 @@
     {
         theme = next;
         document.documentElement.dataset.theme = next;
-        if (!map || !ready) return;
+        if (map && !ready)
+        {
+            startMap();
+            return;
+        }
+        if (!map) return;
         try
         {
             loadingStyle = true;
