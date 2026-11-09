@@ -216,6 +216,26 @@ function mountPlacesMap(places)
         });
 }
 
+function handlePlacesMapThemeChange(event)
+{
+    if (!placesMapReady()) return;
+    const theme = event.detail?.theme === 'dark' ? 'dark' : 'light';
+    const map = placesMapRuntime.map;
+    const nextStyle = placesMapAdapter.styleUrl(theme);
+    if (map.getStyleUrl?.() === nextStyle) return;
+    try
+    {
+        map.setStyle(nextStyle);
+    }
+    catch (error)
+    {
+        console.warn('GeneoGraph map theme update failed:', error);
+        failPlacesMap('The map could not load. Check your connection or WebGL2 support. Place editing remains available.');
+    }
+}
+
+window.addEventListener('geneograph-theme-change', handlePlacesMapThemeChange);
+
 function updatePlacesMapData(places, { force = false } = {})
 {
     const list = (places || []).filter(place => !place.deleted);
