@@ -1199,6 +1199,18 @@ function showPlaceEditorMapFallback(message = 'Interactive mapping is unavailabl
     if (details) details.open = true;
 }
 
+function restorePlaceEditorReviewContext(draft)
+{
+    const context = draft?.reviewContext;
+    if (!context) return;
+    draft.reviewContext = null;
+    if (state.activeModule !== 'Places') return;
+    state.placesView = 'review';
+    state.placesSearch = context.search;
+    state.placesViewMode = context.viewMode;
+    renderPlaces();
+}
+
 async function startPlaceEditorMapSelection()
 {
     const draft = syncPlaceEditorDraftFromModal();
@@ -1209,6 +1221,15 @@ async function startPlaceEditorMapSelection()
         return;
     }
     const originalView = state.placesViewMode;
+    if (state.placesView === 'review')
+    {
+        draft.reviewContext = {
+            search: state.placesSearch,
+            viewMode: state.placesViewMode
+        };
+        state.placesView = 'all';
+        state.placesSearch = '';
+    }
     if (!placesMapReady() || !placesMapRuntime.host?.isConnected)
     {
         const status = modalBackdrop.querySelector('[data-place-map-unavailable]');
@@ -1225,12 +1246,14 @@ async function startPlaceEditorMapSelection()
         const ready = await waitForPlacesMapReady();
         if (placeEditorDraft !== draft || !modalBackdrop.querySelector('[data-place-editor]'))
         {
+            restorePlaceEditorReviewContext(draft);
             return;
         }
         if (button) button.disabled = false;
         if (!ready || !placesMapReady())
         {
-            if (originalView === 'list')
+            if (draft.reviewContext) restorePlaceEditorReviewContext(draft);
+            else if (originalView === 'list')
             {
                 state.placesViewMode = 'list';
                 destroyPlacesMap();
@@ -1252,6 +1275,7 @@ async function startPlaceEditorMapSelection()
     {
         if (!placesMapReady())
         {
+            restorePlaceEditorReviewContext(draft);
             openPlaceModal(draft.placeId, { draft });
             showPlaceEditorMapFallback();
             return;
