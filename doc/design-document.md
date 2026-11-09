@@ -138,6 +138,8 @@ Shapes and drawings have separate creation-strip settings, copied into new objec
 
 **Places** provides project place records and map-oriented browsing/search. Map tiles and geographic search depend on the configured provider and network, so map-unavailable states must not block non-map choices. The Geneograph Add/Change Place modal combines project places, map results, and a board-only option in one results list. Selecting a map result adds a project Place; choosing board-only does not. Merely typing a query never creates a place.
 
+**Places map navigation:** Single-click a place in the Countries sidebar to select it; double-click to switch to map view (if needed) and center its marker within the unobscured viewport. Creating or repositioning a place with valid coordinates in the Places editor centers that marker after the map has reloaded, including while MapLibre is still initializing. Map loading/error notices are centered within the map panel and use a neutral List view escape action. If a place lacks coordinates, keep the manual position-editing path rather than guessing a location. The current dark basemap is the OpenFreeMap `dark` preset; changing map colors is a separate style decision and does not change the app's dark theme automatically.
+
 ### Places maps and browser geocoding (issue #158)
 
 **Two independent services:** MapLibre GL JS renders the interactive map with **OpenFreeMap** vector tiles; it does not search for place names. Autocomplete instead uses **Geoapify first**, then **LocationIQ** as a fallback. All provider requests originate in the visitor's browser, **not** a GeneoGraph backend. The provider used is deliberately invisible in the search UI.
