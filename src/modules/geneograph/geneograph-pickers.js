@@ -752,7 +752,7 @@ function openGeneographPlaceModal(
     const renderMapResults = () =>
     {
         if (!mapHost) return;
-        mapGroup.hidden = !(['loading', 'unavailable', 'ready'].includes(mapState) &&
+        mapGroup.hidden = !(['loading', 'unavailable', 'ready', 'empty'].includes(mapState) &&
             (mapState !== 'ready' || mapResults.length));
         mapHost.innerHTML = mapState === 'loading'
             ? `<div class="place-combobox-status">${escapeHtml(t('Searching map results...'))}</div>`
@@ -761,6 +761,7 @@ function openGeneographPlaceModal(
                 : mapState === 'empty'
                     ? `<div class="place-combobox-status">${escapeHtml(t('No matching map results. You can still use the entered text.'))}</div>`
                     : mapResults.map((result, index) => `<button class="rp-record geneo-place-picker-option" type="button" data-geneo-place-picker-choice="map" data-geneo-place-map-index="${index}" aria-pressed="false" aria-label="${escapeHtml(`${t('Select')} ${result.name}`)}" title="${escapeHtml(result.name)}"><span class="rp-record-icon" aria-hidden="true">${icon.mapPin}</span><span class="rp-record-copy geneo-place-picker-option-copy"><strong>${escapeHtml(result.primary)}</strong><span>${escapeHtml(result.context || result.name)}</span></span><span class="geneo-place-picker-check" data-geneo-place-picker-check aria-hidden="true" hidden>${icon.check}</span></button>`).join('');
+        mapHost.insertAdjacentHTML('beforeend', geneographGeocoder.attributionHtml());
         renderStatus(geneographPlacePickerViewModel(board.projectId, pickerState));
         updateChoiceUi();
     };
