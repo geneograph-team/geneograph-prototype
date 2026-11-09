@@ -55,6 +55,35 @@ const placesMapAdapter = (function ()
             : PLACES_MAP_CONFIG.styles.light;
     }
 
+    // Apply after each style.load, before the map is presented. Using only
+    // setPaintProperty preserves upstream OpenFreeMap tiles, sprites, glyphs,
+    // style layer ordering, and the map's attribution.
+    function applyDarkPalette(map, theme)
+    {
+        if (theme !== 'dark' || !map?.getLayer) return 0;
+
+        let applied = 0;
+        Object.entries(PLACES_DARK_MAP_PAINT).forEach(([layerId, paints]) =>
+        {
+            // Missing layers are normal if OpenFreeMap changes its style.
+            if (!map.getLayer(layerId)) return;
+            Object.entries(paints).forEach(([property, value]) =>
+            {
+                try
+                {
+                    map.setPaintProperty(layerId, property, value);
+                    ++applied;
+                }
+                catch (error)
+                {
+                    console.warn('GeneoGraph dark map paint override failed:',
+                        layerId, property, error);
+                }
+            });
+        });
+        return applied;
+    }
+
     function createMap(host, theme)
     {
         return new library.Map({
@@ -269,7 +298,7 @@ const placesMapAdapter = (function ()
     }
 
     return Object.freeze({
-        supportedProtocol, load, styleUrl, createMap, createMarker,
+        supportedProtocol, load, styleUrl, createMap, applyDarkPalette, createMarker,
         toLngLat, fromLngLat, updateSelection, fitPoints, focusPoint,
         setLineSegments, clearLineSegments, setArea, removeArea
     });
