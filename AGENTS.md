@@ -17,7 +17,7 @@ The original monolithic `index.html` has been split: the application now lives i
 - Extracted JS files retain the original 4-space indentation of the former inline script block (code starts at column 4); match it when editing those files.
 - Key modules:
   - `core/icons.js` — the `icon` dictionary of inline SVG strings.
-  - `src/core/runtime-config.js` — the active module list and basemap/geocoder configuration; Places loads `src/modules/places/map-adapter.js` before `map-runtime.js` and `map-and-route.js`.
+  - `src/core/runtime-config.js` — the active module list and basemap configuration; browser geocoder configuration is in `src/browser-config.js` (empty tracked defaults) and `src/core/geocoder-adapter.js` (Geoapify → LocationIQ). The Pages workflow overwrites only `dist/browser-config.js` from restricted GitHub Actions secrets; never commit provider tokens. Places loads `src/modules/places/map-adapter.js` before `map-runtime.js` and `map-and-route.js`.
   - `src/localization/` — ordered UI/data dictionaries and catalog; `localization/runtime.js` — language runtime (`en`, `ru`) and storage keys.
   - `seed/sample-data.js` — the central `sampleData` object (Whiskerfield sample project).
   - `seed/seed-genealogy.js`, `seed/seed-boards.js` — load-time mutations of `sampleData`; the Geneograph seed payload lives in `src/assets/boards/whiskerfield-tree-research.js`.
