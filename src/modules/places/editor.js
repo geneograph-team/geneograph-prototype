@@ -1044,6 +1044,13 @@ function renderPlaceEditorModal(draft)
                   </div>
                 </div>
 
+                <p
+                  class="place-coordinate-help"
+                  data-place-map-unavailable
+                  role="status"
+                  aria-live="polite"
+                  hidden></p>
+
                 <details
                   class="field full places-editor-disclosure"
                   data-place-coordinate-details
@@ -1153,10 +1160,60 @@ function renderPlaceEditorModal(draft)
       `;
 }
 
-function startPlaceEditorMapSelection()
+function showPlaceEditorMapFallback(message = 'Interactive mapping is unavailable. You can enter coordinates manually or save the place without a position.')
+{
+    const root = modalBackdrop.querySelector('[data-place-editor]');
+    const status = root?.querySelector('[data-place-map-unavailable]');
+    if (status)
+    {
+        status.hidden = false;
+        status.textContent = t(message);
+    }
+    const details = root?.querySelector('[data-place-coordinate-details]');
+    if (details) details.open = true;
+}
+
+async function startPlaceEditorMapSelection()
 {
     const draft = syncPlaceEditorDraftFromModal();
     if (!draft) return;
+    if (!placesMapAdapter.supportedProtocol())
+    {
+        showPlaceEditorMapFallback();
+        return;
+    }
+    const originalView = state.placesViewMode;
+    if (!placesMapReady() || !placesMapRuntime.host?.isConnected)
+    {
+        const status = modalBackdrop.querySelector('[data-place-map-unavailable]');
+        const button = modalBackdrop.querySelector('[data-place-choose-map]');
+        if (status)
+        {
+            status.hidden = false;
+            status.textContent = t('Loading interactive map…');
+        }
+        if (button) button.disabled = true;
+        placesMapRuntime.status = 'loading';
+        state.placesViewMode = 'map';
+        renderPlacesMain();
+        const ready = await waitForPlacesMapReady();
+        if (placeEditorDraft !== draft || !modalBackdrop.querySelector('[data-place-editor]'))
+        {
+            return;
+        }
+        if (button) button.disabled = false;
+        if (!ready || !placesMapReady())
+        {
+            if (originalView === 'list')
+            {
+                state.placesViewMode = 'list';
+                destroyPlacesMap();
+                renderPlacesMain();
+            }
+            showPlaceEditorMapFallback();
+            return;
+        }
+    }
     draft.mapSession = {
         returnToModal: true,
         coordinates: clonePlaceEditorCoordinates(draft.coordinates),
@@ -1165,13 +1222,17 @@ function startPlaceEditorMapSelection()
     clearTimeout(placeGeocoderTimer);
     placeGeocoderController?.abort();
     closeModal({ force: true, preservePlaceEditor: true });
-    state.placesViewMode = 'map';
-    renderPlacesMain();
-    requestAnimationFrame(() => requestAnimationFrame(() =>
+    requestAnimationFrame(() =>
     {
+        if (!placesMapReady())
+        {
+            openPlaceModal(draft.placeId, { draft });
+            showPlaceEditorMapFallback();
+            return;
+        }
         if (draft.mode === 'edit') enterPlacesMapMoveMode(draft.placeId);
         else enterPlacesMapAddMode();
-    }));
+    });
 }
 
 function openPlaceDuplicateMenu(anchor, placeId)
