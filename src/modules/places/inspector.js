@@ -1802,8 +1802,12 @@ function bindPlacesInspectorControls(
     {
         const button = event.currentTarget;
         if (!dismissPlaceReviewIssue(button.dataset.placeReviewDismiss, button.dataset.placeReviewType)) return;
-        renderPlaces();
-        showToast('Review item dismissed.');
+        if (state.placesView === 'review')
+        {
+            rerenderPlacesReviewAfterAction('', button.dataset.placeReviewType);
+        }
+        else renderPlaces();
+        showToast(t('Review item dismissed.'));
     });
 
     root
