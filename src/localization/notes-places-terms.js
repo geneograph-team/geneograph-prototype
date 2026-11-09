@@ -670,6 +670,9 @@ const RU_UI_PLACES = Object.freeze({
     'No dismissed review items.':
         'Нет скрытых предупреждений.',
 
+    'Exact position not identified':
+        'Точная позиция не установлена',
+
     'Reason':
         'Причина',
 
