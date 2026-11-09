@@ -156,16 +156,35 @@ The adapter does not expose a provider selector or fallback status in
 either UI. Displayed place name and coordinates are suggestions, not
 verified historical findings.
 
-**Search cancellation:** When a person types again, changes fields or
-closes the editor, the previous request is intentionally aborted.
-The shared UI search wrapper resolves these superseded requests to
-an ignored empty result instead of propagating an `AbortError` to
-timer-launched autocomplete callbacks. The Places editor also observes
-any unexpected timer promise rejection. Aborted requests must never
-replace newer suggestions, emit an unhandled rejection, or trigger
-a LocationIQ fallback. Provider errors from still-active searches
-continue to show normal retry/unavailable states. Ambiguous village names must be reviewed
-against historical sources before assignment.
+**Search cancellation (#168):** After a 300 ms typing pause, a
+browser lookup can start. Each subsequent input cancels the previous
+in-flight request, resets the timer, and queues a new lookup after the
+next pause. This is intentional; fast keystrokes inside the debounce
+window should produce **one** network request.
+
+The adapter combines the UI cancellation signal and its 6.5-second
+timeout with native `AbortSignal.any` / `AbortSignal.timeout` in
+supporting browsers. This removes the second abort-forwarding event that
+previously appeared in console stacks. The compatibility path preserves
+abort reasons and cleans up its timeout/listener. **User cancellation**
+returns an ignored empty result in the shared UI wrapper and never
+launches LocationIQ; **provider timeout/failure** remains eligible for
+fallback. All three search surfaces now handle timer-launched promises
+and clear completed controllers. Genuine errors still surface normally.
+
+**Verification:** Run `node scripts/check-place-search-lifecycle.cjs`.
+The PR-only browser regression at
+`tests/browser/place-search-cancellation.html` loads the real shared
+combobox and adapter under Chromium with mock requests, observing
+`unhandledrejection` without suppressing it. It checks slow and rapid
+typing, Escape, stale results and provider fallbacks; no API keys or
+external network are needed. A separate GitHub Actions check runs it
+before merge. The production-only intermittent rejection reported
+before #168 was **not** reproduced by the initial isolated Chromium
+harness; treat hosted manual QA as a release gate, not a unit-test pass.
+
+Ambiguous village names must still be reviewed against historical
+sources before assignment.
 
 ## 4. Storage and attribution
 
