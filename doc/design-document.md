@@ -1,6 +1,6 @@
 # GeneoGraph Prototype: Current Design and Engineering Guide
 
-**Reviewed:** 2026-10-23
+**Reviewed:** 2026-11-09
 **Scope:** The working prototype in `src/`, not a specification of a shipped service.
 
 **Canonical checkout:** `E:\Geneograph\Concept\geneograph-prototype`.
@@ -12,10 +12,10 @@ GeneoGraph is a project-based family-history research workspace. The prototype c
 ## 2. Running the prototype
 
 - Open `src/index.html` directly or serve `src/` as static files. There is no framework, package manager, compile step, or backend.
-- `src/index.html` contains the shell, CDN references, runtime map configuration, and ordered stylesheet and classic deferred script tags. The order is significant: the scripts share a global scope rather than importing modules.
+- `src/index.html` contains the shell, CDN references, and ordered stylesheets and classic deferred scripts. Script order matters: most share a global scope. `src/browser-config.js` loads before the geocoder and holds empty checked-in credential defaults; `src/core/geocoder-adapter.js` handles browser geocoding.
 - Styles, behavior, seed records, state, and localization are grouped under `src/core/`, `modules/`, `shared/`, `seed/`, and `localization/`. Static media lives in `src/assets/{photos,documents,covers,ui,boards}/`; local vendor files support document and board export/preview paths.
 - Quill and MapLibre CSS are pinned CDN dependencies; hosted Places lazily imports the pinned MapLibre GL JS ES module and uses OpenFreeMap vector basemaps. Geoapify geocoding runs directly in the browser with invisible LocationIQ fallback. GitHub Pages injects restricted browser credentials into the published artifact from Actions secrets; they remain visible to browser visitors. See `doc/browser-geocoder-setup.md`. Direct file-open sessions retain Places list and manual coordinate editing without an interactive map.
-- The current root-based GitHub Pages configuration does not publish the application from `src/`. Local behavior and a Pages deployment are not interchangeable evidence.
+- The GitHub Pages workflow (`.github/workflows/deploy-prototype.yml`) copies `src/` into `dist/`, writes a deployment-only `dist/browser-config.js`, and publishes `dist/` on pushes to `default`. A feature branch does **not** receive this deployment configuration merely by opening a PR. Local and published behavior still require separate verification.
 
 The main shell exposes a top bar, project/module navigation, workspace, right inspector, modals, and toasts. The visible modules are **Family Tree, People, Geneograph, Albums, Archive, Notes, and Places**. `Publish` has implementation files but is intentionally absent from the active module list in `src/core/runtime-config.js`.
 
@@ -138,6 +138,32 @@ Shapes and drawings have separate creation-strip settings, copied into new objec
 
 **Places** provides project place records and map-oriented browsing/search. Map tiles and geographic search depend on the configured provider and network, so map-unavailable states must not block non-map choices. The Geneograph Add/Change Place modal combines project places, map results, and a board-only option in one results list. Selecting a map result adds a project Place; choosing board-only does not. Merely typing a query never creates a place.
 
+### Places maps and browser geocoding (issue #158)
+
+**Two independent services:** MapLibre GL JS renders the interactive map with **OpenFreeMap** vector tiles; it does not search for place names. Autocomplete instead uses **Geoapify first**, then **LocationIQ** as a fallback. All provider requests originate in the visitor's browser, **not** a GeneoGraph backend. The provider used is deliberately invisible in the search UI.
+
+**Search pipeline:**
+
+```text
+Places Add/Edit or Geneograph Add/Change Place
+  → shared searchSharedPlaceMapResults(query, AbortSignal)
+  → geneographGeocoder.search(query, signal, 5)
+  → Geoapify autocomplete (primary)
+      ├─ Valid matches → normalized place suggestions
+      └─ No valid matches / timeout / network, authorization or quota error
+           → LocationIQ autocomplete (fallback)
+                 ├─ Valid matches → same suggestion interface
+                 └─ No matches / failure → normal empty or unavailable state
+```
+
+A user-cancelled or superseded search **never** falls through to LocationIQ. Requests have individual timeouts, per-browser pacing and short failure cooldowns. The two search screens continue to display existing project places and manually entered or historical names; searching alone creates **no** place record. Successful external results use the existing `{ id, kind, name, primary, context, coordinates: { lat, lng } }` contract; place records retain their project-scoped IDs. A provider's modern location suggestion should not be treated as proof of a historical settlement's identity.
+
+**Credentials and deployment:** `src/browser-config.js` deliberately contains `geoapifyKey: ''` and `locationiqKey: ''`. The GitHub Pages workflow reads **`GEOAPIFY_BROWSER_KEY`** and **`LOCATIONIQ_BROWSER_KEY`** from repository **Actions secrets** and writes them into the published `dist/browser-config.js` after copying `src/`. The deployed keys are **visible to every browser visitor**; GitHub Actions secrets protect *repository history*, not the deployed token values. Restrict keys in both provider dashboards to verified GeneoGraph referrers and monitor usage. No Worker, private API proxy or server-held credential exists.
+
+**Fallback and limits:** Without allowed keys, network access or provider availability, the application still supports project-place selection, creating places with names alone, and entering decimal coordinates manually; `file://` remains a non-map workflow. Daily free allowances are **account-wide**, while this adapter only throttles **each browser instance**; it cannot enforce a global usage ceiling. Silent fallback improves reliability but does not guarantee extra usable quota. Both required provider links appear *beneath autocomplete suggestions* in both place pickers and again under **Settings → About → Data providers**, independently of the active provider. The map's OpenFreeMap/OpenStreetMap attribution is separate.
+
+**Data and verification boundary:** There is no persistent raw geocoder response cache, and saved prototype place edits are still browser-memory-only. Any future durable genealogy store must document geocoded source attribution and honor each provider's storage/caching terms. Hosted EN/RU, historical-name coverage, referrer restrictions, failure/cancellation, credits and keyboard/mobile behavior require actual browser checks before merging; static adapter tests alone do not validate third-party API behavior. For exact deployment steps, quotas, terms, troubleshooting and manual QA, see [Browser geocoder setup](browser-geocoder-setup.md).
+
 ## 10. Publish and other unfinished capabilities
 
 `src/modules/publish/publish.js` contains a publication wizard and previews, but Publish is disabled in the active module navigation. Its export and draft confirmation paths are simulated; no real report, book, chart, GEDCOM, or GEDZip artifact is generated there. Do not list Publish as a working top-level module or mistake Geneograph PNG export for a general Publish pipeline.
@@ -160,7 +186,7 @@ Other important boundaries:
 | Export/import a Geneograph `.ggboard` | Real validated board JSON download and current-project import | Explicit file transfer, not automatic save. |
 | Export Geneograph PNG | Real browser-side image download | Static image only; it is not an editable board. |
 | Add a browser-local Archive document | Real local preview/download path for supported formats | Imported contents are lost on reload. |
-| Use map search/tiles | External provider-backed where configured | Availability depends on configuration and network. |
+| Use Places map / autocomplete | OpenFreeMap map tiles plus Geoapify / LocationIQ browser search on a hosted origin | No durable search cache; availability depends on external providers, allowed referrers and connectivity. Manual place entry remains usable without them. |
 | Use Publish wizard | Preview/simulated output interaction | No generated publication file. |
 
 ## 11. Responsive design and accessibility
@@ -179,6 +205,7 @@ Semantic buttons, labeled icon actions, focus indicators, accessible names, sele
 | Connections | Valid/invalid relationship targets, visual lines, all patterns, arrowheads, route editing, hover/focus feedback, right-click exit. |
 | Media and files | Missing assets, local upload lifetime, board import/export, Archive preview/download, Cancel and reload. |
 | Localization and responsiveness | English/Russian copy, translated label fit, 320px phone through desktop, focus order, open menus and modals. |
+| Places geocoding | Geoapify primary, LocationIQ fallback on no matches/error/timeout, search cancellation, stale results, attribution in both pickers and About, credentials absent, quota/429, hosted referrers, `file://` manual entry. |
 
 Use the verification map to choose focused manual browser checks. Inspect the console and exercise the affected workflow in English and Russian where relevant.
 
