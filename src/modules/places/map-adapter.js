@@ -238,10 +238,10 @@ const placesMapAdapter = (function ()
         });
     }
 
-    function focusPoint(map, point, padding)
+    function focusPoint(map, point, padding, minZoom = 0)
     {
-        // Always center explicit place navigation in the usable map area.
-        // Left/right and top/bottom padding may differ because of overlays.
+        // Center explicit navigation in usable space and show enough detail
+        // when the previous map view was zoomed out to a country/continent.
         const offset = [
             (padding.topLeft[0] - padding.bottomRight[0]) / 2,
             (padding.topLeft[1] - padding.bottomRight[1]) / 2
@@ -249,6 +249,7 @@ const placesMapAdapter = (function ()
         map.easeTo({
             center: toLngLat(point),
             offset,
+            zoom: Math.max(map.getZoom(), minZoom),
             duration: 0
         });
     }
