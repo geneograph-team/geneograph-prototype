@@ -950,8 +950,9 @@ function commitPlaceEditorDraft({ allowDuplicate = false } = {})
     );
     const radiusChanged = Boolean(
         existing
-        && (validPlaceRadiusMeters(existing.approximateRadiusMeters)
-            ? Number(existing.approximateRadiusMeters) : null) !== draft.approximateRadiusMeters
+        && (placeHasRadiusValue(existing) !== (draft.approximateRadiusMeters !== null)
+            || (placeHasRadiusValue(existing)
+                && Number(existing.approximateRadiusMeters) !== draft.approximateRadiusMeters))
     );
     place.name = draft.name;
     place.alternativeNames = draft.alternativeNames.slice();
