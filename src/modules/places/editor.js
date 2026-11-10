@@ -921,6 +921,7 @@ function commitPlaceEditorDraft({ allowDuplicate = false } = {})
     }
     draft.coordinates = coordinateState.coordinates;
     draft.coordinateText = placeEditorCoordinateText(draft.coordinates);
+    draft.approximateRadiusMeters = coordinateState.radiusMeters;
     draft.alternativeNames = normalizePlaceAlternativeNames(draft.alternativeNames, draft.name);
     const duplicate = findPlaceEditorDuplicate(draft);
     if (duplicate && !(allowDuplicate || draft.duplicateOverride))
@@ -947,11 +948,21 @@ function commitPlaceEditorDraft({ allowDuplicate = false } = {})
         existing
         && storedPlaceCoordinateKey(existing.coordinates) !== storedPlaceCoordinateKey(draft.coordinates)
     );
+    const radiusChanged = Boolean(
+        existing
+        && (validPlaceRadiusMeters(existing.approximateRadiusMeters)
+            ? Number(existing.approximateRadiusMeters) : null) !== draft.approximateRadiusMeters
+    );
     place.name = draft.name;
     place.alternativeNames = draft.alternativeNames.slice();
     place.coordinates = clonePlaceEditorCoordinates(draft.coordinates);
+    if (draft.approximateRadiusMeters !== null)
+    {
+        place.approximateRadiusMeters = draft.approximateRadiusMeters;
+    }
+    else delete place.approximateRadiusMeters;
     place.updatedAt = new Date().toISOString();
-    if (coordinatesChanged)
+    if (coordinatesChanged || radiusChanged)
     {
         clearPlaceReviewDismissals(place.id, PLACE_REVIEW_COORDINATE_ISSUE_TYPES);
     }
@@ -1362,7 +1373,10 @@ async function startPlaceEditorMapSelection()
     draft.mapSession = {
         returnToModal: true,
         coordinates: clonePlaceEditorCoordinates(draft.coordinates),
-        coordinateText: { ...draft.coordinateText }
+        coordinateText: { ...draft.coordinateText },
+        locationMode: draft.locationMode,
+        radiusText: draft.radiusText,
+        approximateRadiusMeters: draft.approximateRadiusMeters
     };
     clearTimeout(placeGeocoderTimer);
     placeGeocoderController?.abort();
@@ -1654,6 +1668,21 @@ function bindPlaceEditor()
         if (details.matches('[data-place-alternative-details]')) draft.disclosures.alternativeNames = details.open;
         if (details.matches('[data-place-coordinate-details]')) draft.disclosures.coordinates = details.open;
     }));
+    root.querySelectorAll('[name="placeLocationMode"]').forEach(input =>
+    {
+        input.addEventListener('change', () =>
+        {
+            updatePlaceEditorCoordinateUi();
+            renderPlaceEditorDuplicateWarning();
+        });
+    });
+    root.querySelector('#placeApproximateRadiusInput')?.addEventListener('input', () =>
+    {
+        updatePlaceEditorCoordinateUi();
+    });
+    root.querySelector('#placeApproximateRadiusInput')?.addEventListener('blur', () =>
+        updatePlaceEditorCoordinateUi({ formatValues: true })
+    );
     ['#placeLatitudeInput', '#placeLongitudeInput'].forEach(selector =>
     {
         root.querySelector(selector)?.addEventListener('input', () =>
@@ -1687,6 +1716,10 @@ function bindPlaceEditor()
     {
         root.querySelector('#placeLatitudeInput').value = '';
         root.querySelector('#placeLongitudeInput').value = '';
+        const exact = root.querySelector('[name="placeLocationMode"][value="exact"]');
+        if (exact) exact.checked = true;
+        const radius = root.querySelector('#placeApproximateRadiusInput');
+        if (radius) radius.value = '';
 
         draft.selectedSuggestion = null;
         draft.duplicateOverride = false;
