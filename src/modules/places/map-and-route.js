@@ -37,13 +37,19 @@ function createPlaceMapMarker(place)
 {
     const latLng = placeLatLng(place);
     if (!latLng || !placesMapReady()) return null;
+    const approximate = placeHasApproximateArea(place);
+    const areaLabel = approximate
+        ? ' · ' + t('Approximate location') + ': ' + formatPlaceRadius(place.approximateRadiusMeters)
+        : '';
     return placesMapAdapter.createMarker(placesMapRuntime.map, latLng, {
         className: 'places-map-marker-icon',
         html: createPlaceMarkerHtml(place.id === state.selectedPlaceId),
-        title: t('Select place') + ': ' + place.name,
+        title: t('Select place') + ': ' + place.name + areaLabel,
         selected: place.id === state.selectedPlaceId,
         onSelect: () => selectPlace(place.id, { source: 'map', focusMap: false }),
         tooltipHtml: escapeHtml(place.name)
+            + (approximate ? '<br>' + escapeHtml(t('Approximate location') + ': '
+                + formatPlaceRadius(place.approximateRadiusMeters)) : '')
     });
 }
 
@@ -585,6 +591,11 @@ function derivePlacesRoute(selection = {})
     };
 }
 
+function routeHasApproximateStops(route)
+{
+    return (route?.stops || []).some(stop => placeHasApproximateArea(stop.place));
+}
+
 function derivePlacesRouteSegments(route)
 {
     const segments = [];
@@ -667,12 +678,19 @@ function renderPlacesRouteLayer()
         const eventContext = stop.events
             .map(item => item.event?.title || item.event?.type || t('Event'))
             .join(', ');
+        const approximate = placeHasApproximateArea(stop.place);
+        const uncertainty = approximate
+            ? t('Approximate location') + ': '
+                + formatPlaceRadius(stop.place.approximateRadiusMeters)
+            : '';
         const name = stop.sequence + ' of ' + route.stops.length + ': '
             + stop.place.name + '; ' + stop.dateLabel + '; '
-            + route.subject + '; ' + eventContext;
+            + route.subject + '; ' + eventContext
+            + (uncertainty ? '; ' + uncertainty : '');
         const tooltip = '<strong>' + stop.sequence + '. '
             + escapeHtml(stop.place.name) + '</strong><br>'
             + escapeHtml(stop.dateLabel)
+            + (uncertainty ? '<br>' + escapeHtml(uncertainty) : '')
             + (eventContext ? '<br>' + escapeHtml(eventContext) : '');
         markers.push(placesMapAdapter.createMarker(map, stop.coordinates, {
             className: 'places-route-marker-icon',
