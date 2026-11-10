@@ -298,6 +298,13 @@ function updatePlacesMapToolControls()
     const pendingValid =
         placesPendingCoordinatesValid();
 
+    const centerSelected = main.querySelector('[data-map-fit]');
+    if (centerSelected)
+    {
+        centerSelected.disabled = !placesMapReady()
+            || !placeHasCoordinates(getPlace(state.selectedPlaceId));
+    }
+
     const copyButton =
         main.querySelector(
             '#placesCopyCoordinates'
