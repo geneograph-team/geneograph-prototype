@@ -117,6 +117,8 @@ const placesMapRuntime = {
     markerLayer: null,
     routeLayer: null,
     markersById: new Map(),
+    areaIds: new Set(),
+    draftRadiusMarker: null,
     resizeObserver: null,
     loadTimeout: null,
     errorCount: 0,
