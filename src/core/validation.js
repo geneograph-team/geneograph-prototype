@@ -1219,6 +1219,8 @@ function validateSampleData()
         if (!Array.isArray(place.alternativeNames)) warn(`Place ${place.id} alternativeNames must be an array`);
         if (new Set((place.alternativeNames || []).map(name => normalizePlaceLookupText(name))).size !== (place.alternativeNames || []).length) warn(`Place ${place.id} has duplicate alternative names`);
         if (place.coordinates && (!validLatitude(place.coordinates.lat) || !validLongitude(place.coordinates.lng))) warn(`Place ${place.id} has invalid coordinates`);
+        if (placeHasInvalidRadius(place)) warn(`Place ${place.id} has invalid approximate radius`);
+        if (placeHasRadiusValue(place) && !normalizePlaceCoordinates(place)) warn(`Place ${place.id} has an approximate radius but no valid center`);
         if (!Number.isFinite(Date.parse(place.updatedAt || ''))) warn(`Place ${place.id} has an invalid updatedAt timestamp`);
     });
 
