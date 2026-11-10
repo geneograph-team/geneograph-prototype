@@ -1136,6 +1136,35 @@ function renderPlaceEditorModal(draft)
                   </div>
                 </div>
 
+                <fieldset class="place-location-mode" data-place-location-mode
+                  ${coordinateState.hasAnyValue || draft.locationMode === 'approximate' ? '' : 'hidden'}>
+                  <legend>${escapeHtml(t('Position accuracy'))}</legend>
+                  <div class="place-location-mode-options">
+                    <label>
+                      <input type="radio" name="placeLocationMode" value="exact"
+                        ${draft.locationMode !== 'approximate' ? 'checked' : ''}>
+                      ${escapeHtml(t('Exact point'))}
+                    </label>
+                    <label>
+                      <input type="radio" name="placeLocationMode" value="approximate"
+                        ${draft.locationMode === 'approximate' ? 'checked' : ''}>
+                      ${escapeHtml(t('Approximate area'))}
+                    </label>
+                  </div>
+                </fieldset>
+
+                <div class="place-approximate-radius"
+                  data-place-radius-field ${draft.locationMode === 'approximate' ? '' : 'hidden'}>
+                  <label for="placeApproximateRadiusInput">${escapeHtml(t('Radius (km)'))}</label>
+                  <input id="placeApproximateRadiusInput" type="text"
+                    inputmode="decimal" autocomplete="off" spellcheck="false"
+                    maxlength="16" value="${escapeHtml(draft.radiusText)}"
+                    placeholder="2.5" aria-describedby="placeRadiusHelp placeRadiusError">
+                  <p id="placeRadiusHelp">${escapeHtml(t('The circle marks a possible location, not a boundary.'))}</p>
+                  <span class="place-coordinate-error" id="placeRadiusError"
+                    role="alert" aria-live="polite"></span>
+                </div>
+
                 <p
                   class="place-coordinate-help"
                   data-place-map-unavailable
