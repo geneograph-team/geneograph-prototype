@@ -32,19 +32,107 @@ function normalizePlaceCoordinates(place)
     return { lat: Number(source.lat), lng: Number(source.lng) };
 }
 
+// An absent radius keeps the existing exact-point record semantics.
+// One metre to 1,000 kilometres is supported; invalid non-empty radii
+// are not silently treated as exact points.
+const PLACE_MAX_APPROXIMATE_RADIUS_METERS = 1000000;
+const PLACE_EARTH_RADIUS_METERS = 6371008.8;
+
+function placeHasRadiusValue(place)
+{
+    const value = place?.approximateRadiusMeters;
+    return value !== null && value !== undefined && String(value).trim() !== '';
+}
+
+function validPlaceRadiusMeters(value)
+{
+    return (typeof value === 'number' || typeof value === 'string')
+        && String(value).trim() !== ''
+        && Number.isFinite(Number(value))
+        && Number(value) >= 1
+        && Number(value) <= PLACE_MAX_APPROXIMATE_RADIUS_METERS;
+}
+
+function placeHasInvalidRadius(place)
+{
+    return placeHasRadiusValue(place) && !validPlaceRadiusMeters(place.approximateRadiusMeters);
+}
+
+function placeHasApproximateArea(place)
+{
+    return placeHasRadiusValue(place)
+        && validPlaceRadiusMeters(place.approximateRadiusMeters)
+        && Boolean(normalizePlaceCoordinates(place));
+}
+
 function placeHasCoordinates(place)
 {
-    return Boolean(
-        place?.coordinates
-        && validLatitude(place.coordinates.lat)
-        && validLongitude(place.coordinates.lng)
-    );
+    return Boolean(normalizePlaceCoordinates(place)) && !placeHasInvalidRadius(place);
 }
 
 function placeLatLng(place)
 {
-    const coordinates = normalizePlaceCoordinates(place);
+    const coordinates = placeHasCoordinates(place) ? normalizePlaceCoordinates(place) : null;
     return coordinates ? [coordinates.lat, coordinates.lng] : null;
+}
+
+function formatPlaceRadius(meters)
+{
+    if (!validPlaceRadiusMeters(meters)) return '';
+    const radius = Number(meters);
+    return radius >= 1000
+        ? `${Number((radius / 1000).toFixed(3))} ${t('km')}`
+        : `${Number(radius.toFixed(1))} ${t('m')}`;
+}
+
+function placeDistanceMeters(one, two)
+{
+    if (!one || !two) return null;
+    const rad = Math.PI / 180;
+    const latitudeDelta = (two.lat - one.lat) * rad;
+    const longitudeDelta = (two.lng - one.lng) * rad;
+    const a = Math.sin(latitudeDelta / 2) ** 2
+        + Math.cos(one.lat * rad) * Math.cos(two.lat * rad)
+        * Math.sin(longitudeDelta / 2) ** 2;
+    return 2 * PLACE_EARTH_RADIUS_METERS * Math.atan2(
+        Math.sqrt(Math.max(0, a)), Math.sqrt(Math.max(0, 1 - a))
+    );
+}
+
+function placeRadiusEdgePoint(center, radiusMeters, bearingDegrees)
+{
+    const rad = Math.PI / 180;
+    const lat = Number(center.lat) * rad;
+    const lng = Number(center.lng) * rad;
+    const bearing = bearingDegrees * rad;
+    const arc = Number(radiusMeters) / PLACE_EARTH_RADIUS_METERS;
+    const latitude = Math.asin(Math.sin(lat) * Math.cos(arc)
+        + Math.cos(lat) * Math.sin(arc) * Math.cos(bearing));
+    const longitude = lng + Math.atan2(
+        Math.sin(bearing) * Math.sin(arc) * Math.cos(lat),
+        Math.cos(arc) - Math.sin(lat) * Math.sin(latitude)
+    );
+    return {
+        lat: latitude / rad,
+        lng: ((longitude / rad + 540) % 360) - 180
+    };
+}
+
+function placeRadiusGeoJson(center, radiusMeters)
+{
+    if (!center || !validLatitude(center.lat) || !validLongitude(center.lng)
+        || !validPlaceRadiusMeters(radiusMeters)) return null;
+    const ring = [];
+    for (let step = 0; step <= 64; step += 1)
+    {
+        const point = placeRadiusEdgePoint(center, radiusMeters, step * 360 / 64);
+        ring.push([point.lng, point.lat]);
+    }
+    return {
+        type: 'Feature',
+        properties: {},
+        geometry: { type: 'Polygon', coordinates: [ring] }
+    };
 }
 
 function formatPlaceCoordinates(place)
