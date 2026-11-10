@@ -3250,11 +3250,17 @@
    its wrapped controls on narrower map panels. */
 @container (max-width: 930px) {
     .places-map-panel.is-picking .places-map-navigation-wrap {
-        bottom: 164px;
+        bottom: 146px;
     }
 }
 
-@container (max-width: 600px) {
+@container (max-width: 740px) {
+    .places-map-panel.is-picking .places-map-navigation-wrap {
+        bottom: 180px;
+    }
+}
+
+@container (max-width: 480px) {
     .places-map-panel.is-picking .places-map-navigation-wrap {
         bottom: 218px;
     }
