@@ -811,9 +811,13 @@ function placeCoordinateReviewState(place)
     const hasLatitude = latitude !== null && latitude !== undefined && String(latitude).trim() !== '';
     const hasLongitude = longitude !== null && longitude !== undefined && String(longitude).trim() !== '';
 
+    if (placeHasInvalidRadius(place))
+    {
+        return { missing: false, invalid: true };
+    }
     if (!hasLatitude && !hasLongitude)
     {
-        return { missing: true, invalid: false };
+        return { missing: !placeHasRadiusValue(place), invalid: placeHasRadiusValue(place) };
     }
 
     return {
@@ -840,7 +844,7 @@ function getPlaceReviewIssues(place)
         issues.push({
             type: 'invalid_coordinates',
             title: 'Coordinates need attention',
-            description: 'The saved coordinates are incomplete or outside the valid range.',
+            description: 'The saved coordinates or approximate radius are incomplete or outside the valid range.',
             actionLabel: 'Fix coordinates'
         });
     }
