@@ -1395,9 +1395,7 @@ function placesReviewGroups()
         .sort((a, b) => placePrimaryName(a.place)
             .localeCompare(placePrimaryName(b.place)));
 
-    return {
-        activeCount: active.length,
-        groups: [
+    const groups = [
             {
                 key: 'invalid_coordinates',
                 title: 'Coordinates need correction',
@@ -1419,8 +1417,12 @@ function placesReviewGroups()
                 empty: 'No dismissed review items.',
                 items: sort(dismissed)
             }
-        ]
-    };
+        ];
+    const dismissedGroup = groups.pop();
+    groups.sort((left, right) => right.items.length - left.items.length);
+    groups.push(dismissedGroup);
+
+    return { activeCount: active.length, groups };
 }
 
 function placeReviewConnectionTotal(place)
@@ -1441,16 +1443,18 @@ function renderPlaceReviewListRow(item)
         ? t('Coordinates need correction')
         : t('Missing map positions');
     const actions = dismissal
-        ? `<button class="button secondary" type="button"
+        ? `<button class="button ghost places-review-quiet-button" type="button"
               data-place-review-edit-reason="${placeId}"
               data-place-review-type="${issueType}">${escapeHtml(t('Edit reason'))}</button>
-            <button class="button ghost" type="button"
+            <button class="button secondary places-review-restore-button" type="button"
               data-place-review-restore="${placeId}"
               data-place-review-type="${issueType}">${escapeHtml(t('Restore'))}</button>`
-        : `<button class="button secondary" type="button"
+        : `<button class="button secondary places-review-position-button" type="button"
               data-place-review-fix="${placeId}"
-              data-place-review-type="${issueType}">${escapeHtml(t(issue.actionLabel))}</button>
-            <button class="button ghost places-review-dismiss-button" type="button"
+              data-place-review-type="${issueType}">
+              <span class="places-review-position-icon" aria-hidden="true">${icon.mapPin}</span>
+              <span>${escapeHtml(t(issue.actionLabel))}</span></button>
+            <button class="button ghost places-review-quiet-button" type="button"
               data-place-review-dismiss="${placeId}"
               data-place-review-type="${issueType}">${escapeHtml(t('Dismiss'))}</button>`;
     const reason = dismissal ? placeReviewDismissalReason(dismissal) : '';
@@ -1494,18 +1498,23 @@ function renderPlaceReviewListRow(item)
 
 function renderPlaceReviewGroup(group, query)
 {
-    const isOpen = Boolean(query && group.items.length)
-        || Boolean(state.placesReviewExpandedGroups?.[group.key]);
+    const isOpen = group.items.length > 0
+        && (Boolean(query) || Boolean(state.placesReviewExpandedGroups?.[group.key]));
     return `<details class="places-review-group"
         data-place-review-group="${group.key}" ${isOpen ? 'open' : ''}>
         <summary>
           <strong>${escapeHtml(t(group.title))}</strong>
-          <span class="places-review-group-count">
+          <span class="places-review-group-count ${group.key !== 'dismissed' && group.items.length > 0 ? 'is-warning' : ''}">
             ${group.items.length}
           </span>
         </summary>
         <div class="places-review-group-body">
-          <p class="places-review-group-description">${escapeHtml(t(group.description))}</p>
+          ${group.items.length
+            ? `<p class="places-review-group-description">
+                ${icon.info}
+                <span>${escapeHtml(t(group.description))}</span>
+              </p>`
+            : ''}
           ${group.items.length
             ? `<div class="places-review-rows" role="list">
                 ${group.items.map(renderPlaceReviewListRow).join('')}
