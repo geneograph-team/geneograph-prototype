@@ -167,6 +167,7 @@ const state = {
     albumsView: 'all',
     activeAlbumId: null,
     albumsSearch: '',
+    albumsBrowserSearch: '',
     albumsFilters: { personId: '', placeId: '', dateRange: '', favouriteOnly: false },
     albumsViewMode: 'grid',
     albumsPage: 1,

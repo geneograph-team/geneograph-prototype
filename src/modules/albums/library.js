@@ -944,25 +944,13 @@ function renderAlbumsBreadcrumbs()
 
 function renderAlbumsFolderTile(album)
 {
-    const preview = getAlbumPreviewPhoto(album.id);
     const count = getAlbumPhotoCount(album.id);
     const name = escapeHtml(album.name);
-    const artwork = preview
-        ? `<span class="albums-folder-photo">
-            ${renderPhotoThumbnail(preview, { label: preview.title || preview.filename || album.name })}
-          </span>`
-        : `<span class="albums-folder-empty-preview">${icon.image}</span>`;
-
     return `<button class="albums-folder-tile" type="button"
         data-albums-browser-open="${escapeHtml(album.id)}"
         title="${name}"
         aria-label="${escapeHtml(t('Open album') + ': ' + album.name)}">
-        <span class="albums-folder-art" aria-hidden="true">
-          <span class="albums-folder-tab"></span>
-          <span class="albums-folder-back"></span>
-          ${artwork}
-          <span class="albums-folder-front"></span>
-        </span>
+        <span class="albums-folder-art" aria-hidden="true">${icon.folderyellow}</span>
         <span class="albums-folder-caption">
           <strong title="${name}">${name}</strong>
           <small>${escapeHtml(t('Photos'))}: ${count}</small>
@@ -973,8 +961,11 @@ function renderAlbumsFolderTile(album)
 function renderAlbumsBrowser()
 {
     const albums = getProjectAlbums();
-    return `${renderAlbumsBreadcrumbs()}
-      <header class="albums-header">
+    const query = String(state.albumsBrowserSearch || '').trim().toLocaleLowerCase();
+    const matchingCount = albums.filter(album =>
+        album.name.toLocaleLowerCase().includes(query)
+    ).length;
+    return `<header class="albums-header">
         <div class="albums-title">
           <h1 class="app-page-title">${escapeHtml(t('Albums'))}</h1>
           <p>${escapeHtml(t('Browse your albums.'))}</p>
@@ -985,14 +976,34 @@ function renderAlbumsBrowser()
           </button>
         </div>
       </header>
+      <div class="albums-toolbar albums-browser-toolbar" aria-label="${escapeHtml(t('Search albums'))}">
+        <div class="albums-toolbar-left">
+          <label class="app-search-field" aria-label="${escapeHtml(t('Search albums'))}">
+            ${icon.search}
+            <input id="albumsBrowserSearch" type="search"
+              value="${escapeHtml(state.albumsBrowserSearch || '')}"
+              placeholder="${escapeHtml(t('Search albums'))}">
+          </label>
+        </div>
+      </div>
+      ${renderAlbumsBreadcrumbs()}
       <div class="albums-content albums-folders-content">
         ${albums.length
             ? `<div class="albums-folder-grid" role="list">
-                ${albums.map(album => `<div role="listitem">${renderAlbumsFolderTile(album)}</div>`).join('')}
-              </div>`
+                ${albums.map(album =>
+                    `<div role="listitem" data-albums-browser-name="${escapeHtml(album.name)}"
+                      ${album.name.toLocaleLowerCase().includes(query) ? '' : 'hidden'}>
+                      ${renderAlbumsFolderTile(album)}
+                    </div>`
+                ).join('')}
+              </div>
+              <p class="albums-browser-no-matches" role="status"
+                data-albums-browser-no-matches ${matchingCount ? 'hidden' : ''}>
+                ${escapeHtml(t('No albums match your search.'))}
+              </p>`
             : `<div class="albums-empty">
                 <div class="albums-empty-card">
-                  ${icon.folder}
+                  ${icon.folderyellow}
                   <h2>${escapeHtml(t('No albums yet'))}</h2>
                   <p>${escapeHtml(t('Create your first album to start organizing photos.'))}</p>
                   <button class="button primary" type="button" id="albumsBrowserEmptyNew">
@@ -1156,6 +1167,14 @@ function renderAlbumsSidebar()
               </button>
 
               <button
+                class="side-link ${state.albumsView === 'albums' ? 'active' : ''}"
+                type="button"
+                data-albums-view="albums">
+                ${icon.folder}
+                <span>${escapeHtml(t('Albums'))}</span>
+              </button>
+
+              <button
                 class="side-link ${
                     state.albumsView === 'unassigned'
                         ? 'active'
@@ -1177,11 +1196,7 @@ function renderAlbumsSidebar()
                 with-add
               ">
 
-              <button class="albums-section-link ${state.albumsView === 'albums' ? 'active' : ''}"
-                type="button" data-albums-view="albums"
-                ${state.albumsView === 'albums' ? 'aria-current="page"' : ''}>
-                ${escapeHtml(t('Albums'))}
-              </button>
+              <span>${escapeHtml(t('Albums'))}</span>
 
               <button
                 class="side-add-button"
@@ -1311,7 +1326,7 @@ function renderAlbumsMainMarkup()
         listPage
             ? listPage.photos
             : photos;
-    return `${renderAlbumsBreadcrumbs()}<header class="albums-header">
+    return `<header class="albums-header">
         <div class="albums-title"><h1 class="app-page-title">${escapeHtml(context.title)}</h1><p>${escapeHtml(context.subtitle)}</p></div>
         <div class="albums-header-actions">
           <button
@@ -1424,6 +1439,7 @@ function renderAlbumsMainMarkup()
           </div>
         </div>
       </div>
+      ${renderAlbumsBreadcrumbs()}
       ${activeFilters}
       ${
             state.selectedPhotoIds.length

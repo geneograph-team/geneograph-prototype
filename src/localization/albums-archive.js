@@ -15,6 +15,9 @@ const RU_UI_ALBUMS = {
     'Browse your albums.':
         'Просматривайте свои альбомы.',
 
+    'No albums match your search.':
+        'Альбомы по вашему запросу не найдены.',
+
     'Create your first album to start organizing photos.':
         'Создайте первый альбом, чтобы упорядочить фотографии.',
 

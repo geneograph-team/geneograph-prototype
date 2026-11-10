@@ -311,6 +311,23 @@ function bindAlbumsControls()
     });
     if (state.albumsView === 'albums')
     {
+        const browserSearch = main.querySelector('#albumsBrowserSearch');
+        browserSearch?.addEventListener('input', () =>
+        {
+            state.albumsBrowserSearch = browserSearch.value;
+            const query = browserSearch.value.trim().toLocaleLowerCase();
+            let visibleCount = 0;
+            main.querySelectorAll('[data-albums-browser-name]').forEach(item =>
+            {
+                const matches = item.dataset.albumsBrowserName
+                    .toLocaleLowerCase().includes(query);
+                item.hidden = !matches;
+                if (matches) visibleCount += 1;
+            });
+            const empty = main.querySelector('[data-albums-browser-no-matches]');
+            if (empty) empty.hidden = visibleCount > 0;
+        });
+
         main.querySelectorAll('[data-albums-browser-open]').forEach(button =>
         {
             button.addEventListener('click', () =>
