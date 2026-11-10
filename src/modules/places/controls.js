@@ -107,7 +107,14 @@ function bindPlacesControls(list)
     main.querySelectorAll('[data-places-mode]').forEach(button => button.addEventListener('click', () =>
     {
         if (placesMapRuntime.mode !== 'browse') cancelPlacesMapEditing();
-        state.placesViewMode = button.dataset.placesMode;
+        const nextMode = button.dataset.placesMode;
+        if (nextMode === 'map' && state.placesViewMode !== 'map')
+        {
+            const selected = getPlace(state.selectedPlaceId);
+            placesMapRuntime.pendingFocusPlaceId =
+                placeHasCoordinates(selected) ? selected.id : null;
+        }
+        state.placesViewMode = nextMode;
         if (state.placesViewMode === 'list') destroyPlacesMap();
         renderPlacesMain();
     }));
@@ -146,7 +153,14 @@ function bindPlacesControls(list)
         bindPlacesMapEditingControls();
         main.querySelector('[data-map-zoom-in]')?.addEventListener('click', () => placesMapRuntime.map?.zoomIn());
         main.querySelector('[data-map-zoom-out]')?.addEventListener('click', () => placesMapRuntime.map?.zoomOut());
-        main.querySelector('[data-map-fit]')?.addEventListener('click', () => fitPlacesMap(list));
+        main.querySelector('[data-map-fit]')?.addEventListener('click', () =>
+        {
+            const selected = getPlace(state.selectedPlaceId);
+            if (placesMapReady() && placeHasCoordinates(selected))
+            {
+                updatePlacesMapSelection(selected.id, { focusMap: true });
+            }
+        });
     }
     bindToasts(main);
 }
