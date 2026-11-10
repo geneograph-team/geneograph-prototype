@@ -1,6 +1,6 @@
 ---
 title: git commit style
-version: v0.1.0
+version: v0.1.1
 ---
 
 <!-- markdownlint-disable MD025 -->
@@ -19,6 +19,22 @@ The described commit message format is necessary for:
 - Building collaboration between team members.
 - Supporting automatic changelog generation.
 - Simplifying change tracking and issue debugging.
+
+## Commit granularity
+
+- Make **one commit per logical change**, including all affected files in
+  that same commit. Never create separate commits merely because the change
+  touches multiple files.
+- For a focused issue or pull request, aim for **one complete commit** after
+  implementation and verification, rather than a stream of per-file or
+  intermediate fixup commits.
+- Split commits only when the work contains genuinely independent,
+  reviewable logical changes or when a later review requires a follow-up.
+  Squash incidental fixups before merging when the repository workflow
+  permits it; do not force-push or rewrite shared history without approval.
+- With connected GitHub tools, batch file contents into a single Git tree
+  and commit. Repeated per-file Contents API updates each create a commit
+  and should not be used for a multi-file logical change.
 
 ## Commit message structure
 
