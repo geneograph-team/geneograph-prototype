@@ -126,7 +126,10 @@ function updatePlacesDraftRadiusFromMarker(point)
     draft.approximateRadiusMeters = radius;
     draft.radiusText = String(Number((radius / 1000).toFixed(3)));
     updatePlaceEditorDraftDirty(draft);
+    const input = main.querySelector('#placesMapRadiusInput');
+    if (input) input.value = draft.radiusText;
     renderPlacesDraftArea({ moveHandle: false });
+    updatePlacesMapToolControls();
 }
 
 function renderPlacesDraftArea({ moveHandle = true } = {})
@@ -200,16 +203,7 @@ function updatePlacesDraftCoordinates(latLng, { moveMarker = true } = {})
     placesMapRuntime.pendingLatLng = normalized;
     renderPlacesDraftArea();
     const output = document.querySelector('[data-places-coordinate-output]');
-    if (output)
-    {
-        const draft = placeEditorDraft;
-        output.textContent = formatMapCoordinatePair(normalized)
-            + (draft?.locationMode === 'approximate'
-                && validPlaceRadiusMeters(draft.approximateRadiusMeters)
-                ? ' · ' + t('Approximate location') + ': '
-                    + formatPlaceRadius(draft.approximateRadiusMeters)
-                : '');
-    }
+    if (output) output.textContent = formatMapCoordinatePair(normalized);
     updatePlacesMapToolControls();
 }
 
@@ -293,6 +287,45 @@ function updatePlacesMapInstruction(message = '')
     instruction.textContent = translateText(message);
 }
 
+function setPlacesMapLocationMode(mode)
+{
+    const draft = placeEditorDraft;
+    if (!draft || !['add', 'move'].includes(placesMapRuntime.mode)
+        || !['exact', 'approximate'].includes(mode)) return;
+    draft.locationMode = mode;
+    const radius = readPlaceEditorRadiusState(draft.radiusText);
+    draft.approximateRadiusMeters = mode === 'approximate' && radius.valid
+        ? radius.meters : null;
+    updatePlaceEditorDraftDirty(draft);
+    renderPlacesDraftArea();
+    updatePlacesMapToolControls();
+}
+
+function setPlacesMapRadius(text)
+{
+    const draft = placeEditorDraft;
+    if (!draft || draft.locationMode !== 'approximate') return;
+    draft.radiusText = String(text ?? '');
+    const radius = readPlaceEditorRadiusState(draft.radiusText);
+    draft.approximateRadiusMeters = radius.valid ? radius.meters : null;
+    updatePlaceEditorDraftDirty(draft);
+    renderPlacesDraftArea();
+    updatePlacesMapToolControls();
+}
+
+function syncPlacesMapAccuracyControls()
+{
+    const draft = placeEditorDraft;
+    if (!draft) return;
+    main.querySelectorAll('[name="placesMapLocationMode"]').forEach(input =>
+    {
+        input.checked = input.value === draft.locationMode;
+    });
+    const input = main.querySelector('#placesMapRadiusInput');
+    if (input) input.value = draft.radiusText || '';
+    updatePlacesMapToolControls();
+}
+
 function updatePlacesMapToolControls()
 {
     const pendingValid =
@@ -304,6 +337,33 @@ function updatePlacesMapToolControls()
         centerSelected.disabled = !placesMapReady()
             || !placeHasCoordinates(getPlace(state.selectedPlaceId));
     }
+
+    const draft = placeEditorDraft;
+    const approximate = draft?.locationMode === 'approximate';
+    const radiusState = readPlaceEditorRadiusState(draft?.radiusText);
+    const validRadius = !approximate || radiusState.valid;
+    const radiusInput = main.querySelector('#placesMapRadiusInput');
+    const radiusField = main.querySelector('[data-places-map-radius-field]');
+    const radiusError = main.querySelector('#placesMapRadiusError');
+    if (radiusField) radiusField.hidden = !approximate;
+    main.querySelectorAll('[name="placesMapLocationMode"]').forEach(input =>
+    {
+        input.checked = input.value === (draft?.locationMode || 'exact');
+    });
+    if (radiusInput)
+    {
+        const invalid = approximate && !radiusState.valid;
+        radiusInput.setAttribute('aria-invalid', String(invalid));
+        if (radiusError)
+        {
+            const showError = invalid && Boolean(String(draft?.radiusText || '').trim());
+            radiusError.hidden = !showError;
+            radiusError.textContent = showError ? t(radiusState.message) : '';
+        }
+    }
+
+    const centerButton = main.querySelector('#placesUseMapCentre');
+    if (centerButton) centerButton.disabled = !placesMapReady();
 
     const copyButton =
         main.querySelector(
@@ -324,7 +384,7 @@ function updatePlacesMapToolControls()
     if (confirmButton)
     {
         confirmButton.disabled =
-            !pendingValid;
+            !pendingValid || !validRadius;
 
         confirmButton.textContent = t('Use position');
     }
@@ -411,6 +471,7 @@ function enterPlacesMapAddMode()
 
     setPlacesMapPickingState(true);
     showPlacesCoordinateBar(true);
+    syncPlacesMapAccuracyControls();
 
     updatePlacesMapInstruction(
         'Click the map to place a new location, or use the map centre.'
@@ -470,6 +531,7 @@ function enterPlacesMapMoveMode(
 
     setPlacesMapPickingState(true);
     showPlacesCoordinateBar(true);
+    syncPlacesMapAccuracyControls();
 
     updatePlacesMapInstruction(
         placeEditorDraft.coordinates
@@ -490,7 +552,9 @@ function enterPlacesMapMoveMode(
 function completePlaceEditorMapSelection()
 {
     const latLng = placesMapRuntime.pendingLatLng;
-    if (!placesPendingCoordinatesValid()) return;
+    if (!placesPendingCoordinatesValid()
+        || (placeEditorDraft?.locationMode === 'approximate'
+            && !validPlaceRadiusMeters(placeEditorDraft.approximateRadiusMeters))) return;
     let draft = placeEditorDraft;
     if (!draft)
     {
@@ -501,6 +565,7 @@ function completePlaceEditorMapSelection()
     }
     draft.coordinates = { lat: Number(latLng.lat), lng: Number(latLng.lng) };
     draft.coordinateText = placeEditorCoordinateText(draft.coordinates);
+    if (draft.locationMode !== 'approximate') draft.approximateRadiusMeters = null;
     draft.mapSession = null;
     draft.duplicateOverride = false;
     draft.dismissedDuplicateId = null;
