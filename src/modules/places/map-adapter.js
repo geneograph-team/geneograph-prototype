@@ -306,6 +306,15 @@ const placesMapAdapter = (function ()
         if (map.getSource(sourceId))
         {
             map.getSource(sourceId).setData(feature);
+            if (map.getLayer(sourceId + '-fill'))
+            {
+                map.setPaintProperty(sourceId + '-fill', 'fill-color', fillColor);
+                map.setPaintProperty(sourceId + '-fill', 'fill-opacity', fillOpacity);
+            }
+            if (map.getLayer(sourceId + '-outline'))
+            {
+                map.setPaintProperty(sourceId + '-outline', 'line-color', outlineColor);
+            }
             return;
         }
         map.addSource(sourceId, { type: 'geojson', data: feature });
