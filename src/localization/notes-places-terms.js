@@ -758,6 +758,35 @@ const RU_UI_PLACES = Object.freeze({
     // Map
     // ========================================
 
+    // Approximate places and representative-center routes
+    'Position accuracy': 'Точность местоположения',
+    'Exact point': 'Точная точка',
+    'Approximate area': 'Приблизительная область',
+    'Approximate location': 'Приблизительное местоположение',
+    'Representative center': 'Предполагаемый центр',
+    'Radius': 'Радиус',
+    'Radius (km)': 'Радиус (км)',
+    'km': 'км',
+    'm': 'м',
+    'The circle marks a possible location, not a boundary.':
+        'Окружность показывает возможное местоположение, а не границу.',
+    'Enter an approximate radius in kilometres.':
+        'Укажите приблизительный радиус в километрах.',
+    'Enter a positive radius, for example 2.5 km.':
+        'Укажите положительный радиус, например 2,5 км.',
+    'Radius must be between 0.001 and 1000 km.':
+        'Радиус должен быть от 0,001 до 1000 км.',
+    'Set a center position for the approximate area.':
+        'Укажите центральную точку приблизительной области.',
+    'Drag or use arrow keys to resize approximate radius':
+        'Перетащите маркер или используйте стрелки, чтобы изменить радиус области',
+    'Route uses representative centers for approximate stops, not measured historical travel distances.':
+        'Для приблизительных остановок маршрут использует предполагаемые центры, а не измеренные исторические расстояния.',
+    'Approximate stops use representative centers; travel distances are not measured.':
+        'Для приблизительных остановок используются предполагаемые центры; расстояния не измерены.',
+    'The saved coordinates or approximate radius are incomplete or outside the valid range.':
+        'Сохранённые координаты или приблизительный радиус неполные или выходят за допустимый диапазон.',
+
     'Places map':
         'Карта мест',
 
