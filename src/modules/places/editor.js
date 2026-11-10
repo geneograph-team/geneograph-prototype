@@ -95,6 +95,24 @@ function readPlaceEditorCoordinateState(latitudeText, longitudeText)
     };
 }
 
+function readPlaceEditorRadiusState(text)
+{
+    const raw = String(text ?? '').trim().replace(',', '.');
+    if (!raw) return { valid: false, meters: null,
+        message: 'Enter an approximate radius in kilometres.' };
+    if (!/^(?:[0-9]+(?:\.[0-9]*)?|\.[0-9]+)$/.test(raw))
+    {
+        return { valid: false, meters: null, message: 'Enter a positive radius, for example 2.5 km.' };
+    }
+    const meters = Math.round(Number(raw) * 1000);
+    if (!validPlaceRadiusMeters(meters))
+    {
+        return { valid: false, meters: null,
+            message: 'Radius must be between 0.001 and 1000 km.' };
+    }
+    return { valid: true, meters, formatted: String(Number((meters / 1000).toFixed(3))), message: '' };
+}
+
 function createPlaceEditorDraft(placeId = null, { initialCoordinates = null } = {})
 {
     const existing = placeId ? getPlace(placeId) : null;
@@ -103,11 +121,19 @@ function createPlaceEditorDraft(placeId = null, { initialCoordinates = null } = 
     const coordinateText = initialCoordinates
         ? placeEditorCoordinateText(coordinates)
         : placeEditorCoordinateTextFromStored(existing?.coordinates);
+    const locationMode = placeHasRadiusValue(existing) ? 'approximate' : 'exact';
+    const radiusText = placeHasRadiusValue(existing)
+        ? (validPlaceRadiusMeters(existing.approximateRadiusMeters)
+            ? String(Number((Number(existing.approximateRadiusMeters) / 1000).toFixed(3)))
+            : String(existing.approximateRadiusMeters))
+        : '';
     const original = {
         name: existing?.name || '',
         alternativeNames: alternativeNames.slice(),
         coordinates: clonePlaceEditorCoordinates(existing?.coordinates),
-        coordinateText: placeEditorCoordinateTextFromStored(existing?.coordinates)
+        coordinateText: placeEditorCoordinateTextFromStored(existing?.coordinates),
+        locationMode,
+        radiusText
     };
     return {
         mode: existing ? 'edit' : 'add',
@@ -116,6 +142,11 @@ function createPlaceEditorDraft(placeId = null, { initialCoordinates = null } = 
         alternativeNames,
         coordinates,
         coordinateText,
+        locationMode,
+        radiusText,
+        approximateRadiusMeters: validPlaceRadiusMeters(existing?.approximateRadiusMeters)
+            ? Number(existing.approximateRadiusMeters)
+            : null,
         original,
         dirty: Boolean(initialCoordinates && !existing),
         selectedSuggestion: null,
@@ -166,7 +197,9 @@ function placeEditorDraftPersonalityKey(draft)
     return JSON.stringify({
         name: draft.name,
         alternativeNames: draft.alternativeNames,
-        coordinateText: draft.coordinateText
+        coordinateText: draft.coordinateText,
+        locationMode: draft.locationMode,
+        radiusText: draft.radiusText
     });
 }
 
@@ -176,7 +209,9 @@ function updatePlaceEditorDraftDirty(draft = placeEditorDraft)
     draft.dirty = placeEditorDraftPersonalityKey(draft) !== JSON.stringify({
         name: draft.original.name,
         alternativeNames: draft.original.alternativeNames,
-        coordinateText: draft.original.coordinateText
+        coordinateText: draft.original.coordinateText,
+        locationMode: draft.original.locationMode,
+        radiusText: draft.original.radiusText
     });
     return draft.dirty;
 }
@@ -211,6 +246,11 @@ function syncPlaceEditorDraftFromModal()
     };
     const coordinateState = readPlaceEditorCoordinateState(draft.coordinateText.latitude, draft.coordinateText.longitude);
     draft.coordinates = coordinateState.hasCoordinates ? coordinateState.coordinates : null;
+    draft.locationMode = root.querySelector('[name="placeLocationMode"]:checked')?.value || draft.locationMode;
+    draft.radiusText = root.querySelector('#placeApproximateRadiusInput')?.value || '';
+    const radiusState = readPlaceEditorRadiusState(draft.radiusText);
+    draft.approximateRadiusMeters = draft.locationMode === 'approximate' && radiusState.valid
+        ? radiusState.meters : null;
     draft.disclosures.alternativeNames = Boolean(root.querySelector('[data-place-alternative-details]')?.open);
     draft.disclosures.coordinates = Boolean(root.querySelector('[data-place-coordinate-details]')?.open);
     updatePlaceEditorDraftDirty(draft);
