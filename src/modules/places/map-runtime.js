@@ -3,7 +3,8 @@ function placesMapDataKey(places)
     return (places || []).map(place =>
     {
         const coordinates = normalizePlaceCoordinates(place);
-        return [place.id, coordinates?.lat ?? '', coordinates?.lng ?? '', place.deleted].join(':');
+        return [place.id, coordinates?.lat ?? '', coordinates?.lng ?? '',
+            place.approximateRadiusMeters ?? '', place.deleted].join(':');
     }).join('|');
 }
 
@@ -98,11 +99,73 @@ function formatMapCoordinatePair(latLng)
         : 'No point selected';
 }
 
+function removePlacesDraftArea()
+{
+    if (placesMapRuntime.draftRadiusMarker) placesMapRuntime.draftRadiusMarker.remove();
+    placesMapRuntime.draftRadiusMarker = null;
+    placesMapAdapter.removeArea(placesMapRuntime.map, 'draft');
+}
+
 function removePlacesDraftMarker()
 {
+    removePlacesDraftArea();
     if (placesMapRuntime.draftMarker) placesMapRuntime.draftMarker.remove();
     placesMapRuntime.draftMarker = null;
     placesMapRuntime.pendingLatLng = null;
+}
+
+function updatePlacesDraftRadiusFromMarker(point)
+{
+    const draft = placeEditorDraft;
+    const center = placesMapRuntime.pendingLatLng;
+    if (!draft || draft.locationMode !== 'approximate' || !center) return;
+    const distance = placeDistanceMeters(center, point);
+    if (!Number.isFinite(distance)) return;
+    const radius = Math.round(Math.min(PLACE_MAX_APPROXIMATE_RADIUS_METERS,
+        Math.max(1, distance)));
+    draft.approximateRadiusMeters = radius;
+    draft.radiusText = String(Number((radius / 1000).toFixed(3)));
+    updatePlaceEditorDraftDirty(draft);
+    renderPlacesDraftArea({ moveHandle: false });
+}
+
+function renderPlacesDraftArea({ moveHandle = true } = {})
+{
+    if (!placesMapReady()) return;
+    const center = placesMapRuntime.pendingLatLng;
+    const draft = placeEditorDraft;
+    if (!center || !draft || draft.locationMode !== 'approximate'
+        || !validPlaceRadiusMeters(draft.approximateRadiusMeters))
+    {
+        removePlacesDraftArea();
+        return;
+    }
+    const colors = getComputedStyle(document.documentElement);
+    const accent = colors.getPropertyValue('--gg-status-warning-accent').trim();
+    placesMapAdapter.setArea(
+        placesMapRuntime.map, 'draft',
+        placeRadiusGeoJson(center, draft.approximateRadiusMeters),
+        { fillColor: accent, outlineColor: accent, fillOpacity: 0.23 }
+    );
+    const edge = placeRadiusEdgePoint(center, draft.approximateRadiusMeters, 90);
+    if (!placesMapRuntime.draftRadiusMarker)
+    {
+        placesMapRuntime.draftRadiusMarker = placesMapAdapter.createMarker(
+            placesMapRuntime.map, [edge.lat, edge.lng],
+            {
+                className: 'places-radius-handle',
+                html: '<span class="places-radius-handle-dot" aria-hidden="true"></span>',
+                title: t('Drag or use arrow keys to resize approximate radius'),
+                anchor: 'center',
+                draggable: true,
+                onDrag: updatePlacesDraftRadiusFromMarker
+            }
+        );
+    }
+    else if (moveHandle)
+    {
+        placesMapRuntime.draftRadiusMarker.setLngLat([edge.lng, edge.lat]);
+    }
 }
 
 function createPlacesDraftMarker(latLng)
@@ -135,8 +198,18 @@ function updatePlacesDraftCoordinates(latLng, { moveMarker = true } = {})
         placesMapRuntime.draftMarker.setLngLat([normalized.lng, normalized.lat]);
     }
     placesMapRuntime.pendingLatLng = normalized;
+    renderPlacesDraftArea();
     const output = document.querySelector('[data-places-coordinate-output]');
-    if (output) output.textContent = formatMapCoordinatePair(normalized);
+    if (output)
+    {
+        const draft = placeEditorDraft;
+        output.textContent = formatMapCoordinatePair(normalized)
+            + (draft?.locationMode === 'approximate'
+                && validPlaceRadiusMeters(draft.approximateRadiusMeters)
+                ? ' · ' + t('Approximate location') + ': '
+                    + formatPlaceRadius(draft.approximateRadiusMeters)
+                : '');
+    }
     updatePlacesMapToolControls();
 }
 
@@ -282,6 +355,12 @@ function cancelPlacesMapEditing({ reopenEditor = true } = {})
         draft.coordinates = clonePlaceEditorCoordinates(session.coordinates);
         draft.coordinateText = { ...session.coordinateText };
         draft.mapSession = null;
+        if (session.locationMode)
+        {
+            draft.locationMode = session.locationMode;
+            draft.radiusText = session.radiusText;
+            draft.approximateRadiusMeters = session.approximateRadiusMeters;
+        }
     }
     if (session?.returnToModal && reopenEditor)
     {
@@ -365,7 +444,10 @@ function enterPlacesMapMoveMode(
         placeEditorDraft.mapSession = {
             returnToModal: false,
             coordinates: clonePlaceEditorCoordinates(placeEditorDraft.coordinates),
-            coordinateText: { ...placeEditorDraft.coordinateText }
+            coordinateText: { ...placeEditorDraft.coordinateText },
+            locationMode: placeEditorDraft.locationMode,
+            radiusText: placeEditorDraft.radiusText,
+            approximateRadiusMeters: placeEditorDraft.approximateRadiusMeters
         };
     }
     resetPlacesMapEditingUi();
