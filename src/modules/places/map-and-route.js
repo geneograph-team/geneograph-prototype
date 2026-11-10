@@ -415,7 +415,8 @@ function updatePlacesMapSelection(placeId, { focusMap = false } = {})
             else
             {
                 placesMapAdapter.focusPoint(
-                    placesMapRuntime.map, placeLatLng(place), placesMapPadding()
+                    placesMapRuntime.map, placeLatLng(place), placesMapPadding(),
+                    Math.min(9, PLACES_MAP_CONFIG.fitMaxZoom)
                 );
             }
             // Keep explicit navigation after a map shell re-render, even if
