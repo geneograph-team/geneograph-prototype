@@ -2413,6 +2413,10 @@ function renderPlacesRouteSummary()
           ${route.available
                 ? `<div class="places-route-summary-metrics">${escapeHtml(metrics)}</div>`
                 : `<div class="places-route-summary-warning">${escapeHtml(t('Route needs at least two dated, mapped places.'))}</div>`}
+          ${route.available && routeHasApproximateStops(route)
+                ? `<div class="places-route-summary-estimate" role="note">${icon.info}
+                    <span>${escapeHtml(t('Route uses representative centers for approximate stops, not measured historical travel distances.'))}</span>
+                  </div>` : ''}
           ${route.excludedCount > 0
                 ? `<div class="places-route-summary-excluded">${route.excludedCount} ${escapeHtml(t(route.excludedCount === 1 ? 'event excluded' : 'events excluded'))}${excludedSummary ? ` - ${escapeHtml(excludedSummary)}` : ''}</div>`
                 : ''}
@@ -2470,6 +2474,13 @@ function renderPlacesMapShell(list)
 
                 <span>Selected place</span>
               </div>
+
+              ${list.some(placeHasApproximateArea)
+                    || (state.placesShowRoute && routeHasApproximateStops(route))
+                ? `<div class="places-map-legend-item">
+                    <span class="places-map-legend-area" aria-hidden="true"></span>
+                    <span>${escapeHtml(t('Approximate location'))}</span>
+                  </div>` : ''}
 
               ${state.placesShowRoute && route.available ? `
                 <div class="places-map-legend-item">
