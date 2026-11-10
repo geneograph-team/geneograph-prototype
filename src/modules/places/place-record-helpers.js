@@ -62,12 +62,16 @@ function placeHasApproximateArea(place)
 {
     return placeHasRadiusValue(place)
         && validPlaceRadiusMeters(place.approximateRadiusMeters)
-        && Boolean(normalizePlaceCoordinates(place));
+        && placeHasCoordinates(place);
 }
 
 function placeHasCoordinates(place)
 {
-    return Boolean(normalizePlaceCoordinates(place)) && !placeHasInvalidRadius(place);
+    return Boolean(
+        place?.coordinates
+        && validLatitude(place.coordinates.lat)
+        && validLongitude(place.coordinates.lng)
+    ) && !placeHasInvalidRadius(place);
 }
 
 function placeLatLng(place)
@@ -126,7 +130,12 @@ function placeRadiusGeoJson(center, radiusMeters)
     for (let step = 0; step <= 64; step += 1)
     {
         const point = placeRadiusEdgePoint(center, radiusMeters, step * 360 / 64);
-        ring.push([point.lng, point.lat]);
+        // Keep the ring continuous when it straddles the antimeridian.
+        const previous = ring.length ? ring[ring.length - 1][0] : Number(center.lng);
+        let lng = point.lng;
+        while (lng - previous > 180) lng -= 360;
+        while (lng - previous < -180) lng += 360;
+        ring.push([lng, point.lat]);
     }
     return {
         type: 'Feature',
