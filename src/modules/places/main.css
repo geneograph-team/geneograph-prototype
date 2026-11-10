@@ -1190,6 +1190,7 @@
     overflow: hidden;
     background: var(--surface-main);
     isolation: isolate;
+    container-type: inline-size;
 }
 
 .places-vector-map {
@@ -3244,9 +3245,18 @@
     bottom: 88px;
 }
 
-@media (min-width: 1180px) and (max-width: 1280px) {
+/* Follow the map panel width (not viewport width, which includes the inspector).
+   The compact picker stays one row when possible, and the navigation clears
+   its wrapped controls on narrower map panels. */
+@container (max-width: 930px) {
     .places-map-panel.is-picking .places-map-navigation-wrap {
-        bottom: 146px;
+        bottom: 164px;
+    }
+}
+
+@container (max-width: 600px) {
+    .places-map-panel.is-picking .places-map-navigation-wrap {
+        bottom: 218px;
     }
 }
 
@@ -3602,9 +3612,6 @@
         bottom: 10px;
     }
 
-    .places-map-panel.is-picking .places-map-navigation-wrap {
-        bottom: 218px;
-    }
 }
 
 @media (min-width: 1180px) and (max-width: 1400px) {
