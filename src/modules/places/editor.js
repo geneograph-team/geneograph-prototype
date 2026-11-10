@@ -104,12 +104,13 @@ function readPlaceEditorRadiusState(text)
     {
         return { valid: false, meters: null, message: 'Enter a positive radius, for example 2.5 km.' };
     }
-    const meters = Math.round(Number(raw) * 1000);
-    if (!validPlaceRadiusMeters(meters))
+    const kilometres = Number(raw);
+    if (!Number.isFinite(kilometres) || kilometres < 0.001 || kilometres > 1000)
     {
         return { valid: false, meters: null,
             message: 'Radius must be between 0.001 and 1000 km.' };
     }
+    const meters = Math.round(kilometres * 1000);
     return { valid: true, meters, formatted: String(Number((meters / 1000).toFixed(3))), message: '' };
 }
 
