@@ -1,3 +1,23 @@
+
+function navigateAlbumsView(view, albumId = null)
+{
+    if (!['all', 'favorites', 'unassigned', 'albums', 'album'].includes(view)) return;
+
+    runAfterAlbumsPhotoEditGuard(() =>
+    {
+        if (view === 'album' && !getProjectAlbums().some(album => album.id === albumId))
+        {
+            return;
+        }
+        appNavigationMarkIntent();
+        state.albumsView = view;
+        state.activeAlbumId = view === 'album' ? albumId : null;
+        state.selectedPhotoIds = [];
+        resetAlbumsPage();
+        renderAlbums();
+    });
+}
+
 function openAlbumSidebarMenu(albumId, anchor)
 {
     closeMenu();
@@ -8,68 +28,35 @@ function openAlbumSidebarMenu(albumId, anchor)
     document.body.appendChild(menu);
     menu.addEventListener('click', event =>
     {
-        const action = event.target.closest('[data-album-action]')?.dataset.albumAction; if (!action) return; anchor.focus({ preventScroll: true }); closeMenu(); state.albumsView = 'album'; state.activeAlbumId = albumId; if (action === 'edit') openEditAlbumModal(); else if (action === 'delete') openDeleteAlbumConfirm(albumId); else renderAlbums();
+        const action = event.target.closest('[data-album-action]')?.dataset.albumAction; if (!action) return; anchor.focus({ preventScroll: true }); closeMenu();
+        if (action === 'open')
+        {
+            navigateAlbumsView('album', albumId);
+            return;
+        }
+        state.albumsView = 'album';
+        state.activeAlbumId = albumId;
+        if (action === 'edit') openEditAlbumModal();
+        else if (action === 'delete') openDeleteAlbumConfirm(albumId);
     });
     bindMenuLifecycle(anchor);
 }
 
 function bindAlbumsSidebar()
 {
-    sidebar
-        .querySelectorAll(
-            '[data-albums-view]'
-        )
-        .forEach(button =>
-        {
-            button.addEventListener(
-                'click',
-                () =>
-                {
-                    runAfterAlbumsPhotoEditGuard(
-                        () =>
-                        {
-                            state.albumsView =
-                                button.dataset.albumsView;
+    sidebar.querySelectorAll('[data-albums-view]').forEach(button =>
+    {
+        button.addEventListener('click', () =>
+            navigateAlbumsView(button.dataset.albumsView)
+        );
+    });
 
-                            state.activeAlbumId = null;
-                            state.selectedPhotoIds = [];
-                            resetAlbumsPage();
-                            renderAlbums();
-                        }
-                    );
-                }
-            );
-        });
-
-    sidebar
-        .querySelectorAll(
-            '[data-album-open]'
-        )
-        .forEach(button =>
-        {
-            button.addEventListener(
-                'click',
-                () =>
-                {
-                    runAfterAlbumsPhotoEditGuard(
-                        () =>
-                        {
-                            appNavigationMarkIntent();
-                            state.albumsView =
-                                'album';
-
-                            state.activeAlbumId =
-                                button.dataset.albumOpen;
-
-                            state.selectedPhotoIds = [];
-
-                            resetAlbumsPage();
-                            renderAlbums();
-                        }
-                    );
-                }
-            );
-        });
+    sidebar.querySelectorAll('[data-album-open]').forEach(button =>
+    {
+        button.addEventListener('click', () =>
+            navigateAlbumsView('album', button.dataset.albumOpen)
+        );
+    });
 
     sidebar
         .querySelectorAll(
@@ -315,8 +302,29 @@ function bindAlbumsPaginationControls()
 
 function bindAlbumsControls()
 {
-    bindConnectedNotesFooters(main);
     bindToasts(main);
+    main.querySelectorAll('[data-albums-breadcrumb]').forEach(button =>
+    {
+        button.addEventListener('click', () =>
+            navigateAlbumsView(button.dataset.albumsBreadcrumb)
+        );
+    });
+    if (state.albumsView === 'albums')
+    {
+        main.querySelectorAll('[data-albums-browser-open]').forEach(button =>
+        {
+            button.addEventListener('click', () =>
+                navigateAlbumsView('album', button.dataset.albumsBrowserOpen)
+            );
+        });
+        main.querySelectorAll('#albumsBrowserNew, #albumsBrowserEmptyNew')
+            .forEach(button => button.addEventListener('click', () =>
+                runAfterAlbumsPhotoEditGuard(openNewAlbumModal)
+            ));
+        return;
+    }
+
+    bindConnectedNotesFooters(main);
     bindGenealogyDateFields(main);
     bindPlaceComboboxes(main);
     bindConnectedNoteLinks(
@@ -672,29 +680,12 @@ function bindAlbumsControls()
             );
         });
 
-    main
-        .querySelectorAll(
-            '[data-photo-album-open]'
-        )
-        .forEach(button =>
-        {
-            button.addEventListener(
-                'click',
-                () =>
-                {
-                    appNavigationMarkIntent();
-                    state.albumsView = 'album';
-
-                    state.activeAlbumId =
-                        button.dataset.photoAlbumOpen;
-
-                    state.selectedPhotoIds = [];
-
-                    resetAlbumsPage();
-                    renderAlbums();
-                }
-            );
-        });
+    main.querySelectorAll('[data-photo-album-open]').forEach(button =>
+    {
+        button.addEventListener('click', () =>
+            navigateAlbumsView('album', button.dataset.photoAlbumOpen)
+        );
+    });
 
     main
         .querySelectorAll(

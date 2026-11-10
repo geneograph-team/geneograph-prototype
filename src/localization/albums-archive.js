@@ -9,6 +9,15 @@ const RU_UI_ALBUMS = {
     'All photos':
         'Все фотографии',
 
+    'Album path':
+        'Путь к альбому',
+
+    'Browse your albums.':
+        'Просматривайте свои альбомы.',
+
+    'Create your first album to start organizing photos.':
+        'Создайте первый альбом, чтобы упорядочить фотографии.',
+
     'Not in an album':
         'Без альбома',
 

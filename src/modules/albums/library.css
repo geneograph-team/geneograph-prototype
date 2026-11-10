@@ -41,6 +41,280 @@ body.mobile-surface-open:has(.albums-shell) .menu-popover {
     overflow: hidden;
 }
 
+
+/* Album folder navigation; visual roles match the Archive breadcrumb pattern. */
+.albums-breadcrumbs {
+    min-width: 0;
+    min-height: 40px;
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    padding: 0 10px;
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-sm);
+    background: color-mix(in srgb, var(--gg-sidebar) 34%, transparent);
+}
+
+.albums-breadcrumb-leading-icon {
+    width: 18px;
+    height: 18px;
+    flex: 0 0 18px;
+    display: grid;
+    place-items: center;
+    color: var(--text-secondary);
+}
+
+.albums-breadcrumb-leading-icon svg {
+    width: 17px;
+    height: 17px;
+}
+
+.albums-breadcrumbs ol {
+    min-width: 0;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    flex: 1 1 auto;
+    display: flex;
+    align-items: center;
+    overflow: hidden;
+}
+
+.albums-breadcrumb-item {
+    min-width: 0;
+    max-width: 195px;
+    display: flex;
+    align-items: center;
+}
+
+.albums-breadcrumb-item:first-child {
+    flex: 0 0 auto;
+}
+
+.albums-breadcrumb-item.is-current {
+    max-width: 320px;
+    flex: 0 1 auto;
+}
+
+.albums-breadcrumb-separator {
+    width: 14px;
+    height: 14px;
+    flex: 0 0 14px;
+    display: grid;
+    place-items: center;
+    color: var(--text-tertiary);
+}
+
+.albums-breadcrumb-separator svg {
+    width: 14px;
+    height: 14px;
+}
+
+.albums-breadcrumbs button,
+.albums-breadcrumb-current {
+    min-width: 0;
+    max-width: 100%;
+    display: block;
+    padding: 6px 5px;
+    border: 0;
+    border-radius: var(--radius-sm);
+    color: var(--text-secondary);
+    background: transparent;
+    font: inherit;
+    font-size: 13px;
+    font-weight: 800;
+    line-height: 1.2;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.albums-breadcrumbs button {
+    cursor: pointer;
+}
+
+.albums-breadcrumbs button:hover,
+.albums-breadcrumbs button:focus-visible {
+    color: var(--text-primary);
+    background: var(--surface-card-hover);
+}
+
+.albums-breadcrumb-current {
+    color: var(--text-primary);
+}
+
+.albums-breadcrumbs button:focus-visible,
+.albums-folder-tile:focus-visible,
+.albums-section-link:focus-visible {
+    outline: 2px solid var(--brand-green-300);
+    outline-offset: 2px;
+}
+
+.albums-section-link {
+    min-width: 0;
+    padding: 5px 6px;
+    border: 0;
+    border-radius: var(--radius-sm);
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    text-align: left;
+    text-transform: inherit;
+    letter-spacing: inherit;
+    cursor: pointer;
+}
+
+.albums-section-link:hover,
+.albums-section-link.active {
+    color: var(--text-primary);
+    background: var(--surface-selected);
+}
+
+.albums-folders-content {
+    padding-top: var(--space-1);
+}
+
+.albums-folder-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(170px, 100%), 1fr));
+    align-content: start;
+    gap: var(--space-4);
+}
+
+.albums-folder-grid > [role="listitem"] {
+    min-width: 0;
+}
+
+.albums-folder-tile {
+    width: 100%;
+    min-width: 0;
+    height: 100%;
+    padding: var(--space-3);
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--space-2);
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-sm);
+    background: var(--surface-card);
+    color: var(--text-primary);
+    cursor: pointer;
+    text-align: center;
+    transition: background var(--ease), border-color var(--ease);
+}
+
+.albums-folder-tile:hover {
+    border-color: var(--border-strong);
+    background: var(--surface-card-hover);
+}
+
+.albums-folder-art {
+    display: block;
+    position: relative;
+    width: 100%;
+    aspect-ratio: 4 / 3;
+    isolation: isolate;
+}
+
+.albums-folder-tab {
+    position: absolute;
+    top: 7%;
+    left: 5%;
+    width: 40%;
+    height: 21%;
+    border: 1px solid var(--gg-accent-sepia-gold-accent);
+    border-radius: 7px 7px 0 0;
+    background: var(--gg-accent-sepia-gold-container);
+}
+
+.albums-folder-back {
+    position: absolute;
+    z-index: 1;
+    inset: 18% 5% 7%;
+    border: 1px solid var(--gg-accent-sepia-gold-accent);
+    border-radius: var(--radius-sm);
+    background: var(--gg-accent-sepia-gold-container);
+}
+
+.albums-folder-photo,
+.albums-folder-empty-preview {
+    position: absolute;
+    z-index: 2;
+    inset: 9% 23% 16%;
+    border: 2px solid var(--surface-card);
+    border-radius: var(--radius-sm);
+    background: var(--surface-field);
+    overflow: hidden;
+    transform: rotate(4deg);
+}
+
+.albums-folder-photo .photo-thumbnail,
+.albums-folder-photo .thumb-img {
+    width: 100%;
+    height: 100%;
+    display: block;
+}
+
+.albums-folder-photo .thumb-img {
+    object-fit: cover;
+}
+
+.albums-folder-empty-preview {
+    display: grid;
+    place-items: center;
+    color: var(--text-tertiary);
+    transform: none;
+}
+
+.albums-folder-empty-preview svg {
+    width: 36px;
+    height: 36px;
+}
+
+.albums-folder-front {
+    position: absolute;
+    z-index: 3;
+    inset: 52% 3% 6%;
+    border: 1px solid var(--gg-accent-sepia-gold-accent);
+    border-radius: 3px var(--radius-sm) var(--radius-sm) var(--radius-sm);
+    background: color-mix(in srgb, var(--gg-accent-sepia-gold-container) 78%, var(--gg-accent-sepia-gold-accent));
+}
+
+.albums-folder-caption {
+    display: grid;
+    min-width: 0;
+    gap: 4px;
+}
+
+.albums-folder-caption strong {
+    min-width: 0;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    font-size: 13px;
+}
+
+.albums-folder-caption small {
+    color: var(--text-tertiary);
+    font-size: 12px;
+}
+
+@media (max-width: 540px) {
+    .albums-breadcrumb-leading-icon {
+        display: none;
+    }
+
+    .albums-folder-grid {
+        grid-template-columns: repeat(auto-fill, minmax(min(135px, 100%), 1fr));
+        gap: var(--space-3);
+    }
+
+    .albums-folder-tile {
+        padding: var(--space-2);
+    }
+}
+
 .albums-header {
     flex: 0 0 auto;
     display: flex;
