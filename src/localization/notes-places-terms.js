@@ -802,6 +802,9 @@ const RU_UI_PLACES = Object.freeze({
     'Centre map on places':
         'Показать все места на карте',
 
+    'Centre map on selected place':
+        'Центрировать карту на выбранном месте',
+
     'Show map legend':
         'Показать легенду карты',
 
