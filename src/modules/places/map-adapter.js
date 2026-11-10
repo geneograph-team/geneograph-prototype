@@ -51,62 +51,8 @@ const placesMapAdapter = (function ()
     function styleUrl(theme)
     {
         return theme === 'dark'
-            ? PLACES_MAP_CONFIG.styles.dark
+            ? new URL(PLACES_MAP_CONFIG.styles.dark, document.baseURI).href
             : PLACES_MAP_CONFIG.styles.light;
-    }
-
-    // Apply after each style.load, before the map is presented. Using only
-    // setPaintProperty preserves upstream OpenFreeMap tiles, sprites, glyphs,
-    // style layer ordering, and the map's attribution.
-    function applyDarkPalette(map, theme)
-    {
-        if (theme !== 'dark' || !map?.getLayer) return 0;
-
-        let applied = 0;
-        Object.entries(PLACES_DARK_MAP_PAINT).forEach(([layerId, paints]) =>
-        {
-            // Missing layers are normal if OpenFreeMap changes its style.
-            if (!map.getLayer(layerId)) return;
-            Object.entries(paints).forEach(([property, value]) =>
-            {
-                try
-                {
-                    map.setPaintProperty(layerId, property, value);
-                    ++applied;
-                }
-                catch (error)
-                {
-                    console.warn('GeneoGraph dark map paint override failed:',
-                        layerId, property, error);
-                }
-            });
-        });
-        return applied;
-    }
-
-    // OpenFreeMap Dark references "circle-11" for town/city dots, but
-    // its sprite can omit this image. Resolve only that known missing icon.
-    // MapLibre v6 requires the resolver, not a styleimagemissing listener,
-    // because listeners run too late for the current image request.
-    function missingTownDotImage()
-    {
-        const size = 11;
-        const data = new Uint8Array(size * size * 4);
-        const radius = 4.5;
-        for (let y = 0; y < size; ++y)
-        {
-            for (let x = 0; x < size; ++x)
-            {
-                const distance = Math.hypot(x - 5, y - 5);
-                const alpha = Math.max(0, Math.min(1, radius + 0.5 - distance));
-                const pixel = (y * size + x) * 4;
-                data[pixel] = 255;
-                data[pixel + 1] = 255;
-                data[pixel + 2] = 255;
-                data[pixel + 3] = Math.round(alpha * 255);
-            }
-        }
-        return { width: size, height: size, data };
     }
 
     function createMap(host, theme)
@@ -122,13 +68,6 @@ const placesMapAdapter = (function ()
             dragRotate: false,
             pitchWithRotate: false,
             attributionControl: true
-        });
-        map.setMissingStyleImageResolver(id =>
-        {
-            if (id === 'circle-11')
-            {
-                map.addImage(id, missingTownDotImage(), { pixelRatio: 1 });
-            }
         });
         return map;
     }
@@ -341,7 +280,7 @@ const placesMapAdapter = (function ()
     }
 
     return Object.freeze({
-        supportedProtocol, load, styleUrl, createMap, applyDarkPalette, createMarker,
+        supportedProtocol, load, styleUrl, createMap, createMarker,
         toLngLat, fromLngLat, updateSelection, fitPoints, focusPoint,
         setLineSegments, clearLineSegments, setArea, removeArea
     });

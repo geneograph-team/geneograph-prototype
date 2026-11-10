@@ -138,7 +138,7 @@ Shapes and drawings have separate creation-strip settings, copied into new objec
 
 **Places** provides project place records and map-oriented browsing/search. Map tiles and geographic search depend on the configured provider and network, so map-unavailable states must not block non-map choices. The Geneograph Add/Change Place modal combines project places, map results, and a board-only option in one results list. Selecting a map result adds a project Place; choosing board-only does not. Merely typing a query never creates a place.
 
-**Places map navigation:** Single-click a place in the Countries sidebar to select it; double-click to switch to map view (if needed) and center its marker within the unobscured viewport. Creating or repositioning a place with valid coordinates in the Places editor centers that marker after the map has reloaded, including while MapLibre is still initializing. Map loading/error notices are centered within the map panel and use a neutral List view escape action. If a place lacks coordinates, keep the manual position-editing path rather than guessing a location. The dark basemap uses OpenFreeMap `dark` with GeneoGraph paint overrides; the map colors and application theme tokens remain separate.
+**Places map navigation:** Single-click a place in the Countries sidebar to select it; double-click to switch to map view (if needed) and center its marker within the unobscured viewport. Creating or repositioning a place with valid coordinates in the Places editor centers that marker after the map has reloaded, including while MapLibre is still initializing. Map loading/error notices are centered within the map panel and use a neutral List view escape action. If a place lacks coordinates, keep the manual position-editing path rather than guessing a location. The dark basemap is a locally hosted Liberty-derived MapLibre style; the light basemap remains upstream Liberty, and map colors stay separate from application theme tokens.
 
 ### Places maps and browser geocoding (issue #158)
 
@@ -166,31 +166,64 @@ A user-cancelled or superseded search **never** falls through to LocationIQ. Req
 
 **Data and verification boundary:** There is no persistent raw geocoder response cache, and saved prototype place edits are still browser-memory-only. Any future durable genealogy store must document geocoded source attribution and honor each provider's storage/caching terms. Hosted EN/RU, historical-name coverage, referrer restrictions, failure/cancellation, credits and keyboard/mobile behavior require actual browser checks before merging; static adapter tests alone do not validate third-party API behavior. For exact deployment steps, quotas, terms, troubleshooting and manual QA, see [Browser geocoder setup](browser-geocoder-setup.md).
 
-### Dark map palette ownership (issue #163)
+### Liberty-derived dark map style (issue #177; supersedes #163)
 
-The interactive Places map keeps OpenFreeMap's **upstream `dark` style URL**, vector tiles, sprite images, glyph fonts and map attribution. Rather than copying and hosting a potentially stale style JSON, GeneoGraph applies a small **charcoal paint-only overlay** through MapLibre's `setPaintProperty` API:
+**Owned style:** `src/assets/map-styles/liberty-dark.json` is a static, versioned
+dark adaptation of the **111-layer OpenFreeMap Liberty style**, not the older
+OpenFreeMap Dark preset. Light mode still loads the original hosted Liberty URL.
+`src/core/runtime-config.js` selects the relative dark style URL; the MapLibre
+adapter resolves it against `document.baseURI` so GitHub Pages project
+subpaths work. No runtime `PLACES_DARK_MAP_PAINT` or layer-ID-dependent
+recoloring runs during `style.load`.
 
-- **Palette to edit:** `PLACES_DARK_MAP_PAINT` in `src/core/runtime-config.js`. Keys correspond to OpenFreeMap dark-style layer IDs; values are standard MapLibre paint colors. This is *basemap artwork*, not a change to `src/core/palette/geneograph-v3.css` or shared UI button/focus colors.
-- **Application:** `placesMapAdapter.applyDarkPalette(map, theme)` in `src/modules/places/map-adapter.js` runs on every `style.load` event in `map-and-route.js`. Unknown upstream layers are skipped. Only paint colors change; layer order, sources, overlays, markers, routes, fonts and attribution are not replaced.
-- **Missing town/city sprite:** OpenFreeMap Dark may refer to a `circle-11` icon absent from the upstream sprite. The adapter registers MapLibre v6 `setMissingStyleImageResolver` and generates *only* this 11-pixel dot if requested. Other missing sprite names are not masked; their warnings still need investigation. This applies independently of the charcoal palette and survives actual style switches.
-- **Theme stability:** `placesMapRuntime.mapTheme` tracks the latest requested style, so redundant theme events do not reload tiles. The light theme still uses OpenFreeMap `liberty` untouched. After a real light ↔ dark switch, the dark palette reapplies as soon as the replacement style loads and route overlays are restored.
-- **Boundaries:** It is not a map filter and does not alter place data, geocoding, nearby-search providers, map interaction or `file://` manual place entry. Recheck layer IDs if OpenFreeMap upgrades its Dark style.
+**Upstream provenance:** Based on
+[OpenFreeMap Liberty](https://github.com/hyperknot/openfreemap-styles/blob/006ea5796803ba2df4330888836cb0a8f17473b4/styles/liberty/style.json)
+at commit `006ea5796803ba2df4330888836cb0a8f17473b4`
+(2026-10-25). The source's `__TILEJSON_DOMAIN__` placeholder is resolved
+to `tiles.openfreemap.org`. Vector/raster tiles, hashed sprite and Noto
+glyph endpoints remain on OpenFreeMap; label expressions and layer ordering
+are unchanged, including non-Latin name fallback. No MapTiler assets,
+additional keys or services are introduced.
 
-Representative **before → after color comparison** (original upstream Dark values were verified against OpenFreeMap's published style repository on 2026-11-09):
+**Cartographic ownership:** Edit the **paint properties in the style JSON**,
+not the GeneoGraph v3 UI palette. Current dark direction (approximate hex
+samples; judge on real rendered tiles):
 
-| Map feature | Upstream Dark | GeneoGraph charcoal |
-| --- | --- | --- |
-| Land/background | `#0C0C0C` | `#293139` |
-| Water | `#1B1B1D` | `#244354` |
-| Parkland | `#202020` | `#355045` |
-| Minor roads | `#181818` | `#536371` |
-| Village labels | `#656565` | `#D2DCE4` |
-| Major roads | very dark gray | `#74818D` |
-| Country boundaries | dark gray | `#8594A1` |
+| Feature | Dark Liberty color |
+| --- | --- |
+| Background / land | `#303C48` slate |
+| Water | `#25536A` maritime blue |
+| Parks / green areas | `#3B684E` botanical green |
+| Major roads / motorways | `#A99A82` / `#BA9E78` muted warm sand |
+| Minor roads | `#6E8392` steel blue |
+| Buildings | `#4C5B68` blue gray |
+| Cities / water labels | `#EBF0F4` / `#B1D7E5` |
 
-**Visual approval gate:** Compare upstream dark and the customized dark map at the **same city, zoom and viewport** (for example, Warsaw at zoom 10 and a rural settlement at zoom 13). Confirm legibility of major/minor roads, place labels, boundaries, water and parks; inspect markers, selected/draft pins, route lines, the status overlay and attribution. Repeat on mobile and desktop, in EN/RU, and after repeated light ↔ dark switches. This comparison requires hosted MapLibre browser QA; unit tests cannot substitute for actual appearance review.
+The existing zoom-dependent road widths, casings, distinct route classes,
+boundaries, building footprints, POIs, sprites and all 111 layer positions
+are preserved. Low-zoom Natural Earth raster relief is darkened and reduced
+in opacity so it does not wash out the background. User map markers,
+selected/draft pins, approximate-location circles and route layers are
+**application overlays**, created/recreated after style loading; do not
+embed them into the basemap JSON.
 
-**Verification note:** The map-specific temporary check scripts from earlier changes are no longer checked in. Validate map palette/theme behavior with targeted hosted-browser QA; do not infer that current CI verifies it. Source attribution: [OpenFreeMap styles](https://github.com/hyperknot/openfreemap-styles), including its [dark style license](https://github.com/hyperknot/openfreemap-styles/blob/main/styles/dark/LICENSE.md). Preserve OpenFreeMap, OpenMapTiles and OpenStreetMap credit wherever the map is displayed.
+**Credits and maintenance:** Preserve OpenFreeMap/OpenMapTiles/
+OpenStreetMap map attribution on all supported views. The adapted style
+retains the original Liberty [BSD-style code and CC BY design notices]
+(../src/assets/map-styles/LICENSE.md). When updating upstream, compare
+source layer IDs, order, sprite revisions, tiles, labels, and attribution
+before porting the dark colors to the newer Liberty baseline. Never fetch
+or introduce font assets into this repository.
+
+**Visual approval gate:** Before merging, compare the *current light map*,
+the previous dark map and this dark Liberty candidate at identical
+positions/zooms: city streets, rural countryside, water/coast and parks.
+Review EN/RU and Cyrillic labels, contrast of place names and boundaries,
+attribution, selected/draft markers, route stops/lines, approximate areas,
+and repeated light/dark theme switches on desktop and mobile. A static
+JSON audit or palette chips cannot substitute for hosted MapLibre visual
+QA. Founder approval of the actual rendered palette is required. Direct
+`file://` still offers manual coordinates, not an interactive map.
 
 ## 10. Publish and other unfinished capabilities
 

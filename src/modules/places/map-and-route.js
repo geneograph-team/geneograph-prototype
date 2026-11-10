@@ -226,8 +226,8 @@ function mountPlacesMap(places)
                 if (placesMapRuntime.map !== map) return;
                 placesMapRuntime.errorCount = 0;
                 // style.load fires for initial load and every setStyle().
-                // Paint overrides do not replace the upstream style or the route.
-                placesMapAdapter.applyDarkPalette(map, placesMapRuntime.mapTheme);
+                // Colors belong to each style JSON; the application restores
+                // genealogy overlays when the replacement style is ready.
                 if (placesMapReady())
                 {
                     placesMapRuntime.styleLoading = false;

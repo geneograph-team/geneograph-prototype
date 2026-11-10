@@ -15,7 +15,7 @@ See [the source map](doc/source-map.md) for dependency boundaries, [AGENTS.md](A
 
 ## Places map and geocoding
 
-- The **map** uses MapLibre GL JS and OpenFreeMap vector styles on HTTP(S). The dark basemap is recolored with a configurable softer-charcoal vector paint palette in `src/core/runtime-config.js` (`PLACES_DARK_MAP_PAINT`); the light style is unchanged. See [map palette design notes](doc/design-document.md#dark-map-palette-ownership-issue-163).
+- The **map** uses MapLibre GL JS and OpenFreeMap vector styles on HTTP(S). Light mode uses upstream Liberty; dark mode uses a [locally hosted Liberty-derived style](doc/design-document.md#liberty-derived-dark-map-style-issue-177-supersedes-163). The dark style's colors are owned in `src/assets/map-styles/liberty-dark.json`, separate from UI colors.
 - **Place-name search** uses the browser-only **Geoapify → LocationIQ** chain: Geoapify is primary; LocationIQ is tried automatically on no results or a provider error/timeout. No provider selector is shown. Deliberate search cancellation does not trigger fallback.
 - Both providers receive linked credits below place-search suggestions in Places and Geneograph and under **Settings → About → Data providers**.
 - `src/browser-config.js` contains **no keys**. The Pages workflow injects the restricted public browser tokens from GitHub Actions repository secrets `GEOAPIFY_BROWSER_KEY` and `LOCATIONIQ_BROWSER_KEY` into **deployed** `dist/browser-config.js`. Token values are visible to browser visitors, even though not stored in Git history. Restrict and monitor them at both providers.
