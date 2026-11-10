@@ -1396,28 +1396,28 @@ function placesReviewGroups()
             .localeCompare(placePrimaryName(b.place)));
 
     const groups = [
-            {
-                key: 'invalid_coordinates',
-                title: 'Coordinates need correction',
-                description: 'The saved coordinates are incomplete or outside the valid range.',
-                empty: 'No coordinates need correction.',
-                items: sort(active.filter(item => item.issue.type === 'invalid_coordinates'))
-            },
-            {
-                key: 'missing_coordinates',
-                title: 'Missing map positions',
-                description: 'These places have no identified map position. An exact position is optional.',
-                empty: 'No map positions are missing.',
-                items: sort(active.filter(item => item.issue.type === 'missing_coordinates'))
-            },
-            {
-                key: 'dismissed',
-                title: 'Dismissed',
-                description: 'Dismissed warnings can be restored or given an updated reason.',
-                empty: 'No dismissed review items.',
-                items: sort(dismissed)
-            }
-        ];
+        {
+            key: 'invalid_coordinates',
+            title: 'Coordinates need correction',
+            description: 'The saved coordinates are incomplete or outside the valid range.',
+            empty: 'No coordinates need correction.',
+            items: sort(active.filter(item => item.issue.type === 'invalid_coordinates'))
+        },
+        {
+            key: 'missing_coordinates',
+            title: 'Missing map positions',
+            description: 'These places have no identified map position. An exact position is optional.',
+            empty: 'No map positions are missing.',
+            items: sort(active.filter(item => item.issue.type === 'missing_coordinates'))
+        },
+        {
+            key: 'dismissed',
+            title: 'Dismissed',
+            description: 'Dismissed warnings can be restored or given an updated reason.',
+            empty: 'No dismissed review items.',
+            items: sort(dismissed)
+        }
+    ];
     const dismissedGroup = groups.pop();
     groups.sort((left, right) => right.items.length - left.items.length);
     groups.push(dismissedGroup);
