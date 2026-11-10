@@ -2549,45 +2549,63 @@ function renderPlacesMapShell(list)
             hidden>
 
             <div class="places-coordinate-summary">
-              <strong data-places-coordinate-output>
-                No point selected
-              </strong>
-
-              <span
-                data-places-map-instruction
-                hidden>
-              </span>
+              <div class="places-coordinate-value">
+                <strong data-places-coordinate-output>
+                  No point selected
+                </strong>
+                <div class="places-coordinate-tools">
+                  <button class="button secondary" type="button"
+                    id="placesUseMapCentre"
+                    aria-label="${escapeHtml(t('Use map centre'))}"
+                    title="${escapeHtml(t('Use map centre'))}">
+                    ${icon.mapCenter}
+                  </button>
+                  <button class="button secondary" type="button"
+                    id="placesCopyCoordinates"
+                    aria-label="${escapeHtml(t('Copy coordinates'))}"
+                    title="${escapeHtml(t('Copy coordinates'))}" disabled>
+                    ${icon.copy}
+                  </button>
+                </div>
+              </div>
+              <span data-places-map-instruction hidden></span>
             </div>
 
-            <button
-              class="button secondary"
-              type="button"
-              id="placesUseMapCentre">
-              Use map centre
-            </button>
+            <div class="places-map-accuracy" role="group"
+              aria-label="${escapeHtml(t('Position accuracy'))}">
+              <label>
+                <input type="radio" name="placesMapLocationMode"
+                  value="exact" checked>
+                <span>${escapeHtml(t('Exact point'))}</span>
+              </label>
+              <label>
+                <input type="radio" name="placesMapLocationMode"
+                  value="approximate">
+                <span>${escapeHtml(t('Approximate area'))}</span>
+              </label>
+            </div>
 
-            <button
-              class="button secondary"
-              type="button"
-              id="placesCopyCoordinates"
-              disabled>
-              Copy
-            </button>
+            <label class="places-map-radius-field"
+              data-places-map-radius-field hidden>
+              <span>${escapeHtml(t('Radius (km)'))}</span>
+              <input id="placesMapRadiusInput" type="text" inputmode="decimal"
+                autocomplete="off" spellcheck="false" maxlength="16"
+                placeholder="2.5" aria-invalid="false"
+                aria-describedby="placesMapRadiusError">
+              <span class="places-map-radius-error" id="placesMapRadiusError"
+                role="status" hidden></span>
+            </label>
 
-            <button
-              class="button secondary"
-              type="button"
-              id="placesCancelMapEdit">
-              Cancel
-            </button>
-
-            <button
-              class="button primary"
-              type="button"
-              id="placesConfirmMapEdit"
-              disabled>
-              Use position
-            </button>
+            <div class="places-coordinate-actions">
+              <button class="button secondary" type="button"
+                id="placesCancelMapEdit">
+                ${escapeHtml(t('Cancel'))}
+              </button>
+              <button class="button primary" type="button"
+                id="placesConfirmMapEdit" disabled>
+                ${escapeHtml(t('Use position'))}
+              </button>
+            </div>
           </div>
         </section>
       `;
