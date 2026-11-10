@@ -604,6 +604,10 @@ function renderPlacesRoutePopupPreview(
                 `
             }
 
+            ${route.available && routeHasApproximateStops(route)
+                ? `<small>${escapeHtml(t('Approximate stops use representative centers; travel distances are not measured.'))}</small>`
+                : ''}
+
             ${
                 route.excludedCount > 0
                     ? `
