@@ -2476,7 +2476,7 @@ function renderPlacesMapShell(list)
               </div>
 
               ${list.some(placeHasApproximateArea)
-                    || (state.placesShowRoute && routeHasApproximateStops(route))
+                    || (state.placesShowRoute && route.available && routeHasApproximateStops(route))
                 ? `<div class="places-map-legend-item">
                     <span class="places-map-legend-area" aria-hidden="true"></span>
                     <span>${escapeHtml(t('Approximate location'))}</span>
