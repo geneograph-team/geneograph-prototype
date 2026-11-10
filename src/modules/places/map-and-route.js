@@ -163,7 +163,11 @@ function destroyPlacesMap({ preserveWaiters = false } = {})
     placesMapRuntime.editingPlaceId = null;
     placesMapRuntime.mountedListKey = '';
     placesMapRuntime.currentPlaces = [];
-    if (!preserveWaiters) placesMapRuntime.pendingFocusPlaceId = null;
+    if (!preserveWaiters)
+    {
+        placesMapRuntime.pendingFocusPlaceId = null;
+        placesMapRuntime.pendingRouteFitKey = null;
+    }
     placesMapRuntime.suppressViewCapture = false;
     if (!preserveWaiters) resolvePlacesMapWaiters(false);
 }
@@ -243,16 +247,35 @@ function mountPlacesMap(places)
                 placesMapRuntime.tilesAvailable = true;
                 setPlacesMapStatus();
                 updatePlacesMapData(placesMapRuntime.currentPlaces, { force: true });
-                restorePlacesMapView(placesMapRuntime.currentPlaces);
-                const focusPlaceId = placesMapRuntime.pendingFocusPlaceId;
-                if (focusPlaceId && state.selectedPlaceId === focusPlaceId)
+
+                // Route selection is explicit navigation. Queue it until MapLibre
+                // finishes loading rather than racing two animation frames.
+                const pendingRouteKey = placesMapRuntime.pendingRouteFitKey;
+                placesMapRuntime.pendingRouteFitKey = null;
+                let cameraFocused = false;
+                if (pendingRouteKey && state.placesShowRoute)
+                {
+                    const activeRoute = currentPlacesRoute();
+                    if (activeRoute.available
+                        && placesRouteFitKey(activeRoute) === pendingRouteKey)
+                    {
+                        fitPlacesMap(activeRoute.stops.map(stop => stop.place));
+                        cameraFocused = true;
+                    }
+                }
+
+                // On first entry, focus the pre-selected mapped place. After
+                // user navigation, retain the saved camera on unrelated renders.
+                const focusPlaceId = placesMapRuntime.pendingFocusPlaceId
+                    || (!state.placesMapView.userMoved ? state.selectedPlaceId : null);
+                if (!cameraFocused && focusPlaceId === state.selectedPlaceId
+                    && placeHasCoordinates(getPlace(focusPlaceId)))
                 {
                     updatePlacesMapSelection(focusPlaceId, { focusMap: true });
+                    cameraFocused = true;
                 }
-                else
-                {
-                    placesMapRuntime.pendingFocusPlaceId = null;
-                }
+                placesMapRuntime.pendingFocusPlaceId = null;
+                if (!cameraFocused) restorePlacesMapView(placesMapRuntime.currentPlaces);
                 updatePlacesMapToolControls();
                 resolvePlacesMapWaiters(true);
                 const resolvedTheme = document.documentElement.dataset.theme === 'dark'
@@ -634,6 +657,13 @@ function derivePlacesRouteSegments(route)
     return segments;
 }
 
+function placesRouteFitKey(route)
+{
+    return route?.configured
+        ? [currentProjectId(), route.mode, route.personId || '', route.surname || ''].join('|')
+        : '';
+}
+
 function currentPlacesRouteSelection()
 {
     return {
@@ -665,6 +695,7 @@ function clearPlacesRoute()
     state.placesRoutePersonId = '';
     state.placesRouteSurname = '';
     state.placesShowRoute = false;
+    placesMapRuntime.pendingRouteFitKey = null;
 }
 
 function createPlacesRouteStopHtml(stop, totalStops)
@@ -768,10 +799,12 @@ function fitPlacesMap(places = placesMapRuntime.currentPlaces || [], { markUserM
     }
     else if (points.length === 1)
     {
+        // points already contains [latitude, longitude] tuples (not Places).
         map.jumpTo({
-            center: placesMapAdapter.toLngLat(placeLatLng(points[0])),
+            center: placesMapAdapter.toLngLat(points[0]),
             zoom: Math.min(11, PLACES_MAP_CONFIG.fitMaxZoom)
         });
+        placesMapAdapter.focusPoint(map, points[0], padding);
     }
     else
     {
