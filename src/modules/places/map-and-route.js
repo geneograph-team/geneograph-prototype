@@ -380,9 +380,21 @@ function updatePlacesMapSelection(placeId, { focusMap = false } = {})
         placesMapRuntime.pendingFocusPlaceId = place.id;
         if (placesMapReady())
         {
-            placesMapAdapter.focusPoint(
-                placesMapRuntime.map, placeLatLng(place), placesMapPadding()
-            );
+            if (placeHasApproximateArea(place))
+            {
+                placesMapAdapter.fitPoints(
+                    placesMapRuntime.map,
+                    placesMapFitCoordinates(place),
+                    placesMapPadding(),
+                    PLACES_MAP_CONFIG.fitMaxZoom
+                );
+            }
+            else
+            {
+                placesMapAdapter.focusPoint(
+                    placesMapRuntime.map, placeLatLng(place), placesMapPadding()
+                );
+            }
             // Keep explicit navigation after a map shell re-render, even if
             // restorePlacesMapView temporarily suppresses moveend capture.
             const center = placesMapRuntime.map.getCenter();
@@ -392,6 +404,21 @@ function updatePlacesMapSelection(placeId, { focusMap = false } = {})
             placesMapRuntime.pendingFocusPlaceId = null;
         }
     }
+}
+
+function placesMapFitCoordinates(place)
+{
+    const center = placeLatLng(place);
+    if (!center) return [];
+    if (!placeHasApproximateArea(place)) return [center];
+    const coordinates = [center];
+    const origin = normalizePlaceCoordinates(place);
+    for (let bearing = 0; bearing < 360; bearing += 45)
+    {
+        const edge = placeRadiusEdgePoint(origin, place.approximateRadiusMeters, bearing);
+        coordinates.push([edge.lat, edge.lng]);
+    }
+    return coordinates;
 }
 
 function placesMapPadding()
@@ -729,13 +756,14 @@ function fitPlacesMap(places = placesMapRuntime.currentPlaces || [], { markUserM
 {
     if (!placesMapReady()) return;
     const map = placesMapRuntime.map;
-    const points = (places || []).filter(placeHasCoordinates);
+    const mappedPlaces = (places || []).filter(placeHasCoordinates);
+    const points = mappedPlaces.flatMap(placesMapFitCoordinates);
     const padding = placesMapPadding();
     placesMapRuntime.suppressViewCapture = !markUserMoved;
     if (points.length > 1)
     {
         placesMapAdapter.fitPoints(
-            map, points.map(placeLatLng), padding, PLACES_MAP_CONFIG.fitMaxZoom
+            map, points, padding, PLACES_MAP_CONFIG.fitMaxZoom
         );
     }
     else if (points.length === 1)
@@ -753,7 +781,7 @@ function fitPlacesMap(places = placesMapRuntime.currentPlaces || [], { markUserM
         });
         setPlacesMapStatus('No mapped places', 'Add coordinates to a place to show it on the map.');
     }
-    state.placesMapView.lastFitKey = placesMapDataKey(points);
+    state.placesMapView.lastFitKey = placesMapDataKey(mappedPlaces);
     state.placesMapView.userMoved = markUserMoved;
     requestAnimationFrame(() =>
     {
