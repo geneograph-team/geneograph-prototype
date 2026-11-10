@@ -193,11 +193,19 @@ samples; judge on real rendered tiles):
 | --- | --- |
 | Background / land | `#303C48` slate |
 | Water | `#25536A` maritime blue |
-| Parks / green areas | `#3B684E` botanical green |
+| Protected areas / park polygons | `#354E48` muted green, zoom-faded |
+| Woodland / grassland | `#3B6B51` / `#4A6B53` vegetation |
 | Major roads / motorways | `#A99A82` / `#BA9E78` muted warm sand |
 | Minor roads | `#6E8392` steel blue |
 | Buildings | `#4C5B68` blue gray |
 | Cities / water labels | `#EBF0F4` / `#B1D7E5` |
+
+The `park` source layer may cover broad protected territories, including
+non-vegetated terrain. Its muted green fill fades from 2–12% at country/
+regional zoom to 20–28% locally. The separate dashed `park_outline`
+also fades from invisible at country scale to subtle locally. Woodland
+and grassland retain their independent physical landcover colors and
+opacities, so vegetation is more informative than protected boundaries.
 
 The existing zoom-dependent road widths, casings, distinct route classes,
 boundaries, building footprints, POIs, sprites and all 111 layer positions

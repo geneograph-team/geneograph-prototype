@@ -65,9 +65,27 @@
         false
       ],
       "paint": {
-        "fill-color": "#3B684E",
-        "fill-opacity": 0.7,
-        "fill-outline-color": "#658E70"
+        "fill-color": "#354E48",
+        "fill-opacity": [
+          "interpolate",
+          [
+            "linear"
+          ],
+          [
+            "zoom"
+          ],
+          0,
+          0.02,
+          5,
+          0.06,
+          8,
+          0.12,
+          11,
+          0.2,
+          14,
+          0.28
+        ],
+        "fill-outline-color": "#4C695A"
       }
     },
     {
@@ -88,10 +106,29 @@
         false
       ],
       "paint": {
-        "line-color": "#658E70",
+        "line-color": "#4C695A",
         "line-dasharray": [
           1,
           1.5
+        ],
+        "line-opacity": [
+          "interpolate",
+          [
+            "linear"
+          ],
+          [
+            "zoom"
+          ],
+          0,
+          0,
+          5,
+          0,
+          8,
+          0.05,
+          11,
+          0.15,
+          14,
+          0.27
         ]
       }
     },
