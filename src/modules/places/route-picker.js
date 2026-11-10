@@ -1475,33 +1475,14 @@ function openPlacesRouteMenu(
                     state.placesShowRoute =
                         true;
 
+                    // The new map shell loads asynchronously; fit only when
+                    // its style and overlays are ready.
+                    placesMapRuntime.pendingRouteFitKey =
+                        placesRouteFitKey(route);
+                    placesMapRuntime.pendingFocusPlaceId = null;
+
                     closeMenu();
                     renderPlacesMain();
-
-                    requestAnimationFrame(
-                        () =>
-                            requestAnimationFrame(
-                                () =>
-                                {
-                                    const activeRoute =
-                                        currentPlacesRoute();
-
-                                    if (
-                                        activeRoute.available
-                                    )
-                                    {
-                                        fitPlacesMap(
-                                            activeRoute
-                                                .stops
-                                                .map(
-                                                    stop =>
-                                                        stop.place
-                                                )
-                                        );
-                                    }
-                                }
-                            )
-                    );
                 }
             );
 
