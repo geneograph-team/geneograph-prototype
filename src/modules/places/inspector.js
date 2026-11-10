@@ -1299,6 +1299,7 @@ function renderPlacesInspector(
         placeHasCoordinates(
             place
         );
+    const approximate = placeHasApproximateArea(place);
 
     const tags = [
         {
@@ -1496,7 +1497,7 @@ function renderPlacesInspector(
               class="
                 places-inspector-coordinate-label
               ">
-              Coordinates
+              ${escapeHtml(t(approximate ? 'Representative center' : 'Coordinates'))}
             </span>
 
             <strong>
@@ -1541,6 +1542,13 @@ function renderPlacesInspector(
               </button>
             `}
           </div>
+
+          ${approximate ? `<div class="places-inspector-approximate" role="note">
+            ${icon.info}
+            <span><strong>${escapeHtml(t('Approximate location'))}</strong>
+              · ${escapeHtml(t('Radius'))}: ${escapeHtml(formatPlaceRadius(place.approximateRadiusMeters))}.
+              ${escapeHtml(t('The circle marks a possible location, not a boundary.'))}</span>
+          </div>` : ''}
 
           ${renderPlaceInspectorSection({
                 key:
