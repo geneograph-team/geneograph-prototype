@@ -47,6 +47,47 @@ function createPlaceMapMarker(place)
     });
 }
 
+function renderPlaceAreaOverlays(route = null)
+{
+    if (!placesMapReady() || placesMapRuntime.styleLoading) return;
+    const map = placesMapRuntime.map;
+    const places = new Map();
+    (placesMapRuntime.currentPlaces || []).forEach(place =>
+    {
+        if (placeHasApproximateArea(place)) places.set(place.id, place);
+    });
+    const shownRoute = route || (state.placesShowRoute ? normalizePlacesRouteSelection() : null);
+    if (state.placesShowRoute && shownRoute?.available)
+    {
+        shownRoute.stops.forEach(stop =>
+        {
+            if (placeHasApproximateArea(stop.place)) places.set(stop.place.id, stop.place);
+        });
+    }
+    const colors = getComputedStyle(document.documentElement);
+    const normal = colors.getPropertyValue('--gg-status-warning-accent').trim();
+    const selected = colors.getPropertyValue('--gg-primary').trim();
+
+    placesMapRuntime.areaIds.forEach(id =>
+    {
+        if (!places.has(id)) placesMapAdapter.removeArea(map, 'place-' + id);
+    });
+    placesMapRuntime.areaIds = new Set(places.keys());
+    places.forEach(place =>
+    {
+        const isSelected = place.id === state.selectedPlaceId;
+        placesMapAdapter.setArea(
+            map, 'place-' + place.id,
+            placeRadiusGeoJson(normalizePlaceCoordinates(place), place.approximateRadiusMeters),
+            {
+                fillColor: isSelected ? selected : normal,
+                outlineColor: isSelected ? selected : normal,
+                fillOpacity: isSelected ? 0.24 : 0.14
+            }
+        );
+    });
+}
+
 function capturePlacesMapView()
 {
     const map = placesMapRuntime.map;
@@ -91,6 +132,10 @@ function destroyPlacesMap({ preserveWaiters = false } = {})
     placesMapRuntime.resizeObserver = null;
     placesMapRuntime.markersById.forEach(marker => marker.remove());
     placesMapRuntime.markersById.clear();
+    placesMapRuntime.areaIds.forEach(id =>
+        placesMapAdapter.removeArea(placesMapRuntime.map, 'place-' + id)
+    );
+    placesMapRuntime.areaIds.clear();
     if (placesMapRuntime.routeLayer)
     {
         placesMapRuntime.routeLayer.remove();
@@ -176,7 +221,9 @@ function mountPlacesMap(places)
                     placesMapRuntime.styleLoading = false;
                     clearTimeout(placesMapRuntime.loadTimeout);
                     placesMapRuntime.loadTimeout = null;
+                    renderPlaceAreaOverlays();
                     renderPlacesRouteLayer();
+                    renderPlacesDraftArea();
                     setPlacesMapStatus();
                 }
             });
@@ -302,6 +349,7 @@ function updatePlacesMapData(places, { force = false } = {})
     });
     placesMapRuntime.mountedListKey = key;
     updatePlacesMapSelection(state.selectedPlaceId);
+    renderPlaceAreaOverlays();
     renderPlacesRouteLayer();
     updatePlacesRouteControl();
     updatePlacesMapToolControls();
@@ -313,6 +361,7 @@ function updatePlacesMapSelection(placeId, { focusMap = false } = {})
     {
         placesMapAdapter.updateSelection(marker, id === placeId);
     });
+    renderPlaceAreaOverlays();
     const place = getPlace(placeId);
     if (!focusMap && placesMapRuntime.pendingFocusPlaceId !== placeId)
     {
@@ -601,6 +650,7 @@ function renderPlacesRouteLayer()
     }
     placesMapAdapter.clearLineSegments(map);
     const route = normalizePlacesRouteSelection();
+    renderPlaceAreaOverlays(route);
     if (!state.placesShowRoute || !route.available) return;
     const color = getComputedStyle(document.documentElement)
         .getPropertyValue('--gg-primary').trim();
