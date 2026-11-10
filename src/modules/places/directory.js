@@ -2512,8 +2512,9 @@ function renderPlacesMapShell(list)
               <button
                 type="button"
                 data-map-fit
-                aria-label="Centre map on places"
-                title="Centre map on places">
+                aria-label="${escapeHtml(t('Centre map on selected place'))}"
+                title="${escapeHtml(t('Centre map on selected place'))}"
+                disabled>
                 ${icon.mapCenter}
               </button>
 
