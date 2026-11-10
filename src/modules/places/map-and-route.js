@@ -866,6 +866,23 @@ function bindPlacesMapEditingControls()
             }
         );
 
+    main.querySelectorAll('[name="placesMapLocationMode"]').forEach(input =>
+    {
+        input.addEventListener('change', () =>
+        {
+            if (input.checked) setPlacesMapLocationMode(input.value);
+        });
+    });
+    const radiusInput = main.querySelector('#placesMapRadiusInput');
+    radiusInput?.addEventListener('input', () => setPlacesMapRadius(radiusInput.value));
+    radiusInput?.addEventListener('blur', () =>
+    {
+        const radius = readPlaceEditorRadiusState(radiusInput.value);
+        if (!radius.valid) return;
+        radiusInput.value = radius.formatted;
+        setPlacesMapRadius(radiusInput.value);
+    });
+
     main
         .querySelector(
             '#placesUseMapCentre'
