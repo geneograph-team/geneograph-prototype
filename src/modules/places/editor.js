@@ -655,18 +655,22 @@ function updatePlaceEditorCoordinateUi({ formatValues = false } = {})
     const root = modalBackdrop.querySelector('[data-place-editor]');
     const latitudeInput = root?.querySelector('#placeLatitudeInput');
     const longitudeInput = root?.querySelector('#placeLongitudeInput');
-
     if (!draft || !latitudeInput || !longitudeInput) return null;
 
-    const result = readPlaceEditorCoordinateState(
-        latitudeInput.value,
-        longitudeInput.value
-    );
+    const result = readPlaceEditorCoordinateState(latitudeInput.value, longitudeInput.value);
+    const mode = root.querySelector('[name="placeLocationMode"]:checked')?.value || draft.locationMode;
+    const radiusInput = root.querySelector('#placeApproximateRadiusInput');
+    const radiusState = readPlaceEditorRadiusState(radiusInput?.value);
+    const approximate = mode === 'approximate';
 
     if (formatValues)
     {
         if (result.latitude.valid) latitudeInput.value = result.latitude.formatted;
         if (result.longitude.valid) longitudeInput.value = result.longitude.formatted;
+        if (approximate && radiusState.valid && radiusInput)
+        {
+            radiusInput.value = radiusState.formatted;
+        }
     }
 
     draft.coordinateText = {
@@ -674,61 +678,83 @@ function updatePlaceEditorCoordinateUi({ formatValues = false } = {})
         longitude: longitudeInput.value
     };
     draft.coordinates = result.hasCoordinates ? result.coordinates : null;
+    draft.locationMode = mode;
+    draft.radiusText = radiusInput?.value || '';
+    draft.approximateRadiusMeters = approximate && radiusState.valid
+        ? radiusState.meters : null;
 
+    const needsCenter = approximate && !result.hasCoordinates;
     latitudeInput.setAttribute('aria-invalid', String(
-        result.hasAnyValue && (result.latitude.empty || !result.latitude.valid)
+        (result.hasAnyValue && (result.latitude.empty || !result.latitude.valid))
+        || (needsCenter && result.latitude.empty)
     ));
     longitudeInput.setAttribute('aria-invalid', String(
-        result.hasAnyValue && (result.longitude.empty || !result.longitude.valid)
+        (result.hasAnyValue && (result.longitude.empty || !result.longitude.valid))
+        || (needsCenter && result.longitude.empty)
     ));
-
+    if (radiusInput)
+    {
+        radiusInput.setAttribute('aria-invalid', String(approximate && !radiusState.valid));
+    }
     const error = root.querySelector('#placeCoordinateError');
-    if (error) error.textContent = translateText(result.message || '');
+    if (error)
+    {
+        error.textContent = t(result.message
+            || (needsCenter ? 'Set a center position for the approximate area.' : ''));
+    }
+    const radiusError = root.querySelector('#placeRadiusError');
+    if (radiusError)
+    {
+        radiusError.textContent = approximate && !radiusState.valid
+            ? t(radiusState.message) : '';
+    }
+
+    const modeControls = root.querySelector('[data-place-location-mode]');
+    if (modeControls) modeControls.hidden = !result.hasAnyValue && !approximate;
+    const radiusField = root.querySelector('[data-place-radius-field]');
+    if (radiusField) radiusField.hidden = !approximate;
 
     const copy = root.querySelector('[data-place-copy-coordinates]');
     if (copy) copy.disabled = !result.hasCoordinates;
-
     const remove = root.querySelector('[data-place-remove-position]');
     if (remove) remove.hidden = !result.hasAnyValue;
-
     const choose = root.querySelector('[data-place-choose-map]');
-    if (choose)
-    {
-        choose.textContent = t(
-            result.hasCoordinates ? 'Edit on map' : 'Choose on map'
-        );
-    }
+    if (choose) choose.textContent = t(
+        result.hasCoordinates ? 'Edit on map' : 'Choose on map'
+    );
 
     const status = root.querySelector('[data-place-map-status]');
     if (status)
     {
-        status.textContent = t(
-            result.hasCoordinates
-                ? 'Position set'
-                : result.hasAnyValue
-                    ? 'Coordinates need attention'
-                    : 'No position set'
-        );
+        status.textContent = t(result.hasCoordinates
+            ? approximate ? 'Approximate location' : 'Position set'
+            : result.hasAnyValue || needsCenter
+                ? 'Coordinates need attention' : 'No position set');
     }
-
     const summary = root.querySelector('[data-place-map-summary]');
     if (summary)
     {
         summary.hidden = !result.hasCoordinates;
         summary.textContent = result.hasCoordinates
             ? `${result.coordinates.lat.toFixed(6)}, ${result.coordinates.lng.toFixed(6)}`
+                + (approximate && radiusState.valid
+                    ? ' · ' + formatPlaceRadius(radiusState.meters)
+                    : '')
             : '';
     }
-
     const details = root.querySelector('[data-place-coordinate-details]');
-    if (!result.valid && details)
+    if (!result.valid || needsCenter)
     {
-        details.open = true;
+        if (details) details.open = true;
         draft.disclosures.coordinates = true;
     }
 
     updatePlaceEditorDraftDirty(draft);
-    return result;
+    return {
+        ...result,
+        valid: result.valid && (!approximate || (result.hasCoordinates && radiusState.valid)),
+        radiusMeters: approximate && radiusState.valid ? radiusState.meters : null
+    };
 }
 
 function updatePlaceEditorSelectionNotice()
