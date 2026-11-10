@@ -129,6 +129,7 @@ const placesMapRuntime = {
     mountedListKey: '',
     currentPlaces: [],
     pendingFocusPlaceId: null,
+    pendingRouteFitKey: null,
     suppressViewCapture: false,
     mode: 'browse',
     draftMarker: null,
