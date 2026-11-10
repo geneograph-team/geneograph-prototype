@@ -97,7 +97,9 @@ function renderPlaceAreaOverlays(route = null)
 function capturePlacesMapView()
 {
     const map = placesMapRuntime.map;
-    if (!map || placesMapRuntime.suppressViewCapture) return;
+    // Initial MapLibre events and style reloads are not user navigation.
+    if (!placesMapReady() || placesMapRuntime.suppressViewCapture
+        || placesMapRuntime.styleLoading) return;
     const center = map.getCenter();
     state.placesMapView.center = { lat: center.lat, lng: center.lng };
     state.placesMapView.zoom = map.getZoom();
