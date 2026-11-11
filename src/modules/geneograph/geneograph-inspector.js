@@ -894,8 +894,6 @@ function renderGeneographInspector()
             scope: 'canvas',
             property: 'background'
         })}
-        ${renderGeneoShadowControl('canvas', canvas.shadowEnabled)}
-
         <div class="geneo-field">
           <span class="geneo-field-label">
             Background pattern
@@ -945,6 +943,7 @@ function renderGeneographInspector()
             <small class="geneo-check-help">Align objects to the canvas grid when moving them.</small>
           </span>
         </label>
+        ${renderGeneoShadowControl('canvas', canvas.shadowEnabled)}
         <label class="geneo-check">
           <input
             type="checkbox"
