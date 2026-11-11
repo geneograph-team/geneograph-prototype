@@ -67,7 +67,7 @@ function renderGeneographConnectors()
                 ? geneoFamilyJunction(connection.familyId)
                 : null;
             return `<g class="geneo-connection ${selected ? 'selected' : ''} ${linePaint.enabled ? '' : 'no-stroke'}" data-geneo-connection-group="${escapeHtml(connection.id)}">${marker}
-            <path class="geneo-connection-hit" d="${path}" data-geneo-connection="${escapeHtml(connection.id)}"></path>
+            <path class="geneo-connection-hit" d="${path}" data-geneo-connection="${escapeHtml(connection.id)}" role="button" tabindex="0" aria-label="${escapeHtml(geneoConnectionLabel(connection))}"></path>
             ${selected && !bus ? points.slice(0, -1).map((point, index) =>
             {
                 const next = points[index + 1];

@@ -2490,6 +2490,20 @@ function bindGeneographEditor()
     main.querySelector('[data-geneo-image-crop-apply]')?.addEventListener('click', () => geneoFinishImageCrop(true));
     main.querySelectorAll('.geneo-connection-hit').forEach(path => path.addEventListener('pointerdown', startGeneographConnectionDrag));
     main.querySelectorAll('.geneo-connection-hit, .geneo-segment-hit').forEach(path => path.addEventListener('click', handleGeneographConnectionClick));
+    main.querySelectorAll('.geneo-connection-hit, .geneo-segment-hit, .geneo-family-bus-hit, [data-geneo-waypoint]')
+        .forEach(element => bindGeneoConnectionContextMenu(element));
+    const connectionInspector = main.querySelector('[data-geneo-inspector-connection]');
+    if (connectionInspector) bindGeneoConnectionContextMenu(connectionInspector, 'inspector');
+    main.querySelectorAll('.geneo-connection-hit').forEach(path => path.addEventListener('keydown', event =>
+    {
+        if (event.key !== 'Enter' && event.key !== ' ') return;
+        event.preventDefault();
+        event.stopPropagation();
+        const id = path.dataset.geneoConnection;
+        selectGeneographConnection(id);
+        renderGeneographEditorPreserveScroll();
+        main.querySelector(`[data-geneo-connection="${CSS.escape(id)}"]`)?.focus({ preventScroll: true });
+    }));
     main.querySelectorAll('[data-geneo-family-bus]').forEach(path =>
     {
         path.addEventListener('pointerdown', path.hasAttribute('data-geneo-family-bus-rail')
@@ -2505,11 +2519,13 @@ function bindGeneographEditor()
             event.stopPropagation(); selectGeneographConnection(point.dataset.geneoConnection, Number(point.dataset.geneoWaypoint)); renderGeneographEditorPreserveScroll();
         }); point.addEventListener('pointerdown', event =>
         {
+            if (event.button !== 0) return;
             event.preventDefault(); event.stopPropagation(); clearGeneographConnectionClick(); selectGeneographConnection(point.dataset.geneoConnection, Number(point.dataset.geneoWaypoint)); geneoPushHistory(); geneoPointerState = { kind: 'waypoint', connectionId: point.dataset.geneoConnection, index: Number(point.dataset.geneoWaypoint), moved: false };
         });
     });
     main.querySelectorAll('[data-geneo-segment]').forEach(segment => segment.addEventListener('pointerdown', event =>
     {
+        if (event.button !== 0) return;
         event.preventDefault(); event.stopPropagation();
         const connection = getGeneographConnection(segment.dataset.geneoConnection); if (!connection) return; const index = Number(segment.dataset.geneoSegment); const points = geneoConnectionPoints(connection);
         if (geneoSelectedConnectionIdSet().has(connection.id)
@@ -3700,6 +3716,7 @@ function bindGeneographSidebarControls()
         )
         .forEach(row =>
         {
+            bindGeneoConnectionContextMenu(row, 'sidebar');
             row.addEventListener(
                 'click',
                 event =>

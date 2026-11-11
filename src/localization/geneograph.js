@@ -598,6 +598,10 @@ const RU_UI_GENEO = {
 
     'Delete connection':
         'Удалить связь',
+    'Delete connections':
+        'Удалить связи',
+    'Connection actions':
+        'Действия со связями',
 
     'Collection name':
         'Название коллекции',

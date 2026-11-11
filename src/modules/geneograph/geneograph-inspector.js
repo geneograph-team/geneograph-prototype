@@ -2555,7 +2555,7 @@ function renderGeneographConnectionInspector(
       `;
 
     return `
-        <aside class="geneo-inspector">
+        <aside class="geneo-inspector" data-geneo-inspector-connection="${escapeHtml(connection.id)}" tabindex="0">
           <div class="geneo-inspector-body">
             ${renderGeneographInspectorHeader(
                 geneoConnectionLabel(
