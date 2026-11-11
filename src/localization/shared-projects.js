@@ -16,8 +16,6 @@ const RU_UI_SHARED = Object.freeze({
     'Previous events': 'Предыдущие события',
     'Next events': 'Следующие события',
     'Open connected notes': 'Открыть связанные заметки',
-    'Add relative': 'Добавить родственника',
-    'Edit person': 'Редактировать человека',
 
     'Add details': 'Добавьте сведения',
     'No people match this search': 'Люди не найдены',
