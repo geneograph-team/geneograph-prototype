@@ -680,7 +680,8 @@ function renderArchiveMoveTree({
     selectedId,
     expandedIds,
     movingFolderId,
-    currentFolderState
+    currentFolderState,
+    showRootSubtitle = true
 })
 {
     const rootExpanded =
@@ -801,13 +802,13 @@ function renderArchiveMoveTree({
                   ${ARCHIVE_ROOT_LABEL}
                 </strong>
 
-                <span>
+                ${rootCurrent || showRootSubtitle ? `<span>
                   ${
                         rootCurrent
                             ? t(movingFolderId ? 'Cannot move a folder into itself' : 'Already in this folder')
                             : 'Top level'
                     }
-                </span>
+                </span>` : ''}
               </span>
 
               ${
@@ -845,7 +846,8 @@ function renderArchiveMoveSearchResults({
     query,
     selectedId,
     movingFolder,
-    currentFolderState
+    currentFolderState,
+    showRootSubtitle = true
 })
 {
     const normalizedQuery =
@@ -869,7 +871,7 @@ function renderArchiveMoveSearchResults({
         );
 
     const rootMatches =
-        `${ARCHIVE_ROOT_LABEL} files top level`
+        `${ARCHIVE_ROOT_LABEL} files${showRootSubtitle ? ' top level' : ''}`
             .toLowerCase()
             .includes(
                 normalizedQuery
@@ -979,13 +981,13 @@ function renderArchiveMoveSearchResults({
                         )}
                     </strong>
 
-                    <span>
+                    ${rootCurrent || showRootSubtitle ? `<span>
                       ${
                             rootCurrent
                                 ? t(movingFolder ? 'Cannot move a folder into itself' : 'Already in this folder')
                                 : 'Top level'
                         }
-                    </span>
+                    </span>` : ''}
                   </span>
 
                   ${
@@ -1094,7 +1096,8 @@ function renderArchiveMovePicker({
     selectedId,
     expandedIds,
     movingFolder,
-    currentFolderState
+    currentFolderState,
+    showRootSubtitle = true
 })
 {
     return `
@@ -1113,7 +1116,8 @@ function renderArchiveMovePicker({
                         query,
                         selectedId,
                         movingFolder,
-                        currentFolderState
+                        currentFolderState,
+                        showRootSubtitle
                     })
                     : renderArchiveMoveTree({
                         selectedId,
@@ -1123,7 +1127,8 @@ function renderArchiveMovePicker({
                     movingFolder?.id
                     || '',
 
-                        currentFolderState
+                        currentFolderState,
+                        showRootSubtitle
                     })
             }
         </div>

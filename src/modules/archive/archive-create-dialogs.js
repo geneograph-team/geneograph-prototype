@@ -266,7 +266,7 @@ function openArchiveCreateFolderModal(
                 class="button primary"
                 type="submit">
 
-                Create folder
+                Create
               </button>
             </div>
           </form>
@@ -351,15 +351,12 @@ function openArchiveCreateFolderModal(
                 signatures safely ignore it.
               */
                 currentFolderState:
-                null
+                null,
+
+                showRootSubtitle:
+                false
             })}
           `;
-
-            const createButton = form?.querySelector('button[type="submit"]');
-            const parentName = selectedParentId
-                ? archiveFolderById(selectedParentId)?.name
-                : t('All files');
-            if (createButton) createButton.textContent = `${t('Create in')} ${parentName || t('All files')}`;
 
             /*
            * This picker is rendered after openModal()
