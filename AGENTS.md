@@ -32,6 +32,12 @@ The original monolithic `index.html` has been split: the application now lives i
 - Stylesheets: `src/core/palette/geneograph-v3.css` owns approved UI colors; `src/core/foundation.css` defines semantic compatibility aliases and resets; `src/shared/controls.css` owns reusable control appearance and loads immediately after foundation. Feature and other shared styles follow in the order shown in `src/index.html`. Check the cascade before changing selectors.
 - Static media live in `src/assets/photos/`, `documents/`, `covers/`, `ui/`, and `boards/`.
 
+## Root-Cause-First Changes
+
+- **Fix the cause, not the visible symptom.** Before editing, trace the defect to the owning implementation, shared component, state flow or CSS cascade. Confirm why the existing behavior differs from what is intended.
+- Correct or consolidate the responsible code and remove superseded declarations. Reuse existing shared rules and components; **do not stack overrides, duplicate logic/selectors, use `!important`, or add workaround scripts/guards just to conceal the underlying problem**.
+- Only use a workaround when a direct fix would violate a documented compatibility requirement. Explain that constraint and the tradeoff in the PR; keep exceptions small and explicit.
+
 ## Agent Git Workflow
 
 `doc/git-branching-model.md` and `doc/git-commit-style.md` are normative for every change an agent makes in this repository, whether in a local checkout or through a connected GitHub repository. Follow them strictly; the summary below does not replace them. If a rule here or elsewhere conflicts with those documents, the documents win.

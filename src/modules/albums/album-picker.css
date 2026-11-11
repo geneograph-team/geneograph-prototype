@@ -220,18 +220,6 @@
         var(--brand-green-300);
 }
 
-.album-picker-result input {
-    width: 18px;
-    height: 18px;
-    margin: 0;
-
-    cursor: pointer;
-}
-
-.album-picker-result input:disabled {
-    cursor: default;
-}
-
 .album-picker-empty {
     min-height: 100%;
 

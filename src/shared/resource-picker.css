@@ -44,7 +44,34 @@
 .membership-picker .album-picker-result { min-height:72px; grid-template-columns:48px minmax(0,1fr) 20px; gap:12px; padding:12px 8px; }
 .membership-picker .album-picker-cover { width:48px; height:48px; }
 .membership-picker .album-picker-cover svg { width:24px; height:24px; }
-.membership-picker .album-picker-result input[type=checkbox] { appearance:auto; width:18px; min-width:18px; height:18px; min-height:18px; max-height:18px; padding:0; margin:0; accent-color:var(--brand-green-500); }
+/* One native selection checkbox style for album, file and note pickers. */
+:is(
+    .membership-picker .album-picker-result input[type="checkbox"],
+    .resource-picker:is([data-resource-picker="files"], [data-resource-picker="notes"])
+        .rp-record-select > input[type="checkbox"]
+) {
+    appearance: auto;
+    flex: 0 0 18px;
+    width: 18px;
+    min-width: 18px;
+    max-width: 18px;
+    height: 18px;
+    min-height: 18px;
+    max-height: 18px;
+    margin: 0;
+    padding: 0;
+    accent-color: var(--brand-green-500);
+    cursor: pointer;
+}
+
+/* Preserve the existing disabled behavior across the three pickers. */
+:is(
+    .membership-picker .album-picker-result input[type="checkbox"],
+    .resource-picker:is([data-resource-picker="files"], [data-resource-picker="notes"])
+        .rp-record-select > input[type="checkbox"]
+):disabled {
+    cursor: default;
+}
 .membership-picker .album-picker-copy { min-width:0; gap:6px; }
 .membership-picker .album-picker-copy strong { font-size:14px; line-height:1.4; }
 .membership-picker .album-picker-meta { font-size:12px; font-weight:400; }
@@ -709,40 +736,6 @@
     min-width:0;
     cursor:pointer;
     padding:4px 0
-}
-
-/* Match Manage Albums without changing checkboxes in other resource pickers. */
-:is(.resource-picker[data-resource-picker="files"],
-    .resource-picker[data-resource-picker="notes"])
-    .rp-record-select > input[type="checkbox"]
-{
-    appearance:auto;
-    flex:0 0 18px;
-    width:18px;
-    min-width:18px;
-    max-width:18px;
-    height:18px;
-    min-height:18px;
-    max-height:18px;
-    margin:0;
-    padding:0;
-    accent-color:var(--brand-green-500);
-    cursor:pointer;
-}
-
-:is(.resource-picker[data-resource-picker="files"],
-    .resource-picker[data-resource-picker="notes"])
-    .rp-record-select > input[type="checkbox"]:focus-visible
-{
-    outline:var(--control-focus-width) solid var(--control-focus-color);
-    outline-offset:2px;
-}
-
-:is(.resource-picker[data-resource-picker="files"],
-    .resource-picker[data-resource-picker="notes"])
-    .rp-record-select > input[type="checkbox"]:disabled
-{
-    cursor:default;
 }
 
 .rp-record-copy
