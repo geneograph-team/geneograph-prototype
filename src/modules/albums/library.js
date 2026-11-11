@@ -905,6 +905,8 @@ function renderAlbumsPreserveViewport({
 
 function renderAlbumsBreadcrumbs()
 {
+    // All photos is the root view; a one-item breadcrumb adds no navigation.
+    if (state.albumsView === 'all') return '';
     const segments = [{ view: 'all', label: t('All photos') }];
     if (state.albumsView === 'albums' || state.albumsView === 'album')
     {
@@ -1439,13 +1441,12 @@ function renderAlbumsMainMarkup()
           </div>
         </div>
       </div>
-      ${renderAlbumsBreadcrumbs()}
-      ${activeFilters}
       ${
             state.selectedPhotoIds.length
                 ? renderAlbumsSelectionBar()
-                : ''
+                : renderAlbumsBreadcrumbs()
         }
+      ${activeFilters}
       <div class="albums-content">
         ${
             photos.length
