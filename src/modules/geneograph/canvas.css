@@ -3227,9 +3227,6 @@ html[lang="ru"] .geneo-node-person[data-geneo-person-card-style="standard"] .gen
     stroke-width: var(--geneo-connection-hit-width, 14px);
     pointer-events: stroke;
     cursor: pointer;
-}
-
-.geneo-family-bus-hit {
     outline: none;
 }
 
@@ -3237,9 +3234,9 @@ html[lang="ru"] .geneo-node-person[data-geneo-person-card-style="standard"] .gen
     cursor: ns-resize;
 }
 
+.geneo-connection-hit:focus-visible,
 .geneo-family-bus-hit:focus-visible {
     stroke: color-mix(in srgb, var(--gg-primary) 35%, transparent);
-    outline: none;
 }
 
 .geneo-segment-hit {
