@@ -74,18 +74,19 @@ function renderProfileNewSummary(person)
 }
 function renderPeopleProfileNew(person)
 {
-    main.classList.add('people-profile-main');
-    if (!person || person.deleted || person.projectId !== currentProjectId())
+    // Directory rows omit projectId; validate the canonical person record.
+    const central = person?.id ? getPerson(person.id) : null;
+    if (!central || central.deleted || central.projectId !== currentProjectId())
     {
         state.peopleView = 'directory';
         state.peopleSide = 'people';
         renderPeople();
         return;
     }
+    main.classList.add('people-profile-main');
     const tab = PROFILE_NEW_TABS.includes(state.peopleProfileNewTab) ? state.peopleProfileNewTab : 'overview';
     state.peopleProfileNewTab = tab;
     const counts = profileNewCounts(person);
-    const central = getPerson(person.id);
     const years = [formatGenealogyDateLabel(central?.birth || person.birth),
         formatGenealogyDateLabel(central?.death || person.death)].filter(Boolean).join(' – ');
     const tabs = PROFILE_NEW_TABS.map(name =>
