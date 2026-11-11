@@ -581,6 +581,17 @@ function bindPeopleSidebar(root)
             renderTopbar();
         });
 
+    root.querySelector('[data-open-profile-new]')?.addEventListener('click', () =>
+    {
+        appNavigationMarkIntent();
+        clearPeopleSelection();
+        state.peopleView = 'profile-new';
+        state.peopleSide = 'profile';
+        state.peopleProfileNewTab = 'overview';
+        renderPeople();
+        renderTopbar();
+    });
+
     root.querySelectorAll('[data-placeholder-view]').forEach(button =>
     {
         button.addEventListener('click', () =>

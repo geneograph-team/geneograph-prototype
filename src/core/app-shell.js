@@ -333,7 +333,7 @@ function appNavigationSnapshot()
     if (location.module === 'People')
     {
         location.view = state.peopleView;
-        if (location.view === 'profile') location.personId = state.selectedPeopleId;
+        if (['profile', 'profile-new'].includes(location.view)) location.personId = state.selectedPeopleId;
     }
     if (location.module === 'Geneograph')
     {
@@ -447,7 +447,8 @@ function appNavigationLabel(location)
         location.archive?.selectedFileId && archiveFileById(location.archive.selectedFileId, location.projectId)?.name,
         location.sourceId && archiveSourceById(location.sourceId, location.projectId)?.name
     ];
-    const view = location.module === 'People' && location.view === 'profile' ? t('Profile')
+    const view = location.module === 'People' && location.view === 'profile-new' ? t('Profile New')
+        : location.module === 'People' && location.view === 'profile' ? t('Profile')
         : location.module === 'Geneograph' && location.view === 'board' ? t('Board')
         : location.module === 'Archive' && location.archiveView === 'sources' ? t('Sources')
         : location.module === 'Albums' && location.view === 'album' ? t('Album') : '';
@@ -483,7 +484,7 @@ function appNavigationRestore(location)
     if (location.module === 'People')
     {
         state.peopleView = location.view || 'directory';
-        state.peopleSide = state.peopleView === 'profile' ? 'profile' : 'people';
+        state.peopleSide = ['profile', 'profile-new'].includes(state.peopleView) ? 'profile' : 'people';
         if (location.personId) { state.selectedPeopleId = location.personId; state.selectedPersonId = location.personId; }
     }
     if (location.module === 'Geneograph')

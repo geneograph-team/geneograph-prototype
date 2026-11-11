@@ -2,6 +2,23 @@ const SUPPORTED_LANGUAGES = ['en', 'ru'];
 const LANGUAGE_STORAGE_KEY = 'geneograph.language';
 const PROJECT_CONTINUATION_STORAGE_KEY = 'geneograph.projectContinuation';
 const RU_UI_SHARED = Object.freeze({
+    'Profile New': 'Новый профиль',
+    'Overview': 'Обзор',
+    'Life timeline': 'Хронология жизни',
+    'Immediate family': 'Ближайшие родственники',
+    'Facts & connections': 'Факты и связи',
+    'Recorded facts': 'Записанные факты',
+    'Connected research': 'Связанные материалы',
+    'Recent research note': 'Недавняя заметка',
+    'No recorded facts': 'Факты не добавлены',
+    'No linked notes': 'Нет связанных заметок',
+    'This section is being prepared.': 'Этот раздел в разработке.',
+    'Previous events': 'Предыдущие события',
+    'Next events': 'Следующие события',
+    'Open connected notes': 'Открыть связанные заметки',
+    'Add relative': 'Добавить родственника',
+    'Edit person': 'Редактировать человека',
+
     'Add details': 'Добавьте сведения',
     'No people match this search': 'Люди не найдены',
     'Try another name, date, family branch, event, or place.': 'Попробуйте другое имя, дату, ветвь семьи, событие или место.',

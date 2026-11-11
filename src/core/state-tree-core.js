@@ -48,6 +48,7 @@ const state = {
     peoplePreviewCollapsed: false,
     peopleProfileEditing: false,
     peopleProfileEditTab: 'main',
+    peopleProfileNewTab: 'overview',
     geneoView: 'home',
     geneoLibraryView: 'all',
     geneoActiveCollectionId: null,
