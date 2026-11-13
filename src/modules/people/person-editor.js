@@ -628,6 +628,19 @@ function confirmRemoveAddPersonFact(
         });
 }
 
+function scrollAddPersonSectionIntoView(section)
+{
+    const modal = section?.closest('.add-person-modal');
+    if (!modal) return;
+    requestAnimationFrame(() =>
+    {
+        if (!section.isConnected) return;
+        const headerHeight = modal.querySelector('.add-person-header')?.getBoundingClientRect().height || 0;
+        const sectionTop = section.getBoundingClientRect().top - modal.getBoundingClientRect().top;
+        modal.scrollTo({ top: modal.scrollTop + sectionTop - headerHeight - 12 });
+    });
+}
+
 function bindAddPersonAdditionalFacts(personId = '')
 {
     const section = modalBackdrop?.querySelector('[data-add-person-facts]');
@@ -639,6 +652,7 @@ function bindAddPersonAdditionalFacts(personId = '')
         const expanded = toggle.getAttribute('aria-expanded') === 'true';
         toggle.setAttribute('aria-expanded', expanded ? 'false' : 'true');
         if (body) body.hidden = expanded;
+        if (!expanded) scrollAddPersonSectionIntoView(section);
     });
     section.querySelectorAll('[data-add-person-add-fact]').forEach(button => button.addEventListener('click', () =>
     {

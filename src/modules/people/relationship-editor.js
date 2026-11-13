@@ -383,6 +383,7 @@ function bindAddPersonRelationshipBlock()
             {
                 body.hidden = isExpanded;
             }
+            if (!isExpanded) scrollAddPersonSectionIntoView(section);
         });
     });
     modalBackdrop?.querySelectorAll('[data-add-person-relationship-type]').forEach(select =>

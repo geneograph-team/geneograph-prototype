@@ -519,6 +519,7 @@ const RU_UI_COMPLETION = {
     'Photo source': 'Источник фотографии',
     'Adjust photo': 'Настроить фотографию',
     'Choose photo': 'Выбрать фотографию',
+    'Choose a different photo': 'Выбрать другую фотографию',
     'Uploaded photo': 'Загруженная фотография',
     'Untitled photo': 'Фотография без названия',
     'Remove upload': 'Удалить загрузку',
