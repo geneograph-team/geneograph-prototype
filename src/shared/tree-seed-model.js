@@ -182,18 +182,14 @@ function treePersonDisplayName(
             )
             : '';
 
-    const baseName =
+    const coreName =
         [
             firstName,
             middleName,
             effectiveSurname
         ]
             .filter(Boolean)
-            .join(' ')
-        || cleanTreeNamePart(
-            names.display
-        )
-        || 'Unnamed person';
+            .join(' ');
 
     const shouldShowMaiden =
         Boolean(
@@ -205,9 +201,14 @@ function treePersonDisplayName(
           )
         );
 
-    return shouldShowMaiden
-        ? `${baseName} (${maidenSurname})`
-        : baseName;
+    if (!coreName)
+        return cleanTreeNamePart(names.display) || 'Unnamed person';
+
+    return [
+        cleanTreeNamePart(names.prefix),
+        shouldShowMaiden ? `${coreName} (${maidenSurname})` : coreName,
+        cleanTreeNamePart(names.suffix)
+    ].filter(Boolean).join(' ');
 }
 
 function toTreePerson(person)
