@@ -2192,6 +2192,13 @@ function renderGeneoNodeRadiusControl(node)
     return `<div class="geneo-person-card-radius-row geneo-node-radius-row"><label class="geneo-field" for="${escapeHtml(id)}"><span class="geneo-setting-label">${escapeHtml(t('Corner radius'))}</span><span class="geneo-selection-help">0–32 px</span></label><input class="geneo-input" id="${escapeHtml(id)}" type="number" min="0" max="32" step="1" value="${node.appearance.cornerRadius}" data-geneo-node-corner-radius="${escapeHtml(node.id)}"></div>`;
 }
 
+function renderGeneoImageOpacityControl(node)
+{
+    if (node.type !== 'image') return '';
+    const id = `geneoImageOpacity-${node.id}`;
+    return `<div class="geneo-person-card-radius-row geneo-node-radius-row"><label class="geneo-field" for="${escapeHtml(id)}"><span class="geneo-setting-label">${escapeHtml(t('Opacity'))}</span><span class="geneo-selection-help">0–100%</span></label><input class="geneo-input" id="${escapeHtml(id)}" type="number" min="0" max="100" step="1" value="${node.appearance.imageOpacity ?? 100}" data-geneo-image-opacity="${escapeHtml(node.id)}"></div>`;
+}
+
 function renderGeneoNodeFontSizeControl(node)
 {
     if (!['text', 'sticky', 'place'].includes(node.type)) return '';
@@ -2352,6 +2359,7 @@ function renderGeneographNodeInspector(
         }
 
         ${renderGeneoNodeRadiusControl(node)}
+        ${renderGeneoImageOpacityControl(node)}
         ${renderGeneoNodeFontSizeControl(node)}
         ${renderGeneoShadowControl('node', geneoEffectiveNodeShadow(node, selectedGeneographDiagram(), appearance.fill))}
 

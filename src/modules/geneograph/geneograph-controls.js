@@ -2929,6 +2929,29 @@ function bindGeneographEditor()
             commitNodeRadius();
         });
     }
+    const imageOpacityInput = main.querySelector('[data-geneo-image-opacity]');
+    if (imageOpacityInput)
+    {
+        const commitImageOpacity = () =>
+        {
+            const node = getGeneographNode(imageOpacityInput.dataset.geneoImageOpacity);
+            if (!node || node.type !== 'image') return;
+            const opacity = Math.round(geneoNumber(imageOpacityInput.value, node.appearance.imageOpacity ?? 100, 0, 100));
+            imageOpacityInput.value = opacity;
+            if (opacity === (node.appearance.imageOpacity ?? 100)) return;
+            geneoPushHistory();
+            node.appearance.imageOpacity = opacity;
+            touchGeneographBoard();
+            renderGeneographEditorPreserveScroll({ preserveInspectorScroll: true });
+        };
+        imageOpacityInput.addEventListener('change', commitImageOpacity);
+        imageOpacityInput.addEventListener('keydown', event =>
+        {
+            if (event.key !== 'Enter') return;
+            event.preventDefault();
+            commitImageOpacity();
+        });
+    }
     const nodeFontSizeInput = main.querySelector('[data-geneo-node-font-size]');
     if (nodeFontSizeInput)
     {

@@ -619,7 +619,7 @@ function renderGeneographNodeContent(
         return `
           <div
             class="geneo-image-node-media ${cropStyle ? 'has-crop' : ''}"
-            style="${cropStyle}">
+            style="${cropStyle ? `${cropStyle};` : ''}--geneo-image-opacity: ${geneoNumber(node.appearance?.imageOpacity, 100, 0, 100) / 100};">
             ${
                 source.available
                     ? renderPhotoThumbnail(

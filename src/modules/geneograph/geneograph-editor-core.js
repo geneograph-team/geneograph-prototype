@@ -1747,6 +1747,11 @@ function validateSampleGeneographCollections(
                 {
                     warn(`${node.type} node ${node.id} has an invalid corner radius`);
                 }
+                if (node.type === 'image' && (!Number.isInteger(node.appearance?.imageOpacity)
+                    || node.appearance.imageOpacity < 0 || node.appearance.imageOpacity > 100))
+                {
+                    warn(`Image node ${node.id} has an invalid opacity`);
+                }
                 if (['text', 'sticky', 'place'].includes(node.type)
                     && (!Number.isInteger(node.appearance?.fontSize)
                         || node.appearance.fontSize < 8 || node.appearance.fontSize > 72))
@@ -2937,6 +2942,10 @@ function geneoAppearance(value, defaults = {}, nodeType = '')
         defaults.fill,
         { legacyOpacity: nodeType === 'panel' ? 68 : 100 }
     );
+    if (nodeType === 'image')
+    {
+        result.imageOpacity = Math.round(geneoNumber(source.imageOpacity, 100, 0, 100));
+    }
     result.stroke = geneoPaintFromLegacy(
         source.stroke,
         source.strokeColor,
@@ -3962,7 +3971,7 @@ function geneoNodeDefaults(type)
 
     if (type === 'image')
     {
-        const appearance = { ...common.appearance, cornerRadius: 8 };
+        const appearance = { ...common.appearance, cornerRadius: 8, imageOpacity: 100 };
         delete appearance.fill;
         return {
             ...common,

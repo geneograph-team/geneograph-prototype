@@ -1403,6 +1403,7 @@ html[lang="ru"] .geneo-node-person[data-geneo-person-card-style="standard"] .gen
     width: 100%;
     height: 100%;
     background: transparent;
+    opacity: var(--geneo-image-opacity, 1);
 }
 
 

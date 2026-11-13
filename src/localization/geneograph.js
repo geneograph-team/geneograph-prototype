@@ -1222,6 +1222,7 @@ const RU_UI_GENEO = {
     'Stroke hex color': 'HEX-код обводки',
     'Text hex color': 'HEX-код текста',
     'Fill opacity': 'Непрозрачность заливки',
+    'Opacity': 'Непрозрачность',
     'Stroke opacity': 'Непрозрачность обводки',
     'Text opacity': 'Непрозрачность текста',
     'Remove fill color': 'Убрать заливку',
