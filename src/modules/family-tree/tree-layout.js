@@ -2934,18 +2934,19 @@ function calculateTreeLayout(people, families, focusPersonId = '', options = {})
         const roles = missingParentRoles(person.id);
         if (!roles.length) return;
         const placeholderWidth = treeParentPlaceholderWidth(roles.length);
+        const placeholderHeight = roles.length === 1 ? TREE_CARD_H : PLACEHOLDER_H;
         const blockWidth = roles.length * placeholderWidth + Math.max(0, roles.length - 1) * TREE_PARENT_PLACEHOLDER_GAP;
         const startX = Math.round(person.x + TREE_CARD_W / 2 - blockWidth / 2);
-        const py = person.generation > 0 ? generationY(person.generation - 1) : (person.y - TREE_PARENT_PLACEHOLDER_VERTICAL_GAP - PLACEHOLDER_H);
+        const py = person.generation > 0 ? generationY(person.generation - 1) : (person.y - TREE_PARENT_PLACEHOLDER_VERTICAL_GAP - placeholderHeight);
         roles.forEach((role, i) =>
         {
             const x = startX + i * (placeholderWidth + TREE_PARENT_PLACEHOLDER_GAP);
             parentPlaceholders.push({
                 id: `${person.id}-${role}-placeholder`, personId: person.id, rel: role,
                 label: role === 'father' ? 'Add father' : 'Add mother',
-                x, y: py, width: placeholderWidth, height: PLACEHOLDER_H, generation: person.generation - 1,
-                leftX: x, rightX: x + placeholderWidth, topY: py, bottomY: py + PLACEHOLDER_H,
-                centerX: x + placeholderWidth / 2, centerY: py + PLACEHOLDER_H / 2
+                x, y: py, width: placeholderWidth, height: placeholderHeight, generation: person.generation - 1,
+                leftX: x, rightX: x + placeholderWidth, topY: py, bottomY: py + placeholderHeight,
+                centerX: x + placeholderWidth / 2, centerY: py + placeholderHeight / 2
             });
         });
     });

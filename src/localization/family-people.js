@@ -131,6 +131,12 @@ const RU_UI_FAMILY_TREE = {
     'Fit tree':
         'Вместить древо',
 
+    'Enter full screen':
+        'На весь экран',
+
+    'Exit full screen':
+        'Выйти из полноэкранного режима',
+
     'Add father':
         'Добавить отца',
 

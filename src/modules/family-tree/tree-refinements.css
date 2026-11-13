@@ -3,6 +3,23 @@
     grid-template-columns: 1fr;
 }
 
+html.tree-fullscreen .app {
+    grid-template-rows: minmax(0, 1fr);
+}
+
+html.tree-fullscreen .topbar,
+html.tree-fullscreen .sidebar {
+    display: none;
+}
+
+html.tree-fullscreen .workspace {
+    grid-template-columns: minmax(0, 1fr);
+}
+
+html.tree-fullscreen .tree-shell {
+    height: 100dvh;
+}
+
 .workspace.no-sidebar .sidebar {
     display: none;
 }

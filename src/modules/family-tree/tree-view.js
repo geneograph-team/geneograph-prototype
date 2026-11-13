@@ -23,6 +23,104 @@ const treeZoomRuntime = {
     clientY: 0
 };
 
+const treeFullscreenRuntime = {
+    requested: false,
+    exitAfterEnter: false,
+    center: null
+};
+
+function treeFullscreenCenter()
+{
+    const canvas = main.querySelector('.tree-canvas');
+    if (!canvas) return null;
+    const zoom = state.treeZoom / 100;
+    return {
+        x: (canvas.scrollLeft + canvas.clientWidth / 2) / zoom,
+        y: (canvas.scrollTop + canvas.clientHeight / 2) / zoom
+    };
+}
+
+function restoreTreeFullscreenCenter(center = treeFullscreenRuntime.center)
+{
+    const canvas = main.querySelector('.tree-canvas');
+    if (!canvas || !center) return;
+    const zoom = state.treeZoom / 100;
+    canvas.scrollLeft = center.x * zoom - canvas.clientWidth / 2;
+    canvas.scrollTop = center.y * zoom - canvas.clientHeight / 2;
+}
+
+function updateTreeFullscreenButton()
+{
+    const button = main.querySelector('[data-tree-fullscreen]');
+    if (!button) return;
+    const active = treeFullscreenRuntime.requested
+        && document.fullscreenElement === document.documentElement;
+    const label = t(active ? 'Exit full screen' : 'Enter full screen');
+    button.setAttribute('aria-label', label);
+    button.setAttribute('title', label);
+    button.setAttribute('aria-pressed', String(active));
+    button.innerHTML = active ? icon.fullscreenExit : icon.expand;
+}
+
+async function toggleTreeFullscreen()
+{
+    treeFullscreenRuntime.center = treeFullscreenCenter();
+    if (treeFullscreenRuntime.requested && document.fullscreenElement === document.documentElement)
+    {
+        await document.exitFullscreen();
+        return;
+    }
+    if (!document.documentElement.requestFullscreen) return;
+    treeFullscreenRuntime.requested = true;
+    try
+    {
+        await document.documentElement.requestFullscreen();
+    }
+    catch
+    {
+        treeFullscreenRuntime.requested = false;
+        treeFullscreenRuntime.exitAfterEnter = false;
+        updateTreeFullscreenButton();
+    }
+}
+
+function exitTreeFullscreen()
+{
+    if (!treeFullscreenRuntime.requested) return;
+    treeFullscreenRuntime.center = treeFullscreenCenter();
+    if (document.fullscreenElement === document.documentElement)
+    {
+        document.exitFullscreen().catch(() => {});
+    }
+    else
+    {
+        treeFullscreenRuntime.exitAfterEnter = true;
+    }
+}
+
+document.addEventListener('fullscreenchange', () =>
+{
+    if (treeFullscreenRuntime.requested
+        && document.fullscreenElement === document.documentElement
+        && (treeFullscreenRuntime.exitAfterEnter || state.activeModule !== 'Family Tree'))
+    {
+        document.exitFullscreen().catch(() => {});
+        return;
+    }
+    const active = treeFullscreenRuntime.requested
+        && document.fullscreenElement === document.documentElement
+        && state.activeModule === 'Family Tree';
+    document.documentElement.classList.toggle('tree-fullscreen', active);
+    if (!active)
+    {
+        treeFullscreenRuntime.requested = false;
+        treeFullscreenRuntime.exitAfterEnter = false;
+    }
+    updateTreeFullscreenButton();
+    const center = treeFullscreenRuntime.center;
+    requestAnimationFrame(() => restoreTreeFullscreenCenter(center));
+});
+
 let treeCardLastClick = null;
 
 function treeViewportPointAtClient(clientX, clientY)
@@ -830,6 +928,7 @@ function renderFamilyTree()
                 <div class="zoom-value">${state.treeZoom}%</div>
                 <button class="zoom-button" type="button" data-zoom="in" aria-label="Zoom in">${icon.zoomIn}</button>
                 <button class="zoom-button" type="button" data-zoom="fit" aria-label="Fit tree">${icon.home}</button>
+                <button class="zoom-button" type="button" data-tree-fullscreen aria-label="${escapeHtml(t(treeFullscreenRuntime.requested ? 'Exit full screen' : 'Enter full screen'))}" title="${escapeHtml(t(treeFullscreenRuntime.requested ? 'Exit full screen' : 'Enter full screen'))}" aria-pressed="${treeFullscreenRuntime.requested ? 'true' : 'false'}">${treeFullscreenRuntime.requested ? icon.fullscreenExit : icon.expand}</button>
               </div>
             </section>
             ${renderPersonSidebar(selected.id, 'tree')}
@@ -986,6 +1085,7 @@ function renderFamilyTree()
         }
         setTreeZoom(state.treeZoom + (button.dataset.zoom === 'in' ? 10 : -10));
     }));
+    main.querySelector('[data-tree-fullscreen]')?.addEventListener('click', toggleTreeFullscreen);
     main.querySelector('[data-tree-person-picker]')?.addEventListener('click', event =>
     {
         event.stopPropagation();
@@ -1010,6 +1110,12 @@ function renderFamilyTree()
             treeViewState.canvasScroll
         );
     }
+    const canvas = main.querySelector('.tree-canvas');
+    canvas?.addEventListener('scroll', () =>
+    {
+        treeFullscreenRuntime.center = treeFullscreenCenter();
+    }, { passive: true });
+    treeFullscreenRuntime.center = treeFullscreenCenter();
 }
 
 function treeLayoutNode(layout, id)
@@ -1605,7 +1711,7 @@ function renderTreeParentPlaceholder(placeholder)
 {
     const target = personById(placeholder.personId);
     const displayLabel = translateText(placeholder.label);
-    return `<button class="add-parent-card" type="button" style="left:${placeholder.x}px;top:${placeholder.y}px;--tree-placeholder-width:${placeholder.width}px" data-person-id="${placeholder.personId}" data-add-relative="${placeholder.rel}" aria-label="${escapeHtml(placeholder.label)} for ${escapeHtml(target.name)}"><span><span class="add-plus">${icon.plus}</span><span class="add-label">${escapeHtml(displayLabel).replace(' ', '<br>')}</span></span></button>`;
+    return `<button class="add-parent-card" type="button" style="left:${placeholder.x}px;top:${placeholder.y}px;--tree-placeholder-width:${placeholder.width}px;--tree-placeholder-height:${placeholder.height}px" data-person-id="${placeholder.personId}" data-add-relative="${placeholder.rel}" aria-label="${escapeHtml(placeholder.label)} for ${escapeHtml(target.name)}"><span><span class="add-plus">${icon.plus}</span><span class="add-label">${escapeHtml(displayLabel).replace(' ', '<br>')}</span></span></button>`;
 }
 
 function renderTreeFocusControl(control)
