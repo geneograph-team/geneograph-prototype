@@ -219,6 +219,7 @@ function toTreePerson(person)
           treePersonDisplayName(
               person
           ),
+        first: cleanTreeNamePart(person.names?.first),
         short: person.names.initials,
         gender: person.gender,
         birth: formatGenealogyDateLabel(person.birth),

@@ -23,20 +23,54 @@ const treeZoomRuntime = {
     clientY: 0
 };
 
+const TREE_ZOOM_MIN = 20;
+const TREE_ZOOM_MAX = 180;
+
+function treeDisplayZoom(physicalZoom = state.treeZoom)
+{
+    return Math.round((physicalZoom - TREE_ZOOM_MIN) * 200 / (TREE_ZOOM_MAX - TREE_ZOOM_MIN));
+}
+
+function treePhysicalZoom(displayZoom)
+{
+    const level = Math.max(0, Math.min(200, displayZoom));
+    return TREE_ZOOM_MIN + level * (TREE_ZOOM_MAX - TREE_ZOOM_MIN) / 200;
+}
+
+function treeDetailLevel(displayZoom = treeDisplayZoom())
+{
+    if (displayZoom < 10) return 'marker';
+    if (displayZoom < 55) return 'given';
+    if (displayZoom < 85) return 'name';
+    return 'full';
+}
+
 const treeFullscreenRuntime = {
     requested: false,
     exitAfterEnter: false,
     center: null
 };
 
+function treeStageMargins(canvas)
+{
+    const stageSpace = canvas?.querySelector('.tree-stage-space');
+    if (!stageSpace) return { x: 0, y: 0 };
+    const style = getComputedStyle(stageSpace);
+    return {
+        x: Number.parseFloat(style.marginLeft) || 0,
+        y: Number.parseFloat(style.marginTop) || 0
+    };
+}
+
 function treeFullscreenCenter()
 {
     const canvas = main.querySelector('.tree-canvas');
     if (!canvas) return null;
     const zoom = state.treeZoom / 100;
+    const margin = treeStageMargins(canvas);
     return {
-        x: (canvas.scrollLeft + canvas.clientWidth / 2) / zoom,
-        y: (canvas.scrollTop + canvas.clientHeight / 2) / zoom
+        x: (canvas.scrollLeft + canvas.clientWidth / 2 - margin.x) / zoom,
+        y: (canvas.scrollTop + canvas.clientHeight / 2 - margin.y) / zoom
     };
 }
 
@@ -45,8 +79,9 @@ function restoreTreeFullscreenCenter(center = treeFullscreenRuntime.center)
     const canvas = main.querySelector('.tree-canvas');
     if (!canvas || !center) return;
     const zoom = state.treeZoom / 100;
-    canvas.scrollLeft = center.x * zoom - canvas.clientWidth / 2;
-    canvas.scrollTop = center.y * zoom - canvas.clientHeight / 2;
+    const margin = treeStageMargins(canvas);
+    canvas.scrollLeft = center.x * zoom + margin.x - canvas.clientWidth / 2;
+    canvas.scrollTop = center.y * zoom + margin.y - canvas.clientHeight / 2;
 }
 
 function updateTreeFullscreenButton()
@@ -129,9 +164,10 @@ function treeViewportPointAtClient(clientX, clientY)
     if (!canvas) return null;
     const rect = canvas.getBoundingClientRect();
     const zoom = state.treeZoom / 100;
+    const margin = treeStageMargins(canvas);
     return {
-        x: (canvas.scrollLeft + clientX - rect.left) / zoom,
-        y: (canvas.scrollTop + clientY - rect.top) / zoom
+        x: (canvas.scrollLeft + clientX - rect.left - margin.x) / zoom,
+        y: (canvas.scrollTop + clientY - rect.top - margin.y) / zoom
     };
 }
 
@@ -141,8 +177,9 @@ function restoreTreeViewportAnchor(point, clientX, clientY)
     if (!canvas || !point) return;
     const rect = canvas.getBoundingClientRect();
     const zoom = state.treeZoom / 100;
-    canvas.scrollLeft = point.x * zoom - (clientX - rect.left);
-    canvas.scrollTop = point.y * zoom - (clientY - rect.top);
+    const margin = treeStageMargins(canvas);
+    canvas.scrollLeft = point.x * zoom + margin.x - (clientX - rect.left);
+    canvas.scrollTop = point.y * zoom + margin.y - (clientY - rect.top);
 }
 
 function applyTreeZoomToDom(options = {})
@@ -157,28 +194,36 @@ function applyTreeZoomToDom(options = {})
     stageSpace.style.width = `${stageWidth * scale}px`;
     stageSpace.style.height = `${stageHeight * scale}px`;
     stage.style.transform = `scale(${scale})`;
+    stage.style.setProperty('--tree-overview-connection-width', `${1.5 / scale}px`);
+    stage.style.setProperty('--tree-overview-parent-border-width', `${1.4 / scale}px`);
+    stage.style.setProperty('--tree-overview-name-size', `${Math.min(40, Math.max(22, 11 / scale))}px`);
+    stage.dataset.detailLevel = treeDetailLevel();
+    stage.dataset.compactParent = String(treeDisplayZoom() < 70);
+    stage.dataset.hideFocus = String(treeDisplayZoom() <= 50);
     const value = canvas.querySelector('.tree-zoom .zoom-value');
-    if (value) value.textContent = `${state.treeZoom}%`;
+    if (value) value.textContent = `${treeDisplayZoom()}%`;
     if (options.anchor)
     {
         restoreTreeViewportAnchor(options.anchor, options.clientX, options.clientY);
     }
     else if (options.center)
     {
-        canvas.scrollLeft = options.center.x * scale - canvas.clientWidth / 2;
-        canvas.scrollTop = options.center.y * scale - canvas.clientHeight / 2;
+        const margin = treeStageMargins(canvas);
+        canvas.scrollLeft = options.center.x * scale + margin.x - canvas.clientWidth / 2;
+        canvas.scrollTop = options.center.y * scale + margin.y - canvas.clientHeight / 2;
     }
     return true;
 }
 
 function setTreeZoom(nextZoom, options = {})
 {
-    const zoom = Math.max(70, Math.min(130, Math.round(nextZoom)));
+    const zoom = Math.max(TREE_ZOOM_MIN, Math.min(TREE_ZOOM_MAX, nextZoom));
     if (zoom === state.treeZoom) return false;
     const canvas = main.querySelector('.tree-canvas');
+    const margin = treeStageMargins(canvas);
     const center = options.anchor ? null : canvas ? {
-        x: (canvas.scrollLeft + canvas.clientWidth / 2) / (state.treeZoom / 100),
-        y: (canvas.scrollTop + canvas.clientHeight / 2) / (state.treeZoom / 100)
+        x: (canvas.scrollLeft + canvas.clientWidth / 2 - margin.x) / (state.treeZoom / 100),
+        y: (canvas.scrollTop + canvas.clientHeight / 2 - margin.y) / (state.treeZoom / 100)
     } : null;
     state.treeZoom = zoom;
     return applyTreeZoomToDom({ ...options, center });
@@ -200,7 +245,7 @@ function queueTreeWheelZoom(event)
         const clientX = treeZoomRuntime.clientX;
         const clientY = treeZoomRuntime.clientY;
         const anchor = treeViewportPointAtClient(clientX, clientY);
-        setTreeZoom(state.treeZoom + (delta < 0 ? 10 : -10), { anchor, clientX, clientY });
+        setTreeZoom(treePhysicalZoom(treeDisplayZoom() + (delta < 0 ? 10 : -10)), { anchor, clientX, clientY });
     });
 }
 
@@ -916,7 +961,7 @@ function renderFamilyTree()
 
             <section class="tree-canvas" aria-label="Family tree canvas">
               <div class="tree-stage-space" style="width:${treeLayout.stageWidth * state.treeZoom / 100}px;height:${treeLayout.stageHeight * state.treeZoom / 100}px;">
-                <div class="tree-stage" style="width:${treeLayout.stageWidth}px;height:${treeLayout.stageHeight}px;transform: scale(${state.treeZoom / 100});">
+                <div class="tree-stage" data-detail-level="${treeDetailLevel()}" data-compact-parent="${treeDisplayZoom() < 70}" data-hide-focus="${treeDisplayZoom() <= 50}" style="width:${treeLayout.stageWidth}px;height:${treeLayout.stageHeight}px;transform: scale(${state.treeZoom / 100});--tree-overview-connection-width:${150 / state.treeZoom}px;--tree-overview-parent-border-width:${140 / state.treeZoom}px;--tree-overview-name-size:${Math.min(40, Math.max(22, 1100 / state.treeZoom))}px;">
                   ${renderTreeLines(treeLayout)}
                   ${treeLayout.parentPlaceholders.map(renderTreeParentPlaceholder).join('')}
                   ${treeLayout.positionedPeople.map(renderTreePersonCard).join('')}
@@ -925,7 +970,7 @@ function renderFamilyTree()
               </div>
               <div class="tree-zoom">
                 <button class="zoom-button" type="button" data-zoom="out" aria-label="Zoom out">${icon.zoomOut}</button>
-                <div class="zoom-value">${state.treeZoom}%</div>
+                <div class="zoom-value">${treeDisplayZoom()}%</div>
                 <button class="zoom-button" type="button" data-zoom="in" aria-label="Zoom in">${icon.zoomIn}</button>
                 <button class="zoom-button" type="button" data-zoom="fit" aria-label="Fit tree">${icon.home}</button>
                 <button class="zoom-button" type="button" data-tree-fullscreen aria-label="${escapeHtml(t(treeFullscreenRuntime.requested ? 'Exit full screen' : 'Enter full screen'))}" title="${escapeHtml(t(treeFullscreenRuntime.requested ? 'Exit full screen' : 'Enter full screen'))}" aria-pressed="${treeFullscreenRuntime.requested ? 'true' : 'false'}">${treeFullscreenRuntime.requested ? icon.fullscreenExit : icon.expand}</button>
@@ -1079,11 +1124,11 @@ function renderFamilyTree()
     {
         if (button.dataset.zoom === 'fit')
         {
-            setTreeZoom(100);
+            setTreeZoom(treePhysicalZoom(100));
             centerTreeOnPerson(treeProjectViewState().focusPersonId);
             return;
         }
-        setTreeZoom(state.treeZoom + (button.dataset.zoom === 'in' ? 10 : -10));
+        setTreeZoom(treePhysicalZoom(treeDisplayZoom() + (button.dataset.zoom === 'in' ? 10 : -10)));
     }));
     main.querySelector('[data-tree-fullscreen]')?.addEventListener('click', toggleTreeFullscreen);
     main.querySelector('[data-tree-person-picker]')?.addEventListener('click', event =>
@@ -1744,6 +1789,7 @@ function renderTreePersonCard(
             person.name
           || 'Unnamed person'
         );
+    const givenName = String(person.first || displayName);
 
     return `
         <article
@@ -1785,6 +1831,7 @@ function renderTreePersonCard(
           </div>
 
           <div class="tree-card-content">
+            <span class="tree-given-name" aria-hidden="true">${escapeHtml(givenName)}</span>
             <h3
               class="tree-name"
               title="${escapeHtml(displayName)}">

@@ -431,6 +431,124 @@ html.tree-fullscreen .tree-shell {
     background: color-mix(in srgb, var(--tree-gender-fill) 84%, var(--tree-gender-border));
 }
 
+.tree-stage[data-detail-level="name"] .tree-person-card .tree-dates,
+.tree-stage[data-detail-level="name"] .tree-person-card .card-actions,
+.tree-stage[data-detail-level="name"] .tree-focus-badge {
+    display: none;
+}
+
+.tree-stage[data-detail-level="name"] .tree-person-card .tree-name {
+    font-size: 17px;
+}
+
+.tree-stage[data-detail-level="name"] .tree-person-card {
+    grid-template-rows: minmax(0, 1fr);
+    align-items: center;
+}
+
+.tree-stage[data-detail-level="name"] .tree-card-avatar-stack {
+    grid-row: 1;
+    grid-template-rows: minmax(0, 1fr);
+}
+
+.tree-stage[data-detail-level="name"] .tree-card-content {
+    align-self: center;
+}
+
+.tree-stage[data-detail-level="marker"] .tree-line,
+.tree-stage[data-detail-level="given"] .tree-line {
+    stroke-width: var(--tree-overview-connection-width);
+}
+
+.tree-stage[data-hide-focus="true"] .tree-focus-control {
+    display: none;
+}
+
+.tree-stage[data-compact-parent="true"] .add-parent-card {
+    background: color-mix(in srgb, var(--surface-card) 55%, transparent);
+    border-style: solid;
+    border-width: var(--tree-overview-parent-border-width);
+}
+
+.tree-stage[data-detail-level="marker"] .add-parent-card .add-plus svg {
+    width: 52px;
+    height: 52px;
+}
+
+.tree-stage[data-detail-level="given"] .add-parent-card .add-plus svg {
+    width: 28px;
+    height: 28px;
+}
+
+.tree-stage[data-detail-level="given"] .tree-person-card,
+.tree-stage[data-detail-level="marker"] .tree-person-card {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.tree-stage[data-detail-level="given"] .tree-card-avatar-stack,
+.tree-stage[data-detail-level="marker"] .tree-card-avatar-stack,
+.tree-stage[data-detail-level="given"] .tree-person-card .tree-name,
+.tree-stage[data-detail-level="marker"] .tree-person-card .tree-name,
+.tree-stage[data-detail-level="given"] .tree-person-card .tree-dates,
+.tree-stage[data-detail-level="marker"] .tree-person-card .tree-dates,
+.tree-stage[data-detail-level="given"] .tree-person-card .card-actions,
+.tree-stage[data-detail-level="marker"] .tree-person-card .card-actions {
+    display: none;
+}
+
+.tree-stage[data-detail-level="given"] .tree-card-content {
+    width: 100%;
+    align-items: center;
+}
+
+.tree-stage[data-detail-level="given"] .tree-given-name {
+    display: block;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: var(--tree-overview-name-size);
+    font-weight: 800;
+}
+
+.tree-stage[data-detail-level="marker"] .tree-card-content {
+    display: none;
+}
+
+.tree-stage[data-detail-level="marker"] .tree-person-card {
+    border-width: 5px;
+    border-radius: 20px;
+}
+
+.tree-stage[data-detail-level="marker"] .tree-person-card.selected {
+    outline: 4px solid var(--gg-primary);
+    outline-offset: 3px;
+}
+
+.tree-stage[data-detail-level="marker"] .tree-person-card.is-focus-person:not(.selected) {
+    outline: 3px solid var(--gg-primary);
+    outline-offset: 2px;
+}
+
+.tree-stage[data-detail-level="marker"] .tree-person-card:focus-visible {
+    outline: 4px solid var(--gg-primary);
+    outline-offset: 4px;
+}
+
+.tree-stage[data-detail-level="given"] .add-parent-card .add-label,
+.tree-stage[data-detail-level="marker"] .add-parent-card .add-label,
+.tree-stage[data-detail-level="given"] .tree-focus-control span,
+.tree-stage[data-detail-level="marker"] .tree-focus-control span {
+    display: none;
+}
+
+.tree-stage[data-detail-level="given"] .add-parent-card .add-plus,
+.tree-stage[data-detail-level="marker"] .add-parent-card .add-plus {
+    margin-bottom: 0;
+}
+
 .tree-name {
     font-size:
         13px;
@@ -944,7 +1062,7 @@ html.tree-fullscreen .tree-shell {
 @media (max-width: 900px) {
     .tree-shell {
         height: calc(100vh - var(--topbar-h));
-        grid-template-rows: 54px minmax(0, 1fr);
+        grid-template-rows: minmax(0, 1fr);
     }
 
     .tree-workspace {

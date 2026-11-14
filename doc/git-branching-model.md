@@ -9,7 +9,7 @@ version: v0.1.0
 
 <!-- markdownlint-enable MD025 -->
 
-This document describes the principles of maintaining the project repository and the branch management strategy.
+This document describes the branch management strategy for pull requests made by the ChatGPT chat version through the connected GitHub repository. It does not apply to Codex working in the local checkout; Codex must not run Git commands or commit changes.
 
 ## Change history style
 

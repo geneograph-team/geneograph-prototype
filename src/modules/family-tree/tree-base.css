@@ -417,6 +417,8 @@
 
 .tree-canvas {
     position: relative;
+    display: flex;
+    flex-direction: column;
     touch-action: none;
     min-width: 0;
     min-height: 0;
@@ -438,8 +440,10 @@
 
 .tree-stage-space {
     position: relative;
-    min-width: 100%;
-    min-height: 100%;
+    flex: none;
+    margin: auto;
+    min-width: 0;
+    min-height: 0;
 }
 
 .tree-lines {
@@ -627,6 +631,10 @@
 
     overflow:
         hidden;
+}
+
+.tree-given-name {
+    display: none;
 }
 
 .tree-name {

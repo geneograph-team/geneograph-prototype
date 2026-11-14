@@ -9,7 +9,7 @@ version: v0.1.1
 
 <!-- markdownlint-enable MD025 -->
 
-This document defines standards for writing commit messages to maintain a clear, consistent, and meaningful history of project changes.
+This document defines commit-message standards for pull requests made by the ChatGPT chat version through the connected GitHub repository. It does not apply to Codex working in the local checkout; Codex must not run Git commands or commit changes.
 
 ## Purpose
 

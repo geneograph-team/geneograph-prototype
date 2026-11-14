@@ -36,23 +36,17 @@ The original monolithic `index.html` has been split: the application now lives i
 
 - **Fix the cause, not the visible symptom.** Before editing, trace the defect to the owning implementation, shared component, state flow or CSS cascade. Confirm why the existing behavior differs from what is intended.
 - Correct or consolidate the responsible code and remove superseded declarations. Reuse existing shared rules and components; **do not stack overrides, duplicate logic/selectors, use `!important`, or add workaround scripts/guards just to conceal the underlying problem**.
-- Only use a workaround when a direct fix would violate a documented compatibility requirement. Explain that constraint and the tradeoff in the PR; keep exceptions small and explicit.
+- Only use a workaround when a direct fix would violate a documented compatibility requirement. Explain that constraint and the tradeoff in the work summary; keep exceptions small and explicit.
 
-## Agent Git Workflow
+## Codex Local Workspace Workflow
 
-`doc/git-branching-model.md` and `doc/git-commit-style.md` are normative for every change an agent makes in this repository, whether in a local checkout or through a connected GitHub repository. Follow them strictly; the summary below does not replace them. If a rule here or elsewhere conflicts with those documents, the documents win.
+Codex working in this local checkout must not run Git commands, create or switch branches, stage files, commit, rebase, merge, push, or create pull requests. Work directly in the canonical checkout and leave all changes for the user to review and manage. Preserve existing files and changes; inspect relevant file contents before editing. Use targeted syntax, OpenSpec, and behavior checks rather than Git-based checks. If an instruction elsewhere calls for `git status`, `git diff --check`, or another Git operation, skip that operation and report it as not run.
 
-- Branch from `default` for one logically complete change and do not commit directly to `default`. Use `feature/<short-descriptive-name>` or `fix/<short-descriptive-name>`: lowercase, hyphen-separated words, no special characters, at most 30 characters.
-- Keep branches short-lived, rebase onto `default` regularly, resolve conflicts in the working branch, and delete merged branches.
-- Write commit headers as `<Verb> <noun>` in the imperative mood, capitalized, with no prefixes such as `[Fix]`, and at most 72 characters. Add an optional body that explains what changed and why with lines of at most 72 characters, and optional footers for issue references and co-authors.
-- **Commit by logical change, not by file.** Prepare and verify the full scoped change first, then commit all affected code, styles, localization, and documentation together. Prefer **one commit per focused PR**; do not create a new commit for each edited file or tiny correction. Separate commits are justified only by genuinely independent changes or subsequent review feedback.
-- For GitHub-connected edits, use a multi-file Git tree and **one commit** rather than repeated per-file Contents API updates, each of which creates another commit. Squash follow-up commits before merge when appropriate and permitted; do not rewrite shared history or force-push without approval.
-- Merge only through the documented procedure: create a branch from `default`, work and commit, open a merge or pull request, pass review and CI/CD checks, rebase onto the latest `default`, squash commits if necessary, obtain maintainer approval, and merge with the fast-forward strategy.
-- Leave merge or pull requests unmerged for review unless the user explicitly instructs otherwise.
+The Git process in `doc/git-branching-model.md` and `doc/git-commit-style.md` applies to the ChatGPT chat GitHub PR workflow below, not to Codex local workspace work.
 
 ## ChatGPT GitHub Pull Request Workflow
 
-These rules apply when ChatGPT works through the connected GitHub repository from a chat. The local-workspace instructions above still apply to agents operating in a local checkout. Branch naming, commit messages, and the merge procedure follow the Agent Git Workflow section above and the documents it references.
+These rules apply only when the ChatGPT chat version works through the connected GitHub repository to make a PR. They do not instruct Codex in this local checkout to use Git. For that separate PR workflow, branch naming, commit messages, and merging follow `doc/git-branching-model.md` and `doc/git-commit-style.md`.
 
 - Treat the current pushed GitHub branch as the source for remote edits; check the repository's default branch and current file content before changing anything. Local uncommitted or unpushed changes are not available through the GitHub connection.
 - Respect the user's requested stage: for **review/audit/report only**, do not write code; an explicit **implement/fix/create a patch or PR** request authorizes implementation. Otherwise, present findings and wait for approval before writing.
@@ -70,9 +64,9 @@ These rules apply to all agents, including local and GitHub-connected work.
 - **Explicit approval gate:** Never modify deployment or CI infrastructure without the founder's explicit approval for that specific change. This includes GitHub Actions workflows, Pages configuration, publishing triggers, build/deployment scripts, secret injection, test jobs, and CI settings. An implementation request does not implicitly approve such changes, even when they seem beneficial.
 - If a task appears to require an infrastructure change, explain why, identify the smallest safe alternative, and request approval **before** modifying it. Do not add or adjust CI merely to run a feature's tests.
 - Keep the prototype lightweight: prefer existing tooling, targeted static checks, and proportionate manual/browser QA. Do not add testing frameworks, dependencies, helper scripts, configuration, or permanent fixtures without a specific ongoing need.
-- Temporary investigation scripts, generated artifacts, debug logging, and one-off browser harnesses should normally stay outside the repository; if used on a working branch, remove them before the PR when no longer needed.
+- Temporary investigation scripts, generated artifacts, debug logging, and one-off browser harnesses should normally stay outside the repository; remove task-created disposable files when no longer needed.
 - Retain concise, valuable regression coverage for repeated failures and high-risk behavior (especially record relationships, data integrity, board import/export, and recovery). Evaluate maintenance cost and reuse existing checks first. **Never remove existing useful tests solely to tidy the repository or make CI pass.**
-- Before completing a PR, inspect its changed-file list and diff for unrelated edits or leftover artifacts. Remove only task-created disposable files; preserve user work. Record exactly which automated and manual checks ran, which did not, and any residual risk.
+- Before completing a local change, review the edited files for unrelated edits or leftover artifacts without using Git. Remove only task-created disposable files; preserve user work. Record exactly which automated and manual checks ran, which did not, and any residual risk. For ChatGPT chat PR work, also inspect the PR's changed-file list and diff.
 - Keep repository maintenance and cleanup separate from functional changes unless the cleanup is directly required for the approved task.
 
 ## OpenSpec Handoff
@@ -98,7 +92,7 @@ Several extracted files are still very large. **Never read them end-to-end.**
 - Inspect only files relevant to the requested change. Avoid repository-wide scans unless targeted searches fail or cross-cutting behavior requires one.
 - Prefer targeted `rg` searches and bounded file ranges. Do not reread or repeat file contents already inspected.
 - Make surgical patches at the responsible layer; avoid unrelated refactors.
-- Keep verification proportional to risk. For small, isolated changes, run focused static checks such as JavaScript syntax and `git diff --check`; do not start a browser or run browser tests. Add automated tests only when they meaningfully cover a regression.
+- Keep verification proportional to risk. For small, isolated changes, run focused static checks such as JavaScript syntax and a direct whitespace review of edited files; do not start a browser or run browser tests. Add automated tests only when they meaningfully cover a regression. Codex does not run `git diff --check`.
 - For substantial changes that need visual or interaction verification, ask the user to perform or authorize a focused browser check. State the exact workflow and states to inspect, and report browser QA as pending until it is actually completed. Do not infer a pass from static checks.
 - Stop when the acceptance criteria are met. Keep explanations concise and omit large diffs from final responses.
 
@@ -162,7 +156,7 @@ Maintain on every change:
 
 Use browser QA only for substantial changes after asking the user. The prototype has no required development server or build step. Do not start a server or open a browser for small changes.
 
-1. Set the shell working directory to `E:\Geneograph\Concept\geneograph-prototype` and confirm `Get-Location` resolves there. Inspect `git status --short` before editing.
+1. Set the shell working directory to `E:\Geneograph\Concept\geneograph-prototype` and confirm `Get-Location` resolves there. Inspect only task-relevant files before editing; do not run Git status.
 2. If browser QA is agreed, check `http://127.0.0.1:8000/index.html` and reuse an existing server when it returns HTTP 200. `scripts/serve-local.cjs` is not present in this checkout; do not follow older instructions that reference it. If no server is available, tell the user and agree on how to serve `src/` before browser testing.
 3. Open the agreed localhost URL in the Codex browser only when the user authorizes agent-run QA. Check the affected workflow and relevant language, viewport, focus, and modal states; inspect console errors and failed resources. Report the exact browser or server error if access fails—never assume visual QA passed.
 4. Use `file://` only for a separate manual compatibility check when available outside the restricted Codex browser. Do not add fetch-based runtime dependencies or change relative paths merely because localhost allows them.
