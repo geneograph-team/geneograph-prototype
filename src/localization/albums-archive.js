@@ -1131,6 +1131,9 @@ const RU_UI_ARCHIVE = {
     'Finding details':
         'Данные для поиска',
 
+    'Source location':
+        'Место хранения источника',
+
     'Additional notes':
         'Дополнительные заметки',
 

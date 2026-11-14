@@ -884,16 +884,6 @@
         minmax(190px, 0.7fr) minmax(0, 1.3fr);
 }
 
-.archive-source-form-row-location {
-    grid-template-columns:
-        minmax(0, 0.85fr) minmax(0, 1.15fr);
-}
-
-.archive-source-form-row-access {
-    grid-template-columns:
-        minmax(0, 1.3fr) minmax(190px, 0.7fr);
-}
-
 .archive-source-form-section .field {
     min-width: 0;
 }
@@ -925,9 +915,7 @@
         max-height: calc(100vh - (var(--space-4) * 2));
     }
 
-    .archive-source-form-row-identity,
-    .archive-source-form-row-location,
-    .archive-source-form-row-access {
+    .archive-source-form-row-identity {
         grid-template-columns:
             minmax(0, 1fr);
     }

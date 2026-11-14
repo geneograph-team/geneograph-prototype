@@ -837,21 +837,6 @@ function openArchiveSourceModal(
                   </h3>
                 </div>
 
-                <div
-                  class="
-                    archive-source-form-row
-                    archive-source-form-row-location
-                  ">
-
-                  ${renderPlaceCombobox({
-                        id: 'archiveSourceLocation',
-                        label: 'Location',
-                        value: archiveSourceCustodialPlaceLabel(source),
-                        selectedPlaceId: archiveSourceCustodialPlace(source)?.id || '',
-                        showAddress: false,
-                        placeholder: 'Find or create a place'
-                    })}
-
                   <div class="field">
                     <label for="archiveSourceReference">
                       Where can it be found?
@@ -864,13 +849,15 @@ function openArchiveSourceModal(
                       value="${escapeHtml(source?.reference || '')}"
                       placeholder="Collection, folder, volume, page, call number, or item">
                   </div>
-                </div>
 
-                <div
-                  class="
-                    archive-source-form-row
-                    archive-source-form-row-access
-                  ">
+                  ${renderPlaceCombobox({
+                        id: 'archiveSourceLocation',
+                        label: 'Source location',
+                        value: archiveSourceCustodialPlaceLabel(source),
+                        selectedPlaceId: archiveSourceCustodialPlace(source)?.id || '',
+                        showAddress: false,
+                        placeholder: 'Find or create a place'
+                    })}
 
                   <div class="field">
                     <label for="archiveSourceUrl">
@@ -909,7 +896,6 @@ function openArchiveSourceModal(
                         'archive-source-accessed-date'
                         }
                     )}
-                </div>
               </section>
 
               <section
@@ -927,12 +913,9 @@ function openArchiveSourceModal(
                 </div>
 
                 <div class="field">
-                  <label for="archiveSourceNotes">
-                    Notes
-                  </label>
-
                   <textarea
                     id="archiveSourceNotes"
+                    aria-labelledby="archiveSourceNotesHeading"
                     data-archive-source-notes
                     placeholder="Add anything that will help you recognize or find this source again">${escapeHtml(source?.notes || '')}</textarea>
                 </div>
