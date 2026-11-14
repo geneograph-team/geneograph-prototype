@@ -261,6 +261,82 @@ function bindGeneographPersonCardControls()
             return node;
         };
 
+    main.querySelectorAll('[data-geneo-person-font]').forEach(input => input.addEventListener('change', () =>
+    {
+        const key = input.dataset.geneoPersonFont;
+        const value = Number(input.value);
+        if (input.value.trim() === '' || !input.checkValidity() || !geneoValidPersonCardFontSize(key, value))
+        {
+            input.reportValidity();
+            input.focus();
+            return;
+        }
+        const scope = input.dataset.geneoPersonFontScope;
+        if (scope === 'board')
+        {
+            const style = diagram.personCardDefaults.style;
+            if (diagram.personCardDefaults.styleSettings[style][key] === value) return;
+            geneoPushHistory();
+            diagram.personCardDefaults.styleSettings[style][key] = value;
+            commit();
+            return;
+        }
+        const nodes = scope === 'multi'
+            ? selectedGeneographNodes().filter(node => node.type === 'person')
+            : [getGeneographNode(input.dataset.geneoPersonCardNode)].filter(node => node?.type === 'person');
+        const changed = nodes.filter(node =>
+        {
+            const style = geneoPersonCardEffectiveSettings(node, diagram).style;
+            return node.personCard?.styleSettings?.[style]?.[key] !== value;
+        });
+        if (!changed.length) return;
+        geneoPushHistory();
+        changed.forEach(node =>
+        {
+            ensureCustomNode(node);
+            const style = geneoPersonCardEffectiveSettings(node, diagram).style;
+            node.personCard.styleSettings ||= {};
+            node.personCard.styleSettings[style] ||= { fields: {} };
+            node.personCard.styleSettings[style][key] = value;
+        });
+        commit();
+    }));
+
+    const resetPersonFonts = (nodes, keys) =>
+    {
+        const changed = nodes.filter(node =>
+        {
+            const style = geneoPersonCardEffectiveSettings(node, diagram).style;
+            return keys.some(key => geneoValidPersonCardFontSize(key, node.personCard?.styleSettings?.[style]?.[key]));
+        });
+        if (!changed.length) return;
+        geneoPushHistory();
+        changed.forEach(node =>
+        {
+            const style = geneoPersonCardEffectiveSettings(node, diagram).style;
+            keys.forEach(key => { node.personCard.styleSettings[style][key] = null; });
+        });
+        commit();
+    };
+    main.querySelectorAll('[data-geneo-person-font-reset]').forEach(button => button.addEventListener('click', () =>
+        resetPersonFonts([getGeneographNode(button.dataset.geneoPersonCardNode)].filter(node => node?.type === 'person'),
+            [button.dataset.geneoPersonFontReset])));
+    main.querySelectorAll('[data-geneo-person-font-multi-reset]').forEach(button => button.addEventListener('click', () =>
+        resetPersonFonts(selectedGeneographNodes().filter(node => node.type === 'person'),
+            [button.dataset.geneoPersonFontMultiReset])));
+    main.querySelectorAll('[data-geneo-person-font-board-reset]').forEach(button => button.addEventListener('click', () =>
+    {
+        const style = diagram.personCardDefaults.style;
+        const key = button.dataset.geneoPersonFontBoardReset;
+        if (!Object.hasOwn(GENEO_PERSON_CARD_FONT_RANGES, key)) return;
+        const current = diagram.personCardDefaults.styleSettings[style];
+        const value = GENEO_PERSON_CARD_FONT_DEFAULTS[style][key];
+        if (current[key] === value) return;
+        geneoPushHistory();
+        current[key] = value;
+        commit();
+    }));
+
     main
         .querySelectorAll(
             '[data-geneo-person-card-style]'

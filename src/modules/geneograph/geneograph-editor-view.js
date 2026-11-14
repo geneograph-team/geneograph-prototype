@@ -1,3 +1,61 @@
+function syncGeneographPersonCardTextFit()
+{
+    const gap = Math.max(.5, state.geneoZoom / 100);
+    main.querySelectorAll('.geneo-node-person .geneo-person-node-content').forEach(content =>
+    {
+        content.classList.remove('geneo-person-hide-status', 'geneo-person-hide-death',
+            'geneo-person-hide-events', 'geneo-person-clamp-name', 'geneo-person-hide-life');
+        const card = content.closest('.geneo-node-person');
+        const identity = content.querySelector('.geneo-person-identity-block');
+        const life = content.querySelector('.geneo-person-life');
+        if (!card || !identity || !life) return;
+
+        const visible = element => Boolean(element?.getClientRects().length);
+        const fits = () =>
+        {
+            const cardRect = card.getBoundingClientRect();
+            const lifeRect = life.getBoundingClientRect();
+            if (identity.getBoundingClientRect().bottom > lifeRect.top + gap
+                || lifeRect.bottom > cardRect.bottom + gap) return false;
+            const rows = [...life.querySelectorAll('.geneo-person-life-event')].filter(visible);
+            const status = life.querySelector('.geneo-person-status');
+            const children = [...rows, ...life.querySelectorAll('.geneo-person-life-span, .geneo-person-life-summary')]
+                .filter(visible);
+            if (children.some(child => child.getBoundingClientRect().bottom > Math.min(lifeRect.bottom, cardRect.bottom) + gap))
+                return false;
+            if (rows.length > 1 && rows[0].getBoundingClientRect().bottom + gap > rows[1].getBoundingClientRect().top)
+                return false;
+            if (visible(status))
+            {
+                const statusRect = status.getBoundingClientRect();
+                if (statusRect.bottom > Math.min(lifeRect.bottom, cardRect.bottom) + gap
+                    || children.some(child => child.getBoundingClientRect().bottom + gap > statusRect.top)) return false;
+            }
+            return true;
+        };
+
+        if (fits()) return;
+        if (life.querySelectorAll('.geneo-person-life-event').length > 1)
+        {
+            content.classList.add('geneo-person-hide-death');
+            if (fits()) return;
+        }
+        if (life.querySelector('.geneo-person-life-events'))
+        {
+            content.classList.add('geneo-person-hide-events');
+            if (fits()) return;
+        }
+        content.classList.add('geneo-person-clamp-name');
+        if (fits()) return;
+        if (visible(life.querySelector('.geneo-person-status')))
+        {
+            content.classList.add('geneo-person-hide-status');
+            if (fits()) return;
+        }
+        content.classList.add('geneo-person-hide-life');
+    });
+}
+
 function renderGeneographEditor()
 {
     geneoClearAlignmentGuides();
@@ -233,6 +291,8 @@ function renderGeneographEditor()
 
     const autoHeightsChanged =
         syncGeneographAutoPersonCardHeights();
+
+    syncGeneographPersonCardTextFit();
 
     const autoPlaceSizesChanged =
         syncGeneographAutoPlaceSizes();

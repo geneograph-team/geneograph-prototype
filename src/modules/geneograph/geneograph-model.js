@@ -48,6 +48,24 @@ const GENEO_PERSON_CARD_FORMAT_KEYS = [
     'photoAlignment', 'alignment', 'nameAlignment'
 ];
 
+const GENEO_PERSON_CARD_FONT_DEFAULTS = Object.freeze({
+    standard: { nameFontSize: 19, detailsFontSize: 13 },
+    compact: { nameFontSize: 18, detailsFontSize: 14 },
+    chart: { nameFontSize: 20, detailsFontSize: 16 },
+    portrait: { nameFontSize: 20, detailsFontSize: 14 }
+});
+
+const GENEO_PERSON_CARD_FONT_RANGES = Object.freeze({
+    nameFontSize: [14, 48],
+    detailsFontSize: [10, 24]
+});
+
+function geneoValidPersonCardFontSize(key, value)
+{
+    const range = GENEO_PERSON_CARD_FONT_RANGES[key];
+    return range && Number.isInteger(value) && value >= range[0] && value <= range[1];
+}
+
 const GENEO_PERSON_CARD_NAME_FORMATS =
     Object.freeze([
         'full',
@@ -191,6 +209,8 @@ function geneoEmptyPersonCardOverrides(
         photoAlignment: null,
         alignment: null,
         nameAlignment: null,
+        nameFontSize: null,
+        detailsFontSize: null,
         cornerRadius: null
     };
 }
@@ -307,6 +327,7 @@ function geneoDefaultPersonCardSettings(
         photoAlignment: 'left',
         alignment: 'left',
         nameAlignment: 'left',
+        ...GENEO_PERSON_CARD_FONT_DEFAULTS[normalizedStyle],
 
         fields:
           geneoPersonCardDefaultFields(
@@ -484,6 +505,11 @@ function normalizeGeneographPersonCardSettings(
                     ? 'center'
                     : geneoPersonCardEnumValue(key, legacyNameAlignment, cardDefaults[key]);
         });
+        Object.keys(GENEO_PERSON_CARD_FONT_RANGES).forEach(key =>
+        {
+            styleSettings[cardStyle][key] = geneoValidPersonCardFontSize(key, saved?.[key])
+                ? saved[key] : cardDefaults[key];
+        });
     });
 
     const active = styleSettings[style];
@@ -526,6 +552,8 @@ function normalizeGeneographPersonCardSettings(
             ),
 
         nameAlignment: active.nameAlignment,
+        nameFontSize: active.nameFontSize,
+        detailsFontSize: active.detailsFontSize,
 
         fields: active.fields,
         photoByStyle,
@@ -659,6 +687,11 @@ function normalizeGeneographPersonCardOverrides(
                     : geneoPersonCardSettingValueIsValid(key, legacyNameAlignment)
                         ? legacyNameAlignment : null;
         });
+        Object.keys(GENEO_PERSON_CARD_FONT_RANGES).forEach(key =>
+        {
+            styleSettings[style][key] = geneoValidPersonCardFontSize(key, saved?.[key])
+                ? saved[key] : null;
+        });
     });
 
     return {
@@ -688,6 +721,9 @@ function normalizeGeneographPersonCardOverrides(
 
         nameAlignment:
           enumOverride('nameAlignment'),
+
+        nameFontSize: null,
+        detailsFontSize: null,
 
         cornerRadius:
           Number.isFinite(radius)
@@ -768,6 +804,9 @@ function geneoPersonCardEffectiveSettings(
         nameAlignment:
           style === 'standard' ? value('nameAlignment') : value('alignment'),
 
+        nameFontSize: value('nameFontSize'),
+        detailsFontSize: value('detailsFontSize'),
+
         fields: {
             ...inheritedFields,
             ...overrideStyle.fields,
@@ -796,6 +835,7 @@ function geneoPersonCardHasOverrides(node)
         || Object.keys(overrides.photoByStyle).length > 0
         || Object.values(overrides.styleSettings).some(preset =>
             GENEO_PERSON_CARD_FORMAT_KEYS.some(key => preset[key] !== null)
+            || Object.keys(GENEO_PERSON_CARD_FONT_RANGES).some(key => preset[key] !== null)
             || Object.keys(preset.fields).length > 0)
     );
 }
@@ -1310,7 +1350,9 @@ function geneoPersonCardCssVariables(
         );
 
     return [
-        `--geneo-card-photo-target:${photo}px`
+        `--geneo-card-photo-target:${photo}px`,
+        `--geneo-card-name-size:${settings.nameFontSize}px`,
+        `--geneo-card-details-size:${settings.detailsFontSize}px`
     ];
 }
 

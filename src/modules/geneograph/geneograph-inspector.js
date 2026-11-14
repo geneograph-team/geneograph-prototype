@@ -370,6 +370,26 @@ function renderGeneographPersonCardControls({
             )
             : boardSettings;
 
+    const fontOverrides = node?.personCard?.styleSettings?.[settings.style] || {};
+    const typography = `<div class="geneo-person-card-control-group">
+      <strong class="geneo-person-card-group-title">${escapeHtml(t('Typography'))}</strong>
+      ${Object.entries(GENEO_PERSON_CARD_FONT_RANGES).map(([key, [min, max]]) => {
+          const label = key === 'nameFontSize' ? 'Name size' : 'Details size';
+          const overridden = geneoValidPersonCardFontSize(key, fontOverrides[key]);
+          const id = `geneo-card-${scope}-${key}`;
+          return `<div class="geneo-person-font-field">
+            <label class="geneo-person-font-label" for="${id}"><span class="geneo-setting-label">${escapeHtml(t(label))}</span>
+              <span class="geneo-selection-help">${min}–${max} px${node ? ` · ${escapeHtml(t(overridden ? 'Custom' : 'Inherited'))}` : ''}</span></label>
+            <div class="geneo-person-font-control">
+            <button class="geneo-person-font-reset" type="button" ${node
+                ? `data-geneo-person-font-reset="${key}" data-geneo-person-card-node="${escapeHtml(node.id)}" ${overridden ? '' : 'disabled'}`
+                : `data-geneo-person-font-board-reset="${key}" ${settings[key] === GENEO_PERSON_CARD_FONT_DEFAULTS[settings.style][key] ? 'disabled' : ''}`}>${escapeHtml(t('Reset'))}</button>
+            <input class="geneo-input" id="${id}" type="number" min="${min}" max="${max}" step="1"
+              value="${settings[key]}" data-geneo-person-font="${key}" data-geneo-person-font-scope="${scope}"
+              ${node ? `data-geneo-person-card-node="${escapeHtml(node.id)}"` : ''}></div></div>`;
+      }).join('')}
+    </div>`;
+
     const labels =
         geneoPersonCardFieldLabels();
 
@@ -523,6 +543,7 @@ function renderGeneographPersonCardControls({
                     .join('')}
             </div>
           </div>
+          ${typography}
         </div>
       `;
 }
@@ -1165,6 +1186,19 @@ function renderGeneographPersonMultiSelectionControls(
               data-geneo-person-multi-field="${field}" data-mixed="${value === null}"
               ${value === true ? 'checked' : ''}>${escapeHtml(label)}</label>`;
         }).join('');
+    const typography = Object.entries(GENEO_PERSON_CARD_FONT_RANGES).map(([key, [min, max]]) => {
+        const value = sharedSetting(key);
+        const label = key === 'nameFontSize' ? 'Name size' : 'Details size';
+        const resettable = nodes.some(node => geneoValidPersonCardFontSize(key,
+            node.personCard?.styleSettings?.[geneoPersonCardEffectiveSettings(node).style]?.[key]));
+        return `<div class="geneo-person-font-field">
+          <label class="geneo-person-font-label" for="geneoMulti-${key}"><span class="geneo-setting-label">${escapeHtml(t(label))}</span>
+            <span class="geneo-selection-help">${min}–${max} px</span></label>
+          <div class="geneo-person-font-control">
+          <button class="geneo-person-font-reset" type="button" data-geneo-person-font-multi-reset="${key}" ${resettable ? '' : 'disabled'}>${escapeHtml(t('Reset'))}</button>
+          <input class="geneo-input" id="geneoMulti-${key}" type="number" min="${min}" max="${max}" step="1"
+            value="${value ?? ''}" placeholder="${escapeHtml(t('Mixed'))}" data-geneo-person-font="${key}" data-geneo-person-font-scope="multi"></div></div>`;
+    }).join('');
 
     return renderGeneographInspectorSection({
         context: 'multi', id: 'personCards', title: 'Card layout',
@@ -1192,6 +1226,8 @@ function renderGeneographPersonMultiSelectionControls(
             <strong class="geneo-person-card-group-title">Displayed information</strong>
             <div class="geneo-person-card-options">${fields}</div>
           </div>
+          <div class="geneo-person-card-control-group"><strong class="geneo-person-card-group-title">${escapeHtml(t('Typography'))}</strong>
+            ${typography}</div>
         </div>`
     });
 }

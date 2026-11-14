@@ -773,6 +773,33 @@ const RU_UI_GENEO = {
     'Formatting':
         'Форматирование',
 
+    'Typography':
+        'Типографика',
+
+    'Name size':
+        'Размер имени',
+
+    'Details size':
+        'Размер сведений',
+
+    'Inherited':
+        'Наследуется',
+
+    'Custom':
+        'Свой',
+
+    'Reset Name':
+        'Сбросить имя',
+
+    'Reset Details':
+        'Сбросить сведения',
+
+    'Reset both':
+        'Сбросить оба',
+
+    'Reset current style':
+        'Сбросить текущий стиль',
+
     'Name format':
         'Формат имени',
 

@@ -848,6 +848,62 @@
     text-align: left;
 }
 
+.geneo-person-font-field {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 78px;
+    grid-template-rows: auto auto;
+    column-gap: var(--space-3);
+    row-gap: 4px;
+    align-items: center;
+}
+
+.geneo-person-font-label {
+    grid-column: 1;
+    grid-row: 2;
+    display: grid;
+    gap: 4px;
+    align-self: center;
+    min-width: 0;
+}
+
+.geneo-person-font-control {
+    display: contents;
+}
+
+.geneo-person-font-control .geneo-input {
+    grid-column: 2;
+    grid-row: 2;
+    width: 100%;
+    min-width: 0;
+}
+
+.geneo-person-font-reset {
+    grid-column: 2;
+    grid-row: 1;
+    justify-self: end;
+    border: 0;
+    padding: 0 2px;
+    background: none;
+    color: var(--text-secondary);
+    font: inherit;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.geneo-person-font-reset:hover:not(:disabled) {
+    color: var(--brand-green-500);
+}
+
+.geneo-person-font-reset:focus-visible {
+    outline: 2px solid var(--brand-green-500);
+    outline-offset: 2px;
+}
+
+.geneo-person-font-reset:disabled {
+    opacity: .45;
+}
+
 .geneo-person-appearance-controls {
     display: grid;
     gap: 12px;
