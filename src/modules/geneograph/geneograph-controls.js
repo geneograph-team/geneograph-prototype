@@ -538,8 +538,9 @@ function bindGeneographPersonCardControls()
                         select.dataset
                             .geneoPersonCardScope;
 
-                    const value =
-                        select.value;
+                    const value = key === 'photoSize'
+                        ? Number(select.value)
+                        : select.value;
 
                     if (
                         !geneoPersonCardSettingValueIsValid(
@@ -589,6 +590,8 @@ function bindGeneographPersonCardControls()
 
                     if (
                         effective[key] === value
+                        && (key !== 'photoSize'
+                            || node.personCard?.styleSettings?.[effective.style]?.photoSize === value)
                     )
                     {
                         return;
@@ -604,7 +607,7 @@ function bindGeneographPersonCardControls()
                     node.personCard.styleSettings ||= {};
                     node.personCard.styleSettings[style] ||= { fields: {} };
                     node.personCard.styleSettings[style][key] =
-                        value === boardValue ? null : value;
+                        key === 'photoSize' ? value : value === boardValue ? null : value;
 
                     commit();
                 }
@@ -968,12 +971,13 @@ function bindGeneographPersonCardControls()
                 'change',
                 () =>
                 {
-                    const value =
-                        select.value;
-
                     const key =
                         select.dataset
                             .geneoPersonMultiSetting;
+
+                    const value = key === 'photoSize'
+                        ? Number(select.value)
+                        : select.value;
 
                     if (
                         !value
@@ -992,6 +996,8 @@ function bindGeneographPersonCardControls()
                                 node =>
                                     node.type
                       === 'person'
+                                    && (key !== 'photoSize'
+                                        || geneoPersonCardEffectiveSettings(node, diagram).style !== 'compact')
                             );
 
                     if (!nodes.length) return;
@@ -1023,7 +1029,7 @@ function bindGeneographPersonCardControls()
                             node.personCard.styleSettings ||= {};
                             node.personCard.styleSettings[style] ||= { fields: {} };
                             node.personCard.styleSettings[style][key] =
-                                value === boardValue ? null : value;
+                                key === 'photoSize' ? value : value === boardValue ? null : value;
                         }
                     });
 

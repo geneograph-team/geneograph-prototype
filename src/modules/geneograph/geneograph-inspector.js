@@ -121,11 +121,7 @@ function geneoPersonCardControlOptions()
             ['years', 'Years only']
         ],
 
-        photoSize: [
-            ['small', 'Small'],
-            ['medium', 'Medium'],
-            ['large', 'Large']
-        ],
+        photoSize: GENEO_PERSON_CARD_PHOTO_SIZES.map(size => [size, `${size}%`]),
 
         photoAlignment: [
             ['left', 'Left'],
@@ -453,7 +449,7 @@ function renderGeneographPersonCardControls({
                     !settings.fields.dates
                 )}
 
-              ${scope === 'node' && settings.style !== 'compact' ? select(
+              ${settings.style !== 'compact' ? select(
                     'photoSize',
                     'Photo size',
                     '',
@@ -1168,7 +1164,10 @@ function renderGeneographPersonMultiSelectionControls(
     const style = geneoSharedPersonCardValue(nodes, settings => settings.style);
     const sharedSetting = key => geneoSharedPersonCardValue(nodes, settings => settings[key]);
     const select = (key, label, disabled = false) => {
-        const value = sharedSetting(key);
+        const value = key === 'photoSize'
+            ? geneoSharedPersonCardValue(nodes.filter((node, index) => styles[index] !== 'compact'),
+                settings => settings.photoSize)
+            : sharedSetting(key);
         return `<div class="geneo-field"><label for="geneoMultiCard-${key}">${escapeHtml(label)}</label>
           <span class="common-select-shell"><select class="common-select" id="geneoMultiCard-${key}"
             data-geneo-person-multi-setting="${key}" ${disabled ? 'disabled' : ''}>
@@ -1213,8 +1212,8 @@ function renderGeneographPersonMultiSelectionControls(
             <div class="geneo-person-card-setting-grid">
               ${select('nameFormat', 'Name format')}
               ${select('dateFormat', 'Date format', nodes.every(node => !geneoPersonCardEffectiveSettings(node).fields.dates))}
-              ${styles.every(cardStyle => cardStyle !== 'compact')
-                  ? select('photoSize', 'Photo size', nodes.every(node => !geneoPersonCardEffectiveSettings(node).fields.photo)) : ''}
+              ${styles.some(cardStyle => cardStyle !== 'compact')
+                  ? select('photoSize', 'Photo size', nodes.every(node => node.type !== 'person' || geneoPersonCardEffectiveSettings(node).style === 'compact' || !geneoPersonCardEffectiveSettings(node).fields.photo)) : ''}
               ${styles.every(cardStyle => ['standard', 'chart'].includes(cardStyle))
                   ? select('photoAlignment', 'Photo alignment', nodes.every(node => !geneoPersonCardEffectiveSettings(node).fields.photo)) : ''}
               ${style === 'standard' ? `${select('nameAlignment', 'Name alignment')}${select('alignment', 'Dates alignment')}` : ''}

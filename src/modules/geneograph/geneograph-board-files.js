@@ -224,6 +224,12 @@ function validateGeneographBoardFile(payload)
                 Object.keys(GENEO_PERSON_CARD_FONT_RANGES).every(key =>
                     style[key] == null || geneoValidPersonCardFontSize(key, style[key])))))
         throw geneoBoardFileError('The board has invalid Person card font sizes.');
+    if (!GENEO_PERSON_CARD_STYLES.every(style =>
+        GENEO_PERSON_CARD_PHOTO_SIZES.includes(diagram.personCardDefaults.styleSettings?.[style]?.photoSize))
+        || !diagram.nodes.every(node => node.type !== 'person' ||
+            Object.values(node.personCard?.styleSettings || {}).every(style =>
+                style.photoSize == null || GENEO_PERSON_CARD_PHOTO_SIZES.includes(style.photoSize))))
+        throw geneoBoardFileError('The board has invalid Person card photo sizes.');
     if (diagram.assets.length > 200 || diagram.people.length > 2000 || diagram.families.length > 2000
         || diagram.nodes.length > 2000 || diagram.connections.length > 4000)
         throw geneoBoardFileError('The board file contains too many objects.');

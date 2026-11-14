@@ -503,7 +503,8 @@
 ] .geneo-person-node-content {
     --geneo-card-photo:
         min(var(--geneo-card-photo-target, 64px),
-            calc(100cqw - 110px));
+            calc(100cqw - 110px),
+            calc(100cqh - 30px));
     --geneo-person-action-reserve: 0px;
 
     padding: 15px;

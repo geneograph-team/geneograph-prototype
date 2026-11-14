@@ -80,11 +80,7 @@ const GENEO_PERSON_CARD_DATE_FORMATS =
     ]);
 
 const GENEO_PERSON_CARD_PHOTO_SIZES =
-    Object.freeze([
-        'small',
-        'medium',
-        'large'
-    ]);
+    Object.freeze(Array.from({ length: 13 }, (_, index) => 80 + index * 10));
 
 const GENEO_PERSON_CARD_PHOTO_ALIGNMENTS =
     Object.freeze(['left', 'right']);
@@ -323,7 +319,7 @@ function geneoDefaultPersonCardSettings(
         style: normalizedStyle,
         nameFormat: 'full',
         dateFormat: 'full',
-        photoSize: 'medium',
+        photoSize: 100,
         photoAlignment: 'left',
         alignment: 'left',
         nameAlignment: 'left',
@@ -1306,34 +1302,13 @@ function geneoPersonCardPhotoBaseSize(
         settings?.style
         || 'standard';
 
-    const size =
-        settings?.photoSize
-        || 'medium';
+    const baseSize = {
+        standard: 64,
+        chart: 130,
+        portrait: 130
+    }[style] || 64;
 
-    const values = {
-        standard: {
-            small: 56,
-            medium: 64,
-            large: 76
-        },
-
-        chart: {
-            small: 108,
-            medium: 130,
-            large: 150
-        },
-
-        portrait: {
-            small: 110,
-            medium: 130,
-            large: 150
-        }
-    };
-
-    return (
-        values[style]?.[size]
-        || values.standard.medium
-    );
+    return baseSize * geneoPersonCardEnumValue('photoSize', settings?.photoSize, 100) / 100;
 }
 
 function geneoPersonCardCssVariables(
@@ -1555,9 +1530,11 @@ function syncGeneographAutoPersonCardHeights()
                     diagram
                 );
 
-            const naturalHeight = Math.ceil(
-                content.scrollHeight
-            );
+            const settings = geneoPersonCardEffectiveSettings(node, diagram);
+            content.style.setProperty('--geneo-card-photo-target',
+                `${geneoPersonCardPhotoBaseSize({ ...settings, photoSize: 100 })}px`);
+            const naturalHeight = Math.ceil(content.scrollHeight);
+            content.style.removeProperty('--geneo-card-photo-target');
 
             const contentHeight = geneoNumber(
                 naturalHeight,
