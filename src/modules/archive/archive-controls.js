@@ -1306,7 +1306,7 @@ function bindArchiveControls(root = main.querySelector('.archive-shell'))
         {
             if (details.open === previousOpen) return;
             previousOpen = details.open;
-            if (String(state.archiveSearch || '').trim()) return;
+            if (archiveSourceResultsNarrowed()) return;
             archiveSourceGroupPreferences()[details.dataset.archiveSourceGroup] =
                 details.open;
         });

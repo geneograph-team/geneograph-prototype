@@ -3462,11 +3462,22 @@ function renderArchiveSourceRow(source)
       `;
 }
 
+function archiveSourceResultsNarrowed()
+{
+    return Boolean(
+        String(state.archiveSearch || '').trim()
+        || state.archiveSourceCategoryFilter !== 'all'
+        || state.archiveSourceConnectionFilter !== 'all'
+        || state.archiveSourceFavouriteOnly
+        || state.archiveSourceTargetFilter
+    );
+}
+
 function renderArchiveSourceGroups(sources)
 {
     const groups = archiveSourceCategoryGroups(sources);
     const expanded = archiveSourceGroupPreferences();
-    const searching = Boolean(String(state.archiveSearch || '').trim());
+    const revealing = archiveSourceResultsNarrowed();
 
     return `
         <div class="archive-source-groups" role="region"
@@ -3474,7 +3485,7 @@ function renderArchiveSourceGroups(sources)
           ${groups.map(group => `
             <details class="archive-source-group"
               data-archive-source-group="${escapeHtml(group.key)}"
-              ${searching || expanded[group.key] ? 'open' : ''}>
+              ${revealing || expanded[group.key] ? 'open' : ''}>
               <summary>
                 <strong>${escapeHtml(t(group.label))}</strong>
                 <span class="archive-source-group-count">${group.sources.length}</span>
