@@ -4558,6 +4558,22 @@ function renderGeneographAddImageResults()
     if (!photos.length)
     {
         if (picker.addView === 'selected' && picker.uploadDrafts.length) return '';
+        if (picker.mode === 'add' && picker.addView === 'results')
+        {
+            const searching = Boolean(query || filters.favorite || filters.person || filters.tagged);
+            const heading = searching
+                ? rpText('No matches found', 'Ничего не найдено')
+                : rpText('No photos yet', 'Фотографий пока нет');
+            const description = searching
+                ? rpText('Try another search or clear the filters.', 'Измените запрос или сбросьте фильтры.')
+                : rpText('Browse another location or add a new item.', 'Выберите другой раздел или создайте запись.');
+            const action = searching ? 'data-geneo-image-clear-empty' : 'data-geneo-image-show-upload';
+            const label = searching
+                ? rpText('Clear search and filters', 'Сбросить поиск и фильтры')
+                : rpText('Upload photos', 'Загрузить фото');
+            return `<div class="rp-empty"><h3>${escapeHtml(heading)}</h3><p>${escapeHtml(description)}</p>
+              <button type="button" class="button secondary" ${action}>${escapeHtml(label)}</button></div>`;
+        }
         return `<div class="rp-empty"><p>${escapeHtml(state.language === 'ru' ? 'Фотографии не найдены.' : 'No photos found.')}</p>
           ${picker.mode === 'avatar' && filters.tagged ? `<button type="button" class="button secondary" data-geneo-image-show-all>${escapeHtml(state.language === 'ru' ? 'Показать все фотографии' : 'Show all photos')}</button>` : ''}</div>`;
     }
@@ -5664,6 +5680,13 @@ function bindGeneographAddImageModal()
     const root = modalBackdrop.querySelector('.geneo-image-add-modal');
     root?.querySelector('[data-geneo-image-project-results]')?.addEventListener('click', event =>
     {
+        if (event.target.closest('[data-geneo-image-clear-empty]'))
+        {
+            picker.search = '';
+            picker.filters = { favorite: false, person: '', tagged: false };
+            renderGeneographImagePickerModal({ focusSelector: '[data-geneo-image-search]' });
+            return;
+        }
         if (!event.target.closest('[data-geneo-image-show-all]')) return;
         picker.filters = { favorite: false, person: '', tagged: false };
         const trigger = root.querySelector('[data-geneo-image-filters]');
