@@ -216,6 +216,7 @@ const state = {
     archiveSelectedFolderItemId: null,
     archiveSelectedFileId: null,
     archiveSelectedSourceId: 'as1',
+    archiveSourceExpandedGroups: {},
     archiveSelectedFileIds: [],
     archiveSelectedFolderIds: [],
     archiveSearch: '',

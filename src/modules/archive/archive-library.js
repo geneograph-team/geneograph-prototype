@@ -3305,8 +3305,7 @@ function archiveSourceOriginLabel(
                 === index
             );
 
-    return values.join(' · ')
-        || 'Source record';
+    return values.join(' · ');
 }
 
 function archiveSourceWebsiteHost(
@@ -3344,7 +3343,7 @@ function archiveSourceReferenceLabel(
 {
     if (!source)
     {
-        return 'Not specified';
+        return '';
     }
 
     const values =
@@ -3368,200 +3367,123 @@ function archiveSourceReferenceLabel(
                 === index
             );
 
-    return values.join(' · ')
-        || 'Not specified';
+    return values.join(' · ');
 }
 
-function renderArchiveSourceTable(
-    sources
-)
+
+function archiveSourceCategoryGroups(sources)
 {
+    const groups = [
+        ...SOURCE_CATEGORIES.map(category => ({
+            key: category.value,
+            label: category.shortLabel,
+            sources: []
+        })),
+        { key: 'uncategorized', label: 'Not categorized', sources: [] }
+    ];
+    const byCategory = new Map(groups.map(group => [group.key, group]));
+    const locale = state.language === 'ru' ? 'ru' : 'en';
+
+    (sources || []).forEach(source =>
+    {
+        const key = SOURCE_CATEGORY_BY_VALUE.has(source.category)
+            ? source.category : 'uncategorized';
+        byCategory.get(key).sources.push(source);
+    });
+    groups.forEach(group => group.sources.sort((left, right) =>
+        String(left.title || '').localeCompare(
+            String(right.title || ''), locale,
+            { sensitivity: 'base', numeric: true }
+        ) || String(left.id).localeCompare(String(right.id))
+    ));
+    return groups.filter(group => group.sources.length > 0);
+}
+
+function archiveSourceGroupPreferences()
+{
+    const projectId = currentProjectId();
+    const preferences = state.archiveSourceExpandedGroups;
+
+    if (!Object.prototype.hasOwnProperty.call(preferences, projectId))
+    {
+        const groups = archiveSourceCategoryGroups(archiveProjectSources());
+        const largest = groups.reduce((best, group) =>
+            !best || group.sources.length > best.sources.length ? group : best,
+        null);
+        preferences[projectId] = largest ? { [largest.key]: true } : {};
+    }
+
+    return preferences[projectId];
+}
+
+function renderArchiveSourceRow(source)
+{
+    const selected = state.archiveSelectedSourceId === source.id;
+    const summary = [
+        archiveSourceOriginLabel(source),
+        archiveSourceReferenceLabel(source)
+    ].filter(Boolean).join(' · ');
+    const connectionCount = archiveSourceConnectionCount(source);
+    const connectionsLabel = `${t('Connections')}: ${connectionCount}`;
+
     return `
-        <div class="archive-table-wrap">
-          <table
-            class="
-              archive-table
-              archive-source-table
-            "
-            aria-label="Sources">
+        <div class="archive-source-entry ${selected ? 'selected-detail' : ''}"
+          data-archive-source-row="${escapeHtml(source.id)}"
+          role="listitem" tabindex="0" aria-label="${escapeHtml(source.title)}"
+          ${selected ? 'aria-current="true"' : ''}>
+          <div class="archive-source-entry-main">
+            <strong title="${escapeHtml(source.title)}">${escapeHtml(source.title)}</strong>
+            ${summary
+                ? `<span title="${escapeHtml(summary)}">${escapeHtml(summary)}</span>`
+                : ''}
+          </div>
+          <span class="archive-source-entry-connections"
+            title="${escapeHtml(connectionsLabel)}"
+            aria-label="${escapeHtml(connectionsLabel)}">
+            <span>${escapeHtml(t('Connections'))}:</span>
+            <strong>${connectionCount}</strong>
+          </span>
+          <div class="archive-source-entry-actions">
+            <button class="archive-row-icon-button ${source.favorite ? 'active' : ''}"
+              type="button" data-archive-source-favorite="${escapeHtml(source.id)}"
+              aria-label="${escapeHtml(t(source.favorite
+                  ? 'Remove source from favourites'
+                  : 'Add source to favourites'))}">
+              ${icon.star}
+            </button>
+            <button class="archive-row-icon-button" type="button"
+              data-archive-row-actions="source"
+              data-archive-row-id="${escapeHtml(source.id)}"
+              aria-label="${escapeHtml(t('Source actions'))}">
+              ${icon.more}
+            </button>
+          </div>
+        </div>
+      `;
+}
 
-            <thead>
-              <tr>
-                <th class="archive-col-name">
-                  Source
-                </th>
+function renderArchiveSourceGroups(sources)
+{
+    const groups = archiveSourceCategoryGroups(sources);
+    const expanded = archiveSourceGroupPreferences();
+    const searching = Boolean(String(state.archiveSearch || '').trim());
 
-                <th class="archive-col-source-category">
-                  Category
-                </th>
-
-                <th class="archive-col-source-reference">
-                  Where found
-                </th>
-
-                <th class="archive-col-source-connections">
-                  Connections
-                </th>
-
-                <th class="archive-col-source-accessed">
-                  Accessed
-                </th>
-
-                <th
-                  class="archive-col-favorite"
-                  aria-label="Favourite">
-                  ${icon.star}
-                </th>
-
-                <th class="archive-col-actions">
-                </th>
-              </tr>
-            </thead>
-
-            <tbody>
-              ${sources.map(source =>
-                {
-                    const selected =
-                        state.archiveSelectedSourceId
-                    === source.id;
-
-                    const categoryLabel =
-                        localizedSourceCategoryShortLabel(
-                            source.category
-                        );
-
-                    const fullCategoryLabel =
-                        localizedSourceCategoryLabel(
-                            source.category
-                        );
-
-                    const originLabel =
-                        archiveSourceOriginLabel(
-                            source
-                        );
-
-                    const referenceLabel =
-                        archiveSourceReferenceLabel(
-                            source
-                        );
-
-                    const connectionCount =
-                        archiveSourceConnectionCount(
-                            source
-                        );
-
-                    const accessedLabel =
-                        source.accessedDate
-                            ? archiveFormatDate(
-                                source.accessedDate
-                            )
-                            : 'Not specified';
-
-                    return `
-                  <tr
-                    class="
-                      archive-source-row
-                      ${
-                            selected
-                                ? 'selected-detail'
-                                : ''
-                        }
-                    "
-                    data-archive-source-row="${escapeHtml(source.id)}"
-                    tabindex="0"
-                    aria-selected="${
-                        selected
-                            ? 'true'
-                            : 'false'
-                    }">
-
-                    <td>
-                      <div class="archive-source-title-cell">
-                        <strong
-                          title="${escapeHtml(source.title)}">
-                          ${escapeHtml(source.title)}
-                        </strong>
-
-                        <span
-                          class="archive-source-origin"
-                          title="${escapeHtml(originLabel)}">
-                          ${escapeHtml(originLabel)}
-                        </span>
-                      </div>
-                    </td>
-
-                    <td>
-                      <span
-                        class="archive-source-category-text"
-                        title="${escapeHtml(fullCategoryLabel)}">
-                        ${escapeHtml(categoryLabel)}
-                      </span>
-                    </td>
-
-                    <td>
-                      <span
-                        class="archive-source-reference-text"
-                        title="${escapeHtml(referenceLabel)}">
-                        ${escapeHtml(referenceLabel)}
-                      </span>
-                    </td>
-
-                    <td
-                      class="
-                        archive-col-source-connections
-                        archive-source-connections-cell
-                      ">
-
-                      <span class="archive-mobile-cell-label">${escapeHtml(t('Connections'))}: </span>${connectionCount}
-                    </td>
-
-                    <td>
-                      <span
-                        class="archive-source-accessed-text"
-                        title="${escapeHtml(accessedLabel)}">
-                        <span class="archive-mobile-cell-label">${escapeHtml(t('Accessed'))}: </span>${escapeHtml(accessedLabel)}
-                      </span>
-                    </td>
-
-                    <td class="archive-source-favourite-cell">
-                      <button
-                        class="
-                          archive-row-icon-button
-                          ${
-                                source.favorite
-                                    ? 'active'
-                                    : ''
-                            }
-                        "
-                        type="button"
-                        data-archive-source-favorite="${escapeHtml(source.id)}"
-                        aria-label="${
-                            source.favorite
-                                ? 'Remove source from favourites'
-                                : 'Add source to favourites'
-                        }">
-                        ${icon.star}
-                      </button>
-                    </td>
-
-                    <td>
-                      <button
-                        class="
-                          archive-row-icon-button
-                          archive-source-row-actions
-                        "
-                        type="button"
-                        data-archive-row-actions="source"
-                        data-archive-row-id="${escapeHtml(source.id)}"
-                        aria-label="Source actions">
-                        ${icon.more}
-                      </button>
-                    </td>
-                  </tr>
-                `;
-                }).join('')}
-            </tbody>
-          </table>
+    return `
+        <div class="archive-source-groups" role="region"
+          aria-label="${escapeHtml(t('Sources'))}">
+          ${groups.map(group => `
+            <details class="archive-source-group"
+              data-archive-source-group="${escapeHtml(group.key)}"
+              ${searching || expanded[group.key] ? 'open' : ''}>
+              <summary>
+                <strong>${escapeHtml(t(group.label))}</strong>
+                <span class="archive-source-group-count">${group.sources.length}</span>
+              </summary>
+              <div class="archive-source-group-rows" role="list">
+                ${group.sources.map(renderArchiveSourceRow).join('')}
+              </div>
+            </details>
+          `).join('')}
         </div>
       `;
 }
@@ -3594,7 +3516,7 @@ function renderArchiveSourcesView()
 
           ${
                 sources.length
-                    ? renderArchiveSourceTable(
+                    ? renderArchiveSourceGroups(
                         sources
                     )
                     : renderArchiveEmpty(
@@ -3608,4 +3530,3 @@ function renderArchiveSourcesView()
         </div>
       `;
 }
-

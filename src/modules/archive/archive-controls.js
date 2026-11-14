@@ -1299,15 +1299,30 @@ function bindArchiveControls(root = main.querySelector('.archive-shell'))
         event.stopPropagation();
         archiveOpenFolder(button.dataset.archiveMobileOpenFolder);
     }));
+    root.querySelectorAll('[data-archive-source-group]').forEach(details =>
+    {
+        let previousOpen = details.open;
+        details.addEventListener('toggle', () =>
+        {
+            if (details.open === previousOpen) return;
+            previousOpen = details.open;
+            if (String(state.archiveSearch || '').trim()) return;
+            archiveSourceGroupPreferences()[details.dataset.archiveSourceGroup] =
+                details.open;
+        });
+    });
     root.querySelectorAll('[data-archive-source-row]').forEach(row =>
     {
         const open = () =>
         {
+            const sourceId = row.dataset.archiveSourceRow;
             runAfterArchiveSourceDetailEditGuard(() =>
             {
                 state.archiveSelectedSourceId = row.dataset.archiveSourceRow;
                 state.archiveInspectorCollapsed = false;
                 renderArchiveMain();
+                main.querySelector(`[data-archive-source-row="${CSS.escape(sourceId)}"]`)
+                    ?.focus({ preventScroll: true });
             });
         };
         row.addEventListener('click', event =>
@@ -1316,9 +1331,10 @@ function bindArchiveControls(root = main.querySelector('.archive-shell'))
         });
         row.addEventListener('keydown', event =>
         {
-            if (event.key === 'Enter')
+            if (event.target === row && ['Enter', ' '].includes(event.key))
             {
-                event.preventDefault(); open();
+                event.preventDefault();
+                open();
             }
         });
     });
@@ -1719,4 +1735,3 @@ function openArchiveLinkPersonModal()
     const ids = state.archiveSelectedFileIds.length ? state.archiveSelectedFileIds : [state.archiveSelectedFileId].filter(Boolean);
     openArchiveConnectionPicker({ ownerType: 'file', ownerIds: ids, entityType: 'person' });
 }
-

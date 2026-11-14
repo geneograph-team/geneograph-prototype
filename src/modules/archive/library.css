@@ -1086,3 +1086,176 @@ body.mobile-surface-open:has(.archive-shell) .modal-backdrop.open {
     min-width: 0;
     flex: 0 0 auto;
 }
+
+/* Sources overview — disclosure groups adapted from Places review. */
+.archive-source-groups {
+    min-width: 0;
+    flex: 1 1 auto;
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-md);
+    background: var(--table-surface);
+    overflow: hidden;
+    container-type: inline-size;
+}
+
+.archive-source-group + .archive-source-group {
+    border-top: 1px solid var(--border-default);
+}
+
+.archive-source-group > summary {
+    min-height: 56px;
+    padding: var(--space-3) var(--space-4);
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    background: var(--table-header-surface);
+    color: var(--text-primary);
+    cursor: pointer;
+    list-style: none;
+}
+
+.archive-source-group > summary::-webkit-details-marker {
+    display: none;
+}
+
+.archive-source-group > summary::before {
+    content: '▸';
+    color: var(--text-secondary);
+    font-size: 17px;
+    line-height: 1;
+}
+
+.archive-source-group[open] > summary::before {
+    transform: rotate(90deg);
+}
+
+.archive-source-group > summary:hover {
+    background: var(--table-row-hover);
+}
+
+.archive-source-group > summary:focus-visible {
+    outline: 2px solid var(--table-focus);
+    outline-offset: -3px;
+}
+
+.archive-source-group > summary strong {
+    flex: 1 1 auto;
+    min-width: 0;
+    font-size: 14px;
+}
+
+.archive-source-group-count {
+    min-width: 30px;
+    min-height: 26px;
+    padding: 2px var(--space-2);
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-sm);
+    background: var(--surface-field);
+    color: var(--text-secondary);
+    display: grid;
+    place-items: center;
+    font-size: 12px;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+}
+
+.archive-source-entry {
+    min-width: 0;
+    min-height: 70px;
+    padding: var(--space-3) var(--space-4);
+    border-top: 1px solid var(--table-divider);
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto auto;
+    align-items: center;
+    gap: var(--space-3);
+    cursor: pointer;
+    transition: background var(--ease), box-shadow var(--ease);
+}
+
+.archive-source-entry:hover {
+    background: var(--table-row-hover);
+}
+
+.archive-source-entry.selected-detail,
+.archive-source-entry.selected-detail:hover {
+    background: var(--table-row-selected);
+    box-shadow: inset 3px 0 0 var(--table-current-marker);
+}
+
+.archive-source-entry:focus-visible {
+    outline: 2px solid var(--table-focus);
+    outline-offset: -3px;
+}
+
+.archive-source-entry-main {
+    min-width: 0;
+    display: grid;
+    gap: 4px;
+}
+
+.archive-source-entry-main strong,
+.archive-source-entry-main span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.archive-source-entry-main strong {
+    color: var(--text-primary);
+    font-size: 14px;
+    font-weight: 800;
+}
+
+.archive-source-entry-main span {
+    color: var(--text-tertiary);
+    font-size: 12px;
+    line-height: 1.4;
+}
+
+.archive-source-entry-connections {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--text-secondary);
+    font-size: 12px;
+    white-space: nowrap;
+}
+
+.archive-source-entry-connections strong {
+    font-variant-numeric: tabular-nums;
+}
+
+.archive-source-entry-actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 4px;
+}
+
+@container (max-width: 520px) {
+    .archive-source-entry {
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: var(--space-2);
+    }
+
+    .archive-source-entry-main {
+        grid-column: 1;
+        grid-row: 1;
+    }
+
+    .archive-source-entry-main strong,
+    .archive-source-entry-main span {
+        white-space: normal;
+        overflow-wrap: anywhere;
+    }
+
+    .archive-source-entry-connections {
+        grid-column: 1;
+        grid-row: 2;
+    }
+
+    .archive-source-entry-actions {
+        grid-column: 2;
+        grid-row: 1 / 3;
+    }
+}
