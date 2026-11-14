@@ -1743,8 +1743,10 @@ function openArchiveConnectionPicker({ ownerType, ownerIds, entityType })
                         onCreated:
                   createdSource =>
                   {
-                      const committed =
-                          archiveSetConnectionsAtomically(
+                      let committed;
+                      try
+                      {
+                          committed = archiveSetConnectionsAtomically(
                               ids.map(ownerId => ({
                                   ownerType,
                                   ownerId,
@@ -1753,6 +1755,11 @@ function openArchiveConnectionPicker({ ownerType, ownerIds, entityType })
                                   shouldLink: true
                               }))
                           );
+                      }
+                      catch (error)
+                      {
+                          committed = { ok: false };
+                      }
 
                       if (
                           !committed.ok
@@ -1760,8 +1767,11 @@ function openArchiveConnectionPicker({ ownerType, ownerIds, entityType })
                         !== ids.length
                       )
                       {
+                          removeSourceLinksForSource(createdSource.id);
+                          sampleData.sources = (sampleData.sources || []).filter(source => source !== createdSource);
+                          markPrototypeSessionEdited();
                           showToast(
-                              'Source created, but it could not be linked.'
+                              'Source could not be linked. It was not created.'
                           );
 
                           return;

@@ -541,10 +541,13 @@ function openResourcePicker(adapter, options = {})
         if (session.busy) return false;
         if (session.filterOpen) { closeFilters(); return false; }
         if (session.view !== 'results') { switchView('results'); return false; }
-        if (!session.getChanges().decisions.length) return true;
+        const newSourcePending = adapter.kind === 'sources' && session.createdIds.size > 0;
+        if (!session.getChanges().decisions.length && !newSourcePending) return true;
         rpConfirmDiscard({ title: rpText('Discard connection changes?', 'Отменить изменения связей?'),
-            message: rpText('Your connection changes have not been saved.', 'Изменения связей ещё не сохранены.'),
-            notice: session.createdIds.size ? rpText('New resources will remain in the project.', 'Новые материалы останутся в проекте.') : '',
+            message: newSourcePending
+                ? rpText('The new Source will remain in the project without a connection to this record. Cancel anyway?', 'Новый источник останется в проекте без связи с этой записью. Всё равно отменить?')
+                : rpText('Your connection changes have not been saved.', 'Изменения связей ещё не сохранены.'),
+            notice: session.createdIds.size && !newSourcePending ? rpText('New resources will remain in the project.', 'Новые материалы останутся в проекте.') : '',
             onDiscard: () => closeModal({ force: true }) });
         return false;
     };
