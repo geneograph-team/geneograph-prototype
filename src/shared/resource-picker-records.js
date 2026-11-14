@@ -190,7 +190,7 @@ function rpOpenSourcePicker(options = {})
             : options.subtitle ? t(options.subtitle) : rpText('Connect existing sources to this record.', 'Свяжите источники с этой записью.'),
         existingIds: rpRecordIds(existing()), partialIds: options.partialIds || [], records, mode: 'manage',
         name: source => localizedDataFieldValue(source.title) || rpText('Untitled source', 'Источник без названия'),
-        searchText: source => [source.title, provider(source), source.location, source.reference, source.notes, source.url,
+        searchText: source => [source.title, provider(source), archiveSourceCustodialPlaceLabel(source), source.reference, source.notes, source.url,
             localizedSourceCategoryLabel(source.category, '')].filter(Boolean).join(' '),
         scopes: () => [{ id: 'all', label: rpText('All sources', 'Все источники') },
             ...SOURCE_CATEGORIES.map(category => ({ id: category.value, label: t(category.shortLabel || category.label) })),
@@ -206,7 +206,7 @@ function rpOpenSourcePicker(options = {})
             meta: [localizedSourceCategoryLabel(source.category, ''), source.reference].filter(Boolean).join(' · '), icon: icon.source || icon.archive }),
         preview: source =>
         {
-            const fields = [[rpText('Provider', 'Поставщик'), provider(source)], [rpText('Location', 'Местоположение'), source.location], [rpText('Reference', 'Шифр'), source.reference], ['URL', source.url]];
+            const fields = [[rpText('Provider', 'Поставщик'), provider(source)], [rpText('Stored at', 'Место хранения'), archiveSourceCustodialPlaceLabel(source)], [rpText('Reference', 'Шифр'), source.reference], ['URL', source.url]];
             const rows = fields.filter(([, value]) => value && value !== source.title).map(([label, value]) =>
             {
                 let validUrl = false;

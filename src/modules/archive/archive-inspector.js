@@ -1973,7 +1973,14 @@ function renderArchiveSourceDetails(
           <div class="archive-file-field"><label for="archiveSourceDetailTitle">${escapeHtml(t('Source name'))}</label><input id="archiveSourceDetailTitle" maxlength="220" value="${escapeHtml(draft.title || '')}"></div>
           <div class="archive-file-field"><label for="archiveSourceDetailCategory">${escapeHtml(t('Source category'))}</label><select id="archiveSourceDetailCategory" class="compact-select"><option value="">${escapeHtml(t('Choose category'))}</option>${SOURCE_CATEGORIES.map(category => `<option value="${escapeHtml(category.value)}" ${draft.category === category.value ? 'selected' : ''}>${escapeHtml(t(category.label))}</option>`).join('')}</select></div>
           <div class="archive-file-field"><label for="archiveSourceDetailProvidedBy">${escapeHtml(t('Where or who did it come from?'))}</label><input id="archiveSourceDetailProvidedBy" value="${escapeHtml(draft.providedBy || '')}"></div>
-          <div class="archive-file-field"><label for="archiveSourceDetailLocation">${escapeHtml(t('Location'))}</label><input id="archiveSourceDetailLocation" value="${escapeHtml(draft.location || '')}"></div>
+          <div class="archive-file-field">${renderPlaceCombobox({
+              id: 'archiveSourceDetailLocation',
+              label: 'Location',
+              value: archiveSourceCustodialPlaceLabel(source),
+              selectedPlaceId: archiveSourceCustodialPlace(source)?.id || '',
+              showAddress: false,
+              placeholder: 'Find or create a place'
+          })}</div>
           <div class="archive-file-field"><label for="archiveSourceDetailReference">${escapeHtml(t('Where can it be found?'))}</label><input id="archiveSourceDetailReference" value="${escapeHtml(draft.reference || '')}"></div>
           <div class="archive-file-field"><label for="archiveSourceDetailUrl">${escapeHtml(t('Website or link'))}</label><input id="archiveSourceDetailUrl" type="url" value="${escapeHtml(draft.url || '')}"></div>
           ${renderGenealogyDateField('archiveSourceDetailAccessed', 'Date accessed or received', draft.accessedDate || '', { inputId: 'archiveSourceDetailAccessedInput', typeId: 'archiveSourceDetailAccessedType', defaultDateType: 'Exact date' })}
@@ -2006,10 +2013,10 @@ function renderArchiveSourceDetails(
         },
         {
             label:
-            'Location',
+            'Stored at',
 
             value:
-            source.location
+            archiveSourceCustodialPlaceLabel(source)
             || 'Not specified'
         },
         {
@@ -2115,11 +2122,13 @@ function collectArchiveSourceDetailDraft(root = main)
     const value = id => root.querySelector(`#${id}`)?.value?.trim() || '';
     const accessedModel = collectGenealogyDateField('archiveSourceDetailAccessed', { allowInvalid: true });
     const accessedDate = accessedModel?.invalid ? null : archiveSourceAccessedDateValue(accessedModel);
+    const storedAt = readPlaceInputValue('#archiveSourceDetailLocation', root);
     return {
         title: value('archiveSourceDetailTitle'),
         category: value('archiveSourceDetailCategory'),
         providedBy: value('archiveSourceDetailProvidedBy'),
-        location: value('archiveSourceDetailLocation'),
+        placeId: storedAt.selectedPlaceId,
+        _placeText: storedAt.text,
         reference: value('archiveSourceDetailReference'),
         url: value('archiveSourceDetailUrl'),
         accessedDate,
@@ -2141,8 +2150,11 @@ function beginArchiveSourceDetailEdit(sourceId)
 
 function collectArchiveSourceSnapshot(source)
 {
-    return Object.fromEntries(['title', 'category', 'providedBy', 'location', 'reference', 'url', 'accessedDate', 'notes']
-        .map(key => [key, String(source?.[key] || '')]));
+    return {
+        ...Object.fromEntries(['title', 'category', 'providedBy', 'placeId', 'reference', 'url', 'accessedDate', 'notes']
+            .map(key => [key, String(source?.[key] || '')])),
+        _placeText: archiveSourceCustodialPlaceLabel(source)
+    };
 }
 
 function resetArchiveSourceDetailEdit()
@@ -2175,7 +2187,19 @@ function saveArchiveSourceDetailEdit()
         urlInput?.reportValidity();
         return;
     }
-    Object.assign(source, draft, { updatedAt: new Date().toISOString() });
+    const locationInput = readPlaceInputValue('#archiveSourceDetailLocation', main);
+    const storedAt = resolvePlaceAssignment(locationInput);
+    if (locationInput.text && !storedAt.placeId)
+    {
+        main.querySelector('#archiveSourceDetailLocation')?.focus();
+        showToast(t('The selected place is no longer available.'));
+        return;
+    }
+    const { _placeText, ...details } = draft;
+    Object.assign(source, details, {
+        placeId: storedAt.placeId,
+        updatedAt: new Date().toISOString()
+    });
     markPrototypeSessionEdited();
     resetArchiveSourceDetailEdit();
     renderArchiveMain();

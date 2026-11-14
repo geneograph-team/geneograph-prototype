@@ -3289,7 +3289,7 @@ function archiveSourceOriginLabel(
     const values =
         [
             source.providedBy,
-            source.location
+            archiveSourceCustodialPlaceLabel(source)
         ]
             .map(value =>
                 String(value || '').trim()

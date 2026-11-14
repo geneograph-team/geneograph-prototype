@@ -831,7 +831,7 @@ function archiveSourceSearchText(
         ),
 
         source?.providedBy,
-        source?.location,
+        archiveSourceCustodialPlaceLabel(source),
         source?.reference,
         source?.url,
         source?.notes,

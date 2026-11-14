@@ -843,18 +843,14 @@ function openArchiveSourceModal(
                     archive-source-form-row-location
                   ">
 
-                  <div class="field">
-                    <label for="archiveSourceLocation">
-                      Location
-                    </label>
-
-                    <input
-                      id="archiveSourceLocation"
-                      data-archive-source-location
-                      autocomplete="off"
-                      value="${escapeHtml(source?.location || '')}"
-                      placeholder="Town, archive location, or where the item is kept">
-                  </div>
+                  ${renderPlaceCombobox({
+                        id: 'archiveSourceLocation',
+                        label: 'Location',
+                        value: archiveSourceCustodialPlaceLabel(source),
+                        selectedPlaceId: archiveSourceCustodialPlace(source)?.id || '',
+                        showAddress: false,
+                        placeholder: 'Find or create a place'
+                    })}
 
                   <div class="field">
                     <label for="archiveSourceReference">
@@ -973,6 +969,7 @@ function openArchiveSourceModal(
     bindGenealogyDateFields(
         modalBackdrop
     );
+    bindPlaceComboboxes(modalBackdrop);
 
     requestAnimationFrame(
         () =>
@@ -998,8 +995,9 @@ function openArchiveSourceModal(
             || targetProjectId
             || requireActiveProjectId();
 
-            if (!projectId)
+            if (!projectId || projectId !== currentProjectId())
             {
+                showToast(t('The connected record is no longer available.'));
                 return;
             }
 
@@ -1070,13 +1068,18 @@ function openArchiveSourceModal(
                     .value
                     .trim();
 
-            target.location =
-                form
-                    .querySelector(
-                        '[data-archive-source-location]'
-                    )
-                    .value
-                    .trim();
+            const locationInput = readPlaceInputValue(
+                '#archiveSourceLocation',
+                modalBackdrop
+            );
+            const storedAt = resolvePlaceAssignment(locationInput);
+            if (locationInput.text && !storedAt.placeId)
+            {
+                form.querySelector('#archiveSourceLocation')?.focus();
+                showToast(t('The selected place is no longer available.'));
+                return;
+            }
+            target.placeId = storedAt.placeId;
 
             target.reference =
                 form

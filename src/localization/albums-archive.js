@@ -849,6 +849,9 @@ const RU_UI_ARCHIVE = {
     'Not categorized':
         'Без категории',
 
+    'Stored at':
+        'Место хранения',
+
     'Obtained from':
         'Получено от',
 

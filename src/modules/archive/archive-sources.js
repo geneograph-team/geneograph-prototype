@@ -138,8 +138,8 @@ sampleData.sources = [
         providedBy:
           'Pawford County Archive',
 
-        location:
-          'North Yorkshire, England',
+        placeId:
+          'place-archive',
 
         reference:
           'Register collection 12 / household series 3',
@@ -179,8 +179,8 @@ sampleData.sources = [
         providedBy:
           'Pawford County Archive',
 
-        location:
-          'Pawford, North Yorkshire, England',
+        placeId:
+          'place-archive',
 
         reference:
           'Birth notices collection, 1990–2000',
@@ -220,8 +220,8 @@ sampleData.sources = [
         providedBy:
           'Whiskerfield family documents',
 
-        location:
-          'Pawford, North Yorkshire, England',
+        placeId:
+          'place-residence',
 
         reference:
           'Certificate folder, item 2',
@@ -261,8 +261,8 @@ sampleData.sources = [
         providedBy:
           'Luna Purrington',
 
-        location:
-          'Online interview',
+        placeId:
+          null,
 
         reference:
           'Audio interview 2026-04-02',
@@ -302,8 +302,8 @@ sampleData.sources = [
         providedBy:
           'Silver Whiskerfield',
 
-        location:
-          'Pawford, North Yorkshire, England',
+        placeId:
+          'place-residence',
 
         reference:
           'Reference box A',
@@ -343,8 +343,8 @@ sampleData.sources = [
         providedBy:
           'Regional genealogy database',
 
-        location:
-          '',
+        placeId:
+          null,
 
         reference:
           'Pawford record collection, 1900–1950',
@@ -509,6 +509,20 @@ function archiveSourceById(id, projectId = currentProjectId())
         source.id === id
         && source.projectId === projectId
     ) || null;
+}
+
+function archiveSourceCustodialPlace(source)
+{
+    const place = source?.placeId ? getPlace(source.placeId) : null;
+    return place && !place.deleted && place.projectId === source.projectId
+        ? place
+        : null;
+}
+
+function archiveSourceCustodialPlaceLabel(source)
+{
+    const place = archiveSourceCustodialPlace(source);
+    return place ? placeDisplayText(place) : '';
 }
 
 const SOURCE_LINK_TARGET_TYPES =
@@ -1251,7 +1265,7 @@ function connectedSourceOrigin(
 {
     return String(
         source?.providedBy
-        || source?.location
+        || archiveSourceCustodialPlaceLabel(source)
         || ''
     ).trim()
       || 'Origin not specified';

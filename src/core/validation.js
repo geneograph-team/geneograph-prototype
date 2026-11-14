@@ -873,6 +873,7 @@ function validateSampleData()
     const forbiddenSourceFields = [
         'type',
         'repositoryOwner',
+        'location',
         'holder',
         'description',
         'updated',
@@ -912,6 +913,15 @@ function validateSampleData()
                     source.category
                 }`
             );
+        }
+
+        if (source.placeId)
+        {
+            const custodian = placeById.get(source.placeId);
+            if (!custodian || custodian.deleted || custodian.projectId !== source.projectId)
+            {
+                warn(`Source ${source.id} has an invalid custodial Place reference ${source.placeId}`);
+            }
         }
 
         forbiddenSourceFields.forEach(
