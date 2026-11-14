@@ -566,17 +566,7 @@ function bindArchiveControls(root = main.querySelector('.archive-shell'))
         if (file) openArchiveFilePlacesModal(file.id, file.documentPlaceText || '', true);
     });
     root.querySelector('[data-archive-edit-source-details]')?.addEventListener('click', event =>
-        beginArchiveSourceDetailEdit(event.currentTarget.dataset.archiveEditSourceDetails));
-    root.querySelector('#archiveCancelSourceDetailEdit')?.addEventListener('click', cancelArchiveSourceDetailEdit);
-    root.querySelector('#archiveSaveSourceDetailEdit')?.addEventListener('click', saveArchiveSourceDetailEdit);
-    root.querySelector('.archive-source-details-form')?.addEventListener('input', () =>
-    {
-        state.archiveSourceEditDraft = collectArchiveSourceDetailDraft(root);
-    });
-    root.querySelector('.archive-source-details-form')?.addEventListener('change', () =>
-    {
-        state.archiveSourceEditDraft = collectArchiveSourceDetailDraft(root);
-    });
+        openArchiveSourceModal(event.currentTarget.dataset.archiveEditSourceDetails));
     root
         .querySelectorAll(
             '[data-archive-section-toggle]'
@@ -1316,14 +1306,11 @@ function bindArchiveControls(root = main.querySelector('.archive-shell'))
         const open = () =>
         {
             const sourceId = row.dataset.archiveSourceRow;
-            runAfterArchiveSourceDetailEditGuard(() =>
-            {
-                state.archiveSelectedSourceId = row.dataset.archiveSourceRow;
-                state.archiveInspectorCollapsed = false;
-                renderArchiveMain();
-                main.querySelector(`[data-archive-source-row="${CSS.escape(sourceId)}"]`)
-                    ?.focus({ preventScroll: true });
-            });
+            state.archiveSelectedSourceId = sourceId;
+            state.archiveInspectorCollapsed = false;
+            renderArchiveMain();
+            main.querySelector(`[data-archive-source-row="${CSS.escape(sourceId)}"]`)
+                ?.focus({ preventScroll: true });
         };
         row.addEventListener('click', event =>
         {

@@ -618,6 +618,33 @@
 .archive-source-read-list {
     margin: 0;
     padding: 0;
+    container-type: inline-size;
+}
+
+/* Give Source metadata labels room without changing File/Photo inspector rows. */
+.archive-source-read-list .archive-file-read-row {
+    grid-template-columns: minmax(195px, .95fr) minmax(0, 1.4fr);
+    gap: var(--space-4);
+    align-items: start;
+}
+
+.archive-source-read-list .archive-file-read-row dd {
+    text-align: left;
+}
+
+.archive-source-read-list .text-action {
+    display: inline;
+    max-width: 100%;
+    white-space: normal;
+    text-align: left;
+    overflow-wrap: anywhere;
+}
+
+@container (max-width: 455px) {
+    .archive-source-read-list .archive-file-read-row {
+        grid-template-columns: minmax(0, 1fr);
+        gap: var(--space-1);
+    }
 }
 
 .archive-source-url {

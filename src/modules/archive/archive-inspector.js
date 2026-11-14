@@ -1966,28 +1966,6 @@ function renderArchiveSourceDetails(
     categoryLabel
 )
 {
-    if (state.archiveSourceEditingId === source.id)
-    {
-        const draft = state.archiveSourceEditDraft || source;
-        return `<div class="archive-source-details-form archive-file-form-grid">
-          <div class="archive-file-field"><label for="archiveSourceDetailTitle">${escapeHtml(t('Source name'))}</label><input id="archiveSourceDetailTitle" maxlength="220" value="${escapeHtml(draft.title || '')}"></div>
-          <div class="archive-file-field"><label for="archiveSourceDetailCategory">${escapeHtml(t('Source category'))}</label><select id="archiveSourceDetailCategory" class="compact-select"><option value="">${escapeHtml(t('Choose category'))}</option>${SOURCE_CATEGORIES.map(category => `<option value="${escapeHtml(category.value)}" ${draft.category === category.value ? 'selected' : ''}>${escapeHtml(t(category.label))}</option>`).join('')}</select></div>
-          <div class="archive-file-field"><label for="archiveSourceDetailProvidedBy">${escapeHtml(t('Where or who did it come from?'))}</label><input id="archiveSourceDetailProvidedBy" value="${escapeHtml(draft.providedBy || '')}"></div>
-          <div class="archive-file-field">${renderPlaceCombobox({
-              id: 'archiveSourceDetailLocation',
-              label: 'Location',
-              value: archiveSourceCustodialPlaceLabel(source),
-              selectedPlaceId: archiveSourceCustodialPlace(source)?.id || '',
-              showAddress: false,
-              placeholder: 'Find or create a place'
-          })}</div>
-          <div class="archive-file-field"><label for="archiveSourceDetailReference">${escapeHtml(t('Where can it be found?'))}</label><input id="archiveSourceDetailReference" value="${escapeHtml(draft.reference || '')}"></div>
-          <div class="archive-file-field"><label for="archiveSourceDetailUrl">${escapeHtml(t('Website or link'))}</label><input id="archiveSourceDetailUrl" type="url" value="${escapeHtml(draft.url || '')}"></div>
-          ${renderGenealogyDateField('archiveSourceDetailAccessed', 'Date accessed or received', draft.accessedDate || '', { inputId: 'archiveSourceDetailAccessedInput', typeId: 'archiveSourceDetailAccessedType', defaultDateType: 'Exact date' })}
-          <div class="archive-file-field"><label for="archiveSourceDetailNotes">${escapeHtml(t('Notes'))}</label><textarea id="archiveSourceDetailNotes">${escapeHtml(draft.notes || '')}</textarea></div>
-          <div class="details-edit-actions"><button class="button secondary" type="button" id="archiveCancelSourceDetailEdit">${escapeHtml(t('Cancel'))}</button><button class="button primary" type="button" id="archiveSaveSourceDetailEdit">${escapeHtml(t('Save changes'))}</button></div>
-        </div>`;
-    }
     const url =
         String(
             source.url
@@ -2001,7 +1979,7 @@ function renderArchiveSourceDetails(
 
             value:
             categoryLabel
-            || 'Not specified'
+            || 'Not categorized'
         },
         {
             label:
@@ -2009,7 +1987,7 @@ function renderArchiveSourceDetails(
 
             value:
             source.providedBy
-            || 'Not specified'
+            || ''
         },
         {
             label:
@@ -2017,7 +1995,7 @@ function renderArchiveSourceDetails(
 
             value:
             archiveSourceCustodialPlaceLabel(source)
-            || 'Not specified',
+            || '',
 
             placeId:
             archiveSourceCustodialPlace(source)?.id || ''
@@ -2028,20 +2006,17 @@ function renderArchiveSourceDetails(
 
             value:
             source.reference
-            || 'Not specified'
+            || ''
         },
         {
             label:
             'Website or link',
 
             value:
-            url
-            || 'Not specified',
+            url,
 
             isLink:
-            Boolean(
-                url
-            )
+            /^https?:\/\//i.test(url)
         },
         {
             label:
@@ -2052,7 +2027,7 @@ function renderArchiveSourceDetails(
                 ? archiveFormatDate(
                     source.accessedDate
                 )
-                : 'Not specified'
+                : ''
         }
     ];
 
@@ -2064,11 +2039,12 @@ function renderArchiveSourceDetails(
           ">
 
           ${rows
+                .filter(row => String(row.value || '').trim())
                 .map(row => `
               <div class="archive-file-read-row">
                 <dt>
                   ${escapeHtml(
-                        row.label
+                        t(row.label)
                     )}
                 </dt>
 
@@ -2128,138 +2104,6 @@ function renderArchiveSourceDetails(
                 : ''
         }
       `;
-}
-
-function collectArchiveSourceDetailDraft(root = main)
-{
-    const value = id => root.querySelector(`#${id}`)?.value?.trim() || '';
-    const accessedModel = collectGenealogyDateField('archiveSourceDetailAccessed', { allowInvalid: true });
-    const accessedDate = accessedModel?.invalid ? null : archiveSourceAccessedDateValue(accessedModel);
-    const storedAt = readPlaceInputValue('#archiveSourceDetailLocation', root);
-    return {
-        title: value('archiveSourceDetailTitle'),
-        category: value('archiveSourceDetailCategory'),
-        providedBy: value('archiveSourceDetailProvidedBy'),
-        placeId: storedAt.selectedPlaceId,
-        _placeText: storedAt.text,
-        reference: value('archiveSourceDetailReference'),
-        url: value('archiveSourceDetailUrl'),
-        accessedDate,
-        notes: value('archiveSourceDetailNotes')
-    };
-}
-
-function beginArchiveSourceDetailEdit(sourceId)
-{
-    const source = archiveSourceById(sourceId);
-    if (!source || source.projectId !== currentProjectId()) return;
-    state.archiveSourceEditingId = sourceId;
-    state.archiveSourceEditOriginal = collectArchiveSourceSnapshot(source);
-    state.archiveSourceEditDraft = { ...state.archiveSourceEditOriginal };
-    state.archiveInspectorSections['source-details'] = true;
-    renderArchiveMain();
-    requestAnimationFrame(() => main.querySelector('#archiveSourceDetailTitle')?.focus({ preventScroll: true }));
-}
-
-function collectArchiveSourceSnapshot(source)
-{
-    return {
-        ...Object.fromEntries(['title', 'category', 'providedBy', 'placeId', 'reference', 'url', 'accessedDate', 'notes']
-            .map(key => [key, String(source?.[key] || '')])),
-        _placeText: archiveSourceCustodialPlaceLabel(source)
-    };
-}
-
-function resetArchiveSourceDetailEdit()
-{
-    state.archiveSourceEditingId = '';
-    state.archiveSourceEditOriginal = null;
-    state.archiveSourceEditDraft = null;
-}
-
-function saveArchiveSourceDetailEdit()
-{
-    const source = archiveSourceById(state.archiveSourceEditingId);
-    if (!source || source.projectId !== currentProjectId()) return;
-    const draft = collectArchiveSourceDetailDraft();
-    if (!draft.title)
-    {
-        main.querySelector('#archiveSourceDetailTitle')?.focus();
-        showToast(t('Enter a source name before saving.'));
-        return;
-    }
-    if (draft.accessedDate === null)
-    {
-        main.querySelector('#archiveSourceDetailAccessedInput')?.focus();
-        showToast(t('Enter a valid date or the known date parts.'));
-        return;
-    }
-    const urlInput = main.querySelector('#archiveSourceDetailUrl');
-    if (draft.url && !urlInput?.checkValidity())
-    {
-        urlInput?.reportValidity();
-        return;
-    }
-    const locationInput = readPlaceInputValue('#archiveSourceDetailLocation', main);
-    const storedAt = resolvePlaceAssignment(locationInput);
-    if (locationInput.text && !storedAt.placeId)
-    {
-        main.querySelector('#archiveSourceDetailLocation')?.focus();
-        showToast(t('The selected place is no longer available.'));
-        return;
-    }
-    const { _placeText, ...details } = draft;
-    Object.assign(source, details, {
-        placeId: storedAt.placeId,
-        updatedAt: new Date().toISOString()
-    });
-    markPrototypeSessionEdited();
-    resetArchiveSourceDetailEdit();
-    renderArchiveMain();
-    requestAnimationFrame(() => main.querySelector('[data-archive-edit-source-details]')?.focus({ preventScroll: true }));
-    showToast(t('Source updated.'));
-}
-
-function cancelArchiveSourceDetailEdit()
-{
-    const current = collectArchiveSourceDetailDraft();
-    if (JSON.stringify(current) !== JSON.stringify(state.archiveSourceEditOriginal))
-    {
-        openModal(`<div class="modal" role="dialog" aria-modal="true" aria-labelledby="archiveDiscardSourceTitle"><div class="modal-header"><h2 id="archiveDiscardSourceTitle">${escapeHtml(t('Discard changes?'))}</h2></div><div class="modal-body"><p>${escapeHtml(t('Your unsaved source details will be lost.'))}</p></div><div class="modal-footer"><button class="button secondary" type="button" data-close>${escapeHtml(t('Continue editing'))}</button><button class="button danger" type="button" id="archiveConfirmDiscardSource">${escapeHtml(t('Discard changes'))}</button></div></div>`);
-        modalBackdrop.querySelector('#archiveConfirmDiscardSource')?.addEventListener('click', () =>
-        {
-            closeModal();
-            resetArchiveSourceDetailEdit();
-            renderArchiveMain();
-            requestAnimationFrame(() => main.querySelector('[data-archive-edit-source-details]')?.focus({ preventScroll: true }));
-        });
-        return;
-    }
-    resetArchiveSourceDetailEdit();
-    renderArchiveMain();
-    requestAnimationFrame(() => main.querySelector('[data-archive-edit-source-details]')?.focus({ preventScroll: true }));
-}
-
-function runAfterArchiveSourceDetailEditGuard(action)
-{
-    if (!state.archiveSourceEditingId)
-    {
-        action();
-        return;
-    }
-    if (JSON.stringify(collectArchiveSourceDetailDraft()) === JSON.stringify(state.archiveSourceEditOriginal))
-    {
-        resetArchiveSourceDetailEdit();
-        action();
-        return;
-    }
-    openModal(`<div class="modal" role="dialog" aria-modal="true" aria-labelledby="archiveDiscardSourceTitle"><div class="modal-header"><h2 id="archiveDiscardSourceTitle">${escapeHtml(t('Discard changes?'))}</h2></div><div class="modal-body"><p>${escapeHtml(t('Your unsaved source details will be lost.'))}</p></div><div class="modal-footer"><button class="button secondary" type="button" data-close>${escapeHtml(t('Continue editing'))}</button><button class="button danger" type="button" id="archiveConfirmDiscardSource">${escapeHtml(t('Discard changes'))}</button></div></div>`);
-    modalBackdrop.querySelector('#archiveConfirmDiscardSource')?.addEventListener('click', () =>
-    {
-        closeModal();
-        resetArchiveSourceDetailEdit();
-        action();
-    });
 }
 
 function openArchiveSourceFilesModal(
@@ -2781,7 +2625,7 @@ function renderArchiveSourceInspector()
             'details',
             'Source details',
             renderArchiveSourceDetails(source, categoryLabel),
-            state.archiveSourceEditingId === source.id ? '' : `<button class="panel-action" type="button" data-archive-edit-source-details="${escapeHtml(source.id)}">${renderPanelButtonLabel(icon.edit, 'Edit')}</button>`
+            `<button class="panel-action" type="button" data-archive-edit-source-details="${escapeHtml(source.id)}">${renderPanelButtonLabel(icon.edit, 'Edit')}</button>`
         )}
 
         ${renderArchiveSourceConnectionSection(source, 'person')}

@@ -1258,11 +1258,6 @@ function runAfterArchiveFileEditGuard(
         action();
         return;
     }
-    if (state.archiveSourceEditingId)
-    {
-        runAfterArchiveSourceDetailEditGuard(action);
-        return;
-    }
     if (
         !state.archiveFileEditing
     )
