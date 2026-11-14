@@ -2610,6 +2610,11 @@ function bindGeneographEditor()
         if (event.button !== 0) return;
         event.preventDefault(); event.stopPropagation();
         const connection = getGeneographConnection(segment.dataset.geneoConnection); if (!connection) return; const index = Number(segment.dataset.geneoSegment); const points = geneoConnectionPoints(connection);
+        if (geneoEffectiveCanvasTool() === 'pan' && !geneoSelectedConnectionIdSet().has(connection.id))
+        {
+            startGeneographPanGesture(event);
+            return;
+        }
         if (geneoSelectedConnectionIdSet().has(connection.id)
             && selectedGeneographNodes().length + selectedGeneographConnections().length > 1
             && startGeneographSelectedConnectionDrag(event, connection)) return;

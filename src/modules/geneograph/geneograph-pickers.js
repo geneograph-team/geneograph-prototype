@@ -1397,6 +1397,7 @@ function handleGeneographFamilyBusSelection(event)
     if (event.type === 'keydown' && !['Enter', ' '].includes(event.key)) return;
     event.preventDefault();
     event.stopPropagation();
+    if (event.type === 'click' && geneoCanvasRuntime.suppressNodeClick) return;
     const ids = (event.currentTarget.dataset.geneoFamilyBus || '').split(',')
         .filter(id => Boolean(getGeneographConnection(id)));
     if (!ids.length) return;
@@ -1449,6 +1450,12 @@ function startGeneographFamilyBusRailDrag(event)
     const bus = geneoFamilyChildBusGroups().buses.find(item =>
         item.connectionIds.join(',') === ids.join(','));
     if (!bus) return;
+    if (geneoEffectiveCanvasTool() === 'pan'
+        && !ids.every(id => geneoSelectedConnectionIdSet().has(id)))
+    {
+        startGeneographPanGesture(event);
+        return;
+    }
     geneoPushHistory();
     setGeneographSelection([], ids, { connectionId: ids.at(-1) });
     geneoPointerState = {
