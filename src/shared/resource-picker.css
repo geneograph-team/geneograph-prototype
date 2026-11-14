@@ -1683,6 +1683,22 @@
     padding: 0 24px 20px;
     overflow-y: auto;
 }
+.resource-picker.geneo-place-modal .geneo-place-picker-body.is-empty {
+    display: flex;
+    flex-direction: column;
+}
+.resource-picker.geneo-place-modal .geneo-place-picker-body.is-empty .geneo-place-picker-options {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    min-height: 0;
+}
+.resource-picker.geneo-place-modal .geneo-place-picker-body.is-empty .geneo-place-picker-status {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    padding: 0;
+}
 .resource-picker.geneo-place-modal .geneo-place-picker-options {
     max-height: none;
     overflow: visible;

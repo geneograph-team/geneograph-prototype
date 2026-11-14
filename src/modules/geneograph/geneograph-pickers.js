@@ -708,14 +708,25 @@ function openGeneographPlaceModal(
 
     const renderStatus = model =>
     {
+        const emptyProject = !model.allPlaces.length && !model.query && mapGroup.hidden;
+        form.querySelector('.geneo-place-picker-body')?.classList.toggle('is-empty', emptyProject);
+        if (emptyProject)
+        {
+            statusHost.innerHTML = `<div class="rp-empty">
+              <h3>${escapeHtml(rpText('No places here yet', 'Мест пока нет'))}</h3>
+              <p>${escapeHtml(rpText('Browse another location or add a new item.', 'Выберите другой раздел или создайте запись.'))}</p>
+              <button type="button" class="button secondary" data-geneo-place-new>${escapeHtml(rpText('New place', 'Новое место'))}</button>
+            </div>`;
+            statusHost.hidden = false;
+            return;
+        }
+
         let message = '';
         if (!model.matches.length && mapGroup.hidden)
         {
-            if (!model.query)
-                message = 'No project places yet. Search for a place to add it to this board.';
-            else if (mapState === 'empty')
+            if (mapState === 'empty')
                 message = 'No matching places found.';
-            else if (mapState === 'idle')
+            else if (model.query && mapState === 'idle')
                 message = t('Type at least {count} characters to search the map.')
                     .replace('{count}', String(PLACE_EDITOR_GEOCODER_MIN_LENGTH));
         }
@@ -864,6 +875,11 @@ function openGeneographPlaceModal(
     form.addEventListener('click', event =>
     {
         if (event.target.closest('[data-geneo-place-map-retry]')) scheduleMapSearch(true);
+        if (event.target.closest('[data-geneo-place-new]'))
+        {
+            closeModal({ force: true });
+            if (navigateToProjectModuleCommit(board.projectId, 'Places')) openPlaceModal();
+        }
     });
 
     form.addEventListener(
