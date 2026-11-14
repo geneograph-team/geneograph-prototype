@@ -1422,7 +1422,7 @@ function placesReviewGroups()
     groups.sort((left, right) => right.items.length - left.items.length);
     groups.push(dismissedGroup);
 
-    return { activeCount: active.length, groups };
+    return { groups };
 }
 
 function placeReviewConnectionTotal(place)
@@ -1543,8 +1543,6 @@ function renderPlacesNeedsReviewPage()
             <div class="places-title"><h1 class="app-page-title">${escapeHtml(t('Needs review'))}</h1>
               <p>${escapeHtml(t('Places with details that may need your attention.'))}</p>
             </div>
-            <strong class="places-review-total">${escapeHtml(t('Active items'))}:
-              ${review.activeCount}</strong>
           </header>
           <div class="places-review-controls">
             <label class="app-search-field" aria-label="${escapeHtml(t('Search places needing review'))}">

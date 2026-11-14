@@ -691,9 +691,6 @@ const RU_UI_PLACES = Object.freeze({
     'Review reason saved.':
         'Причина скрытия сохранена.',
 
-    'Active items':
-        'Активные предупреждения',
-
     'Coordinates need attention':
         'Координаты требуют проверки',
 

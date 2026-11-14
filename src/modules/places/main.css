@@ -901,12 +901,6 @@
     flex: 0 0 auto;
 }
 
-.places-review-total {
-    color: var(--text-secondary);
-    font-size: 13px;
-    font-weight: 600;
-}
-
 .places-review-controls {
     min-height: 64px;
     padding: 10px var(--space-6);
@@ -4201,8 +4195,6 @@ body.mobile-surface-open:has(.places-shell) .menu-popover {
         padding: 12px 12px 0;
         flex-direction: row;
         align-items: center;
-        justify-content: space-between;
-        gap: 12px;
         overflow: visible;
         clip-path: none;
     }
@@ -4210,10 +4202,6 @@ body.mobile-surface-open:has(.places-shell) .menu-popover {
     .places-review-head .app-page-title {
         font-size: 20px;
         line-height: 1.2;
-    }
-
-    .places-review-head .places-review-total {
-        white-space: nowrap;
     }
 
     .places-review-controls {
