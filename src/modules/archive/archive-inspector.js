@@ -2017,7 +2017,10 @@ function renderArchiveSourceDetails(
 
             value:
             archiveSourceCustodialPlaceLabel(source)
-            || 'Not specified'
+            || 'Not specified',
+
+            placeId:
+            archiveSourceCustodialPlace(source)?.id || ''
         },
         {
             label:
@@ -2071,7 +2074,17 @@ function renderArchiveSourceDetails(
 
                 <dd>
                   ${
-                        row.isLink
+                        row.placeId
+                            ? `
+                        <button
+                          class="text-action"
+                          type="button"
+                          data-archive-open-connection="place"
+                          data-archive-connection-id="${escapeHtml(row.placeId)}">
+                          ${escapeHtml(row.value)}
+                        </button>
+                      `
+                            : row.isLink
                             ? `
                         <a
                           class="
