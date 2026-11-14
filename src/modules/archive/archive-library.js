@@ -361,107 +361,6 @@ function archiveRevealPendingFolderInSidebar()
     );
 }
 
-function renderArchiveSourceFilters()
-{
-    const sources =
-        archiveProjectSources();
-
-    const populatedCategories =
-        SOURCE_CATEGORIES.filter(
-            category =>
-                sources.some(source =>
-                    source.category
-                === category.value
-                )
-        );
-
-    const button = ({
-        value,
-        label,
-        active,
-        title = ''
-    }) => `
-        <button
-          class="
-            archive-source-filter
-            ${active ? 'active' : ''}
-          "
-          type="button"
-          data-archive-source-filter="${escapeHtml(value)}"
-          aria-pressed="${active ? 'true' : 'false'}"
-          ${
-                title
-                    ? `title="${escapeHtml(title)}"`
-                    : ''
-            }>
-
-          <span class="archive-source-filter-label">
-            ${escapeHtml(label)}
-          </span>
-        </button>
-      `;
-
-    return `
-        <div class="archive-source-browser">
-          <div
-            class="archive-source-filter-list"
-            role="group"
-            aria-label="Browse sources">
-
-            ${button({
-                value:
-                'all',
-
-                label:
-                'All sources',
-
-                active:
-                state.archiveSourceCategoryFilter
-                  === 'all'
-            })}
-          </div>
-
-          ${
-                populatedCategories.length
-                    ? `
-                <div>
-                  <div class="side-section-title">
-                    Source categories
-                  </div>
-
-                  <div
-                    class="archive-source-filter-list"
-                    role="group"
-                    aria-label="Source categories">
-
-                    ${populatedCategories
-                        .map(category =>
-                            button({
-                                value:
-                            category.value,
-
-                                label:
-                            category.shortLabel,
-
-                                title:
-                            category.label,
-
-                                active:
-                            state
-                                .archiveSourceCategoryFilter
-                              === category.value
-                            })
-                        )
-                        .join('')}
-                  </div>
-                </div>
-              `
-                    : ''
-            }
-        </div>
-      `;
-}
-
 function openArchiveCreateFolderFromTrigger(
     button
 )
@@ -517,66 +416,29 @@ function renderArchiveSidebar()
               </div>
             </section>
 
-            <section
-              class="
-                archive-sidebar-section
-                archive-sidebar-tree-section
-              ">
-
-              <div
-                class="
-                  side-section-title
-                  ${
-                        sourceView
-                            ? ''
-                            : 'with-add'
-                    }
-                ">
-
-                <span>
-                  ${
-                        sourceView
-                            ? 'Browse sources'
-                            : 'Folders'
-                    }
-                </span>
-
-                ${
-                    sourceView
-                        ? ''
-                        : `
-                      <button
-                        class="side-add-button"
-                        type="button"
-                        data-archive-create-folder
-                        aria-label="Create folder"
-                        title="Create folder">
-
-                        ${icon.plus}
-                      </button>
-                    `
-                }
+            ${sourceView ? '' : `
+            <section class="archive-sidebar-section archive-sidebar-tree-section">
+              <div class="side-section-title with-add">
+                <span>Folders</span>
+                <button
+                  class="side-add-button"
+                  type="button"
+                  data-archive-create-folder
+                  aria-label="Create folder"
+                  title="Create folder">
+                  ${icon.plus}
+                </button>
               </div>
-
-              ${
-                    sourceView
-                        ? renderArchiveSourceFilters()
-                        : `
-                    <div
-                      class="
-                        archive-folder-tree
-                        archive-sidebar-folder-tree
-                      "
-                      role="tree"
-                      aria-label="Archive folder tree">
-
-                      ${archiveFolderChildren().length
-                            ? renderArchiveFolderTree()
-                            : `<div class="sidebar-entity-empty">${escapeHtml(t('No folders yet'))}</div>`}
-                    </div>
-                  `
-                }
+              <div
+                class="archive-folder-tree archive-sidebar-folder-tree"
+                role="tree"
+                aria-label="Archive folder tree">
+                ${archiveFolderChildren().length
+                    ? renderArchiveFolderTree()
+                    : `<div class="sidebar-entity-empty">${escapeHtml(t('No folders yet'))}</div>`}
+              </div>
             </section>
+            `}
           </nav>
         `;
 
@@ -618,6 +480,10 @@ function renderArchiveSidebar()
                                 state.archiveInspectorCollapsed =
                                     false;
                                 state.archiveSourceTargetFilter = null;
+                                state.archiveSourceCategoryFilter = 'all';
+                                state.archiveSourceConnectionFilter = 'all';
+                                state.archiveSourceFavouriteOnly = false;
+                                state.archiveSelectedSourceId = null;
                                 ensureArchiveSelection();
                                 renderArchive();
                             }
@@ -659,40 +525,6 @@ function renderArchiveSidebar()
                         inspectorCollapsed:
                   false
                     });
-                }
-            );
-        });
-
-    sidebar
-        .querySelectorAll(
-            '[data-archive-source-filter]'
-        )
-        .forEach(button =>
-        {
-            button.addEventListener(
-                'click',
-                () =>
-                {
-                    const value =
-                        button.dataset
-                            .archiveSourceFilter;
-
-                    if (
-                        value !== 'all'
-              && !SOURCE_CATEGORY_BY_VALUE
-                  .has(value)
-                    )
-                    {
-                        return;
-                    }
-                    state.archiveSourceTargetFilter = null;
-                    state.archiveSourceCategoryFilter =
-                        value;
-
-                    state.archiveSelectedSourceId =
-                        null;
-
-                    renderArchive();
                 }
             );
         });
