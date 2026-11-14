@@ -1145,6 +1145,13 @@ body.mobile-surface-open:has(.albums-shell) .menu-popover {
     display: none;
 }
 
+.geneo-image-add-modal [data-geneo-image-project-results]:has(> .rp-empty) {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+}
+
 .geneo-image-add-modal .person-photos-adder-upload-dropzone {
     min-height: 240px;
     text-align: left;
