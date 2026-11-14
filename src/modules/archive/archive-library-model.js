@@ -895,9 +895,9 @@ function archiveFilteredSources()
     {
         sources =
             sources.filter(source =>
-                source.category
-              === state
-                  .archiveSourceCategoryFilter
+                state.archiveSourceCategoryFilter === 'uncategorized'
+                    ? !SOURCE_CATEGORY_BY_VALUE.has(source.category)
+                    : source.category === state.archiveSourceCategoryFilter
             );
     }
     if (

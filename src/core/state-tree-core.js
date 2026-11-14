@@ -376,8 +376,8 @@ const state = {
     archiveFileSort: 'name',
     archiveFileSortDirection: 'ascending',
 
-    archiveSourceSort: 'updated',
-    archiveSourceSortDirection: 'descending',
+    archiveSourceSort: 'name',
+    archiveSourceSortDirection: 'ascending',
 
     notesSort: 'updated',
     notesSortDirection: 'descending',

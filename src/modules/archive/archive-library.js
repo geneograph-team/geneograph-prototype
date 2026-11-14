@@ -3382,20 +3382,13 @@ function archiveSourceCategoryGroups(sources)
         { key: 'uncategorized', label: 'Not categorized', sources: [] }
     ];
     const byCategory = new Map(groups.map(group => [group.key, group]));
-    const locale = state.language === 'ru' ? 'ru' : 'en';
-
     (sources || []).forEach(source =>
     {
         const key = SOURCE_CATEGORY_BY_VALUE.has(source.category)
             ? source.category : 'uncategorized';
         byCategory.get(key).sources.push(source);
     });
-    groups.forEach(group => group.sources.sort((left, right) =>
-        String(left.title || '').localeCompare(
-            String(right.title || ''), locale,
-            { sensitivity: 'base', numeric: true }
-        ) || String(left.id).localeCompare(String(right.id))
-    ));
+    // Preserve the shared Sort control order within each category.
     return groups.filter(group => group.sources.length > 0);
 }
 

@@ -495,7 +495,11 @@ const archiveSourceFilterSchema =
                         label:
                     category.label
                     })
-                )
+                ),
+                {
+                    value: 'uncategorized',
+                    label: 'Not categorized'
+                }
             ]
         }),
         Object.freeze({
