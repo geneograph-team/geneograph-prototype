@@ -195,7 +195,8 @@ function applyTreeZoomToDom(options = {})
     stageSpace.style.height = `${stageHeight * scale}px`;
     stage.style.transform = `scale(${scale})`;
     stage.style.setProperty('--tree-overview-connection-width', `${1.5 / scale}px`);
-    stage.style.setProperty('--tree-overview-parent-border-width', `${1.4 / scale}px`);
+    stage.style.setProperty('--tree-overview-parent-border-width', `${1 / scale}px`);
+    stage.style.setProperty('--tree-overview-plus-size', `${Math.min(70, 15 / scale)}px`);
     stage.style.setProperty('--tree-overview-name-size', `${Math.min(40, Math.max(22, 11 / scale))}px`);
     stage.dataset.detailLevel = treeDetailLevel();
     stage.dataset.compactParent = String(treeDisplayZoom() < 70);
@@ -961,7 +962,7 @@ function renderFamilyTree()
 
             <section class="tree-canvas" aria-label="Family tree canvas">
               <div class="tree-stage-space" style="width:${treeLayout.stageWidth * state.treeZoom / 100}px;height:${treeLayout.stageHeight * state.treeZoom / 100}px;">
-                <div class="tree-stage" data-detail-level="${treeDetailLevel()}" data-compact-parent="${treeDisplayZoom() < 70}" data-hide-focus="${treeDisplayZoom() <= 50}" style="width:${treeLayout.stageWidth}px;height:${treeLayout.stageHeight}px;transform: scale(${state.treeZoom / 100});--tree-overview-connection-width:${150 / state.treeZoom}px;--tree-overview-parent-border-width:${140 / state.treeZoom}px;--tree-overview-name-size:${Math.min(40, Math.max(22, 1100 / state.treeZoom))}px;">
+                <div class="tree-stage" data-detail-level="${treeDetailLevel()}" data-compact-parent="${treeDisplayZoom() < 70}" data-hide-focus="${treeDisplayZoom() <= 50}" style="width:${treeLayout.stageWidth}px;height:${treeLayout.stageHeight}px;transform: scale(${state.treeZoom / 100});--tree-overview-connection-width:${150 / state.treeZoom}px;--tree-overview-parent-border-width:${100 / state.treeZoom}px;--tree-overview-plus-size:${Math.min(70, 1500 / state.treeZoom)}px;--tree-overview-name-size:${Math.min(40, Math.max(22, 1100 / state.treeZoom))}px;">
                   ${renderTreeLines(treeLayout)}
                   ${treeLayout.parentPlaceholders.map(renderTreeParentPlaceholder).join('')}
                   ${treeLayout.positionedPeople.map(renderTreePersonCard).join('')}

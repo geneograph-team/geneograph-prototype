@@ -468,16 +468,18 @@ html.tree-fullscreen .tree-shell {
     background: color-mix(in srgb, var(--surface-card) 55%, transparent);
     border-style: solid;
     border-width: var(--tree-overview-parent-border-width);
+    border-color: color-mix(in srgb, var(--tree-connection) 55%, var(--tree-canvas-surface));
 }
 
-.tree-stage[data-detail-level="marker"] .add-parent-card .add-plus svg {
-    width: 52px;
-    height: 52px;
+.tree-stage[data-compact-parent="true"] .add-parent-card:hover {
+    background: var(--tree-card-hover);
+    border-color: var(--tree-connection);
 }
 
+.tree-stage[data-detail-level="marker"] .add-parent-card .add-plus svg,
 .tree-stage[data-detail-level="given"] .add-parent-card .add-plus svg {
-    width: 28px;
-    height: 28px;
+    width: var(--tree-overview-plus-size);
+    height: var(--tree-overview-plus-size);
 }
 
 .tree-stage[data-detail-level="given"] .tree-person-card,
@@ -520,11 +522,6 @@ html.tree-fullscreen .tree-shell {
 .tree-stage[data-detail-level="marker"] .tree-person-card {
     border-width: 5px;
     border-radius: 20px;
-}
-
-.tree-stage[data-detail-level="marker"] .tree-person-card.selected {
-    outline: 4px solid var(--gg-primary);
-    outline-offset: 3px;
 }
 
 .tree-stage[data-detail-level="marker"] .tree-person-card.is-focus-person:not(.selected) {
