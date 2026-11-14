@@ -652,36 +652,9 @@
     word-break: break-word;
 }
 
-.archive-source-notes {
-    min-width: 0;
-    margin-top: var(--space-4);
-    padding-top: var(--space-4);
-    border-top:
-        1px solid color-mix(in srgb, var(--gg-status-neutral-on-accent) 72%, transparent);
-    text-align: left;
-}
-
-.archive-source-notes strong {
-    display: block;
-    margin-bottom: var(--space-2);
-    color: var(--text-tertiary);
-    font-size: 12px;
-    font-weight: 850;
-    line-height: 1.5;
-}
-
-.archive-source-notes p {
-    width: 100%;
-    min-width: 0;
-    margin: 0;
-    color: var(--text-secondary);
-    font-size: 14px;
-    font-weight: 500;
-    line-height: 1.55;
-    text-align: left;
-    text-indent: 0;
+/* Keep multi-line Source notes readable with the shared metadata typography. */
+.archive-source-read-list .archive-source-notes-value {
     white-space: pre-wrap;
-    overflow-wrap: anywhere;
 }
 
 .archive-inspector-section {

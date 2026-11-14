@@ -1467,12 +1467,12 @@ function renderArchiveSourceConnectionContent(
               ${removeAttributes(
                     recordId
                 )}
-              aria-label="Remove ${escapeHtml(
+              aria-label="${escapeHtml(t('Unlink'))} ${escapeHtml(
                     label
-                )} from source"
-              title="Remove link">
+                )}"
+              title="${escapeHtml(t('Unlink'))}">
 
-              ${icon.close}
+              ${icon.unlink}
             </button>
           </div>
         `;
@@ -1507,7 +1507,6 @@ function renderArchiveSourceConnectionContent(
           <div
             class="
               connected-photo-grid
-              notes-linked-photo-grid
             ">
 
             ${visibleRecords
@@ -1521,8 +1520,8 @@ function renderArchiveSourceConnectionContent(
                     return `
                   <div
                     class="
-                      notes-linked-photo-item
                       person-connected-photo-item
+                      family-connected-photo-item
                     ">
 
                     <button
@@ -2028,6 +2027,11 @@ function renderArchiveSourceDetails(
                     source.accessedDate
                 )
                 : ''
+        },
+        {
+            label: 'Source notes',
+            value: source.notes || '',
+            isNote: true
         }
     ];
 
@@ -2048,7 +2052,7 @@ function renderArchiveSourceDetails(
                     )}
                 </dt>
 
-                <dd>
+                <dd${row.isNote ? ' class="archive-source-notes-value"' : ''}>
                   ${
                         row.placeId
                             ? `
@@ -2087,22 +2091,6 @@ function renderArchiveSourceDetails(
             `)
                 .join('')}
         </dl>
-
-        ${
-            source.notes
-                ? `
-              <div class="archive-source-notes">
-                <strong>
-                  Source notes
-                </strong>
-
-                <p>${escapeHtml(
-                    source.notes
-                )}</p>
-              </div>
-            `
-                : ''
-        }
       `;
 }
 
