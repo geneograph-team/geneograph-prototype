@@ -17,7 +17,7 @@ function renderGeneographConnectors()
             connectionPaintRank(first)
           - connectionPaintRank(second)
         );
-    return `<svg class="geneo-connections" viewBox="${bounds.left} ${bounds.top} ${bounds.width} ${bounds.height}" style="--geneo-connection-hit-width:${14 / Math.max(.25, state.geneoZoom / 100)}px;--geneo-segment-hit-width:${18 / Math.max(.25, state.geneoZoom / 100)}px" aria-label="Board connections">
+    return `<svg class="geneo-connections" viewBox="${bounds.left} ${bounds.top} ${bounds.width} ${bounds.height}" style="--geneo-connection-hit-width:${14 / Math.max(.1, state.geneoZoom / 100)}px;--geneo-segment-hit-width:${18 / Math.max(.1, state.geneoZoom / 100)}px" aria-label="Board connections">
         ${buses.map(bus =>
         {
             const trunkPath = geneoPolylinePath([bus.start, { x: bus.start.x, y: bus.railY }]);

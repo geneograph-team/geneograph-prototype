@@ -29,13 +29,14 @@ function renderGeneographEditor()
     {
         state.geneoView = 'home'; renderGeneographHome(); return;
     }
-    const zoom = Math.max(.25, Math.min(2, state.geneoZoom / 100));
+    const zoom = Math.max(.1, Math.min(2, state.geneoZoom / 100));
     renderGeneographEditorSidebar(board);
     const diagram = board.diagram;
     const bounds = geneoDerivedCanvasBounds(diagram);
     geneoCanvasRuntime.bounds = bounds;
-    const gridOriginX = (((-bounds.left % GENEO_GRID_SIZE) + GENEO_GRID_SIZE) % GENEO_GRID_SIZE) * zoom;
-    const gridOriginY = (((-bounds.top % GENEO_GRID_SIZE) + GENEO_GRID_SIZE) % GENEO_GRID_SIZE) * zoom;
+    const gridStep = geneoGridStep();
+    const gridOriginX = geneoGridOrigin(bounds.left, zoom, gridStep);
+    const gridOriginY = geneoGridOrigin(bounds.top, zoom, gridStep);
     const ordered = diagram.nodes.slice().sort((a, b) => (a.type === 'panel' ? -1000 : 0) + a.order - ((b.type === 'panel' ? -1000 : 0) + b.order));
     const stageClasses = [
         'geneo-canvas-stage',
@@ -219,9 +220,9 @@ function renderGeneographEditor()
         ${renderGeneoConnectionToolPanel()}
         ${renderGeneoCreationToolPanel('drawing')}
         ${renderGeneoCreationToolPanel('shape')}
-        <div class="geneo-editor-main ${state.geneoInspectorCollapsed ? 'inspector-collapsed' : ''}"><div class="geneo-canvas-viewport" data-geneo-canvas-viewport style="--geneo-canvas-background:${escapeHtml(geneoPaintCssColor(diagram.canvas.backgroundPaint))}"><div class="geneo-canvas-wrap" data-geneo-canvas-wrap><div class="geneo-board-space pattern-${escapeHtml(diagram.canvas.backgroundPattern)}" style="width:${bounds.width * zoom}px;height:${bounds.height * zoom}px;--geneo-canvas-zoom:${zoom};--geneo-grid-origin-x:${gridOriginX}px;--geneo-grid-origin-y:${gridOriginY}px"><div class="${stageClasses}" data-geneo-stage style="width:${bounds.width}px;height:${bounds.height}px;transform:scale(${zoom})">
+        <div class="geneo-editor-main ${state.geneoInspectorCollapsed ? 'inspector-collapsed' : ''}"><div class="geneo-canvas-viewport" data-geneo-canvas-viewport style="--geneo-canvas-background:${escapeHtml(geneoPaintCssColor(diagram.canvas.backgroundPaint))}"><div class="geneo-canvas-wrap" data-geneo-canvas-wrap><div class="geneo-board-space pattern-${escapeHtml(diagram.canvas.backgroundPattern)}" style="width:${bounds.width * zoom}px;height:${bounds.height * zoom}px;--geneo-canvas-zoom:${zoom};--geneo-grid-spacing:${GENEO_GRID_SIZE * zoom * gridStep}px;--geneo-grid-origin-x:${gridOriginX}px;--geneo-grid-origin-y:${gridOriginY}px"><div class="${stageClasses}" data-geneo-stage style="width:${bounds.width}px;height:${bounds.height}px;transform:scale(${zoom})">
           ${renderGeneographConnectors()}<div class="geneo-panel-draft" data-geneo-panel-draft hidden><span data-geneo-panel-draft-size></span></div><div class="geneo-selection-marquee" data-geneo-marquee hidden></div><div class="geneo-alignment-guides" aria-hidden="true"><div class="geneo-alignment-guide vertical" data-geneo-align-x hidden></div><div class="geneo-alignment-guide horizontal" data-geneo-align-y hidden></div></div>${ordered.map(renderGeneographObject).join('')}
-          </div></div></div><div class="geneo-zoom-overlay canvas-zoom"><button class="geneo-zoom-button zoom-button" type="button" data-geneo-zoom="out" aria-label="Zoom out">${icon.zoomOut}</button><span class="geneo-zoom-value zoom-value">${state.geneoZoom}%</span><button class="geneo-zoom-button zoom-button" type="button" data-geneo-zoom="in" aria-label="Zoom in">${icon.zoomIn}</button><button class="geneo-zoom-button zoom-button" type="button" data-geneo-zoom="fit" aria-label="Fit board">${icon.home}</button></div></div>${renderGeneographInspector()}</div>
+          </div></div></div><div class="geneo-zoom-overlay canvas-zoom"><button class="geneo-zoom-button zoom-button" type="button" data-geneo-zoom="out" aria-label="Zoom out">${icon.zoomOut}</button><span class="geneo-zoom-value zoom-value">${geneoDisplayZoom()}%</span><button class="geneo-zoom-button zoom-button" type="button" data-geneo-zoom="in" aria-label="Zoom in">${icon.zoomIn}</button><button class="geneo-zoom-button zoom-button" type="button" data-geneo-zoom="fit" aria-label="Fit board">${icon.home}</button></div></div>${renderGeneographInspector()}</div>
           </section>`;
     localizeUI(
         main,
@@ -1692,7 +1693,7 @@ function createGeneographDrawingFromPoints(sourcePoints, beforeSnapshot = null)
 {
     const diagram = selectedGeneographDiagram();
     const defaults = geneoNodeDefaults('drawing');
-    const zoom = Math.max(.25, state.geneoZoom / 100);
+    const zoom = Math.max(.1, state.geneoZoom / 100);
     const points = simplifyGeneographDrawingPoints(sourcePoints, 1.5 / zoom);
     if (!diagram || points.length < 2) return null;
     const length = points.slice(1).reduce((total, point, index) => total + Math.hypot(point.x - points[index].x, point.y - points[index].y), 0);

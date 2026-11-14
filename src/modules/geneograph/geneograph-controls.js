@@ -2337,7 +2337,7 @@ function bindGeneographEditor()
                                 clientX: event.clientX, clientY: event.clientY,
                                 x: metrics.x, y: metrics.y, zoom: metrics.zoom,
                                 baseWidth: metrics.width, baseHeight: metrics.height,
-                                boardZoom: Math.max(.25, state.geneoZoom / 100)
+                                boardZoom: Math.max(.1, state.geneoZoom / 100)
                             };
                             handle.setPointerCapture(event.pointerId);
                             event.preventDefault();
@@ -2770,7 +2770,7 @@ function bindGeneographEditor()
     });
     main.querySelectorAll('[data-geneo-zoom]').forEach(button => button.addEventListener('click', () =>
     {
-        const nextZoom = button.dataset.geneoZoom === 'in' ? state.geneoZoom + 10 : button.dataset.geneoZoom === 'out' ? state.geneoZoom - 10 : 65;
+        const nextZoom = button.dataset.geneoZoom === 'in' ? geneoNextZoom(1) : button.dataset.geneoZoom === 'out' ? geneoNextZoom(-1) : 65;
         setGeneographZoom(nextZoom, { center: geneoCurrentViewportCenter() });
     }));
     main.querySelector('[data-geneo-inspector-toggle]')?.addEventListener('click', () =>

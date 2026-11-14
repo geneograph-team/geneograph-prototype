@@ -995,7 +995,7 @@ function moveGeneographObject(event)
         if (event.pointerId !== geneoPointerState.pointerId) return;
         const point = geneoPointerToCanvas(event);
         const previous = geneoPointerState.points.at(-1);
-        const minimumDistance = 2 / Math.max(.25, state.geneoZoom / 100);
+        const minimumDistance = 2 / Math.max(.1, state.geneoZoom / 100);
         if (previous && Math.hypot(point.x - previous.x, point.y - previous.y) < minimumDistance) return;
         geneoPointerState.points.push(point);
         geneoPointerState.moved = true;

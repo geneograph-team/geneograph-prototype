@@ -69,7 +69,7 @@ const state = {
     geneoInlineEditSelectAll: false,
     geneoInlineEditSurface: 'canvas',
     geneoLayerRename: null,
-    geneoZoom: 83,
+    geneoZoom: 40,
     geneoBoardViewports: {},
     geneoInspectorCollapsed: false,
     geneoLayerSearch: '',

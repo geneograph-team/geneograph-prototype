@@ -2475,9 +2475,7 @@ function openGeneographBoard(id)
     state.selectedGeneoWaypointIndex = null;
     cancelGeneographConnectionDraft();
     state.geneoTool = 'pan';
-    state.geneoZoom = savedViewport?.zoom || 83;
-    if (!savedViewport && window.innerWidth <= 900)
-        state.geneoZoom = window.innerWidth <= 350 ? 42 : 50;
+    state.geneoZoom = savedViewport?.zoom ?? 40;
     state.geneoInlineEditNodeId = null;
     state.geneoLayerRename = null;
     geneoCanvasRuntime = createGeneoCanvasRuntime(id);

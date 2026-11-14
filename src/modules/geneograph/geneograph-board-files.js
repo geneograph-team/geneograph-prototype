@@ -371,7 +371,7 @@ function importGeneographBoardPayload(payload, projectId = currentProjectId())
     markPrototypeSessionEdited();
     if (payload.viewport)
         state.geneoBoardViewports[board.id] = {
-            zoom: Math.max(25, Math.min(200, Math.round(payload.viewport.zoom))),
+            zoom: Math.max(10, Math.min(200, Math.round(payload.viewport.zoom))),
             center: { x: payload.viewport.center.x, y: payload.viewport.center.y }
         };
     state.geneoLibraryView = 'all';

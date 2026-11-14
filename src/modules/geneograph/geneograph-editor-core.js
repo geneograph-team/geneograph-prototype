@@ -2760,7 +2760,7 @@ function geneoPositionImageCropToolbar()
     const view = viewport.getBoundingClientRect();
     const photo = bounds.getBoundingClientRect();
     const frame = node.getBoundingClientRect();
-    const zoom = Math.max(.25, state.geneoZoom / 100);
+    const zoom = Math.max(.1, state.geneoZoom / 100);
     const width = toolbar.offsetWidth * zoom;
     const height = toolbar.offsetHeight * zoom;
     const centerX = Math.max(view.left + 8 + width / 2,
@@ -4614,7 +4614,7 @@ function geneoDerivedCanvasBounds(diagram = selectedGeneographDiagram())
     {
         geneoCanvasRuntime = createGeneoCanvasRuntime(boardId);
     }
-    const zoom = Math.max(.25, Math.min(2, state.geneoZoom / 100));
+    const zoom = Math.max(.1, Math.min(2, state.geneoZoom / 100));
     const wrap = main.querySelector('[data-geneo-canvas-wrap]');
     const viewportWidth = Math.max(900, (wrap?.clientWidth || main.clientWidth || 1200) / zoom);
     const viewportHeight = Math.max(640, (wrap?.clientHeight || main.clientHeight || 760) / zoom);
@@ -4664,6 +4664,34 @@ function geneoCurrentViewportCenter()
     };
 }
 
+function geneoDisplayZoom()
+{
+    if (state.geneoZoom === 10) return 0;
+    if (state.geneoZoom === 15) return 10;
+    return state.geneoZoom;
+}
+
+function geneoGridStep()
+{
+    return state.geneoZoom <= 15 ? 5 : state.geneoZoom <= 20 ? 2 : 1;
+}
+
+function geneoGridOrigin(bound, zoom, step)
+{
+    const worldStep = GENEO_GRID_SIZE * step;
+    return (((-bound % worldStep) + worldStep) % worldStep) * zoom;
+}
+
+function geneoNextZoom(direction)
+{
+    const zoom = state.geneoZoom;
+    if (direction < 0 && zoom <= 30)
+        return zoom > 20 ? 20 : zoom > 15 ? 15 : 10;
+    if (direction > 0 && zoom < 20)
+        return zoom < 15 ? 15 : 20;
+    return zoom + direction * 10;
+}
+
 function geneoSavedViewport(boardId = selectedGeneographBoard()?.id)
 {
     const saved = boardId ? state.geneoBoardViewports?.[boardId] : null;
@@ -4678,7 +4706,7 @@ function captureGeneographViewport(boardId = selectedGeneographBoard()?.id)
     if (!center || !Number.isFinite(center.x) || !Number.isFinite(center.y)) return null;
     const saved = {
         center: { x: center.x, y: center.y },
-        zoom: Math.max(25, Math.min(200, Math.round(state.geneoZoom)))
+        zoom: Math.max(10, Math.min(200, Math.round(state.geneoZoom)))
     };
     state.geneoBoardViewports[boardId] = saved;
     return saved;
@@ -4790,16 +4818,18 @@ function applyGeneographZoomToDom(options = {})
     const bounds = geneoCanvasRuntime.bounds;
     if (!wrap || !boardSpace || !stage || !bounds) return false;
     const zoom = state.geneoZoom / 100;
-    const gridOriginX = (((-bounds.left % GENEO_GRID_SIZE) + GENEO_GRID_SIZE) % GENEO_GRID_SIZE) * zoom;
-    const gridOriginY = (((-bounds.top % GENEO_GRID_SIZE) + GENEO_GRID_SIZE) % GENEO_GRID_SIZE) * zoom;
+    const gridStep = geneoGridStep();
+    const gridOriginX = geneoGridOrigin(bounds.left, zoom, gridStep);
+    const gridOriginY = geneoGridOrigin(bounds.top, zoom, gridStep);
     boardSpace.style.width = `${bounds.width * zoom}px`;
     boardSpace.style.height = `${bounds.height * zoom}px`;
     boardSpace.style.setProperty('--geneo-canvas-zoom', zoom);
+    boardSpace.style.setProperty('--geneo-grid-spacing', `${GENEO_GRID_SIZE * zoom * gridStep}px`);
     boardSpace.style.setProperty('--geneo-grid-origin-x', `${gridOriginX}px`);
     boardSpace.style.setProperty('--geneo-grid-origin-y', `${gridOriginY}px`);
     stage.style.transform = `scale(${zoom})`;
     const value = main.querySelector('.geneo-zoom-value');
-    if (value) value.textContent = `${state.geneoZoom}%`;
+    if (value) value.textContent = `${geneoDisplayZoom()}%`;
     if (options.anchor)
     {
         const rect = wrap.getBoundingClientRect();
@@ -4824,7 +4854,7 @@ function applyGeneographZoomToDom(options = {})
 
 function setGeneographZoom(nextZoom, options = {})
 {
-    const zoom = Math.max(25, Math.min(200, Math.round(nextZoom)));
+    const zoom = Math.max(10, Math.min(200, Math.round(nextZoom)));
     if (zoom === state.geneoZoom) return false;
     const center = options.center || (!options.anchor ? geneoCurrentViewportCenter() : null);
     cancelGeneographViewportRestore({ releaseSuppression: true });
@@ -4852,7 +4882,7 @@ function queueGeneographWheelZoom(event)
         const clientX = geneoCanvasRuntime.zoomClientX;
         const clientY = geneoCanvasRuntime.zoomClientY;
         const anchor = geneoViewportPointAtClient(clientX, clientY);
-        setGeneographZoom(state.geneoZoom + (delta < 0 ? 10 : -10), { anchor, clientX, clientY });
+        setGeneographZoom(geneoNextZoom(delta < 0 ? 1 : -1), { anchor, clientX, clientY });
     });
 }
 

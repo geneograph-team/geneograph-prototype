@@ -111,7 +111,7 @@ function geneoCalculateAlignment({ movingNodes, targets, dx, dy, fallbackDx = dx
     if (!bounds || movingNodes.some(node => node.type === 'drawing')) return empty;
     const movingIds = new Set(movingNodes.map(node => node.id));
     const stationary = targets.filter(target => !movingIds.has(target.id));
-    const scale = Math.max(.25, Math.min(2, zoom));
+    const scale = Math.max(.1, Math.min(2, zoom));
     const x = lockedAxis === 'x' ? null : geneoAlignmentBestMatch('x', bounds, stationary, dx, dy, scale, previous?.x);
     const y = lockedAxis === 'y' ? null : geneoAlignmentBestMatch('y', bounds, stationary, dy, dx, scale, previous?.y);
     const finalDx = x ? dx + x.offset : fallbackDx;
