@@ -3376,7 +3376,7 @@ function archiveSourceCategoryGroups(sources)
     const groups = [
         ...SOURCE_CATEGORIES.map(category => ({
             key: category.value,
-            label: category.shortLabel,
+            label: category.label,
             sources: []
         })),
         { key: 'uncategorized', label: 'Not categorized', sources: [] }
