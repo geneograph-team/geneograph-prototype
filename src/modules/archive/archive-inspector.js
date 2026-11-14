@@ -1423,10 +1423,11 @@ function renderArchiveSourceConnectionContent(
         note: CONNECTED_NOTES_PREVIEW_LIMIT
     };
 
-    const visibleRecords = validRecords.slice(
-        0,
-        previewLimits[entityType] ?? 4
-    );
+    // Only sections with a View all action need preview limits.
+    const previewLimit = previewLimits[entityType];
+    const visibleRecords = previewLimit == null
+        ? validRecords
+        : validRecords.slice(0, previewLimit);
 
     const openAttributes =
         recordId => `
@@ -2052,7 +2053,9 @@ function renderArchiveSourceDetails(
                     )}
                 </dt>
 
-                <dd${row.isNote ? ' class="archive-source-notes-value"' : ''}>
+                <dd${row.isNote ? ' class="archive-source-notes-value"' : ''}>${row.isNote
+                    ? escapeHtml(row.value)
+                    : `
                   ${
                         row.placeId
                             ? `
@@ -2086,7 +2089,7 @@ function renderArchiveSourceDetails(
                                 row.value
                             )
                     }
-                </dd>
+                `}</dd>
               </div>
             `)
                 .join('')}
