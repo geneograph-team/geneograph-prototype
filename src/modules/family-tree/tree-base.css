@@ -435,7 +435,6 @@
     min-width: 0;
     min-height: 0;
     transform-origin: 0 0;
-    will-change: transform;
 }
 
 .tree-stage-space {
