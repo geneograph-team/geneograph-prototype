@@ -515,6 +515,7 @@
 
 .profile-command-hero .profile-hero-life-item--with-icon {
     grid-template-columns: 20px 56px minmax(0, 1fr);
+    align-items: center;
 }
 
 .profile-hero-life-label,
@@ -542,7 +543,6 @@
     font-size: 13px;
     font-weight: 500;
     line-height: 1.45;
-    padding-top: 2px;
 }
 
 .profile-command-hero .profile-hero-life-label::after {
@@ -554,7 +554,6 @@
     width: 20px;
     height: 20px;
     place-items: center;
-    margin-top: 1px;
 }
 
 .profile-command-hero .profile-hero-life-icon svg {
