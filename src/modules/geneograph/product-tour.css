@@ -180,6 +180,11 @@ body.geneo-tour-people-popover #peopleColumnsPopover .people-columns-footer {
     fill: var(--brand-green-300);
 }
 
+/* Balance light-outline modules with the Archive and Geneograph icons. */
+.geneo-tour-cover-icon--strong {
+    stroke-width: 2.2;
+}
+
 .geneo-tour.is-centered .geneo-tour-card,
 .geneo-tour.is-unanchored .geneo-tour-card {
     left: 50%;

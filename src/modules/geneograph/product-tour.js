@@ -1511,7 +1511,15 @@ function geneoTourCoverIcon(name, x, y)
 
     if (closes !== opens) return '';
 
-    return '<g transform="translate(' + dx + ' ' + dy + ') scale('
+    // These outline-based icons have finer strokes than Archive/Whiteboard.
+    const strongerOutline = ['People', 'Albums', 'Notes', 'Places']
+        .includes(name);
+    const outlineClass = strongerOutline
+        ? ' geneo-tour-cover-icon--strong'
+        : '';
+
+    return '<g class="geneo-tour-cover-icon' + outlineClass
+        + '" transform="translate(' + dx + ' ' + dy + ') scale('
         + scale + ') translate(' + (-minX) + ' ' + (-minY)
         + ')" ' + inherited + '>' + shapes + '</g>';
 }
@@ -1526,8 +1534,8 @@ const GENEO_TOUR_COVER_SVG = `
             C169 47 168 42 163 42 C155 42 153 52 161 57
             C179 68 195 63 203 61 C226 55 247 52 270 60
             C293 69 311 76 331 66 C347 59 357 55 370 57
-            C378 59 381 67 387 64 C394 60 391 52 384 52
-            C375 52 374 60 381 64 C392 69 402 69 414 68
+            C378 53 387 49 387 45 C387 39 377 39 377 47
+            C377 54 384 62 392 65 C399 70 408 70 414 68
             C435 65 456 68 478 68 C498 69 514 66 532 63
             C559 59 581 56 600 57"/>
         </g>
