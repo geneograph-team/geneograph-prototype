@@ -780,7 +780,7 @@ function openArchiveSourceModal(
                     required
                     aria-required="true"
                     autocomplete="off"
-                    value="${escapeHtml(source?.title || '')}"
+                    value="${escapeHtml(localizedDataFieldValue(source?.title || ''))}"
                     placeholder="e.g. Pawford household register">
                 </div>
 
@@ -817,7 +817,7 @@ function openArchiveSourceModal(
                       id="archiveSourceProvidedBy"
                       data-archive-source-provided-by
                       autocomplete="off"
-                      value="${escapeHtml(source?.providedBy || '')}"
+                      value="${escapeHtml(localizedDataFieldValue(source?.providedBy || ''))}"
                       placeholder="Person, archive, website, library, or family collection">
                   </div>
                 </div>
@@ -846,7 +846,7 @@ function openArchiveSourceModal(
                       id="archiveSourceReference"
                       data-archive-source-reference
                       autocomplete="off"
-                      value="${escapeHtml(source?.reference || '')}"
+                      value="${escapeHtml(localizedDataFieldValue(source?.reference || ''))}"
                       placeholder="Collection, folder, volume, page, call number, or item">
                   </div>
 
@@ -917,7 +917,7 @@ function openArchiveSourceModal(
                     id="archiveSourceNotes"
                     aria-labelledby="archiveSourceNotesHeading"
                     data-archive-source-notes
-                    placeholder="Add anything that will help you recognize or find this source again">${escapeHtml(source?.notes || '')}</textarea>
+                    placeholder="Add anything that will help you recognize or find this source again">${escapeHtml(localizedDataFieldValue(source?.notes || ''))}</textarea>
                 </div>
               </section>
             </div>
@@ -985,12 +985,12 @@ function openArchiveSourceModal(
             }
 
             const title =
-                form
-                    .querySelector(
+                collectLocalizedDataFieldValue(
+                    form.querySelector(
                         '[data-archive-source-title]'
-                    )
-                    .value
-                    .trim();
+                    ),
+                    source?.title || ''
+                ).trim();
 
             if (!title)
             {
@@ -1044,12 +1044,12 @@ function openArchiveSourceModal(
                     .value;
 
             target.providedBy =
-                form
-                    .querySelector(
+                collectLocalizedDataFieldValue(
+                    form.querySelector(
                         '[data-archive-source-provided-by]'
-                    )
-                    .value
-                    .trim();
+                    ),
+                    source?.providedBy || ''
+                ).trim();
 
             const locationInput = readPlaceInputValue(
                 '#archiveSourceLocation',
@@ -1065,12 +1065,12 @@ function openArchiveSourceModal(
             target.placeId = storedAt.placeId;
 
             target.reference =
-                form
-                    .querySelector(
+                collectLocalizedDataFieldValue(
+                    form.querySelector(
                         '[data-archive-source-reference]'
-                    )
-                    .value
-                    .trim();
+                    ),
+                    source?.reference || ''
+                ).trim();
 
             target.url =
                 form
@@ -1084,12 +1084,12 @@ function openArchiveSourceModal(
                 accessedDate;
 
             target.notes =
-                form
-                    .querySelector(
+                collectLocalizedDataFieldValue(
+                    form.querySelector(
                         '[data-archive-source-notes]'
-                    )
-                    .value
-                    .trim();
+                    ),
+                    source?.notes || ''
+                ).trim();
 
             target.updatedAt =
                 now;

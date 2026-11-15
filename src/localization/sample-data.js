@@ -193,14 +193,14 @@ const RU_DATA_SOURCES =
         // Source as2
         // ========================================
 
-        'Pawford household register continuation, 1947–1952':
-          'Продолжение домовой книги Поуфорда, 1947–1952',
+        'Pawford birth announcements, 1990–2000':
+          'Объявления о рождении в Поуфорде, 1990–2000 гг.',
 
-        'Household series 3, continuation volume':
-          'Серия домовых книг 3, том-продолжение',
+        'Birth notices collection, 1990–2000':
+          'Коллекция объявлений о рождении, 1990–2000 гг.',
 
-        'Continuation volume for Pawford household entries after 1946.':
-          'Том-продолжение с записями о домохозяйствах Поуфорда после 1946 года.',
+        'Announcement extracts used to verify names and birth dates.':
+          'Выписки из объявлений, использованные для проверки имён и дат рождения.',
 
         // ========================================
         // Source as3
