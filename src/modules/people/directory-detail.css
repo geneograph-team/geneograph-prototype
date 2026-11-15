@@ -482,6 +482,11 @@
     letter-spacing: -.025em;
 }
 
+.profile-hero-copy .profile-hero-maiden {
+    font-size: inherit;
+    font-weight: 500;
+}
+
 .profile-hero-life {
     grid-area: life;
     min-width: 0;
