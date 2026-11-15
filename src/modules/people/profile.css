@@ -850,20 +850,6 @@
 }
 
 @media (max-width: 1280px) {
-    .profile-command-hero .profile-hero-life-item {
-        display: flex;
-        flex-wrap: wrap;
-    }
-
-    .profile-command-hero .profile-hero-life-label {
-        flex: 0 0 auto;
-    }
-
-    .profile-command-hero .profile-hero-life-primary,
-    .profile-command-hero .profile-hero-life-place {
-        flex: 0 1 auto;
-    }
-
     .person-profile__top,
     .person-profile__bottom {
         grid-template-columns: 1fr;

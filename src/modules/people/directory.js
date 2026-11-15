@@ -778,45 +778,44 @@ function renderPeopleHeroLifeSummary(
           ${items
                 .map(item => `
               <div
-                class="profile-hero-life-item"
+                class="profile-hero-life-item${options.showEventIcons ? ' profile-hero-life-item--with-icon' : ''}"
                 role="listitem">
 
+                ${options.showEventIcons
+                    ? `
+                  <span class="profile-hero-life-icon" aria-hidden="true">
+                    ${item.label === 'Birth' ? icon.birth : icon.death}
+                  </span>
+                `
+                    : ''}
+
                 <span class="profile-hero-life-label">
-                  ${options.showEventIcons
-                        ? `
-                    <span class="profile-hero-life-icon" aria-hidden="true">
-                      ${item.label === 'Birth' ? icon.birth : icon.death}
-                    </span>
-                  `
-                        : ''}
                   ${escapeHtml(item.label)}
                 </span>
 
-                <div class="profile-hero-life-primary">
-                  <strong>
-                    ${escapeHtml(item.value)}
-                  </strong>
+                <div class="profile-hero-life-details">
+                  <div class="profile-hero-life-primary">
+                    <strong>
+                      ${escapeHtml(item.value)}
+                    </strong>
 
-                  ${
-                        item.detail
-                            ? `
-                        <span>
-                          ${escapeHtml(item.detail)}
-                        </span>
-                      `
-                            : ''
-                    }
-                </div>
-
-                ${
-                    item.place
+                    ${item.detail
                         ? `
-                      <span class="profile-hero-life-place">
-                        ${escapeHtml(item.place)}
+                      <span class="profile-hero-life-age">
+                        ${escapeHtml(item.detail)}
                       </span>
                     `
-                        : ''
-                }
+                        : ''}
+                  </div>
+
+                  ${item.place
+                    ? `
+                    <span class="profile-hero-life-place">
+                      ${escapeHtml(item.place)}
+                    </span>
+                  `
+                    : ''}
+                </div>
               </div>
             `)
                 .join('')}
