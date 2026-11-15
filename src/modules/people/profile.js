@@ -556,7 +556,14 @@ function renderProfileLockedPanelContent(
 
           <section class="profile-info-block">
             <h4>Main information</h4>
-
+            ${renderProfileInfoRow(
+                'Gender',
+                isFemale
+                    ? 'Female'
+                    : person.gender === 'male'
+                        ? 'Male'
+                        : 'Unknown'
+            )}
             ${renderProfileInfoRow(
                 'First name',
                 name.first || '-'
@@ -580,22 +587,6 @@ function renderProfileLockedPanelContent(
                 : ''}
 
             ${renderProfileInfoRow(
-                'Gender',
-                isFemale
-                    ? 'Female'
-                    : person.gender === 'male'
-                        ? 'Male'
-                        : 'Unknown'
-            )}
-
-            ${renderProfileInfoRowRaw(
-                'Living status',
-                renderProfileStatusValue(
-                    person.living || 'Unknown'
-                )
-            )}
-
-            ${renderProfileInfoRow(
                 'Prefix',
                 details.prefix || '-'
             )}
@@ -609,6 +600,13 @@ function renderProfileLockedPanelContent(
           <section class="profile-info-block">
             <h4>Birth and life</h4>
 
+            ${renderProfileInfoRowRaw(
+                'Living status',
+                renderProfileStatusValue(
+                    person.living || 'Unknown'
+                )
+            )}
+            
             ${renderProfileInfoRow(
                 'Birth date',
                 birthLabel || '-'
