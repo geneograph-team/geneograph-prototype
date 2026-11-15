@@ -1263,12 +1263,12 @@ function connectedSourceOrigin(
     source
 )
 {
-    return String(
+    return localizedDataFieldValue(String(
         source?.providedBy
         || archiveSourceCustodialPlaceLabel(source)
         || ''
-    ).trim()
-      || 'Origin not specified';
+    ).trim())
+      || t('Origin not specified');
 }
 
 function connectedSourceDetailMeta(
@@ -1282,14 +1282,14 @@ function connectedSourceDetailMeta(
         );
 
     const reference =
-        String(
+        localizedDataFieldValue(String(
             source?.reference
           || ''
-        ).trim();
+        ).trim());
 
     const accessed =
         source?.accessedDate
-            ? `Accessed ${
+            ? `${t('Accessed')} ${
                 archiveFormatDate(
                     source.accessedDate
                 )
@@ -1413,8 +1413,9 @@ function renderConnectedSourceList({
             .map(source =>
             {
                 const title =
-                    source.title
-              || 'Untitled source';
+                    localizedDataFieldValue(
+                        source.title || 'Untitled source'
+                    );
 
                 const sourceProjectId =
                     source.projectId
