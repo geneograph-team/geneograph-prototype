@@ -26,6 +26,40 @@ function normalizeProfileCardSection(value)
         : 'main';
 }
 
+function renderProfileHeroName(person, centralPerson)
+{
+    const names = centralPerson?.names;
+    const maiden = normalizeNameSegment(
+        names?.maiden
+    );
+
+    if (!maiden)
+    {
+        return escapeHtml(person.name);
+    }
+
+    const mainName = [
+        names.prefix,
+        names.first,
+        names.middle,
+        names.last
+    ]
+        .map(normalizeNameSegment)
+        .filter(Boolean)
+        .join(' ')
+        .replace(/\s+/g, ' ');
+
+    const suffix = normalizeNameSegment(
+        names.suffix
+    );
+
+    return [
+        mainName ? escapeHtml(mainName) : '',
+        `<span class="profile-hero-maiden">(${escapeHtml(maiden)})</span>`,
+        suffix ? escapeHtml(suffix) : ''
+    ].filter(Boolean).join(' ');
+}
+
 function renderPeopleProfile(person)
 {
     main.classList.add('people-profile-main');
@@ -76,7 +110,7 @@ function renderPeopleProfile(person)
 
               <div class="profile-hero-copy">
                 <h1>
-                  ${escapeHtml(person.name)}
+                  ${renderProfileHeroName(person, centralPerson)}
                 </h1>
               </div>
 
