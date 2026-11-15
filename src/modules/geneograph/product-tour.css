@@ -177,6 +177,13 @@ body.geneo-tour-people-popover #peopleColumnsPopover .people-columns-footer {
     fill: var(--brand-green-300);
 }
 
+/* Keep the source module icon geometry, scaled uniformly in the tour art. */
+.geneo-tour-cover-icons svg {
+    display: block;
+    width: 26px;
+    height: 26px;
+}
+
 .geneo-tour.is-centered .geneo-tour-card,
 .geneo-tour.is-unanchored .geneo-tour-card {
     left: 50%;

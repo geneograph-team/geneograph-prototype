@@ -1481,75 +1481,60 @@ const GENEO_TOUR_COVER_SVG = `
           <path d="M0 59 C21 56 36 51 50 53
             C73 55 90 67 112 67 C131 67 149 61 160 53
             C169 47 168 42 163 42 C155 42 153 52 161 57
-            C179 68 202 62 218 59 C244 53 267 58 290 65
-            C314 74 334 66 352 61 C372 54 384 51 385 59
-            C386 65 372 70 348 68 C371 69 394 70 415 67
-            C441 63 456 67 478 68 C503 71 522 65 541 62
-            C566 58 584 56 600 57"/>
+            C179 68 195 63 203 61 C226 55 247 52 270 60
+            C293 69 311 76 331 66 C347 59 357 55 370 57
+            C378 59 381 67 387 64 C394 60 391 52 384 52
+            C375 52 374 60 381 64 C392 69 402 69 414 68
+            C435 65 456 68 478 68 C498 69 514 66 532 63
+            C559 59 581 56 600 57"/>
         </g>
         <g class="geneo-tour-cover-connectors" fill="none" stroke-linecap="round">
-          <path d="M50 43 V53 M112 67 V82 M203 42 V61
-            M270 65 V82 M331 43 V66 M414 68 V83
-            M478 43 V68 M532 63 V82"/>
+          <path d="M50 45 V53 M112 67 V81 M203 45 V61
+            M270 60 V81 M331 45 V66 M414 68 V81
+            M478 45 V68 M532 63 V81"/>
         </g>
         <g class="geneo-tour-cover-dots">
           <circle cx="50" cy="53" r="1.5"/>
           <circle cx="112" cy="67" r="1.5"/>
           <circle cx="203" cy="61" r="1.5"/>
-          <circle cx="270" cy="65" r="1.5"/>
+          <circle cx="270" cy="60" r="1.5"/>
           <circle cx="331" cy="66" r="1.5"/>
           <circle cx="414" cy="68" r="1.5"/>
           <circle cx="478" cy="68" r="1.5"/>
           <circle cx="532" cy="63" r="1.5"/>
         </g>
-        <g class="geneo-tour-cover-icons" fill="none"
-           stroke="currentColor" stroke-width="1.8"
-           stroke-linecap="round" stroke-linejoin="round">
-          <!-- Projects: home -->
-          <g transform="translate(40 22) scale(.83)">
-            <path d="M3 11 12 3 21 11H19V21H14V15H10V21H5V11Z"
-                  fill="currentColor" stroke="none"/>
+        <g class="geneo-tour-cover-icons">
+          <!-- Projects: shared prototype icon -->
+          <g transform="translate(37 19)">
+            ${icon[geneoTourModuleIconNames.Projects]}
           </g>
-          <!-- Family Tree: connected blocks -->
-          <g transform="translate(102 82) scale(.83)">
-            <path d="M3 3h7v7H3zM14 3h7v7h-7zM9 15h7v6H9z"
-                  fill="currentColor" stroke="none"/>
-            <path d="M6.5 10v3h11v-3M12 13v2"/>
+          <!-- Family Tree: shared prototype icon -->
+          <g transform="translate(99 81)">
+            ${icon[geneoTourModuleIconNames['Family Tree']]}
           </g>
-          <!-- People -->
-          <g transform="translate(193 23) scale(.83)">
-            <path d="M16 20v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
-            <circle cx="10" cy="7" r="4"/>
-            <path d="M20 20v-2.2a4 4 0 0 0-3-3.8
-              M17 3.2a4 4 0 0 1 0 7.6"/>
+          <!-- People: shared prototype icon -->
+          <g transform="translate(190 19)">
+            ${icon[geneoTourModuleIconNames.People]}
           </g>
-          <!-- Geneograph: whiteboard -->
-          <g transform="translate(261 82) scale(.83)">
-            <rect x="3" y="5" width="18" height="15" rx="2"/>
-            <path d="m6 17 3-3 3 2 3-5M14 7l5-4v5"/>
+          <!-- Geneograph: shared prototype icon -->
+          <g transform="translate(257 81)">
+            ${icon[geneoTourModuleIconNames.Geneograph]}
           </g>
-          <!-- Albums: photo -->
-          <g transform="translate(322 24) scale(.83)">
-            <rect x="3" y="5" width="18" height="14" rx="2"/>
-            <circle cx="8" cy="10" r="2"/>
-            <path d="m21 15-4.5-4.5L8 19"/>
+          <!-- Albums: shared prototype icon -->
+          <g transform="translate(318 19)">
+            ${icon[geneoTourModuleIconNames.Albums]}
           </g>
-          <!-- Archive -->
-          <g transform="translate(404 82) scale(.83)">
-            <path d="M3.5 8v9c0 2 1.5 3 3.5 3h10
-              c2 0 3.5-1 3.5-3V8"/>
-            <rect x="2" y="3" width="20" height="5" rx="1"/>
-            <path d="M9 12h6"/>
+          <!-- Archive: shared prototype icon -->
+          <g transform="translate(401 81)">
+            ${icon[geneoTourModuleIconNames.Archive]}
           </g>
-          <!-- Notes -->
-          <g transform="translate(469 24) scale(.83)">
-            <path d="M5 4h14v16H5zM8 8h8M8 12h8M8 16h5"/>
+          <!-- Notes: shared prototype icon -->
+          <g transform="translate(465 19)">
+            ${icon[geneoTourModuleIconNames.Notes]}
           </g>
-          <!-- Places -->
-          <g transform="translate(522 81) scale(.83)">
-            <path d="M12 21s7-5.3 7-11a7 7 0 1 0-14 0
-              c0 5.7 7 11 7 11Z"/>
-            <circle cx="12" cy="10" r="2.5"/>
+          <!-- Places: shared prototype icon -->
+          <g transform="translate(519 81)">
+            ${icon[geneoTourModuleIconNames.Places]}
           </g>
         </g>
     </svg>
