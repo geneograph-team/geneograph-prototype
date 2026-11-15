@@ -487,11 +487,20 @@
     min-width: 0;
 
     display: grid;
-    grid-template-columns:
-        max-content max-content minmax(0, 1fr);
-    align-items: baseline;
-    column-gap: 4px;
+    grid-template-columns: max-content minmax(0, 1fr);
+    align-items: start;
+    column-gap: 10px;
     row-gap: 4px;
+}
+
+.profile-hero-life-details {
+    min-width: 0;
+    display: grid;
+    gap: 2px;
+}
+
+.profile-command-hero .profile-hero-life-item--with-icon {
+    grid-template-columns: 20px 56px minmax(0, 1fr);
 }
 
 .profile-hero-life-label,
@@ -514,23 +523,30 @@
     content: ":";
 }
 
-/* Opt-in Timeline event icons in the legacy Profile hero. */
+/* Keep the Profile's Timeline icons and fact labels in fixed columns. */
 .profile-command-hero .profile-hero-life-label {
-    display: inline-flex;
-    align-items: center;
-    gap: 7px;
+    font-size: 13px;
+    font-weight: 500;
+    line-height: 1.45;
+    padding-top: 2px;
+}
+
+.profile-command-hero .profile-hero-life-label::after {
+    content: none;
 }
 
 .profile-command-hero .profile-hero-life-icon {
     display: inline-grid;
-    flex: 0 0 18px;
+    width: 20px;
+    height: 20px;
     place-items: center;
+    margin-top: 1px;
 }
 
 .profile-command-hero .profile-hero-life-icon svg {
     display: block;
-    width: 18px;
-    height: 18px;
+    width: 20px;
+    height: 20px;
 }
 
 .profile-hero-life-primary {
@@ -554,6 +570,38 @@
 .profile-hero-life-primary span::before {
     content: " - ";
     white-space: pre;
+}
+
+/* Give dates priority, keep age quieter, and place locations beneath. */
+.profile-command-hero .profile-hero-life-primary {
+    gap: 8px;
+}
+
+.profile-command-hero .profile-hero-life-primary strong {
+    color: var(--text-primary);
+    font-size: 14px;
+    font-weight: 700;
+}
+
+.profile-command-hero .profile-hero-life-age {
+    color: var(--profile-hero-fact-text);
+    font-size: 13px;
+    font-weight: 500;
+}
+
+.profile-command-hero .profile-hero-life-age::before {
+    content: "·";
+    margin-right: 8px;
+}
+
+.profile-command-hero .profile-hero-life-place {
+    color: var(--profile-hero-fact-text);
+    font-size: 13px;
+    line-height: 1.45;
+}
+
+.profile-command-hero .profile-hero-life-place::before {
+    content: none;
 }
 
 .profile-hero-life-place {
