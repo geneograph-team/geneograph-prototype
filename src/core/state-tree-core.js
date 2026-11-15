@@ -25,6 +25,7 @@ const state = {
     },
     peopleView: 'directory',
     peopleSide: 'people',
+    peopleProfileNewTab: 'overview',
     selectedPeopleId: 'silver',
     peopleSelectedIds: [],
     peopleSelectionAnchorId: '',

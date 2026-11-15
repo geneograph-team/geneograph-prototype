@@ -28,6 +28,7 @@ function normalizeProfileCardSection(value)
 
 function renderPeopleProfile(person)
 {
+    main.classList.remove('people-profile-new-main');
     main.classList.add('people-profile-main');
 
     state.peopleProfileEditTab =

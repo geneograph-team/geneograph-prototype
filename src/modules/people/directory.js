@@ -1822,7 +1822,7 @@ function renderPeopleDirectoryControls(rows)
 function renderPeople()
 {
     appNavigationObserve();
-    if (!currentPeopleRecords().length && state.peopleView === 'profile')
+    if (!currentPeopleRecords().length && ['profile', 'profile-new'].includes(state.peopleView))
         state.peopleView = 'directory';
 
     workspace.classList.remove(
@@ -1837,16 +1837,15 @@ function renderPeople()
         selectedPeopleRecord();
 
     if (
-        state.peopleView === 'profile'
+        ['profile', 'profile-new'].includes(state.peopleView)
     )
     {
         clearPeopleSelection();
 
         renderPeopleSidebar();
 
-        renderPeopleProfile(
-            selected
-        );
+        if (state.peopleView === 'profile') renderPeopleProfile(selected);
+        else renderPeopleProfileNew(selected);
 
         return;
     }
@@ -1854,6 +1853,7 @@ function renderPeople()
     main.classList.remove(
         'people-profile-main'
     );
+    main.classList.remove('people-profile-new-main');
 
     renderPeopleSidebar();
 
@@ -1965,7 +1965,7 @@ function renderPeopleSidebarInner()
 
           <div class="side-nav">
             <button
-              class="side-link ${state.peopleView !== 'profile' && state.peopleSide === 'people' ? 'active' : ''}"
+              class="side-link ${state.peopleView === 'directory' && state.peopleSide === 'people' ? 'active' : ''}"
               type="button"
               data-people-side="people">
               ${icon.peoplegroup}
@@ -1979,6 +1979,15 @@ function renderPeopleSidebarInner()
               ${profileAvailable ? '' : 'disabled'}>
               ${icon.profile}
               <span>Profile</span>
+            </button>
+
+            <button
+              class="side-link ${state.peopleView === 'profile-new' ? 'active' : ''} ${profileAvailable ? '' : 'people-nav-unavailable'}"
+              type="button"
+              data-open-profile-new
+              ${profileAvailable ? '' : 'disabled'}>
+              ${icon.profile}
+              <span>${escapeHtml(t('Profile New'))}</span>
             </button>
 
             <button

@@ -333,7 +333,7 @@ function appNavigationSnapshot()
     if (location.module === 'People')
     {
         location.view = state.peopleView;
-        if (location.view === 'profile') location.personId = state.selectedPeopleId;
+        if (['profile', 'profile-new'].includes(location.view)) location.personId = state.selectedPeopleId;
     }
     if (location.module === 'Geneograph')
     {
@@ -483,7 +483,7 @@ function appNavigationRestore(location)
     if (location.module === 'People')
     {
         state.peopleView = location.view || 'directory';
-        state.peopleSide = state.peopleView === 'profile' ? 'profile' : 'people';
+        state.peopleSide = ['profile', 'profile-new'].includes(state.peopleView) ? state.peopleView : 'people';
         if (location.personId) { state.selectedPeopleId = location.personId; state.selectedPersonId = location.personId; }
     }
     if (location.module === 'Geneograph')
@@ -597,6 +597,7 @@ function render()
     }
     applyLanguage();
     main.classList.remove('people-profile-main');
+    main.classList.remove('people-profile-new-main');
     renderTopbar();
     if (mobileSurface === 'details') requestAnimationFrame(() =>
     {
@@ -691,7 +692,7 @@ function renderTopbar()
     const showDetails = showModules && ['Family Tree', 'People', 'Albums', 'Archive', 'Places', 'Geneograph'].includes(state.activeModule)
         && !(state.activeModule === 'Family Tree' && !currentTreePeople().length)
         && !(state.activeModule === 'People' && !currentPeopleRecords().length)
-        && !(state.activeModule === 'People' && state.peopleView === 'profile')
+        && !(state.activeModule === 'People' && ['profile', 'profile-new'].includes(state.peopleView))
         && !(state.activeModule === 'Geneograph' && state.geneoView !== 'board');
     const signedLabel = state.userSignedIn ? 'SW' : 'IN';
     topbar.innerHTML = `
