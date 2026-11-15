@@ -1473,6 +1473,49 @@ function geneoTourRefreshCopy()
     geneoTourQueuePosition();
 }
 
+// Embed original module SVG geometry without nested SVG intrinsic sizing.
+function geneoTourCoverIcon(name, x, y)
+{
+    const markup = icon[geneoTourModuleIconNames[name]];
+    const root = markup?.match(/^<svg\b([^>]*)>/);
+    const viewBox = root?.[1].match(/\bviewBox="([^"]+)"/);
+    const dimensions = viewBox?.[1].trim().split(/\s+/).map(Number);
+
+    if (!root || dimensions?.length !== 4
+        || !dimensions.every(Number.isFinite)
+        || dimensions[2] <= 0 || dimensions[3] <= 0)
+    {
+        return '';
+    }
+
+    const [minX, minY, width, height] = dimensions;
+    const scale = 26 / Math.max(width, height);
+    const dx = x + (26 - width * scale) / 2;
+    const dy = y + (26 - height * scale) / 2;
+    const inherited = root[1]
+        .replace(/\b(?:width|height|viewBox|xmlns|aria-hidden|focusable)="[^"]*"/g, '')
+        .trim();
+    let shapes = markup.slice(root[0].length)
+        .replace(/<\/svg>\s*$/, '');
+
+    // The shared whiteboard icon has a redundant trailing </g>.
+    // Discard unmatched trailing group closers before embedding its shapes.
+    const opens = (shapes.match(/<g(?:\s|>)/g) || []).length;
+    let closes = (shapes.match(/<\/g>/g) || []).length;
+
+    while (closes > opens && /<\/g>\s*$/.test(shapes))
+    {
+        shapes = shapes.replace(/<\/g>\s*$/, '');
+        closes--;
+    }
+
+    if (closes !== opens) return '';
+
+    return '<g transform="translate(' + dx + ' ' + dy + ') scale('
+        + scale + ') translate(' + (-minX) + ' ' + (-minY)
+        + ')" ' + inherited + '>' + shapes + '</g>';
+}
+
 const GENEO_TOUR_COVER_SVG = `
     <svg class="geneo-tour-cover-art" viewBox="0 0 600 125"
          xmlns="http://www.w3.org/2000/svg" aria-hidden="true"
@@ -1505,37 +1548,21 @@ const GENEO_TOUR_COVER_SVG = `
         </g>
         <g class="geneo-tour-cover-icons">
           <!-- Projects: shared prototype icon -->
-          <g transform="translate(37 19)">
-            ${icon[geneoTourModuleIconNames.Projects]}
-          </g>
+          ${geneoTourCoverIcon('Projects', 37, 19)}
           <!-- Family Tree: shared prototype icon -->
-          <g transform="translate(99 81)">
-            ${icon[geneoTourModuleIconNames['Family Tree']]}
-          </g>
+          ${geneoTourCoverIcon('Family Tree', 99, 81)}
           <!-- People: shared prototype icon -->
-          <g transform="translate(190 19)">
-            ${icon[geneoTourModuleIconNames.People]}
-          </g>
+          ${geneoTourCoverIcon('People', 190, 19)}
           <!-- Geneograph: shared prototype icon -->
-          <g transform="translate(257 81)">
-            ${icon[geneoTourModuleIconNames.Geneograph]}
-          </g>
+          ${geneoTourCoverIcon('Geneograph', 257, 81)}
           <!-- Albums: shared prototype icon -->
-          <g transform="translate(318 19)">
-            ${icon[geneoTourModuleIconNames.Albums]}
-          </g>
+          ${geneoTourCoverIcon('Albums', 318, 19)}
           <!-- Archive: shared prototype icon -->
-          <g transform="translate(401 81)">
-            ${icon[geneoTourModuleIconNames.Archive]}
-          </g>
+          ${geneoTourCoverIcon('Archive', 401, 81)}
           <!-- Notes: shared prototype icon -->
-          <g transform="translate(465 19)">
-            ${icon[geneoTourModuleIconNames.Notes]}
-          </g>
+          ${geneoTourCoverIcon('Notes', 465, 19)}
           <!-- Places: shared prototype icon -->
-          <g transform="translate(519 81)">
-            ${icon[geneoTourModuleIconNames.Places]}
-          </g>
+          ${geneoTourCoverIcon('Places', 519, 81)}
         </g>
     </svg>
 `;

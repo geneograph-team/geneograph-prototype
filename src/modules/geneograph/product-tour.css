@@ -151,6 +151,8 @@ body.geneo-tour-people-popover #peopleColumnsPopover .people-columns-footer {
 
 .geneo-tour-cover {
     aspect-ratio: 600 / 125;
+    min-width: 0;
+    overflow: hidden;
     border: 1px solid var(--border-strong);
     border-radius: var(--radius-sm);
     background: var(--surface-app);
@@ -160,7 +162,8 @@ body.geneo-tour-people-popover #peopleColumnsPopover .people-columns-footer {
 .geneo-tour-cover-art {
     display: block;
     width: 100%;
-    height: 100%;
+    height: auto;
+    aspect-ratio: 600 / 125;
 }
 
 .geneo-tour-cover-thread {
@@ -175,13 +178,6 @@ body.geneo-tour-people-popover #peopleColumnsPopover .people-columns-footer {
 
 .geneo-tour-cover-dots {
     fill: var(--brand-green-300);
-}
-
-/* Keep the source module icon geometry, scaled uniformly in the tour art. */
-.geneo-tour-cover-icons svg {
-    display: block;
-    width: 26px;
-    height: 26px;
 }
 
 .geneo-tour.is-centered .geneo-tour-card,
