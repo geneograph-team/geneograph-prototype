@@ -6,10 +6,114 @@ const PEOPLE_PROFILE_NEW_TABS = Object.freeze([
     ['places', 'Places'],
     ['sources', 'Sources']
 ]);
+let profileNewTimelineResizeObserver = null;
+
+function profileNewTimelineEvents(personId)
+{
+    return getFamilyTreeTimelineEvents(personId)
+        .filter(event => event.projectId === currentProjectId());
+}
+
+function renderProfileNewTimeline(person)
+{
+    const events = profileNewTimelineEvents(person.id);
+    if (!events.length)
+    {
+        return `<p class="profile-new-timeline-empty">${escapeHtml(t('No timeline events recorded for this person.'))}</p>`;
+    }
+
+    return `<div class="profile-new-timeline-track" role="list">
+      ${events.map(event => `
+        <div class="profile-new-timeline-event" role="listitem">
+          <button class="profile-new-timeline-event-button" type="button"
+            data-profile-new-event="${escapeHtml(event.id)}"
+            aria-label="${escapeHtml(`${event.title}. ${timelineEventDateLine(event) || t('Date unknown')}. ${timelinePlaceLabel(event)}`)}">
+            <span class="profile-new-timeline-date">${timelineDateBlockHtml(event, person.id)}</span>
+            <span class="profile-new-timeline-dot timeline-dot ${escapeHtml(timelineEventColor(event))}" aria-hidden="true">
+              <span class="timeline-dot-icon">${timelineEventIcon(event)}</span>
+            </span>
+            <strong class="profile-new-timeline-title">${escapeHtml(event.title)}</strong>
+            <span class="profile-new-timeline-detail">${timelineEventDetail(event, person.id)}</span>
+          </button>
+        </div>
+      `).join('')}
+    </div>`;
+}
+
+function openProfileNewEventDetails(personId, eventId)
+{
+    const event = profileNewTimelineEvents(personId).find(item => item.id === eventId);
+    if (!event) return;
+
+    openModal(`<div class="modal profile-new-event-dialog" role="dialog" aria-modal="true" aria-labelledby="profileNewEventTitle">
+      <div class="modal-header">
+        <div><h2 id="profileNewEventTitle">${escapeHtml(event.title)}</h2>
+          <p>${escapeHtml(getPersonDisplayName(personId))}</p></div>
+        <button type="button" class="close-button" data-close aria-label="${escapeHtml(t('Close'))}">${icon.close}</button>
+      </div>
+      <div class="modal-body"><div class="timeline">${renderTimelineItem(event, personId)}</div></div>
+      <div class="modal-footer"><button class="button secondary" type="button" data-close>${escapeHtml(t('Close'))}</button></div>
+    </div>`);
+    bindTimelineSourceControls(modalBackdrop, {
+        afterSave: () =>
+        {
+            renderPeople();
+            if (modalBackdrop.querySelector('.profile-new-event-dialog'))
+                openProfileNewEventDetails(personId, eventId);
+        }
+    });
+    localizeUI(modalBackdrop);
+}
+
+function bindProfileNewTimeline(person)
+{
+    profileNewTimelineResizeObserver?.disconnect();
+    profileNewTimelineResizeObserver = null;
+    const scroller = main.querySelector('.profile-new-timeline-body');
+    if (!scroller) return;
+    const events = [...scroller.querySelectorAll('[data-profile-new-event]')];
+    const previous = main.querySelector('[data-profile-new-timeline-previous]');
+    const next = main.querySelector('[data-profile-new-timeline-next]');
+    const update = () =>
+    {
+        const overflow = scroller.scrollWidth > scroller.clientWidth + 2;
+        previous.hidden = next.hidden = !overflow;
+        previous.disabled = !overflow || scroller.scrollLeft <= 2;
+        next.disabled = !overflow || scroller.scrollLeft + scroller.clientWidth >= scroller.scrollWidth - 2;
+    };
+    scroller.addEventListener('scroll', update, { passive: true });
+    previous?.addEventListener('click', () => scroller.scrollBy({ left: -scroller.clientWidth * .75, behavior: 'smooth' }));
+    next?.addEventListener('click', () => scroller.scrollBy({ left: scroller.clientWidth * .75, behavior: 'smooth' }));
+    scroller.addEventListener('keydown', event =>
+    {
+        if (event.target !== scroller || !['ArrowLeft', 'ArrowRight'].includes(event.key)) return;
+        event.preventDefault();
+        scroller.scrollBy({ left: (event.key === 'ArrowRight' ? 1 : -1) * 220, behavior: 'smooth' });
+    });
+    events.forEach((button, index) =>
+    {
+        button.addEventListener('click', () => openProfileNewEventDetails(person.id, button.dataset.profileNewEvent));
+        button.addEventListener('keydown', event =>
+        {
+            let target = index;
+            if (event.key === 'ArrowRight') target = Math.min(index + 1, events.length - 1);
+            else if (event.key === 'ArrowLeft') target = Math.max(index - 1, 0);
+            else if (event.key === 'Home') target = 0;
+            else if (event.key === 'End') target = events.length - 1;
+            else return;
+            event.preventDefault();
+            events[target].focus();
+        });
+    });
+    profileNewTimelineResizeObserver = new ResizeObserver(update);
+    profileNewTimelineResizeObserver.observe(scroller);
+    requestAnimationFrame(update);
+}
 
 function renderPeopleProfileNew(person)
 {
     if (!person) return;
+    profileNewTimelineResizeObserver?.disconnect();
     main.classList.remove('people-profile-main');
     main.classList.add('people-profile-new-main');
 
@@ -52,13 +156,22 @@ function renderPeopleProfileNew(person)
           aria-labelledby="profile-new-tab-${active}" tabindex="0">
           ${overview ? `
             <section class="profile-new-card profile-new-timeline" aria-labelledby="profile-new-timeline-title">
-              <h2 id="profile-new-timeline-title">${escapeHtml(t('Timeline'))}</h2>
-              <div class="profile-new-timeline-body"></div>
+              <div class="profile-new-timeline-header">
+                <h2 id="profile-new-timeline-title">${escapeHtml(t('Timeline'))}</h2>
+                <div class="profile-new-timeline-actions">
+                  <button type="button" data-profile-new-timeline-previous aria-label="${escapeHtml(t('Previous events'))}" hidden>${icon.arrow}</button>
+                  <button type="button" data-profile-new-timeline-next aria-label="${escapeHtml(t('Next events'))}" hidden>${icon.chevron}</button>
+                  <button type="button" data-profile-new-add-fact aria-label="${escapeHtml(t('Add fact'))}">${icon.plus}<span>${escapeHtml(t('Add fact'))}</span></button>
+                </div>
+              </div>
+              <div class="profile-new-timeline-body" tabindex="0" aria-label="${escapeHtml(t('Timeline events'))}">
+                ${renderProfileNewTimeline(person)}
+              </div>
             </section>
             <div class="profile-new-lower">
               <section class="profile-new-card profile-new-relatives" aria-labelledby="profile-new-relatives-title">
-                <h2 id="profile-new-relatives-title">${escapeHtml(t('Relatives'))}</h2>
-                <div class="profile-new-relatives-body"></div>
+                <h2 id="profile-new-relatives-title">${escapeHtml(t('Relatives'))}<span class="profile-new-relatives-count">${relationshipCount(person.id)}</span></h2>
+                <div class="profile-new-relatives-body">${renderRelationships(person.id)}</div>
               </section>
               <section class="profile-new-card profile-new-facts" aria-labelledby="profile-new-facts-title">
                 <h2 id="profile-new-facts-title">${escapeHtml(t('Facts & connections'))}</h2>
@@ -77,6 +190,12 @@ function renderPeopleProfileNew(person)
     main.querySelector('#profileNewEdit')?.addEventListener('click', () => openEditPersonModal(person.id));
     main.querySelector('#profileNewMore')?.addEventListener('click', event =>
         openPeopleActionsMenu(person.id, event.currentTarget, { includeProfile: false }));
+    main.querySelector('[data-profile-new-add-fact]')?.addEventListener('click', () => openAddFactOverlay(person));
+    if (overview)
+    {
+        bindProfileNewTimeline(person);
+        bindRelationshipList(main, 'profile');
+    }
 
     const tabs = [...main.querySelectorAll('[data-profile-new-tab]')];
     function activateTab(id, focus)
