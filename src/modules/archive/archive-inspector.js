@@ -2630,9 +2630,6 @@ function renderArchiveSourceInspector()
         title:
           localizedDataFieldValue(source.title),
 
-        subtitle:
-          categoryLabel,
-
         bodyClass:
           'archive-source-inspector-content',
 
