@@ -819,6 +819,7 @@ function archiveSourceSearchText(
 {
     return [
         source?.title,
+        localizedDataFieldValue(source?.title),
 
         sourceCategoryLabel(
             source?.category,
@@ -831,10 +832,16 @@ function archiveSourceSearchText(
         ),
 
         source?.providedBy,
+        localizedDataFieldValue(source?.providedBy),
         archiveSourceCustodialPlaceLabel(source),
+        localizedDataFieldValue(
+            archiveSourceCustodialPlaceLabel(source)
+        ),
         source?.reference,
+        localizedDataFieldValue(source?.reference),
         source?.url,
         source?.notes,
+        localizedDataFieldValue(source?.notes),
 
         archiveSourceConnectedSearchText(
             source

@@ -3292,7 +3292,9 @@ function archiveSourceOriginLabel(
             archiveSourceCustodialPlaceLabel(source)
         ]
             .map(value =>
-                String(value || '').trim()
+                localizedDataFieldValue(
+                    String(value || '').trim()
+                )
             )
             .filter(
                 (
@@ -3348,7 +3350,7 @@ function archiveSourceReferenceLabel(
 
     const values =
         [
-            source.reference,
+            localizedDataFieldValue(source.reference),
             archiveSourceWebsiteHost(
                 source.url
             )
@@ -3412,6 +3414,7 @@ function archiveSourceGroupPreferences()
 function renderArchiveSourceRow(source)
 {
     const selected = state.archiveSelectedSourceId === source.id;
+    const title = localizedDataFieldValue(source.title);
     const summary = [
         archiveSourceOriginLabel(source),
         archiveSourceReferenceLabel(source)
@@ -3422,10 +3425,10 @@ function renderArchiveSourceRow(source)
     return `
         <div class="archive-source-entry ${selected ? 'selected-detail' : ''}"
           data-archive-source-row="${escapeHtml(source.id)}"
-          role="listitem" tabindex="0" aria-label="${escapeHtml(source.title)}"
+          role="listitem" tabindex="0" aria-label="${escapeHtml(title)}"
           ${selected ? 'aria-current="true"' : ''}>
           <div class="archive-source-entry-main">
-            <strong title="${escapeHtml(source.title)}">${escapeHtml(source.title)}</strong>
+            <strong title="${escapeHtml(title)}">${escapeHtml(title)}</strong>
             ${summary
                 ? `<span title="${escapeHtml(summary)}">${escapeHtml(summary)}</span>`
                 : ''}

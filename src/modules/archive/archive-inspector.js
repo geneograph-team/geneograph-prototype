@@ -1986,16 +1986,16 @@ function renderArchiveSourceDetails(
             'Obtained from',
 
             value:
-            source.providedBy
-            || ''
+            localizedDataFieldValue(source.providedBy || '')
         },
         {
             label:
             'Stored at',
 
             value:
-            archiveSourceCustodialPlaceLabel(source)
-            || '',
+            localizedDataFieldValue(
+                archiveSourceCustodialPlaceLabel(source) || ''
+            ),
 
             placeId:
             archiveSourceCustodialPlace(source)?.id || ''
@@ -2005,8 +2005,7 @@ function renderArchiveSourceDetails(
             'Where can it be found?',
 
             value:
-            source.reference
-            || ''
+            localizedDataFieldValue(source.reference || '')
         },
         {
             label:
@@ -2031,7 +2030,7 @@ function renderArchiveSourceDetails(
         },
         {
             label: 'Source notes',
-            value: source.notes || '',
+            value: localizedDataFieldValue(source.notes || ''),
             isNote: true
         }
     ];
@@ -2629,7 +2628,7 @@ function renderArchiveSourceInspector()
 
     return renderArchiveInspectorShell({
         title:
-          source.title,
+          localizedDataFieldValue(source.title),
 
         subtitle:
           categoryLabel,
