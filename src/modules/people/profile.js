@@ -47,6 +47,24 @@ function renderPeopleProfile(person)
     const hasDeathLifeRow =
         peopleHeroLifeSummaryItems(person).length > 1;
 
+    const placeCount =
+        getProfileConnectedPlaces(person.id).length;
+
+    const eventCount =
+        getFamilyTreeTimelineEvents(person.id).length;
+
+    const centralPerson =
+        getPerson(person.id);
+
+    const sourceCount =
+        centralPerson
+            ? sourcesForTarget(
+                'person',
+                centralPerson.id,
+                centralPerson.projectId
+            ).length
+            : 0;
+
     main.innerHTML = `
         <div class="person-profile">
           <header class="profile-hero profile-command-hero">
@@ -123,6 +141,36 @@ function renderPeopleProfile(person)
                             ? 'note'
                             : 'notes'
                     }
+                </span>
+
+                <span
+                  class="
+                    app-chip
+                    app-chip--places
+                  ">
+
+                  ${placeCount}
+                  ${placeCount === 1 ? 'place' : 'places'}
+                </span>
+
+                <span
+                  class="
+                    app-chip
+                    app-chip--events
+                  ">
+
+                  ${eventCount}
+                  ${eventCount === 1 ? 'event' : 'events'}
+                </span>
+
+                <span
+                  class="
+                    app-chip
+                    app-chip--sources
+                  ">
+
+                  ${sourceCount}
+                  ${sourceCount === 1 ? 'source' : 'sources'}
                 </span>
               </div>
             </div>
