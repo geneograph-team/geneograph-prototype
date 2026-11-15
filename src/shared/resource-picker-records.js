@@ -190,7 +190,11 @@ function rpOpenSourcePicker(options = {})
             : options.subtitle ? t(options.subtitle) : rpText('Connect existing sources to this record.', 'Свяжите источники с этой записью.'),
         existingIds: rpRecordIds(existing()), partialIds: options.partialIds || [], records, mode: 'manage',
         name: source => localizedDataFieldValue(source.title) || rpText('Untitled source', 'Источник без названия'),
-        searchText: source => [source.title, provider(source), archiveSourceCustodialPlaceLabel(source), source.reference, source.notes, source.url,
+        searchText: source => [source.title, adapter.name(source), provider(source),
+            localizedDataFieldValue(provider(source)), archiveSourceCustodialPlaceLabel(source),
+            localizedDataFieldValue(archiveSourceCustodialPlaceLabel(source)), source.reference,
+            localizedDataFieldValue(source.reference), source.notes,
+            localizedDataFieldValue(source.notes), source.url,
             localizedSourceCategoryLabel(source.category, '')].filter(Boolean).join(' '),
         scopes: () => [{ id: 'all', label: rpText('All sources', 'Все источники') },
             ...SOURCE_CATEGORIES.map(category => ({ id: category.value, label: t(category.shortLabel || category.label) })),
@@ -199,21 +203,21 @@ function rpOpenSourcePicker(options = {})
             ? !SOURCE_CATEGORIES.some(category => category.value === source.category) : source.category === scopeId),
         filters: () => [{ key: 'provider', label: rpText('Provider', 'Поставщик'), type: 'select',
             options: [{ value: '', label: rpText('All providers', 'Все поставщики') },
-                ...[...new Set(records().map(provider).filter(Boolean))].sort().map(value => ({ value, label: value }))] },
+                ...[...new Set(records().map(provider).filter(Boolean))].sort().map(value => ({ value, label: localizedDataFieldValue(value) }))] },
             { key: 'favorite', label: rpText('Favorites only', 'Только избранные'), type: 'checkbox' }],
         matchesFilters: (source, values) => Boolean((!values.provider || provider(source) === values.provider) && (!values.favorite || source.favorite)),
-        describe: source => ({ title: adapter.name(source), description: provider(source) === String(source.title || '').trim() ? '' : provider(source),
-            meta: [localizedSourceCategoryLabel(source.category, ''), source.reference].filter(Boolean).join(' · '), icon: icon.source || icon.archive }),
+        describe: source => ({ title: adapter.name(source), description: provider(source) === String(source.title || '').trim() ? '' : localizedDataFieldValue(provider(source)),
+            meta: [localizedSourceCategoryLabel(source.category, ''), localizedDataFieldValue(source.reference)].filter(Boolean).join(' · '), icon: icon.source || icon.archive }),
         preview: source =>
         {
-            const fields = [[rpText('Provider', 'Поставщик'), provider(source)], [rpText('Stored at', 'Место хранения'), archiveSourceCustodialPlaceLabel(source)], [rpText('Reference', 'Шифр'), source.reference], ['URL', source.url]];
-            const rows = fields.filter(([, value]) => value && value !== source.title).map(([label, value]) =>
+            const fields = [[rpText('Provider', 'Поставщик'), localizedDataFieldValue(provider(source))], [rpText('Stored at', 'Место хранения'), localizedDataFieldValue(archiveSourceCustodialPlaceLabel(source))], [rpText('Reference', 'Шифр'), localizedDataFieldValue(source.reference)], ['URL', source.url]];
+            const rows = fields.filter(([, value]) => value && value !== adapter.name(source)).map(([label, value]) =>
             {
                 let validUrl = false;
                 try { validUrl = label === 'URL' && ['http:', 'https:'].includes(new URL(value).protocol); } catch (_) { /* Plain text reference. */ }
                 return `<dt>${escapeHtml(label)}</dt><dd>${validUrl ? `<a href="${escapeHtml(value)}" target="_blank" rel="noopener noreferrer">${escapeHtml(value)}</a>` : escapeHtml(value)}</dd>`;
             }).join('');
-            return `<article class="rp-source-preview"><header><span aria-hidden="true">${icon.source || icon.archive}</span><div><h3>${escapeHtml(adapter.name(source))}</h3><p>${escapeHtml(localizedSourceCategoryLabel(source.category, ''))}</p></div></header>${rows ? `<dl>${rows}</dl>` : ''}${source.notes ? `<section><h4>${rpText('Notes', 'Заметки')}</h4><p>${escapeHtml(source.notes)}</p></section>` : ''}</article>`;
+            return `<article class="rp-source-preview"><header><span aria-hidden="true">${icon.source || icon.archive}</span><div><h3>${escapeHtml(adapter.name(source))}</h3><p>${escapeHtml(localizedSourceCategoryLabel(source.category, ''))}</p></div></header>${rows ? `<dl>${rows}</dl>` : ''}${source.notes ? `<section><h4>${rpText('Notes', 'Заметки')}</h4><p>${escapeHtml(localizedDataFieldValue(source.notes))}</p></section>` : ''}</article>`;
         },
         create: session => session.openEditor(modalOpener => openArchiveSourceModal('', {
             modalOpener, targetProjectId: projectId, onCreated: source => session.selectCreated([source.id])
