@@ -1473,6 +1473,88 @@ function geneoTourRefreshCopy()
     geneoTourQueuePosition();
 }
 
+const GENEO_TOUR_COVER_SVG = `
+    <svg class="geneo-tour-cover-art" viewBox="0 0 600 125"
+         xmlns="http://www.w3.org/2000/svg" aria-hidden="true"
+         focusable="false" preserveAspectRatio="xMidYMid meet">
+        <g class="geneo-tour-cover-thread" fill="none" stroke-linecap="round">
+          <path d="M0 59 C21 56 36 51 50 53
+            C73 55 90 67 112 67 C131 67 149 61 160 53
+            C169 47 168 42 163 42 C155 42 153 52 161 57
+            C179 68 202 62 218 59 C244 53 267 58 290 65
+            C314 74 334 66 352 61 C372 54 384 51 385 59
+            C386 65 372 70 348 68 C371 69 394 70 415 67
+            C441 63 456 67 478 68 C503 71 522 65 541 62
+            C566 58 584 56 600 57"/>
+        </g>
+        <g class="geneo-tour-cover-connectors" fill="none" stroke-linecap="round">
+          <path d="M50 43 V53 M112 67 V82 M203 42 V61
+            M270 65 V82 M331 43 V66 M414 68 V83
+            M478 43 V68 M532 63 V82"/>
+        </g>
+        <g class="geneo-tour-cover-dots">
+          <circle cx="50" cy="53" r="1.5"/>
+          <circle cx="112" cy="67" r="1.5"/>
+          <circle cx="203" cy="61" r="1.5"/>
+          <circle cx="270" cy="65" r="1.5"/>
+          <circle cx="331" cy="66" r="1.5"/>
+          <circle cx="414" cy="68" r="1.5"/>
+          <circle cx="478" cy="68" r="1.5"/>
+          <circle cx="532" cy="63" r="1.5"/>
+        </g>
+        <g class="geneo-tour-cover-icons" fill="none"
+           stroke="currentColor" stroke-width="1.8"
+           stroke-linecap="round" stroke-linejoin="round">
+          <!-- Projects: home -->
+          <g transform="translate(40 22) scale(.83)">
+            <path d="M3 11 12 3 21 11H19V21H14V15H10V21H5V11Z"
+                  fill="currentColor" stroke="none"/>
+          </g>
+          <!-- Family Tree: connected blocks -->
+          <g transform="translate(102 82) scale(.83)">
+            <path d="M3 3h7v7H3zM14 3h7v7h-7zM9 15h7v6H9z"
+                  fill="currentColor" stroke="none"/>
+            <path d="M6.5 10v3h11v-3M12 13v2"/>
+          </g>
+          <!-- People -->
+          <g transform="translate(193 23) scale(.83)">
+            <path d="M16 20v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+            <circle cx="10" cy="7" r="4"/>
+            <path d="M20 20v-2.2a4 4 0 0 0-3-3.8
+              M17 3.2a4 4 0 0 1 0 7.6"/>
+          </g>
+          <!-- Geneograph: whiteboard -->
+          <g transform="translate(261 82) scale(.83)">
+            <rect x="3" y="5" width="18" height="15" rx="2"/>
+            <path d="m6 17 3-3 3 2 3-5M14 7l5-4v5"/>
+          </g>
+          <!-- Albums: photo -->
+          <g transform="translate(322 24) scale(.83)">
+            <rect x="3" y="5" width="18" height="14" rx="2"/>
+            <circle cx="8" cy="10" r="2"/>
+            <path d="m21 15-4.5-4.5L8 19"/>
+          </g>
+          <!-- Archive -->
+          <g transform="translate(404 82) scale(.83)">
+            <path d="M3.5 8v9c0 2 1.5 3 3.5 3h10
+              c2 0 3.5-1 3.5-3V8"/>
+            <rect x="2" y="3" width="20" height="5" rx="1"/>
+            <path d="M9 12h6"/>
+          </g>
+          <!-- Notes -->
+          <g transform="translate(469 24) scale(.83)">
+            <path d="M5 4h14v16H5zM8 8h8M8 12h8M8 16h5"/>
+          </g>
+          <!-- Places -->
+          <g transform="translate(522 81) scale(.83)">
+            <path d="M12 21s7-5.3 7-11a7 7 0 1 0-14 0
+              c0 5.7 7 11 7 11Z"/>
+            <circle cx="12" cy="10" r="2.5"/>
+          </g>
+        </g>
+    </svg>
+`;
+
 function geneoTourRenderOverlay(target = null)
 {
     geneoTourDestroyOverlay({ keepInert: true });
@@ -1504,7 +1586,7 @@ function geneoTourRenderOverlay(target = null)
                 <button class="geneo-tour-close" type="button" aria-label="${escapeHtml(t('Skip tour'))}" data-geneo-tour-action="skip">${icon.close}</button>
             </div>
             <div data-geneo-tour-step-view>
-                ${index < 0 ? `<div class="geneo-tour-welcome"><span class="geneo-tour-brand">${icon.logo}<strong>GeneoGraph</strong></span><div class="geneo-tour-cover" aria-hidden="true"></div></div>` : ''}
+                ${index < 0 ? `<div class="geneo-tour-welcome"><span class="geneo-tour-brand">${icon.logo}<strong>GeneoGraph</strong></span><div class="geneo-tour-cover" aria-hidden="true">${GENEO_TOUR_COVER_SVG}</div></div>` : ''}
                 <h2 id="geneoTourTitle" data-geneo-tour-title></h2>
                 <p id="geneoTourBody" data-geneo-tour-body></p>
                 <p class="geneo-tour-fallback" data-geneo-tour-fallback hidden>${escapeHtml(t('This part of the sample is unavailable. Continue to the next stop.'))}</p>
