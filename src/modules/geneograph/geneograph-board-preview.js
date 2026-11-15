@@ -161,7 +161,7 @@ function geneoPreviewNode(node, board)
 {
     const { x, y, width, height } = node;
     const appearance = geneoResolveVisibleNodeAppearance(node, board.diagram);
-    const fill = geneoPaintCssColor(appearance.fill, { disabledColor: '#1B2522' });
+    const fill = geneoPaintCssColor(appearance.fill);
     const stroke = geneoPaintCssColor(appearance.stroke, { disabledColor: '#52615D' });
     const previewInk = escapeHtml(geneoPaintCssColor(appearance.text, { disabledColor: 'var(--text-primary)' }));
     const outline = `fill="${escapeHtml(fill)}" stroke="${escapeHtml(stroke)}" stroke-width="2"`;
