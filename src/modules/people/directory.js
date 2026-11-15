@@ -782,6 +782,13 @@ function renderPeopleHeroLifeSummary(
                 role="listitem">
 
                 <span class="profile-hero-life-label">
+                  ${options.showEventIcons
+                        ? `
+                    <span class="profile-hero-life-icon" aria-hidden="true">
+                      ${item.label === 'Birth' ? icon.birth : icon.death}
+                    </span>
+                  `
+                        : ''}
                   ${escapeHtml(item.label)}
                 </span>
 
