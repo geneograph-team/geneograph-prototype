@@ -682,18 +682,6 @@
     }
 }
 
-.profile-back-link-icon svg {
-    width: 16px;
-    height: 16px;
-    display: block;
-}
-
-.profile-back-link:hover {
-    color: var(--text-primary);
-    text-decoration: underline;
-    text-underline-offset: 3px;
-}
-
 .profile-card,
 .profile-side-card {
     border: 1px solid var(--border-default);
