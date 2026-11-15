@@ -43,10 +43,14 @@ function renderPeopleProfile(person)
         state.peopleProfileEditing = false;
     }
 
+    // Match chip placement to the life facts actually rendered.
+    const hasDeathLifeRow =
+        peopleHeroLifeSummaryItems(person).length > 1;
+
     main.innerHTML = `
         <div class="person-profile">
           <header class="profile-hero profile-command-hero">
-            <div class="profile-hero-content">
+            <div class="profile-hero-content${hasDeathLifeRow ? ' profile-hero-content--with-death' : ''}">
               ${renderEditablePersonAvatar(
                     person,
                     'profile-hero-photo'
