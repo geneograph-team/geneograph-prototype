@@ -46,20 +46,6 @@ function renderPeopleProfile(person)
     main.innerHTML = `
         <div class="person-profile">
           <header class="profile-hero profile-command-hero">
-            <button
-              class="profile-back-link"
-              type="button"
-              id="backPeopleList">
-
-              <span
-                class="profile-back-link-icon"
-                aria-hidden="true">
-                ${icon.arrow}
-              </span>
-
-              <span>Back to people</span>
-            </button>
-
             <div class="profile-hero-content">
               ${renderEditablePersonAvatar(
                     person,
@@ -76,17 +62,10 @@ function renderPeopleProfile(person)
                     person,
                     {
                         includeBirthPlace: true,
-                        includeDeathPlace: true
+                        includeDeathPlace: true,
+                        showEventIcons: true
                     }
                 )}
-
-              <p class="profile-hero-relation">
-                ${escapeHtml(
-                    person.parents
-                        ? `Child of ${person.parents}`
-                        : person.relation
-                )}
-              </p>
 
               <div
                 class="
@@ -168,25 +147,15 @@ function renderPeopleProfile(person)
               </button>
 
               <button
-                class="button secondary"
-                type="button"
-                id="profileAddRelative">
-
-                ${icon.addperson}
-                Add relative
-              </button>
-
-              <button
-                class="button secondary"
+                class="button secondary control-icon-button profile-hero-more-actions"
                 type="button"
                 id="profileMoreActions"
+                aria-label="More actions"
+                title="More actions"
                 aria-haspopup="menu"
                 aria-expanded="false">
 
-                ${renderPanelButtonLabel(
-                    icon.more,
-                    'More actions'
-                )}
+                ${icon.more}
               </button>
             </div>
           </header>
@@ -2530,10 +2499,6 @@ function bindPeopleProfileControls(person)
         profileCard.profileSectionSnapshots = Object.fromEntries([...profileCard.querySelectorAll('[data-profile-card-panel]')]
             .map(panel => [panel.dataset.profileCardPanel, profileSectionDraftSnapshot(panel)]));
     bindProfileCardTabs(profileCard);
-    main.querySelector('#backPeopleList')?.addEventListener('click', () =>
-    {
-        state.peopleView = 'directory'; state.peopleSide = 'people'; state.peopleProfileEditing = false; renderPeople(); renderTopbar();
-    });
     main
         .querySelector('#profileEditButton')
         ?.addEventListener('click', () =>
@@ -2547,18 +2512,6 @@ function bindPeopleProfileControls(person)
             state.peopleProfileEditing = true;
             renderPeople();
         });
-    main
-        .querySelector('#profileAddRelative')
-        ?.addEventListener(
-            'click',
-            event =>
-            {
-                openRelativePopover(
-                    event.currentTarget,
-                    person.id
-                );
-            }
-        );
     main
         .querySelector('#profileMoreActions')
         ?.addEventListener(
