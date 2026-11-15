@@ -14,6 +14,101 @@ function profileNewTimelineEvents(personId)
         .filter(event => event.projectId === currentProjectId());
 }
 
+function profileNewFactDate(value)
+{
+    return hasGenealogyDateValue(value) ? formatGenealogyDateLabel(value) : '';
+}
+
+function profileNewFactPlace(record)
+{
+    const place = getPlace(record.placeId);
+    return cleanEditFieldValue(place?.projectId === currentProjectId() && !place.deleted ? place.name : record.placeText);
+}
+
+function profileNewFactContext(record, includeType = false)
+{
+    const fromDate = hasGenealogyDateValue(record.fromDate) ? record.fromDate : record.date;
+    const dates = [profileNewFactDate(fromDate), profileNewFactDate(record.toDate)].filter(Boolean);
+    const type = includeType ? cleanEditFieldValue(record.institutionType || record.type) : '';
+    return [type, dates.join(' – '), profileNewFactPlace(record)].filter(Boolean).join(' · ');
+}
+
+function profileNewFactEntries(person)
+{
+    const records = Array.isArray(person?.attributes) ? person.attributes.filter(record => record && !record.deleted) : [];
+    const alternativeNames = cleanEditFieldValue(person?.profile?.alternativeNames);
+    const religions = new Set();
+    const seenRecords = new Set();
+    const group = (title, entries) => ({ title, entries: entries.filter(Boolean) });
+    const entry = (label, value, context = '', authoredLabel = false) => value ? { label, value, context, authoredLabel } : null;
+    const byTag = tag => records.filter(record =>
+    {
+        if (record.tag !== tag) return false;
+        const key = record.id ? `${tag}:${record.id}` : record;
+        if (seenRecords.has(key)) return false;
+        seenRecords.add(key);
+        return true;
+    });
+
+    const identity = [entry('Alternative names', alternativeNames)];
+    byTag('RELI').forEach(record =>
+    {
+        const value = cleanEditFieldValue(record.value);
+        const key = value.toLocaleLowerCase();
+        if (!value || religions.has(key)) return;
+        religions.add(key);
+        const predefined = RELIGION_VALUES.find(option => option.toLocaleLowerCase() === key);
+        identity.push(entry('Religion', predefined ? t(predefined) : value));
+    });
+
+    const background = [
+        ...byTag('OCCU').map(record => entry('Occupation', [
+            cleanEditFieldValue(record.value) || cleanEditFieldValue(record.occupation),
+            cleanEditFieldValue(record.company) || cleanEditFieldValue(record.agency)
+        ].filter(Boolean).join(' — '), profileNewFactContext(record))),
+        ...byTag('EDUC').map(record =>
+        {
+            const primary = [educationValueLabel(record), educationInstitutionLabel(record)].filter(Boolean).join(' — ');
+            return entry('Education', primary || cleanEditFieldValue(record.institutionType || record.type),
+                profileNewFactContext(record, Boolean(primary)));
+        })
+    ];
+    const other = [
+        ...byTag('FACT').map(record =>
+        {
+            const type = cleanEditFieldValue(record.type);
+            const value = cleanEditFieldValue(record.value);
+            return entry(type && value ? type : 'Custom fact', value || type, profileNewFactContext(record), Boolean(type && value));
+        }),
+        entry('Cause of death', cleanEditFieldValue(person?.death?.cause) || cleanEditFieldValue(person?.death?.reason))
+    ];
+
+    return [group('Identity & beliefs', identity), group('Background details', background), group('Other recorded facts', other)]
+        .filter(item => item.entries.length);
+}
+
+function renderProfileNewFacts(person)
+{
+    const groups = profileNewFactEntries(person);
+    if (!groups.length)
+        return `<p class="profile-new-facts-empty">${escapeHtml(t('No additional facts recorded.'))}</p>`;
+
+    return groups.map(group => `
+      <section class="profile-new-fact-group">
+        <h3>${escapeHtml(t(group.title))}</h3>
+        <div class="profile-new-fact-list">
+          ${group.entries.map(item => `
+            <div class="profile-new-fact-entry">
+              <span class="profile-new-fact-label" ${item.authoredLabel ? 'data-user-content' : ''}>${escapeHtml(item.authoredLabel ? item.label : t(item.label))}</span>
+              <span class="profile-new-fact-value" data-user-content>${escapeHtml(item.value)}</span>
+              ${item.context ? `<span class="profile-new-fact-context" data-user-content>${escapeHtml(item.context)}</span>` : ''}
+            </div>
+          `).join('')}
+        </div>
+      </section>
+    `).join('');
+}
+
 function renderProfileNewTimeline(person)
 {
     const events = profileNewTimelineEvents(person.id);
@@ -113,6 +208,8 @@ function bindProfileNewTimeline(person)
 function renderPeopleProfileNew(person)
 {
     if (!person) return;
+    const centralPerson = getPerson(person.id);
+    if (!centralPerson || centralPerson.projectId !== currentProjectId() || centralPerson.deleted) return;
     profileNewTimelineResizeObserver?.disconnect();
     main.classList.remove('people-profile-main');
     main.classList.add('people-profile-new-main');
@@ -128,7 +225,10 @@ function renderPeopleProfileNew(person)
         <header class="profile-hero profile-new-hero">
           <div class="profile-hero-content">
             ${renderEditablePersonAvatar(person, 'profile-hero-photo')}
-            <div class="profile-hero-copy"><h1>${escapeHtml(person.name)}</h1></div>
+            <div class="profile-hero-copy">
+              <h1>${escapeHtml(formatPersonFullName(centralPerson) || person.name)}</h1>
+              ${cleanEditFieldValue(centralPerson.names?.maiden) ? `<p class="profile-new-maiden"><span>${escapeHtml(t('Maiden name'))}:</span> <span data-user-content>${escapeHtml(centralPerson.names.maiden)}</span></p>` : ''}
+            </div>
             ${renderPeopleHeroLifeSummary(person, {
                 includeBirthPlace: true,
                 includeDeathPlace: true
@@ -170,12 +270,14 @@ function renderPeopleProfileNew(person)
             </section>
             <div class="profile-new-lower">
               <section class="profile-new-card profile-new-relatives" aria-labelledby="profile-new-relatives-title">
-                <h2 id="profile-new-relatives-title">${escapeHtml(t('Relatives'))}<span class="profile-new-relatives-count">${relationshipCount(person.id)}</span></h2>
-                <div class="profile-new-relatives-body">${renderRelationships(person.id)}</div>
+                <div class="profile-new-relatives-inner">
+                  <h2 id="profile-new-relatives-title">${escapeHtml(t('Relatives'))}<span class="profile-new-relatives-count">${relationshipCount(person.id)}</span></h2>
+                  <div class="profile-new-relatives-body">${renderRelationships(person.id)}</div>
+                </div>
               </section>
               <section class="profile-new-card profile-new-facts" aria-labelledby="profile-new-facts-title">
-                <h2 id="profile-new-facts-title">${escapeHtml(t('Facts & connections'))}</h2>
-                <div class="profile-new-facts-body"></div>
+                <h2 id="profile-new-facts-title">${escapeHtml(t('Additional facts'))}</h2>
+                <div class="profile-new-facts-body">${renderProfileNewFacts(centralPerson)}</div>
               </section>
             </div>
           ` : `
