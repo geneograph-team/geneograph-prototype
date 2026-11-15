@@ -438,6 +438,7 @@
     grid-area: content;
     position: relative;
     z-index: 1;
+    align-self: start;
 
     min-width: 0;
 
@@ -453,9 +454,17 @@
     row-gap: var(--space-3);
 }
 
+/* Two displayed life facts move chips below both portrait and details. */
+.profile-hero-content--with-death {
+    grid-template-areas:
+        "photo identity"
+        "photo life"
+        "tags tags";
+}
+
 .profile-hero-content>.person-photo-control {
     grid-area: photo;
-    align-self: center;
+    align-self: start;
 }
 
 .profile-hero-copy {
