@@ -93,15 +93,64 @@
     color: var(--text-tertiary);
 }
 
-.notes-people-modal:not(.archive-person-area-modal) .photo-people-selected-name {
-    flex: 1 1 auto;
+.notes-people-modal:not(.archive-person-area-modal) :is(.photo-people-result, .photo-people-selected-chip) {
+    min-height: 78px;
+    padding: 10px 12px;
+    column-gap: 12px;
+    align-items: center;
+}
+
+.notes-people-modal:not(.archive-person-area-modal) .photo-people-result {
+    grid-template-columns: 44px minmax(0, 1fr) 22px;
+}
+
+.notes-people-modal:not(.archive-person-area-modal) .photo-people-selected-list {
+    gap: 0;
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-sm);
+    background: color-mix(in srgb, var(--gg-scrim) 8%, transparent);
+}
+
+.notes-people-modal:not(.archive-person-area-modal) .photo-people-selected-chip {
+    display: grid;
+    grid-template-columns: 44px minmax(0, 1fr) 22px;
+    border: 0;
+    border-bottom: 1px solid var(--border-default);
+    border-radius: 0;
+    background: transparent;
+    text-align: left;
+}
+
+.notes-people-modal:not(.archive-person-area-modal) .photo-people-selected-chip:last-child {
+    border-bottom: 0;
+}
+
+.notes-people-modal:not(.archive-person-area-modal) :is(.photo-people-result-avatar, .photo-people-chip-avatar) {
+    --person-avatar-width: 44px;
+    --person-avatar-radius: 8px;
+    --person-avatar-font-size: 13px;
+    width: 44px;
+    height: 44px;
+}
+
+.notes-people-modal:not(.archive-person-area-modal) .photo-people-result-copy strong {
+    font-size: 15px;
+    font-weight: 700;
+}
+
+.notes-people-modal:not(.archive-person-area-modal) .photo-people-result-copy span {
+    font-size: 13px;
+}
+
+.notes-people-modal:not(.archive-person-area-modal) .photo-people-result input {
+    width: 20px;
+    height: 20px;
 }
 
 .notes-people-modal:not(.archive-person-area-modal) .photo-people-selected-remove {
-    width: 20px;
-    height: 20px;
-    flex: 0 0 20px;
-    margin-left: auto;
+    width: 22px;
+    height: 22px;
+    margin: 0;
 }
 
 .notes-people-modal:not(.archive-person-area-modal) .photo-people-selected-remove svg {

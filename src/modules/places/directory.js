@@ -996,17 +996,13 @@ function openPlaceSavedFilterMenu(
         return;
     }
 
-    const rect =
-        anchor
-            .getBoundingClientRect();
-
     const menu =
         document.createElement(
             'div'
         );
 
     menu.className =
-        'menu-popover';
+        'menu-popover app-action-menu';
 
     menu.id =
         'projectMenu';
@@ -1020,17 +1016,6 @@ function openPlaceSavedFilterMenu(
         'aria-label',
         `Actions for ${savedFilter.name}`
     );
-
-    menu.style.top =
-        `${rect.bottom + 6}px`;
-
-    menu.style.left =
-        `${
-            Math.max(
-                12,
-                rect.right - 190
-            )
-        }px`;
 
     menu.innerHTML = `
         <button
@@ -1051,6 +1036,7 @@ function openPlaceSavedFilterMenu(
 
     document.body
         .appendChild(menu);
+    positionAnchoredActionMenu(menu, anchor);
 
     menu.addEventListener(
         'click',

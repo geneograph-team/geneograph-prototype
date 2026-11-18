@@ -2835,17 +2835,11 @@ button.app-chip:disabled,
     position: fixed;
     min-width: 190px;
     background: var(--surface-card);
-    border: 1px solid var(--border-strong);
+    border: 1px solid var(--border-default);
     border-radius: var(--radius-sm);
     box-shadow: var(--shadow-soft);
     padding: 6px;
     z-index: 80;
-}
-
-.menu-popover.project-action-menu {
-    box-sizing: border-box;
-    min-width: 0;
-    width: min(190px, calc(100vw - 24px));
 }
 
 .menu-popover button {

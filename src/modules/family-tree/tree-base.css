@@ -370,42 +370,6 @@
     display: none;
 }
 
-.tree-mobile-menu {
-    position: fixed;
-    z-index: 80;
-    width: min(230px, calc(100vw - 16px));
-    padding: 6px;
-    border: 1px solid var(--border-default);
-    border-radius: var(--radius-sm);
-    background: var(--surface-card);
-    box-shadow: var(--shadow-soft);
-}
-
-.tree-mobile-menu button {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    width: 100%;
-    min-height: 42px;
-    padding: 8px 10px;
-    border: 0;
-    border-radius: var(--radius-sm);
-    background: transparent;
-    color: var(--text-primary);
-    font: inherit;
-    text-align: left;
-}
-
-.tree-mobile-menu button:hover,
-.tree-mobile-menu button:focus-visible {
-    background: var(--surface-card-hover);
-}
-
-.tree-mobile-menu button svg {
-    width: 18px;
-    height: 18px;
-}
-
 
 .tree-workspace {
     min-height: 0;

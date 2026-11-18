@@ -2924,7 +2924,7 @@ function openArchiveItemActionsPopover(
         );
 
     menu.className =
-        'menu-popover';
+        'menu-popover app-action-menu';
 
     menu.id =
         'projectMenu';
@@ -3071,38 +3071,7 @@ function openArchiveItemActionsPopover(
         Position after mounting so the actual
         menu dimensions are available.
       */
-    const rect = point
-        ? { left: point.x, right: point.x, top: point.y, bottom: point.y }
-        : anchor.getBoundingClientRect();
-
-    const viewportMargin =
-        12;
-
-    const gap =
-        6;
-
-    const left =
-        Math.min(
-            Math.max(viewportMargin, point ? point.x : rect.right - menu.offsetWidth),
-            Math.max(viewportMargin, window.innerWidth - menu.offsetWidth - viewportMargin)
-        );
-
-    const belowTop =
-        rect.bottom
-        + gap;
-
-    const top = point
-        ? Math.min(Math.max(viewportMargin, point.y), Math.max(viewportMargin,
-            window.innerHeight - menu.offsetHeight - viewportMargin))
-        : belowTop + menu.offsetHeight <= window.innerHeight - viewportMargin
-            ? belowTop
-            : Math.max(viewportMargin, rect.top - menu.offsetHeight - gap);
-
-    menu.style.left =
-        `${left}px`;
-
-    menu.style.top =
-        `${top}px`;
+    positionAnchoredActionMenu(menu, anchor, { point });
 
     anchor.setAttribute(
         'aria-expanded',
@@ -3297,7 +3266,7 @@ function openArchiveMobileChoiceMenu(anchor, kind, point = null)
     if (wasOpen) return;
     const menu = document.createElement('div');
     menu.id = 'projectMenu';
-    menu.className = 'menu-popover';
+    menu.className = 'menu-popover app-action-menu';
     menu.setAttribute('role', 'menu');
     const { folders, files } = archiveSelectedBulkItems();
     const allFavorite = [...folders, ...files].every(item => item.favorite);
@@ -3308,11 +3277,7 @@ function openArchiveMobileChoiceMenu(anchor, kind, point = null)
         ? `<button type="button" role="menuitem" data-archive-mobile-choice="files">${escapeHtml(t('Add files'))}</button><button type="button" role="menuitem" data-archive-mobile-choice="folder">${escapeHtml(t('New folder'))}</button>`
         : bulkChoices;
     document.body.appendChild(menu);
-    const rect = point ? { left: point.x, right: point.x, top: point.y, bottom: point.y } : anchor.getBoundingClientRect();
-    menu.style.left = `${Math.max(12, Math.min(point ? point.x : rect.right - menu.offsetWidth, innerWidth - menu.offsetWidth - 12))}px`;
-    menu.style.top = `${point
-        ? Math.max(12, Math.min(point.y, innerHeight - menu.offsetHeight - 12))
-        : rect.bottom + menu.offsetHeight + 8 < innerHeight ? rect.bottom + 6 : Math.max(12, rect.top - menu.offsetHeight - 6)}px`;
+    positionAnchoredActionMenu(menu, anchor, { point });
     menu.addEventListener('click', event => {
         const choice = event.target.closest('[data-archive-mobile-choice]')?.dataset.archiveMobileChoice;
         if (!choice) return;

@@ -2099,10 +2099,6 @@ function openGeneographCollectionMenu(
         return;
     }
 
-    const rect =
-        anchor
-            .getBoundingClientRect();
-
     const menu =
         document
             .createElement(
@@ -2110,21 +2106,10 @@ function openGeneographCollectionMenu(
             );
 
     menu.className =
-        'menu-popover';
+        'menu-popover app-action-menu';
 
     menu.id =
         'projectMenu';
-
-    menu.style.top =
-        `${rect.bottom + 6}px`;
-
-    menu.style.left =
-        `${
-            Math.max(
-                12,
-                rect.right - 200
-            )
-        }px`;
 
     menu.innerHTML = `
         <button
@@ -2146,6 +2131,7 @@ function openGeneographCollectionMenu(
     document.body.appendChild(
         menu
     );
+    positionAnchoredActionMenu(menu, anchor);
 
     menu.addEventListener(
         'click',
@@ -2694,10 +2680,6 @@ function openGeneographBoardMenu(
         return;
     }
 
-    const rect =
-        anchor
-            .getBoundingClientRect();
-
     const menu =
         document
             .createElement(
@@ -2705,21 +2687,10 @@ function openGeneographBoardMenu(
             );
 
     menu.className =
-        'menu-popover';
+        'menu-popover app-action-menu';
 
     menu.id =
         'projectMenu';
-
-    menu.style.top =
-        `${rect.bottom + 6}px`;
-
-    menu.style.left =
-        `${
-            Math.max(
-                12,
-                rect.right - 190
-            )
-        }px`;
 
     menu.innerHTML = `
         <button
@@ -2759,6 +2730,7 @@ function openGeneographBoardMenu(
     document.body.appendChild(
         menu
     );
+    positionAnchoredActionMenu(menu, anchor);
 
     menu.addEventListener(
         'click',

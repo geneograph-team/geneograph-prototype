@@ -21,11 +21,11 @@ function navigateAlbumsView(view, albumId = null)
 function openAlbumSidebarMenu(albumId, anchor)
 {
     closeMenu();
-    const rect = anchor.getBoundingClientRect();
     const menu = document.createElement('div');
-    menu.className = 'menu-popover'; menu.id = 'projectMenu'; menu.style.top = `${rect.bottom + 6}px`; menu.style.left = `${Math.max(12, rect.right - 190)}px`;
+    menu.className = 'menu-popover app-action-menu'; menu.id = 'projectMenu';
     menu.innerHTML = `<button type="button" data-album-action="open">Open album</button><button type="button" data-album-action="edit">Edit album</button><button class="danger" type="button" data-album-action="delete">Delete album</button>`;
     document.body.appendChild(menu);
+    positionAnchoredActionMenu(menu, anchor);
     menu.addEventListener('click', event =>
     {
         const action = event.target.closest('[data-album-action]')?.dataset.albumAction; if (!action) return; anchor.focus({ preventScroll: true }); closeMenu();

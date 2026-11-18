@@ -989,16 +989,12 @@ function openPeopleSavedViewMenu(viewId, anchor)
     const view = peopleProjectSavedViews().find(item => item.id === viewId);
     if (!view || !anchor) return;
 
-    const rect = anchor.getBoundingClientRect();
     const menu = document.createElement('div');
 
-    menu.className = 'menu-popover';
+    menu.className = 'menu-popover app-action-menu';
     menu.id = 'projectMenu';
     menu.setAttribute('role', 'menu');
     menu.setAttribute('aria-label', `Actions for ${view.name}`);
-
-    menu.style.top = `${rect.bottom + 6}px`;
-    menu.style.left = `${Math.max(12, rect.right - 190)}px`;
 
     menu.innerHTML = `
         <button
@@ -1018,6 +1014,7 @@ function openPeopleSavedViewMenu(viewId, anchor)
       `;
 
     document.body.appendChild(menu);
+    positionAnchoredActionMenu(menu, anchor);
 
     menu.addEventListener('click', event =>
     {
@@ -1208,14 +1205,11 @@ function openPeopleActionsMenu(
 
     if (!person || !anchor) return;
 
-    const rect =
-        anchor.getBoundingClientRect();
-
     const menu =
         document.createElement('div');
 
     menu.className =
-        'menu-popover people-row-menu';
+        'menu-popover app-action-menu people-row-menu';
 
     menu.id = 'projectMenu';
     menu.dataset.personId = personId;
@@ -1231,11 +1225,6 @@ function openPeopleActionsMenu(
             person.names?.display || 'person'
         }`
     );
-
-    menu.style.visibility = 'hidden';
-    menu.style.top =
-        `${rect.bottom + 6}px`;
-    menu.style.left = '0px';
 
     menu.innerHTML = `
         ${includeProfile
@@ -1280,25 +1269,7 @@ function openPeopleActionsMenu(
       `;
 
     document.body.appendChild(menu);
-
-    const viewportPadding = 12;
-
-    const menuWidth =
-        menu.getBoundingClientRect().width;
-
-    menu.style.left = `${
-        Math.max(
-            viewportPadding,
-            Math.min(
-                rect.right - menuWidth,
-                window.innerWidth
-              - menuWidth
-              - viewportPadding
-            )
-        )
-    }px`;
-
-    menu.style.visibility = 'visible';
+    positionAnchoredActionMenu(menu, anchor);
 
     menu.addEventListener(
         'click',

@@ -1610,20 +1610,12 @@ function deleteProject(projectId)
 function openProjectMenu(id, anchor)
 {
     closeMenu();
-    const rect = anchor.getBoundingClientRect();
     const menu = document.createElement('div');
-    menu.className = 'menu-popover project-action-menu';
+    menu.className = 'menu-popover app-action-menu project-action-menu';
     menu.id = 'projectMenu';
-    menu.style.visibility = 'hidden';
     menu.innerHTML = `<button type="button" data-action="rename">${escapeHtml(t('Rename'))}</button><button type="button" data-action="duplicate">${escapeHtml(t('Duplicate'))}</button><button type="button" data-action="cover">${escapeHtml(t('Update cover'))}</button><button type="button" class="danger" data-action="delete">${escapeHtml(t('Delete'))}</button>`;
     document.body.appendChild(menu);
-    const menuRect = menu.getBoundingClientRect();
-    const margin = 12;
-    menu.style.left = `${Math.max(margin, Math.min(rect.right - menuRect.width, window.innerWidth - menuRect.width - margin))}px`;
-    menu.style.top = `${rect.bottom + 6 + menuRect.height <= window.innerHeight - margin
-        ? rect.bottom + 6
-        : Math.max(margin, rect.top - menuRect.height - 6)}px`;
-    menu.style.visibility = 'visible';
+    positionAnchoredActionMenu(menu, anchor);
     menu.addEventListener('click', e =>
     {
         const action = e.target.closest('[data-action]')?.dataset.action;
@@ -1639,6 +1631,49 @@ function openProjectMenu(id, anchor)
 let menuLifecycleController = null;
 let menuLifecycleAnchor = null;
 let lastInteractionWasKeyboard = false;
+
+function positionAnchoredActionMenu(menu, anchor, { point = null, gap = 6, viewportMargin = 12 } = {})
+{
+    localizeUI(menu);
+    const margin = viewportMargin;
+    const viewportWidth = window.innerWidth;
+    const viewportHeight = window.innerHeight;
+    menu.style.visibility = 'hidden';
+    menu.style.maxWidth = `${Math.max(0, viewportWidth - margin * 2)}px`;
+    menu.style.maxHeight = `${Math.max(0, viewportHeight - margin * 2)}px`;
+    menu.style.overflowY = 'auto';
+
+    const anchorRect = anchor?.getBoundingClientRect();
+    const { width, height } = menu.getBoundingClientRect();
+    const clamp = (value, minimum, maximum) => Math.min(Math.max(value, minimum), Math.max(minimum, maximum));
+    let left;
+    let top;
+    if (point)
+    {
+        left = clamp(point.x, margin, viewportWidth - width - margin);
+        top = clamp(point.y, margin, viewportHeight - height - margin);
+    }
+    else
+    {
+        const trailing = anchorRect.right - width;
+        const leading = anchorRect.left;
+        left = trailing >= margin && trailing + width <= viewportWidth - margin
+            ? trailing
+            : leading >= margin && leading + width <= viewportWidth - margin
+                ? leading
+                : clamp(trailing, margin, viewportWidth - width - margin);
+        const below = anchorRect.bottom + gap;
+        const above = anchorRect.top - height - gap;
+        top = below + height <= viewportHeight - margin
+            ? below
+            : above >= margin
+                ? above
+                : clamp(below, margin, viewportHeight - height - margin);
+    }
+    menu.style.left = `${left}px`;
+    menu.style.top = `${top}px`;
+    menu.style.visibility = 'visible';
+}
 function bindPageSizeControl(pageSizeSelect, root)
 {
     pageSizeSelect.hidden = true;

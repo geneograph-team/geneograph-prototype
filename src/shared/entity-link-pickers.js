@@ -349,6 +349,10 @@ function openPeopleLinkModal({
                     const name =
                         personName(person);
 
+                    const dates =
+                        albumPhotoPersonDates(person)
+                        || 'Dates unknown';
+
                     return `
                   <button
                     class="photo-people-selected-chip"
@@ -362,17 +366,16 @@ function openPeopleLinkModal({
 
                     ${renderPersonAvatar(
                         person,
-                        'photo-people-chip-avatar',
+                        'photo-people-chip-avatar photo-people-result-avatar',
                         {
                             element:
                           'span'
                         }
                     )}
 
-                    <span class="photo-people-selected-name">
-                      ${escapeHtml(
-                            name
-                        )}
+                    <span class="photo-people-result-copy">
+                      <strong class="photo-people-selected-name">${escapeHtml(name)}</strong>
+                      ${imageArea ? '' : `<span>${escapeHtml(dates)}</span>`}
                     </span>
 
                     <span

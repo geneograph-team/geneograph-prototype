@@ -441,6 +441,35 @@
     outline-offset: 2px;
 }
 
+.menu-popover.app-action-menu {
+    box-sizing: border-box;
+    min-width: 0;
+    width: max-content;
+    max-width: calc(100vw - 24px);
+}
+
+.menu-popover.app-action-menu > button {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    min-height: 36px;
+    font: inherit;
+    white-space: normal;
+    overflow-wrap: anywhere;
+}
+
+.menu-popover.app-action-menu > button:focus-visible {
+    outline: 2px solid var(--brand-green-400);
+    outline-offset: -2px;
+    background: var(--surface-card-hover);
+}
+
+.menu-popover.app-action-menu > button > svg {
+    width: 18px;
+    height: 18px;
+    flex: 0 0 18px;
+}
+
 /* Reusable checkbox accent and keyboard focus; each view owns dimensions. */
 :is(.checkbox-row, .people-columns-option, .notes-checklist-row) input[type="checkbox"],
 :is(.albums-select-checkbox, .people-select-checkbox) {

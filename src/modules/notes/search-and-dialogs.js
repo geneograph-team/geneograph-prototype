@@ -548,28 +548,16 @@ function openNotesMenu(
         return;
     }
 
-    const rect =
-        anchor.getBoundingClientRect();
-
     const menu =
         document.createElement(
             'div'
         );
 
     menu.className =
-        'menu-popover';
+        'menu-popover app-action-menu';
 
     menu.id =
         'projectMenu';
-
-    menu.style.top =
-        `${rect.bottom + 6}px`;
-
-    menu.style.left =
-        `${Math.max(
-            12,
-            rect.right - 200
-        )}px`;
 
     menu.innerHTML = `
         <button
@@ -615,6 +603,7 @@ function openNotesMenu(
     document.body.appendChild(
         menu
     );
+    positionAnchoredActionMenu(menu, anchor);
 
     menu.addEventListener(
         'click',
@@ -737,28 +726,14 @@ function openNotesCollectionMenu(
         return;
     }
 
-    const rect =
-        anchor.getBoundingClientRect();
-
     const menu =
         document.createElement('div');
 
     menu.className =
-        'menu-popover';
+        'menu-popover app-action-menu';
 
     menu.id =
         'projectMenu';
-
-    menu.style.top =
-        `${rect.bottom + 6}px`;
-
-    menu.style.left =
-        `${
-            Math.max(
-                12,
-                rect.right - 200
-            )
-        }px`;
 
     menu.innerHTML = `
         <button
@@ -778,6 +753,7 @@ function openNotesCollectionMenu(
     document.body.appendChild(
         menu
     );
+    positionAnchoredActionMenu(menu, anchor);
 
     menu.addEventListener(
         'click',

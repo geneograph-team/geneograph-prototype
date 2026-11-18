@@ -721,15 +721,13 @@ function openTreeMobileMenu(anchor)
     }
     const menu = document.createElement('div');
     menu.id = 'treeMobileMenu';
-    menu.className = 'tree-mobile-menu';
+    menu.className = 'menu-popover app-action-menu tree-mobile-menu';
     menu.setAttribute('role', 'menu');
     menu.innerHTML = `<button type="button" role="menuitem" data-tree-mobile-action="settings">${icon.settings}<span>${escapeHtml(t('Tree Settings'))}</span></button>
         <button type="button" role="menuitem" data-tree-mobile-action="export">${icon.export}<span>${escapeHtml(t('Export'))}</span></button>
         <button type="button" role="menuitem" data-tree-mobile-action="print">${icon.print}<span>${escapeHtml(t('Print'))}</span></button>`;
     document.body.appendChild(menu);
-    const rect = anchor.getBoundingClientRect();
-    menu.style.top = `${rect.bottom + 6}px`;
-    menu.style.left = `${Math.max(8, Math.min(rect.right - menu.offsetWidth, window.innerWidth - menu.offsetWidth - 8))}px`;
+    positionAnchoredActionMenu(menu, anchor);
     anchor.setAttribute('aria-expanded', 'true');
     const controller = new AbortController();
     treeMobileMenuController = controller;

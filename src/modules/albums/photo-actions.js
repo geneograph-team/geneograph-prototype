@@ -2475,58 +2475,18 @@ function mountAlbumsActionMenu(
 {
     closeMenu();
 
-    const rect =
-        anchor.getBoundingClientRect();
-
     const menu =
         document.createElement('div');
 
     menu.className =
-        `menu-popover ${className}`.trim();
+        `menu-popover app-action-menu ${className}`.trim();
     menu.id = 'projectMenu';
     menu.setAttribute('role', 'menu');
-
-    menu.style.visibility = 'hidden';
-    menu.style.top =
-        `${rect.bottom + 6}px`;
-    menu.style.left = '0px';
 
     menu.innerHTML = markup;
 
     document.body.appendChild(menu);
-
-    const margin = 12;
-    const menuRect =
-        menu.getBoundingClientRect();
-
-    menu.style.left = `${
-        Math.max(
-            margin,
-            Math.min(
-                rect.right - menuRect.width,
-                window.innerWidth
-              - menuRect.width
-              - margin
-            )
-        )
-    }px`;
-
-    const below =
-        rect.bottom + 6;
-
-    menu.style.top = `${
-        below + menuRect.height
-          <= window.innerHeight - margin
-            ? below
-            : Math.max(
-                margin,
-                rect.top
-                  - menuRect.height
-                  - 6
-            )
-    }px`;
-
-    menu.style.visibility = 'visible';
+    positionAnchoredActionMenu(menu, anchor);
 
     menu.addEventListener(
         'click',
