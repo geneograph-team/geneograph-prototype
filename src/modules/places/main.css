@@ -2239,13 +2239,15 @@
     filter: brightness(1.06);
 }
 
-.places-attention-actions .places-attention-dismiss {
+.places-attention-actions .places-attention-dismiss,
+.place-editor-duplicate .place-duplicate-dismiss {
     border-color: color-mix(in srgb, var(--gg-text) 8%, transparent);
     background: color-mix(in srgb, var(--gg-text) 3.5%, transparent);
     color: var(--text-secondary);
 }
 
-.places-attention-actions .places-attention-dismiss:hover {
+.places-attention-actions .places-attention-dismiss:hover,
+.place-editor-duplicate .place-duplicate-dismiss:hover {
     border-color: var(--border-default);
     background: color-mix(in srgb, var(--gg-text) 7%, transparent);
     color: var(--text-primary);
@@ -3147,16 +3149,85 @@
     line-height: 1.4;
 }
 
-.place-duplicate-heading .place-duplicate-ignore {
+.place-duplicate-heading .place-duplicate-dismiss {
     margin-inline-start: auto;
     flex: 0 0 auto;
+    font-size: 12px;
 }
 
-.place-duplicate-heading svg {
+.place-duplicate-heading > svg {
     width: 18px;
     height: 18px;
     flex: 0 0 18px;
     color: var(--gg-status-warning-accent);
+}
+
+.place-editor-duplicate .button {
+    min-height: 34px;
+    padding: 6px 10px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: normal;
+    line-height: 1.3;
+    cursor: pointer;
+}
+
+.place-editor-duplicate .button svg {
+    width: 15px;
+    height: 15px;
+    display: block;
+    flex: 0 0 15px;
+}
+
+.place-editor-duplicate .place-duplicate-details {
+    padding-inline: 6px;
+    border-color: transparent;
+    background: transparent;
+    color: var(--text-secondary);
+    font-weight: 500;
+}
+
+.place-editor-duplicate .place-duplicate-details:hover {
+    background: color-mix(in srgb, var(--gg-text) 5%, transparent);
+    border-color: transparent;
+    color: var(--text-primary);
+}
+
+.place-duplicate-details svg {
+    transform: rotate(90deg);
+    transition: transform var(--ease);
+}
+
+.place-duplicate-details[aria-expanded="true"] svg {
+    transform: rotate(-90deg);
+}
+
+.place-editor-duplicate .place-duplicate-merge,
+.place-editor-duplicate .place-duplicate-use-existing {
+    border-color: var(--border-default);
+    background: transparent;
+    color: var(--text-primary);
+}
+
+.place-editor-duplicate .place-duplicate-merge:hover,
+.place-editor-duplicate .place-duplicate-use-existing:hover {
+    background: var(--surface-card-hover);
+    border-color: var(--border-strong);
+}
+
+.place-editor-duplicate .button:focus-visible {
+    outline: 2px solid var(--control-focus-color);
+    outline-offset: 2px;
+}
+
+@media (pointer: coarse) {
+    .place-editor-duplicate .button {
+        min-height: 44px;
+    }
 }
 
 .place-duplicate-name {

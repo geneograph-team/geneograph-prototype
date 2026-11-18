@@ -5,28 +5,34 @@
 ### Requirement: Duplicate warning never blocks creation
 A possible duplicate while adding/editing a Place SHALL be advisory.
 A valid Place save SHALL proceed even when the warning is still visible.
-Use existing Place and Ignore SHALL be optional and available directly
-in the warning; Ignore affects only the current draft.
+Use existing Place and Dismiss SHALL be optional and available directly
+in the warning. Dismiss SHALL affect only the current editor draft, not
+saved-pair review decisions; valid creation remains nonblocking.
 
 #### Scenario: Create while warned
 - **WHEN** a valid new Place resembles an existing record
 - **THEN** the user may save it without acting on the warning
 
 ### Requirement: Compact editor duplicate warning
-The advisory warning in Add/Edit Place SHALL show Ignore at the trailing
-top-right of its heading and omit redundant instructions about nonblocking
-creation. Place details and, in edit mode, Merge SHALL share the action row;
-the Merge action SHALL be labelled simply "Merge". Ignoring a match SHALL
-only dismiss it for the current draft and SHALL never gate a valid save.
+The advisory warning in Add/Edit Place SHALL show Dismiss with a leading
+close icon at the trailing top-right of its heading, using the same quiet
+visual treatment as the Place inspector warning. In Russian this action
+SHALL read «Отклонить», without changing the shared Dismiss translation.
+Place details SHALL be a lightweight disclosure with a chevron reflecting
+its expanded state, and Merge SHALL be a neutral outlined action beside it
+in edit mode. Compact buttons SHALL have consistent typography and dimensions,
+with accessible hover, focus and touch states. None of these actions SHALL
+gate a valid Place save or change saved review decisions.
 
 #### Scenario: Edit a possible duplicate
 - **WHEN** a Place edit has a possible duplicate candidate
-- **THEN** Ignore is at the top of the warning, and Place details and Merge
-  appear as peer actions beneath the warning evidence
+- **THEN** Dismiss with the close icon is at the top of the warning,
+  Place details has an accessible disclosure chevron, and Merge is an
+  outlined peer action beneath the warning evidence
 
 #### Scenario: Add a possible duplicate
 - **WHEN** a new Place draft has a possible duplicate candidate
-- **THEN** the warning offers top-right Ignore and optional Use existing place
+- **THEN** the warning offers top-right Dismiss and optional Use existing place
 - **AND** creation remains valid without interacting with the warning
 
 ### Requirement: Context-aware, name-based matching

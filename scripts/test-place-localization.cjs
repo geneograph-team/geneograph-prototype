@@ -187,6 +187,8 @@ assert.equal((dismissedEnglish.match(/Dismissal reason/g) || []).length, 2);
 
 sandbox.duplicateHost = { hidden: true, innerHTML: '' };
 sandbox.modalBackdrop = { querySelector: () => sandbox.duplicateHost };
+sandbox.icon.close = '<svg class="dismiss-icon"></svg>';
+sandbox.icon.chevron = '<svg class="chevron-icon"></svg>';
 sandbox.findPlaceEditorDuplicate = () => ({
     place: { id: 'existing-place', name: 'Pawford, England', coordinates: null },
     reasons: ['The names match.'], alternativeConflict: false
@@ -204,26 +206,59 @@ run('renderPlaceEditorDuplicateWarning()');
 const editWarning = sandbox.duplicateHost.innerHTML;
 const warningHeader = editWarning.match(/<div class="place-duplicate-heading">([\s\S]*?)<\/div>/)?.[1] || '';
 const warningActions = editWarning.match(/<div class="place-duplicate-actions">([\s\S]*?)<\/div>/)?.[1] || '';
+assert.match(warningHeader, /class="button ghost compact place-duplicate-dismiss"/);
 assert.match(warningHeader, /data-place-duplicate-ignore=/,
-    'Ignore action appears in the top-right warning header');
+    'editor Dismiss preserves its draft-only handler selector');
+assert.match(warningHeader, /<svg class="dismiss-icon"><\/svg><span>Dismiss<\/span>/,
+    'Dismiss shows the sidebar close icon and English label');
 assert.doesNotMatch(warningActions, /data-place-duplicate-ignore=/,
-    'Ignore action is not duplicated in the bottom action row');
+    'Dismiss is not duplicated in the bottom action row');
+assert.match(warningActions, /class="button ghost compact place-duplicate-details"[^>]*aria-expanded="false"/,
+    'Place details begins as an accessible collapsed disclosure');
+assert.match(warningActions, /<svg class="chevron-icon"><\/svg>/,
+    'Place details has a disclosure chevron');
+assert.match(warningActions, /class="button secondary compact place-duplicate-merge"/,
+    'Merge uses a scoped neutral outline style');
 assert.match(warningActions, /data-place-duplicate-details[\s\S]*data-place-review-merge/,
     'Place details and Merge share one action row');
 assert.match(warningActions, />Merge<\/button>/,
     'merge action uses the shorter label');
 assert.doesNotMatch(editWarning, /You can create this place without dismissing the warning|Review \/ Merge/);
+
+state.language = 'ru';
+run('renderPlaceEditorDuplicateWarning()');
+assert.match(sandbox.duplicateHost.innerHTML, /<svg class="dismiss-icon"><\/svg><span>Отклонить<\/span>/,
+    'editor Dismiss uses Places-only Russian text');
+assert.equal(run("t('Dismiss')"), 'Скрыть',
+    'the general Dismiss translation is unchanged');
+state.language = 'en';
 sandbox.placeEditorDraft.mode = 'add';
 run('renderPlaceEditorDuplicateWarning()');
 const addWarning = sandbox.duplicateHost.innerHTML;
-assert.match(addWarning, /data-place-use-existing=/);
-assert.doesNotMatch(addWarning, /data-place-review-merge=/);
+assert.match(addWarning, /data-place-use-existing=/,
+    'Create Place still offers Use existing');
+assert.match(addWarning, /class="button secondary compact place-duplicate-use-existing"/);
+assert.doesNotMatch(addWarning, /data-place-review-merge=/,
+    'Create Place does not expose Merge');
 assert.match(addWarning.match(/<div class="place-duplicate-heading">([\s\S]*?)<\/div>/)?.[1] || '',
-    /data-place-duplicate-ignore=/, 'Ignore stays in the header for Create Place');
+    /<svg class="dismiss-icon"><\/svg><span>Dismiss<\/span>/,
+    'Create Place shares the compact Dismiss header');
 
 const placesCss = read('modules/places/main.css');
-assert.match(placesCss, /\.place-duplicate-heading \.place-duplicate-ignore\s*\{[^}]*margin-inline-start:\s*auto/s,
-    'Ignore is positioned at the trailing edge of the warning heading');
+assert.match(placesCss, /\.place-duplicate-heading \.place-duplicate-dismiss\s*\{[^}]*margin-inline-start:\s*auto/s,
+    'Dismiss aligns to the trailing edge of the warning header');
+assert.match(placesCss, /\.places-attention-actions \.places-attention-dismiss,\s*\.place-editor-duplicate \.place-duplicate-dismiss\s*\{/,
+    'editor and inspector Dismiss share the same palette rule');
+assert.match(placesCss, /\.place-editor-duplicate \.button\s*\{[^}]*min-height:\s*34px;[^}]*font-weight:\s*600;[^}]*letter-spacing:\s*normal/s,
+    'buttons use consistent compact typography and normal letter spacing');
+assert.match(placesCss, /\.place-duplicate-details\[aria-expanded="true"\] svg\s*\{[^}]*transform:\s*rotate\(-90deg\)/s,
+    'disclosure chevron reflects aria-expanded without another handler');
+assert.match(placesCss, /\.place-editor-duplicate \.place-duplicate-merge,\s*\.place-editor-duplicate \.place-duplicate-use-existing\s*\{/,
+    'merge and Use existing have neutral outlines');
+assert.match(placesCss, /@media \(pointer: coarse\)\s*\{[^}]*\.place-editor-duplicate \.button\s*\{[^}]*min-height:\s*44px/s,
+    'coarse pointer controls provide a larger touch target');
+assert.match(editor, /draft\.dismissedDuplicateId = ignoreId;/,
+    'Dismiss still affects only the active Place draft');
 assert.match(directory, /row\.classList\.add\('is-editing-reason'\)/,
     'editing a reason activates the full-width review row');
 assert.match(directory, /classList\.remove\('is-editing-reason'\)/,

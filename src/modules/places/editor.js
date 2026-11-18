@@ -550,9 +550,9 @@ function renderPlaceEditorDuplicateWarning()
         <div class="place-duplicate-heading">
           ${icon.warning}
           <strong>${escapeHtml(t('Possible duplicate'))}</strong>
-          <button class="button ghost compact place-duplicate-ignore" type="button"
+          <button class="button ghost compact place-duplicate-dismiss" type="button"
             data-place-duplicate-ignore="${escapeHtml(place.id)}">
-            ${escapeHtml(t('Ignore'))}
+            ${icon.close}<span>${escapeHtml(placeReviewT('Dismiss'))}</span>
           </button>
         </div>
 
@@ -598,17 +598,17 @@ function renderPlaceEditorDuplicateWarning()
         </div>
         <div class="place-duplicate-actions">
           ${draft.mode === 'add' ? `
-            <button class="button secondary compact" type="button"
+            <button class="button secondary compact place-duplicate-use-existing" type="button"
               data-place-use-existing="${escapeHtml(place.id)}">
               ${escapeHtml(t('Use existing place'))}
             </button>
           ` : ''}
-          <button class="button ghost compact" type="button"
+          <button class="button ghost compact place-duplicate-details" type="button"
             data-place-duplicate-details aria-expanded="false"
             aria-controls="placeDuplicateReview">
-            ${escapeHtml(t('Place details'))}
+            <span>${escapeHtml(t('Place details'))}</span>${icon.chevron}
           </button>
-          ${draft.mode === 'edit' ? `<button class="button secondary compact" type="button"
+          ${draft.mode === 'edit' ? `<button class="button secondary compact place-duplicate-merge" type="button"
             data-place-review-merge="${escapeHtml(place.id)}">${escapeHtml(t('Merge'))}</button>` : ''}
         </div>
       `;
