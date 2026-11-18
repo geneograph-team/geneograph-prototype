@@ -744,6 +744,7 @@
 .archive-tiles section { min-width: 0; }
 .archive-tiles h2 { margin: 0 0 9px; color: var(--text-secondary); font-size: 12px; }
 .archive-tile-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 180px), min(100%, 200px))); gap: var(--space-2); }
+.archive-folder-grid { grid-template-columns: repeat(auto-fill, minmax(min(100%, 200px), 220px)); }
 .archive-tile {
     position: relative;
     min-width: 0;
@@ -759,6 +760,7 @@
     cursor: pointer;
 }
 .archive-tile:hover { background: var(--surface-card-hover); }
+.archive-folder-tile:hover { border-color: var(--border-default); }
 .archive-tile.selected-detail { border-color: color-mix(in srgb, var(--gg-primary) 55%, transparent); background: var(--surface-card-hover); box-shadow: inset 3px 0 0 var(--table-current-marker); }
 .archive-tile.is-checked { border-color: var(--brand-green-400); background: var(--surface-selected); }
 .archive-tile:focus-visible { outline: 2px solid var(--brand-green-400); outline-offset: 1px; }
@@ -771,6 +773,25 @@
 .archive-tile-copy { min-width: 0; width: 100%; display: grid; align-content: start; gap: 2px; text-align: left; }
 .archive-tile-name-row { min-width: 0; display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: start; gap: 4px; }
 .archive-tile-name-row strong { min-width: 0; overflow: hidden; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow-wrap: anywhere; font-size: 12px; line-height: 1.35; }
+.archive-folder-tile { min-height: 145px; height: 145px; grid-template-rows: 72px minmax(0, 1fr); gap: var(--space-2); }
+.archive-folder-tile .archive-tile-copy { align-content: start; text-align: center; }
+.archive-folder-tile .archive-tile-name-row { display: block; }
+.archive-folder-tile .archive-tile-name-row strong { font-size: 13px; font-weight: 600; }
+.archive-folder-favorite {
+    position: absolute;
+    z-index: 1;
+    top: 56%;
+    left: 50%;
+    width: 26px;
+    height: 26px;
+    transform: translate(-50%, -50%);
+    display: grid;
+    place-items: center;
+    color: var(--gg-folder-fold);
+    pointer-events: none;
+    user-select: none;
+}
+.archive-folder-favorite svg { width: 24px; height: 24px; }
 .archive-tile-select { position: absolute; z-index: 2; top: 9px; left: 8px; opacity: 0; }
 .archive-tile:hover .archive-tile-select,
 .archive-tile:focus-within .archive-tile-select,

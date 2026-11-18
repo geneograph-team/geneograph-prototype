@@ -2041,14 +2041,14 @@ function renderArchiveFileTiles(files, folders)
         + (state.archiveSelectedFileIds || []).length > 1;
     const folderTiles = archiveSortFoldersForTable(folders).map(folder => {
         const checked = bulkActive && (state.archiveSelectedFolderIds || []).includes(folder.id);
-        return `<div class="archive-tile ${checked ? 'is-checked' : ''} ${state.archiveSelectedFolderItemId === folder.id ? 'selected-detail' : ''}"
-            data-archive-folder-row="${escapeHtml(folder.id)}" tabindex="0" aria-label="${escapeHtml(folder.name)}">
+        return `<div class="archive-tile archive-folder-tile ${checked ? 'is-checked' : ''} ${state.archiveSelectedFolderItemId === folder.id ? 'selected-detail' : ''}"
+            data-archive-folder-row="${escapeHtml(folder.id)}" tabindex="0" aria-label="${escapeHtml(folder.name)}${folder.favorite ? `, ${escapeHtml(t('Favourite'))}` : ''}">
             ${bulkActive ? `<input class="albums-select-checkbox archive-tile-select" type="checkbox" data-archive-folder-checkbox="${escapeHtml(folder.id)}" ${checked ? 'checked' : ''} aria-label="${escapeHtml(t('Select'))}: ${escapeHtml(folder.name)}">` : ''}
             <button class="archive-row-icon-button archive-tile-more" type="button" data-archive-row-actions="folder" data-archive-row-id="${escapeHtml(folder.id)}" aria-label="${escapeHtml(t('Folder actions'))}: ${escapeHtml(folder.name)}">${icon.more}</button>
-            <div class="archive-tile-art">${archiveFileIcon({ kind: 'folder' })}</div>
+            <div class="archive-tile-art">${archiveFileIcon({ kind: 'folder' })}
+                ${folder.favorite ? `<span class="archive-folder-favorite" aria-hidden="true">${icon.star}</span>` : ''}</div>
             <div class="archive-tile-copy">
-                <div class="archive-tile-name-row"><strong title="${escapeHtml(folder.name)}">${escapeHtml(folder.name)}</strong>
-                    ${folder.favorite ? `<span class="archive-tile-favorite" aria-label="${escapeHtml(t('Favourite'))}">${icon.star}</span>` : ''}</div>
+                <div class="archive-tile-name-row"><strong title="${escapeHtml(folder.name)}">${escapeHtml(folder.name)}</strong></div>
             </div>
         </div>`;
     }).join('');
@@ -2069,7 +2069,7 @@ function renderArchiveFileTiles(files, folders)
         </div>`;
     }).join('');
     return `<div class="archive-tiles" aria-label="${escapeHtml(t('Archive files and folders'))}">
-        ${folders.length ? `<section><h2>${escapeHtml(t('Folders'))}</h2><div class="archive-tile-grid">${folderTiles}</div></section>` : ''}
+        ${folders.length ? `<section><h2>${escapeHtml(t('Folders'))}</h2><div class="archive-tile-grid archive-folder-grid">${folderTiles}</div></section>` : ''}
         ${files.length ? `<section><h2>${escapeHtml(t('Files'))}</h2><div class="archive-tile-grid">${fileTiles}</div></section>` : ''}
     </div>`;
 }
