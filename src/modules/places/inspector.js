@@ -1104,12 +1104,10 @@ function rerenderPlacesInspector({
     const previousScrollTop =
         inspector.scrollTop;
 
-    inspector.innerHTML =
-        renderPlacesInspector(
-            getPlace(
-                state.selectedPlaceId
-            )
-        );
+    const pair = state.placesView === 'review' && state.selectedPlaceReviewPairKey
+        ? getPlaceDuplicatePairs().find(item => item.key === state.selectedPlaceReviewPairKey) : null;
+    inspector.innerHTML = pair ? renderPlacesDuplicateInspector(pair)
+        : renderPlacesInspector(getPlace(state.selectedPlaceId));
 
     bindPlacesInspectorControls(
         inspector
@@ -1123,6 +1121,40 @@ function rerenderPlacesInspector({
                 previousScrollTop;
         });
     }
+}
+
+function renderPlacesDuplicateInspector(pair)
+{
+    const collapsed = state.placesInspectorCollapsed;
+    const toggle = `<button class="people-collapse-button ${collapsed
+        ? 'person-sidebar-restore-button albums-detail-restore sidebar-toggle-icon sidebar-toggle-icon-restore'
+        : 'people-sidebar-toggle-icon albums-detail-collapse'}" type="button"
+        data-places-inspector-toggle aria-label="${escapeHtml(t(collapsed ? 'Expand place inspector' : 'Collapse place inspector'))}"
+        aria-expanded="${!collapsed}">${icon.doublechevronSidebar}</button>`;
+    if (collapsed) return toggle;
+    const dismissed = Boolean(placeDuplicateDismissal(pair));
+    const member = place => {
+        const coordinates = normalizePlaceCoordinates(place);
+        const position = coordinates ? `${coordinates.lat.toFixed(6)}, ${coordinates.lng.toFixed(6)}`
+            : t('No coordinates');
+        const radiusLabel = formatPlaceRadius(place.approximateRadiusMeters);
+        const radius = radiusLabel ? ` · ${radiusLabel}` : '';
+        const alternative = placeAlternativeNames(place)[0];
+        return `<section class="places-pair-inspector-member" aria-label="${escapeHtml(place.name)}">
+            <h3 data-i18n-skip>${escapeHtml(place.name)}</h3>
+            ${alternative ? `<p data-i18n-skip>${escapeHtml(alternative)}</p>` : ''}
+            <p>${escapeHtml(position + radius)}</p>
+            <p>${escapeHtml(t('Linked records'))}: ${placeReviewConnectionTotal(place)}</p>
+            <button class="button secondary" type="button" data-place-pair-view-place="${escapeHtml(place.id)}"
+                aria-label="${escapeHtml(t('View Place'))}: ${escapeHtml(place.name)}">${escapeHtml(t('View Place'))}</button>
+        </section>`;
+    };
+    return `<div class="albums-detail-toolbar places-inspector-toolbar">${toggle}</div>
+        <div class="places-pair-inspector">
+            <header><h2>${escapeHtml(t('Possible duplicate'))}</h2>
+                <span>${escapeHtml(dismissed ? placeReviewT('Dismissed') : t('Needs review'))}</span></header>
+            ${member(pair.left)}${member(pair.right)}
+        </div>`;
 }
 
 function renderPlaceAttention({
@@ -1704,6 +1736,17 @@ function bindPlacesInspectorControls(
     root
 )
 {
+    root.querySelectorAll('[data-place-pair-view-place]').forEach(button => button.addEventListener('click', () =>
+    {
+        const place = getPlace(button.dataset.placePairViewPlace);
+        if (!place || place.projectId !== currentProjectId()) return;
+        const scrollTop = main.querySelector('.places-review-list-panel')?.scrollTop || 0;
+        state.selectedPlaceReviewPairKey = '';
+        state.selectedPlaceId = place.id;
+        renderPlaces();
+        const panel = main.querySelector('.places-review-list-panel');
+        if (panel) panel.scrollTop = scrollTop;
+    }));
     bindConnectedNoteLinks(
         root
     );

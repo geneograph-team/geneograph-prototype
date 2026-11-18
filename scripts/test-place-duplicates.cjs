@@ -244,8 +244,10 @@ assert.equal(read('modules/places/directory.js').includes('data-place-pair-compa
     'Compare-only control is removed');
 assert.equal(read('modules/places/editor.js').includes('compareOnly'), false,
     'Compare-only dialog path is removed');
-assert.ok(read('modules/places/filters.js').includes("main.querySelectorAll('[data-place-pair-select]')"),
-    'shared selection updates nested duplicate cards');
+assert.ok(read('modules/places/filters.js').includes("state.selectedPlaceReviewPairKey = ''"),
+    'individual Place selection clears pair selection');
+assert.equal(read('modules/places/directory.js').includes('data-place-pair-select'), false,
+    'duplicate review no longer has independently selectable inner cards');
 assert.ok(read('modules/places/editor.js').includes('data-place-merge-copy'),
     'field-level transfer controls are present');
 

@@ -1724,6 +1724,9 @@ const RU_TERMS_STATUSES = {
     'Possible duplicate':
         'Возможный дубликат',
 
+    'View Place': 'Открыть место',
+    'No coordinates': 'Координаты не указаны',
+
     'Possible duplicates': 'Возможные дубликаты',
     'Ignore for this draft': 'Игнорировать в этом черновике',
     'Compare these saved places before deciding whether to merge them.': 'Сравните сохранённые места перед объединением.',

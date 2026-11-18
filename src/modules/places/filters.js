@@ -1150,6 +1150,8 @@ function selectPlace(
         return;
     }
 
+    state.selectedPlaceReviewPairKey = '';
+
     const placeChanged =
         state.selectedPlaceId
           !== place.id;
@@ -1193,13 +1195,16 @@ function selectPlace(
             }
         });
 
-    main.querySelectorAll('[data-place-pair-select]').forEach(button =>
+    main.querySelectorAll('[data-place-pair-key]').forEach(row =>
     {
-        const selected = button.dataset.placePairSelect === place.id;
-        button.classList.toggle('is-selected', selected);
-        if (selected) button.setAttribute('aria-current', 'true');
-        else button.removeAttribute('aria-current');
+        row.classList.remove('active');
+        row.removeAttribute('aria-current');
     });
+
+    main.querySelectorAll('.places-review-row-actions .mobile-item-details').forEach(button => button.remove());
+    const selectedReviewRow = main.querySelector(`.places-review-list-row[data-place-id="${CSS.escape(place.id)}"]`);
+    selectedReviewRow?.querySelector('.places-review-row-actions')?.insertAdjacentHTML('beforeend',
+        `<button class="mobile-item-details" type="button" data-mobile-open-details aria-label="${escapeHtml(t('Details'))}">${icon.info}<span>${escapeHtml(t('Details'))}</span></button>`);
 
     sidebar
         .querySelectorAll(

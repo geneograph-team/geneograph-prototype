@@ -307,6 +307,7 @@ const state = {
     placesView: 'all',
     placesSavedFilterId: '',
     selectedPlaceId: 'place-pawford',
+    selectedPlaceReviewPairKey: '',
     placesSearch: '',
     placesReviewFocusId: '',
     placesReviewExpandedGroups: {

@@ -23,6 +23,19 @@ until Cancel returns to the summary; saving may rerender the row.
 - **THEN** Restore is not shown while the textarea and Save/Cancel are visible
 - **AND** Cancel restores the normal summary and Restore control
 
+### Requirement: Unified missing-position review rows
+Active and dismissed missing-position items SHALL use one selectable review-row
+structure with the localized singular No map position heading, Place name, optional
+actual broader Place, linked-record total and contextual actions. An absent broader
+Place SHALL not produce placeholder text or an empty line. Dismissed rows SHALL show
+the dismissal reason beneath the record details. Selection SHALL continue to use the
+Place ID and show the ordinary Place inspector.
+
+#### Scenario: Missing broader Place
+- **WHEN** a Place with no broader Place has a missing-position issue
+- **THEN** its row shows No map position, its name and linked count without a
+  No broader place recorded placeholder
+
 ### Requirement: Dismissal and restoration
 A dismissed item SHALL move out of the active group; restoring it SHALL
 return a still-relevant issue to review. Duplicate dismissal SHALL be

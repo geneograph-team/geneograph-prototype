@@ -99,13 +99,24 @@ links and remove the other Place.
 - **THEN** the surviving Place receives the reference once, and no
   references to the removed Place remain
 
-### Requirement: Concise duplicate review
-Exactly one selected card SHALL be highlighted, connected record totals
-SHALL match the Missing map positions summary, and generic similarity
-explanations SHALL not clutter the list or Merge modal. The Place
-inspector's Possible duplicates warning SHALL display the candidate names
-without a separate numeric counter.
+### Requirement: Unified pair review and comparison inspector
+Each active or dismissed duplicate pair SHALL appear as one selectable review row
+with a Possible duplicate heading, both names, concise Place context, and one
+selected-state treatment for the full row. Selection SHALL use the stable pair key,
+independent of the selected individual Place. Merge and Keep separate SHALL be row
+actions for active pairs, and Restore SHALL use the same control appearance as
+other dismissed review items. Generic similarity explanations SHALL not clutter
+the list or Merge modal.
 
-#### Scenario: Change selected card
-- **WHEN** the user selects the other Place in the review list
-- **THEN** the highlight and inspector update together
+Selecting a pair SHALL show both Places in a comparison inspector without choosing
+a survivor. Each Place SHALL offer View Place to switch intentionally to its normal
+inspector. Search, dismissal, restoration and merge SHALL clear or preserve pair
+selection only when the selected pair remains visible and valid.
+
+#### Scenario: Two pairs share a Place
+- **WHEN** A–B and A–C are visible and the user selects A–B
+- **THEN** only A–B has the selected row treatment and the inspector compares A and B
+
+#### Scenario: View one Place
+- **WHEN** the user chooses View Place for B in the pair inspector
+- **THEN** pair selection clears and B appears in the ordinary Place inspector

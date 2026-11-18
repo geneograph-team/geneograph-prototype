@@ -31,6 +31,7 @@ function renderPlaces()
     {
         destroyPlacesMap();
     }
+    else state.selectedPlaceReviewPairKey = '';
 
     renderPlacesSidebar();
     renderPlacesMain();
@@ -1351,6 +1352,7 @@ function placesPageSubtitle()
 function openPlacesNeedsReview(placeId = '')
 {
     state.placesView = 'review';
+    state.selectedPlaceReviewPairKey = '';
     state.placesSavedFilterId = '';
     state.placesFilters = { ...defaultPlaceFilters };
     if (placeId) state.selectedPlaceId = placeId;
@@ -1373,9 +1375,11 @@ function placesInspectorShellClasses()
     ].filter(Boolean).join(' ');
 }
 
-function renderPlacesInspectorAside(place)
+function renderPlacesInspectorAside(place, pair = null)
 {
-    return `<aside class="places-inspector ${state.placesInspectorCollapsed ? 'collapsed' : ''}" data-places-inspector aria-label="Selected place inspector">${renderPlacesInspector(place)}</aside>`;
+    return `<aside class="places-inspector ${state.placesInspectorCollapsed ? 'collapsed' : ''}" data-places-inspector
+        aria-label="${escapeHtml(t(pair ? 'Possible duplicate' : 'Selected place inspector'))}">${pair
+            ? renderPlacesDuplicateInspector(pair) : renderPlacesInspector(place)}</aside>`;
 }
 
 function placeReviewT(key)
@@ -1479,10 +1483,10 @@ function renderPlaceReviewListRow(item)
     const issueType = escapeHtml(issue.type);
     const placeName = escapeHtml(placePrimaryName(place));
     const linked = placeReviewConnectionTotal(place);
-    const selected = place.id === state.selectedPlaceId;
+    const selected = !state.selectedPlaceReviewPairKey && place.id === state.selectedPlaceId;
     const issueLabel = issue.type === 'invalid_coordinates'
         ? t('Coordinates need correction')
-        : t('Missing map positions');
+        : t('No map position');
     const actions = dismissal
         ? `<button class="button ghost places-review-quiet-button" type="button"
               data-place-review-edit-reason="${placeId}"
@@ -1525,15 +1529,15 @@ function renderPlaceReviewListRow(item)
     return `<div class="places-list-row places-review-list-row
           ${selected ? 'active' : ''}" data-place-id="${placeId}"
           role="listitem" tabindex="0"
-          aria-label="${placeName}" ${selected ? 'aria-current="true"' : ''}>
+          aria-label="${escapeHtml(`${issueLabel}: ${placePrimaryName(place)}`)}" ${selected ? 'aria-current="true"' : ''}>
         <div class="places-review-place-info">
+          <span class="places-review-item-heading">${escapeHtml(issueLabel)}</span>
           <strong>${placeName}</strong>
-          <span>${escapeHtml(placeSecondaryName(place) || t('No broader place recorded'))}</span>
+          ${placeSecondaryName(place) ? `<span>${escapeHtml(placeSecondaryName(place))}</span>` : ''}
           <small>${escapeHtml(t('Linked records'))}: ${linked}</small>
-          ${dismissal ? `<small class="places-review-issue-type">${escapeHtml(issueLabel)}</small>` : ''}
           ${reasonMarkup}
         </div>
-        <div class="places-review-row-actions">${actions}</div>
+        <div class="places-review-row-actions">${actions}${selected ? `<button class="mobile-item-details" type="button" data-mobile-open-details aria-label="${escapeHtml(t('Details'))}">${icon.info}<span>${escapeHtml(t('Details'))}</span></button>` : ''}</div>
       </div>`;
 }
 
@@ -1541,24 +1545,33 @@ function renderPlaceDuplicateReviewRow({ pair, dismissal })
 {
     const placeSummary = place => {
         const coordinates = normalizePlaceCoordinates(place);
-        const position = coordinates ? `${coordinates.lat.toFixed(6)}, ${coordinates.lng.toFixed(6)}` : t('No position set');
-        const radius = placeHasRadiusValue(place) ? ` · ${formatPlaceRadius(place.approximateRadiusMeters)}` : '';
+        const position = coordinates ? `${coordinates.lat.toFixed(6)}, ${coordinates.lng.toFixed(6)}` : t('No coordinates');
+        const radiusLabel = formatPlaceRadius(place.approximateRadiusMeters);
+        const radius = radiusLabel ? ` · ${radiusLabel}` : '';
         const linked = placeReviewConnectionTotal(place);
-        return `<button class="places-review-duplicate-place ${place.id === state.selectedPlaceId ? 'is-selected' : ''}" type="button"
-            data-place-pair-select="${escapeHtml(place.id)}" ${place.id === state.selectedPlaceId ? 'aria-current="true"' : ''}><strong data-i18n-skip>${escapeHtml(place.name)}</strong>
+        return `<div class="places-review-pair-member"><strong data-i18n-skip>${escapeHtml(place.name)}</strong>
             ${placeAlternativeNames(place).length ? `<small data-i18n-skip>${escapeHtml(placeAlternativeNames(place).join(', '))}</small>` : ''}
-            <small>${escapeHtml(position + radius)}</small><small>${escapeHtml(t('Linked records'))}: ${linked}</small></button>`;
+            <small>${escapeHtml(position + radius)}</small><small>${escapeHtml(t('Linked records'))}: ${linked}</small></div>`;
     };
     const leftId = escapeHtml(pair.left.id);
     const rightId = escapeHtml(pair.right.id);
+    const selected = state.selectedPlaceReviewPairKey === pair.key;
     const actions = dismissal
-        ? `<button class="button secondary" type="button" data-place-pair-restore="${escapeHtml(pair.key)}">${escapeHtml(placeReviewT('Restore'))}</button>`
+        ? `<button class="button secondary places-review-restore-button" type="button"
+            data-place-pair-restore="${escapeHtml(pair.key)}">${escapeHtml(placeReviewT('Restore'))}</button>`
         : `<button class="button primary" type="button" data-place-pair-merge="${leftId}" data-place-pair-other="${rightId}">${escapeHtml(t('Merge'))}</button>
            <button class="button ghost" type="button" data-place-pair-dismiss="${leftId}" data-place-pair-other="${rightId}">${escapeHtml(t('Keep separate'))}</button>`;
-    return `<div class="places-review-duplicate-row" role="listitem" data-place-id="${leftId}" data-place-other-id="${rightId}" tabindex="0"
-        aria-label="${escapeHtml(`${pair.left.name} / ${pair.right.name}`)}">
-        <div class="places-review-duplicate-pair">${placeSummary(pair.left)}${placeSummary(pair.right)}</div>
-        <div class="places-review-row-actions">${actions}</div></div>`;
+    return `<div class="places-list-row places-review-list-row places-review-pair-row ${selected ? 'active' : ''}"
+        role="listitem" data-place-pair-key="${escapeHtml(pair.key)}" tabindex="0"
+        aria-label="${escapeHtml(`${t('Possible duplicate')}: ${pair.left.name} ↔ ${pair.right.name}`)}"
+        ${selected ? 'aria-current="true"' : ''}>
+        <div class="places-review-place-info">
+          <span class="places-review-item-heading">${escapeHtml(t('Possible duplicate'))}</span>
+          <div class="places-review-pair-names" data-i18n-skip><strong>${escapeHtml(pair.left.name)}</strong>
+            <span aria-hidden="true">↔</span><strong>${escapeHtml(pair.right.name)}</strong></div>
+          <div class="places-review-pair-members">${placeSummary(pair.left)}${placeSummary(pair.right)}</div>
+        </div>
+        <div class="places-review-row-actions">${actions}${selected ? `<button class="mobile-item-details" type="button" data-mobile-open-details aria-label="${escapeHtml(t('Details'))}">${icon.info}<span>${escapeHtml(t('Details'))}</span></button>` : ''}</div></div>`;
 }
 
 function renderPlaceReviewGroup(group, query)
@@ -1589,13 +1602,22 @@ function renderPlaceReviewGroup(group, query)
       </details>`;
 }
 
+function selectedVisiblePlaceReviewPair(groups)
+{
+    const selected = groups.flatMap(group => group.items.filter(item => item.pair).map(item => item.pair))
+        .find(pair => pair.key === state.selectedPlaceReviewPairKey) || null;
+    if (!selected) state.selectedPlaceReviewPairKey = '';
+    return selected;
+}
+
 function renderPlacesNeedsReviewPage()
 {
     const review = placesReviewGroups();
     const query = String(state.placesSearch || '').trim();
+    const selectedPair = selectedVisiblePlaceReviewPair(review.groups);
     const visiblePlaces = review.groups.flatMap(group => group.items.flatMap(item =>
         item.pair ? [item.pair.left, item.pair.right] : [item.place]));
-    const selected = selectedPlaceFromVisibleList(visiblePlaces);
+    const selected = selectedPair ? getPlace(state.selectedPlaceId) : selectedPlaceFromVisibleList(visiblePlaces);
     const matches = review.groups.reduce((sum, group) => sum + group.items.length, 0);
     const noResults = query && !matches
         ? `<p class="places-review-no-results" role="status">
@@ -1625,7 +1647,7 @@ function renderPlacesNeedsReviewPage()
             </div>
           </div>
         </div></section>
-        ${renderPlacesInspectorAside(selected)}
+        ${renderPlacesInspectorAside(selected, selectedPair)}
       </div>`;
 
     bindPlacesNeedsReviewControls();
@@ -1633,8 +1655,7 @@ function renderPlacesNeedsReviewPage()
     state.placesReviewFocusId = '';
     if (focusId) requestAnimationFrame(() =>
     {
-        const row = main.querySelector(`.places-review-list-panel [data-place-id="${CSS.escape(focusId)}"],
-            .places-review-list-panel [data-place-other-id="${CSS.escape(focusId)}"]`);
+        const row = main.querySelector(`.places-review-list-panel [data-place-id="${CSS.escape(focusId)}"]`);
         const details = row?.closest('[data-place-review-group]');
         if (details)
         {
@@ -1646,7 +1667,7 @@ function renderPlacesNeedsReviewPage()
     });
 }
 
-function rerenderPlacesReviewAfterAction(focusPlaceId = '', groupKey = '')
+function rerenderPlacesReviewAfterAction(focusId = '', groupKey = '', { pair = false } = {})
 {
     const scrollTop = main.querySelector('.places-review-list-panel')?.scrollTop || 0;
     renderPlaces();
@@ -1655,8 +1676,8 @@ function rerenderPlacesReviewAfterAction(focusPlaceId = '', groupKey = '')
     const group = groupKey && panel?.querySelector(
         `[data-place-review-group="${CSS.escape(groupKey)}"]`
     );
-    const row = focusPlaceId && group?.querySelector(
-        `[data-place-id="${CSS.escape(focusPlaceId)}"]`
+    const row = focusId && group?.querySelector(
+        `[${pair ? 'data-place-pair-key' : 'data-place-id'}="${CSS.escape(focusId)}"]`
     );
     if (row)
     {
@@ -1667,10 +1688,48 @@ function rerenderPlacesReviewAfterAction(focusPlaceId = '', groupKey = '')
         || main.querySelector('#placesReviewSearch'))?.focus({ preventScroll: true });
 }
 
+function selectPlaceReviewPair(pairKey)
+{
+    const row = main.querySelector(`.places-review-list-panel [data-place-pair-key="${CSS.escape(pairKey)}"]`);
+    if (!row || !getPlaceDuplicatePairs().some(pair => pair.key === pairKey)) return false;
+    state.selectedPlaceReviewPairKey = pairKey;
+    main.querySelectorAll('[data-place-pair-key]').forEach(item =>
+    {
+        const active = item.dataset.placePairKey === pairKey;
+        item.classList.toggle('active', active);
+        if (active) item.setAttribute('aria-current', 'true');
+        else item.removeAttribute('aria-current');
+    });
+    main.querySelectorAll('.places-review-list-row[data-place-id]').forEach(item =>
+    {
+        item.classList.remove('active');
+        item.removeAttribute('aria-current');
+    });
+    rerenderPlacesInspector({ preserveScroll: false });
+    main.querySelectorAll('.places-review-row-actions .mobile-item-details').forEach(button => button.remove());
+    const actions = row.querySelector('.places-review-row-actions');
+    if (actions) actions.insertAdjacentHTML('beforeend', `<button class="mobile-item-details" type="button" data-mobile-open-details aria-label="${escapeHtml(t('Details'))}">${icon.info}<span>${escapeHtml(t('Details'))}</span></button>`);
+    return true;
+}
+
 function bindPlacesNeedsReviewControls()
 {
     bindSearchInput(main, '#placesReviewSearch', 'placesSearch', renderPlaces);
     bindPlaceListRows(main);
+
+    main.querySelectorAll('[data-place-pair-key]').forEach(row =>
+    {
+        row.addEventListener('click', event =>
+        {
+            if (!event.target.closest('button,input,select,a')) selectPlaceReviewPair(row.dataset.placePairKey);
+        });
+        row.addEventListener('keydown', event =>
+        {
+            if (!['Enter', ' '].includes(event.key) || event.target.closest('button,input,select,a')) return;
+            event.preventDefault();
+            selectPlaceReviewPair(row.dataset.placePairKey);
+        });
+    });
 
     main.querySelectorAll('[data-place-review-group]').forEach(details =>
     {
@@ -1682,16 +1741,15 @@ function bindPlacesNeedsReviewControls()
 
     main.querySelectorAll('[data-place-pair-merge]').forEach(button => button.addEventListener('click', () =>
         openPlaceMergeModal(button.dataset.placePairMerge, button.dataset.placePairOther)));
-    main.querySelectorAll('[data-place-pair-select]').forEach(button => button.addEventListener('click', () =>
-        selectPlace(button.dataset.placePairSelect, { focusMap: false })));
     main.querySelectorAll('[data-place-pair-dismiss]').forEach(button => button.addEventListener('click', () =>
     {
         const pair = getPlaceDuplicatePairs().find(item => item.key === placeDuplicatePairKey(button.dataset.placePairDismiss, button.dataset.placePairOther));
-        if (dismissPlaceDuplicatePair(pair)) rerenderPlacesReviewAfterAction('', 'possible_duplicates');
+        if (dismissPlaceDuplicatePair(pair)) rerenderPlacesReviewAfterAction(pair.key, 'dismissed', { pair: true });
     }));
     main.querySelectorAll('[data-place-pair-restore]').forEach(button => button.addEventListener('click', () =>
     {
-        if (restorePlaceDuplicatePair(button.dataset.placePairRestore)) rerenderPlacesReviewAfterAction('', 'dismissed');
+        if (restorePlaceDuplicatePair(button.dataset.placePairRestore))
+            rerenderPlacesReviewAfterAction(button.dataset.placePairRestore, 'possible_duplicates', { pair: true });
     }));
 
     main.querySelectorAll('[data-place-review-fix]').forEach(button => button.addEventListener('click', () =>
