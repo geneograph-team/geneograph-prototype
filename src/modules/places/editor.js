@@ -550,6 +550,10 @@ function renderPlaceEditorDuplicateWarning()
         <div class="place-duplicate-heading">
           ${icon.warning}
           <strong>${escapeHtml(t('Possible duplicate'))}</strong>
+          <button class="button ghost compact place-duplicate-ignore" type="button"
+            data-place-duplicate-ignore="${escapeHtml(place.id)}">
+            ${escapeHtml(t('Ignore'))}
+          </button>
         </div>
 
         <div class="place-duplicate-name" data-i18n-skip>
@@ -557,7 +561,6 @@ function renderPlaceEditorDuplicateWarning()
         </div>
 
         <p>${escapeHtml(reasons.map(reason => t(reason)).join(' '))}</p>
-        <p>${escapeHtml(t('You can create this place without dismissing the warning.'))}</p>
 
 
         <div
@@ -601,17 +604,13 @@ function renderPlaceEditorDuplicateWarning()
             </button>
           ` : ''}
           <button class="button ghost compact" type="button"
-            data-place-duplicate-ignore="${escapeHtml(place.id)}">
-            ${escapeHtml(t('Ignore'))}
-          </button>
-          <button class="button ghost compact" type="button"
             data-place-duplicate-details aria-expanded="false"
             aria-controls="placeDuplicateReview">
             ${escapeHtml(t('Place details'))}
           </button>
+          ${draft.mode === 'edit' ? `<button class="button secondary compact" type="button"
+            data-place-review-merge="${escapeHtml(place.id)}">${escapeHtml(t('Merge'))}</button>` : ''}
         </div>
-        ${draft.mode === 'edit' ? `<button class="button secondary compact" type="button"
-            data-place-review-merge="${escapeHtml(place.id)}">${escapeHtml(t('Review / Merge'))}</button>` : ''}
       `;
 
     localizeUI(host, { suppressObserverReplay: true });

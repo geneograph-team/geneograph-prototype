@@ -157,4 +157,78 @@ assert.match(actionsCss, /grid-column:\s*2\s*;/);
 assert.match(descriptionCss, /font-size:\s*13px\s*;/);
 assert.match(headerCss, /flex-wrap:\s*wrap\s*;/);
 
-console.log('Places RU localization and reversible seed names and inspector warning layout OK');
+
+// Review reasons identify the dismissal action, without renaming general reasons.
+vm.runInContext(excerpt(directory, 'function renderPlaceReviewListRow(', 'function renderPlaceDuplicateReviewRow('), sandbox);
+sandbox.placeReviewConnectionTotal = () => 1;
+sandbox.placePrimaryName = place => place.name;
+sandbox.placeSecondaryName = place => place.broaderName || '';
+sandbox.placeReviewDismissalReason = dismissal => dismissal.reason;
+sandbox.PLACE_REVIEW_DEFAULT_MISSING_REASON = 'Exact position not identified';
+sandbox.icon.mapPin = '';
+sandbox.reviewRow = {
+    place: { id: 'place-1', name: 'Pawford' },
+    issue: { type: 'missing_coordinates' },
+    dismissal: { reason: 'Exact position not identified' }
+};
+state.language = 'ru';
+const dismissedMarkup = run('renderPlaceReviewListRow(reviewRow)');
+assert.equal((dismissedMarkup.match(/Причина отклонения/g) || []).length, 2,
+    'dismissed reason display and editor use the complete Russian label');
+assert.match(dismissedMarkup, /data-place-review-restore=/);
+assert.match(directory, /querySelector\('\[data-place-review-restore\]'\)\?\.setAttribute\('hidden', ''\)/,
+    'editing a dismissal hides its Restore button');
+assert.match(directory, /querySelector\('\[data-place-review-restore\]'\)\?\.removeAttribute\('hidden'\)/,
+    'canceling a dismissal edit restores its button');
+state.language = 'en';
+assert.equal(run("t('Dismissal reason')"), 'Dismissal reason');
+const dismissedEnglish = run('renderPlaceReviewListRow(reviewRow)');
+assert.equal((dismissedEnglish.match(/Dismissal reason/g) || []).length, 2);
+
+sandbox.duplicateHost = { hidden: true, innerHTML: '' };
+sandbox.modalBackdrop = { querySelector: () => sandbox.duplicateHost };
+sandbox.findPlaceEditorDuplicate = () => ({
+    place: { id: 'existing-place', name: 'Pawford, England', coordinates: null },
+    reasons: ['The names match.'], alternativeConflict: false
+});
+sandbox.placeEditorCoordinateTextFromStored = () => ({ latitude: '', longitude: '' });
+sandbox.readPlaceEditorCoordinateState = () => ({ hasCoordinates: false });
+sandbox.placeAlternativeNames = () => [];
+sandbox.localizeUI = () => {};
+sandbox.placeEditorDraft = {
+    mode: 'edit', placeId: 'current-place', dismissedDuplicateId: null
+};
+vm.runInContext(excerpt(editor, 'function renderPlaceEditorDuplicateWarning(',
+    'function updatePlaceEditorAlternativeSummary('), sandbox);
+run('renderPlaceEditorDuplicateWarning()');
+const editWarning = sandbox.duplicateHost.innerHTML;
+const warningHeader = editWarning.match(/<div class="place-duplicate-heading">([\s\S]*?)<\/div>/)?.[1] || '';
+const warningActions = editWarning.match(/<div class="place-duplicate-actions">([\s\S]*?)<\/div>/)?.[1] || '';
+assert.match(warningHeader, /data-place-duplicate-ignore=/,
+    'Ignore action appears in the top-right warning header');
+assert.doesNotMatch(warningActions, /data-place-duplicate-ignore=/,
+    'Ignore action is not duplicated in the bottom action row');
+assert.match(warningActions, /data-place-duplicate-details[\s\S]*data-place-review-merge/,
+    'Place details and Merge share one action row');
+assert.match(warningActions, />Merge<\/button>/,
+    'merge action uses the shorter label');
+assert.doesNotMatch(editWarning, /You can create this place without dismissing the warning|Review \/ Merge/);
+sandbox.placeEditorDraft.mode = 'add';
+run('renderPlaceEditorDuplicateWarning()');
+const addWarning = sandbox.duplicateHost.innerHTML;
+assert.match(addWarning, /data-place-use-existing=/);
+assert.doesNotMatch(addWarning, /data-place-review-merge=/);
+assert.match(addWarning.match(/<div class="place-duplicate-heading">([\s\S]*?)<\/div>/)?.[1] || '',
+    /data-place-duplicate-ignore=/, 'Ignore stays in the header for Create Place');
+
+const placesCss = read('modules/places/main.css');
+assert.match(placesCss, /\.place-duplicate-heading \.place-duplicate-ignore\s*\{[^}]*margin-inline-start:\s*auto/s,
+    'Ignore is positioned at the trailing edge of the warning heading');
+assert.match(directory, /row\.classList\.add\('is-editing-reason'\)/,
+    'editing a reason activates the full-width review row');
+assert.match(directory, /classList\.remove\('is-editing-reason'\)/,
+    'Cancel restores the normal review layout');
+assert.match(placesCss, /\.places-review-list-row\.is-editing-reason \.places-review-row-actions\s*\{[^}]*display:\s*none/s,
+    'review action controls are hidden while a reason is being edited');
+
+console.log('Places localization, dismissal reason, and duplicate warning layout OK');

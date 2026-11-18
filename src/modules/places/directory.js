@@ -1505,12 +1505,12 @@ function renderPlaceReviewListRow(item)
     const reasonMarkup = dismissal
         ? `<div class="places-review-reason" data-place-review-reason-editor>
               <p data-place-review-reason-display>
-                <strong>${escapeHtml(t('Reason'))}:</strong>
+                <strong>${escapeHtml(t('Dismissal reason'))}:</strong>
                 ${escapeHtml(localizedReason || t('No reason provided'))}
               </p>
               <form hidden data-place-review-reason-form
                 data-place-review-place="${placeId}" data-place-review-type="${issueType}">
-                <label for="placeReviewReason-${placeId}-${issueType}">${escapeHtml(t('Reason'))}</label>
+                <label for="placeReviewReason-${placeId}-${issueType}">${escapeHtml(t('Dismissal reason'))}</label>
                 <textarea id="placeReviewReason-${placeId}-${issueType}" maxlength="240"
                   rows="2">${escapeHtml(localizedReason)}</textarea>
                 <div class="places-review-reason-actions">
@@ -1733,6 +1733,8 @@ function bindPlacesNeedsReviewControls()
         form.hidden = false;
         display.hidden = true;
         button.hidden = true;
+        row.classList.add('is-editing-reason');
+        row.querySelector('[data-place-review-restore]')?.setAttribute('hidden', '');
         form.querySelector('textarea')?.focus();
     }));
     main.querySelectorAll('[data-place-review-reason-form]').forEach(form =>
@@ -1740,9 +1742,12 @@ function bindPlacesNeedsReviewControls()
         const cancel = () =>
         {
             form.hidden = true;
+            form.closest('.places-review-list-row')?.classList.remove('is-editing-reason');
             const display = form.closest('.places-review-list-row')
                 ?.querySelector('[data-place-review-reason-display]');
             if (display) display.hidden = false;
+            form.closest('.places-review-list-row')
+                ?.querySelector('[data-place-review-restore]')?.removeAttribute('hidden');
             const edit = form.closest('.places-review-list-row')
                 ?.querySelector('[data-place-review-edit-reason]');
             if (edit)

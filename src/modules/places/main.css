@@ -1226,6 +1226,14 @@
     flex-wrap: wrap;
 }
 
+.places-review-list-panel .places-review-list-row.is-editing-reason {
+    grid-template-columns: minmax(0, 1fr);
+}
+
+.places-review-list-row.is-editing-reason .places-review-row-actions {
+    display: none;
+}
+
 .places-review-row-actions .button {
     min-height: 34px;
     white-space: nowrap;
@@ -3133,9 +3141,15 @@
 .place-duplicate-heading {
     display: flex;
     align-items: center;
+    flex-wrap: wrap;
     gap: var(--space-2);
     color: var(--gg-status-warning-on-container);
     line-height: 1.4;
+}
+
+.place-duplicate-heading .place-duplicate-ignore {
+    margin-inline-start: auto;
+    flex: 0 0 auto;
 }
 
 .place-duplicate-heading svg {
@@ -3169,6 +3183,7 @@
 
 .place-duplicate-actions {
     display: flex;
+    align-items: center;
     flex-wrap: wrap;
     gap: var(--space-2);
 }

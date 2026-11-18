@@ -12,6 +12,17 @@ scope and the review search.
 - **WHEN** the project has no active invalid-coordinate issue
 - **THEN** Coordinates need correction is not displayed as an empty group
 
+### Requirement: Dismissal reason editing
+The saved dismissal explanation SHALL be labelled **Dismissal reason**
+(«Причина отклонения» in Russian) in both its read-only summary and its
+editing form. When the reason editor is open, Restore SHALL be hidden
+until Cancel returns to the summary; saving may rerender the row.
+
+#### Scenario: Edit and cancel a dismissal reason
+- **WHEN** the user opens Edit reason for a dismissed Place review item
+- **THEN** Restore is not shown while the textarea and Save/Cancel are visible
+- **AND** Cancel restores the normal summary and Restore control
+
 ### Requirement: Dismissal and restoration
 A dismissed item SHALL move out of the active group; restoring it SHALL
 return a still-relevant issue to review. Duplicate dismissal SHALL be

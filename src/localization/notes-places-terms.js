@@ -687,6 +687,9 @@ const RU_UI_PLACES = Object.freeze({
     'Reason':
         'Причина',
 
+    'Dismissal reason':
+        'Причина отклонения',
+
     'No reason provided':
         'Причина не указана',
 
@@ -1723,7 +1726,6 @@ const RU_TERMS_STATUSES = {
 
     'Possible duplicates': 'Возможные дубликаты',
     'Ignore for this draft': 'Игнорировать в этом черновике',
-    'You can create this place without dismissing the warning.': 'Вы можете создать это место, не закрывая предупреждение.',
     'Compare these saved places before deciding whether to merge them.': 'Сравните сохранённые места перед объединением.',
     'Review these saved places before deciding whether to merge them.': 'Проверьте сохранённые места перед решением об объединении.',
     'Choose to keep': 'Выберите для сохранения',
@@ -1746,7 +1748,6 @@ const RU_TERMS_STATUSES = {
     'Merge': 'Объединить',
     'Merge places': 'Объединить места',
     'Compare places': 'Сравнить места',
-    'Review / Merge': 'Проверить / объединить',
     'Review merge': 'Проверить объединение',
     'Review both saved places and their connections.': 'Проверьте оба сохранённых места и их связи.',
     'Choose the Place to keep. The other Place will be removed permanently and its links redirected.': 'Выберите место, которое останется. Другое будет удалено, а его связи перенаправлены.',

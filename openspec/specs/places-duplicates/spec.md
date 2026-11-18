@@ -12,6 +12,23 @@ in the warning; Ignore affects only the current draft.
 - **WHEN** a valid new Place resembles an existing record
 - **THEN** the user may save it without acting on the warning
 
+### Requirement: Compact editor duplicate warning
+The advisory warning in Add/Edit Place SHALL show Ignore at the trailing
+top-right of its heading and omit redundant instructions about nonblocking
+creation. Place details and, in edit mode, Merge SHALL share the action row;
+the Merge action SHALL be labelled simply "Merge". Ignoring a match SHALL
+only dismiss it for the current draft and SHALL never gate a valid save.
+
+#### Scenario: Edit a possible duplicate
+- **WHEN** a Place edit has a possible duplicate candidate
+- **THEN** Ignore is at the top of the warning, and Place details and Merge
+  appear as peer actions beneath the warning evidence
+
+#### Scenario: Add a possible duplicate
+- **WHEN** a new Place draft has a possible duplicate candidate
+- **THEN** the warning offers top-right Ignore and optional Use existing place
+- **AND** creation remains valid without interacting with the warning
+
 ### Requirement: Context-aware, name-based matching
 The shared matcher SHALL consider canonical/alternative names and
 geographic context. Coordinate proximity alone SHALL NOT establish
