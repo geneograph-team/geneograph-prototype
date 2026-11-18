@@ -1125,6 +1125,33 @@ function rerenderPlacesInspector({
     }
 }
 
+function renderPlaceAttention({
+    place,
+    title,
+    description,
+    ariaLabel = title,
+    issueCount = 0,
+    showOpenReview = true,
+    actions = ''
+})
+{
+    return `<div class="places-attention" role="group" aria-label="${escapeHtml(ariaLabel)}">
+        <div class="places-attention-header">
+            <div class="places-attention-copy">
+                ${icon.warning}
+                <span><strong>${escapeHtml(title)}</strong>${issueCount > 1 ? `<small>${issueCount} issues</small>` : ''}</span>
+            </div>
+            ${showOpenReview ? `<button class="places-attention-open" type="button"
+                data-place-review-view="${escapeHtml(place.id)}"
+                aria-label="${escapeHtml(t('Open review'))}: ${escapeHtml(placePrimaryName(place))}">
+                ${icon.openlink}<span>${escapeHtml(t('Open review'))}</span>
+            </button>` : ''}
+        </div>
+        <p class="places-attention-description">${escapeHtml(description)}</p>
+        ${actions ? `<div class="places-attention-actions">${actions}</div>` : ''}
+    </div>`;
+}
+
 function renderPlacesInspector(
     place
 )
@@ -1458,44 +1485,33 @@ function renderPlacesInspector(
                     .join('')}
             </div>
 
-            ${
-                firstReviewIssue
-                    ? `
-                  <div class="places-attention" role="group" aria-label="Needs review: ${escapeHtml(firstReviewIssue.title)}">
-                    <div class="places-attention-header">
-                      <div class="places-attention-copy">
-                        ${icon.warning}
-                        <span><strong>${escapeHtml(firstReviewIssue.title)}</strong>${reviewIssues.length > 1 ? `<small>${reviewIssues.length} issues</small>` : ''}</span>
-                      </div>
-                      ${state.placesView === 'review' ? '' : `
-                        <button class="places-attention-open" type="button" data-place-review-view="${escapeHtml(place.id)}" aria-label="Open review for ${escapeHtml(placePrimaryName(place))}">
-                          ${icon.openlink}
-                          <span>Open review</span>
-                        </button>
-                      `}
-                    </div>
-                    <p class="places-attention-description">${escapeHtml(firstReviewIssue.description)}</p>
-                    <div class="places-attention-actions">
-                      <button class="places-attention-fix" type="button" data-place-review-fix="${escapeHtml(place.id)}" data-place-review-type="${escapeHtml(firstReviewIssue.type)}">
+            ${firstReviewIssue ? renderPlaceAttention({
+                place,
+                title: firstReviewIssue.title,
+                description: firstReviewIssue.description,
+                ariaLabel: `Needs review: ${firstReviewIssue.title}`,
+                issueCount: reviewIssues.length,
+                showOpenReview: state.placesView !== 'review',
+                actions: `
+                    <button class="places-attention-fix" type="button"
+                        data-place-review-fix="${escapeHtml(place.id)}"
+                        data-place-review-type="${escapeHtml(firstReviewIssue.type)}">
                         ${icon.mapPin}
                         <span>${escapeHtml(firstReviewIssue.actionLabel)}</span>
-                      </button>
-                      <button class="places-attention-dismiss" type="button" data-place-review-dismiss="${escapeHtml(place.id)}" data-place-review-type="${escapeHtml(firstReviewIssue.type)}">
+                    </button>
+                    <button class="places-attention-dismiss" type="button"
+                        data-place-review-dismiss="${escapeHtml(place.id)}"
+                        data-place-review-type="${escapeHtml(firstReviewIssue.type)}">
                         ${icon.close}
                         <span>${escapeHtml(placeReviewT('Dismiss'))}</span>
-                      </button>
-                    </div>
-                  </div>
-                `
-                    : ''
-            }
-            ${duplicatePairs.length ? `<div class="places-attention" role="group" aria-label="${escapeHtml(t('Possible duplicates'))}">
-                <div class="places-attention-header"><div class="places-attention-copy">${icon.warning}
-                    <span><strong>${escapeHtml(t('Possible duplicates'))}</strong></span></div>
-                    <button class="places-attention-open" type="button" data-place-review-view="${escapeHtml(place.id)}">
-                        ${icon.openlink}<span>${escapeHtml(t('Open review'))}</span></button></div>
-                <p class="places-attention-description">${escapeHtml(duplicatePairs.map(pair =>
-                    pair.left.id === place.id ? pair.right.name : pair.left.name).join(', '))}</p></div>` : ''}
+                    </button>`
+            }) : ''}
+            ${duplicatePairs.length ? renderPlaceAttention({
+                place,
+                title: t('Possible duplicates'),
+                description: duplicatePairs.map(pair =>
+                    pair.left.id === place.id ? pair.right.name : pair.left.name).join(', ')
+            }) : ''}
           </section>
 
           <div

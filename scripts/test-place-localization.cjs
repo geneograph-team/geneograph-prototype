@@ -111,4 +111,50 @@ assert.ok(inspector.includes("placeReviewT('Dismiss')"));
 state.language='en';
 assert.equal(run("placeReviewT('Dismiss')"),'Dismiss');
 assert.equal(run("readPlaceEditorCoordinateState('90','-180').valid"),true);
-console.log('Places RU localization and reversible seed names OK');
+
+// Inspector warning cards share one layout and keep their existing actions.
+sandbox.icon = { warning: '<svg class="warning-icon"></svg>',
+    openlink: '<svg class="open-icon"></svg>' };
+sandbox.escapeHtml = value => String(value ?? '')
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
+sandbox.placePrimaryName = place => place.name;
+vm.runInContext(excerpt(inspector, 'function renderPlaceAttention(', 'function renderPlacesInspector('), sandbox);
+sandbox.warningOptions = {
+    place: { id: 'place-1', name: 'Pawford' },
+    title: 'Координаты не указаны',
+    description: 'Координаты не указаны. Связанных записей: 1.',
+    issueCount: 2,
+    actions: '<button data-place-review-fix="place-1">Add position</button>'
+};
+const warningHtml = run('renderPlaceAttention(warningOptions)');
+assert.match(warningHtml, /class="places-attention-header"/);
+assert.match(warningHtml, /class="places-attention-description"/);
+assert.match(warningHtml, /class="places-attention-actions"/);
+assert.match(warningHtml, /data-place-review-view="place-1"/);
+assert.match(warningHtml, /data-place-review-fix="place-1"/);
+assert.match(warningHtml, /2 issues/);
+sandbox.warningOptions = {
+    place: { id: 'place-1', name: 'Pawford' },
+    title: 'Possible duplicates',
+    description: 'Pawford, North Yorkshire, England'
+};
+const duplicateHtml = run('renderPlaceAttention(warningOptions)');
+assert.match(duplicateHtml, /class="places-attention-header"/);
+assert.match(duplicateHtml, /class="places-attention-description"/);
+assert.doesNotMatch(duplicateHtml, /places-attention-actions|2 issues/,
+    'duplicate warning has no empty action row or count');
+assert.equal((inspector.split('function renderPlacesInspector(')[1].match(/renderPlaceAttention\(\{/g) || []).length, 2,
+    'both warning types use the shared card template');
+assert.match(inspector, /data-place-review-dismiss=/,
+    'dismiss action selector remains wired');
+
+const warningCss = read('modules/places/main.css');
+const descriptionCss = warningCss.match(/\.places-attention-description\s*\{([^}]+)\}/)?.[1] || '';
+const actionsCss = warningCss.match(/\.places-attention-actions\s*\{([^}]+)\}/)?.[1] || '';
+const headerCss = warningCss.match(/\.places-attention-header\s*\{([^}]+)\}/)?.[1] || '';
+assert.match(descriptionCss, /grid-column:\s*2\s*;/);
+assert.match(actionsCss, /grid-column:\s*2\s*;/);
+assert.match(descriptionCss, /font-size:\s*13px\s*;/);
+assert.match(headerCss, /flex-wrap:\s*wrap\s*;/);
+
+console.log('Places RU localization and reversible seed names and inspector warning layout OK');
