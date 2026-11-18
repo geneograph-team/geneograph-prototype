@@ -311,13 +311,27 @@ function bindPlacesSidebarControls()
         {
             button.addEventListener(
                 'click',
-                () =>
+                event =>
                 {
-                    selectPlace(
-                        button.dataset
-                            .placeTreeSelect,
-                        { focusMap: false }
-                    );
+                    const mapView = state.placesViewMode === 'map';
+                    if (mapView && event.detail > 1) return;
+
+                    const placeId = button.dataset.placeTreeSelect;
+                    selectPlace(placeId, { focusMap: mapView });
+                    if (!mapView) return;
+
+                    const place = getPlace(placeId);
+                    if (!placeHasCoordinates(place))
+                    {
+                        setPlacesMapStatus(
+                            'This place is not on the map',
+                            'Choose Edit position to add a map point.'
+                        );
+                    }
+                    else if (placesMapReady())
+                    {
+                        setPlacesMapStatus();
+                    }
                 }
             );
 
@@ -325,10 +339,13 @@ function bindPlacesSidebarControls()
                 'dblclick',
                 () =>
                 {
-                    showPlaceOnMap(
-                        button.dataset
-                            .placeTreeSelect
-                    );
+                    if (state.placesViewMode === 'list')
+                    {
+                        showPlaceOnMap(
+                            button.dataset
+                                .placeTreeSelect
+                        );
+                    }
                 }
             );
         });
