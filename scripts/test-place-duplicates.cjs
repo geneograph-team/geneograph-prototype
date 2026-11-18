@@ -178,4 +178,75 @@ assert.equal(createScope.sampleData.places.filter(place => place.id === 'new-dup
 assert.equal(createdToast, 'Place created.');
 assert.equal(createScope.state.selectedPlaceId, 'new-duplicate-village');
 
-console.log('Place duplicate detection, dismissal, merge, and nonblocking creation OK');
+
+for (const keepFirst of [true, false])
+{
+    const scope = context();
+    const keepId = keepFirst ? 'a' : 'b';
+    const removeId = keepFirst ? 'b' : 'a';
+    const a = { id: 'a', projectId: 'p1', name: 'River House', alternativeNames: ['Old Mill'],
+        coordinates: { lat: 1, lng: 1 }, createdAt: 'first', researchNote: 'East bank' };
+    const b = { id: 'b', projectId: 'p1', name: 'River Hous', alternativeNames: ['Old Hall'],
+        coordinates: { lat: 2, lng: 2 }, approximateRadiusMeters: 500,
+        createdAt: 'second', researchNote: 'West bank', confidence: 'high' };
+    scope.sampleData.places.push(a, b);
+    const keep = scope.getPlace(keepId);
+    const remove = scope.getPlace(removeId);
+    const options = { locationChoice: 'keep', fieldChoices: {
+        name: 'remove', alternativeNames: 'remove', coordinates: 'remove',
+        approximateRadiusMeters: 'remove', researchNote: 'remove'
+    } };
+    const preview = scope.placeMergeFieldResult(keep, remove, options);
+    assert.ok(preview, 'stage a valid per-field merge');
+    assert.equal(preview.id, keepId);
+    assert.equal(preview.createdAt, keep.createdAt);
+    assert.equal(preview.name, remove.name);
+    assert.equal(preview.coordinates.lat, remove.coordinates.lat);
+    assert.equal(preview.researchNote, remove.researchNote);
+    assert.ok(preview.alternativeNames.includes(keep.name), 'preserve displaced primary name');
+    assert.ok(preview.alternativeNames.includes('Old Mill'), 'preserve left alternative');
+    assert.ok(preview.alternativeNames.includes('Old Hall'), 'preserve right alternative');
+    assert.equal(keep.name, keepFirst ? 'River House' : 'River Hous', 'preview never mutates Place');
+
+    assert.equal(scope.mergeSavedPlaces(keepId, removeId, options), true);
+    assert.equal(scope.sampleData.places.filter(place => place.id === keepId).length, 1);
+    assert.equal(scope.sampleData.places.some(place => place.id === removeId), false);
+    assert.equal(scope.getPlace(keepId).name, remove.name);
+    assert.equal(scope.getPlace(keepId).createdAt, keepFirst ? 'first' : 'second');
+    assert.equal(scope.getPlace(keepId).researchNote, remove.researchNote);
+    assert.equal(scope.getPlace(keepId).confidence, 'high', 'fill missing metadata automatically');
+}
+
+const safety = context();
+const saved = { id: 'safe-a', projectId: 'p1', name: 'River House',
+    coordinates: { lat: 1, lng: 1 }, approximateRadiusMeters: 200, createdAt: 'old' };
+const candidate = { id: 'safe-b', projectId: 'p1', name: 'River House', coordinates: null };
+safety.sampleData.places.push(saved, candidate);
+const clearCenter = { locationChoice: 'keep', fieldChoices: {
+    coordinates: 'remove', approximateRadiusMeters: 'keep'
+} };
+assert.equal(safety.placeMergeFieldResult(saved, candidate, clearCenter), null,
+    'radius cannot remain without a valid center');
+assert.equal(safety.mergeSavedPlaces('safe-a', 'safe-b', clearCenter), false,
+    'invalid staged location aborts before mutating references or Places');
+assert.equal(saved.coordinates.lat, 1);
+assert.equal(safety.sampleData.places.some(place => place.id === 'safe-b'), true);
+
+const clearArea = { locationChoice: 'keep', fieldChoices: {
+    coordinates: 'remove', approximateRadiusMeters: 'remove'
+} };
+assert.equal(safety.mergeSavedPlaces('safe-a', 'safe-b', clearArea), true,
+    'explicitly clearing both values produces a valid unmapped Place');
+assert.equal(safety.getPlace('safe-a').coordinates, null);
+assert.equal('approximateRadiusMeters' in safety.getPlace('safe-a'), false);
+
+assert.equal(read('modules/places/directory.js').includes('data-place-pair-compare'), false,
+    'Compare-only control is removed');
+assert.equal(read('modules/places/editor.js').includes('compareOnly'), false,
+    'Compare-only dialog path is removed');
+assert.ok(read('modules/places/filters.js').includes("main.querySelectorAll('[data-place-pair-select]')"),
+    'shared selection updates nested duplicate cards');
+assert.ok(read('modules/places/editor.js').includes('data-place-merge-copy'),
+    'field-level transfer controls are present');
+
+console.log('Place duplicate review, survivor-directed merge, and nonblocking creation OK');

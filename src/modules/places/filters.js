@@ -1193,6 +1193,14 @@ function selectPlace(
             }
         });
 
+    main.querySelectorAll('[data-place-pair-select]').forEach(button =>
+    {
+        const selected = button.dataset.placePairSelect === place.id;
+        button.classList.toggle('is-selected', selected);
+        if (selected) button.setAttribute('aria-current', 'true');
+        else button.removeAttribute('aria-current');
+    });
+
     sidebar
         .querySelectorAll(
             '[data-place-tree-item]'

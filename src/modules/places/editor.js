@@ -1747,84 +1747,184 @@ function placeMergeLocationLabel(place)
     return `${position}${placeHasRadiusValue(place) ? ` · ${formatPlaceRadius(place.approximateRadiusMeters)}` : ''}`;
 }
 
-function openPlaceMergeModal(leftId, rightId, { compareOnly = false, onComplete = null } = {})
+function placeMergeFieldText(key, value)
+{
+    if (key === 'coordinates')
+    {
+        const point = normalizePlaceCoordinates({ coordinates: value });
+        return point ? `${point.lat.toFixed(6)}, ${point.lng.toFixed(6)}` : t('No position set');
+    }
+    if (key === 'approximateRadiusMeters')
+        return validPlaceRadiusMeters(value) ? formatPlaceRadius(value) : t('No value');
+    if (Array.isArray(value)) return value.length ? value.join(', ') : t('No value');
+    if (!placeMergeValuePresent(value)) return t('No value');
+    if (typeof value === 'object') return JSON.stringify(value);
+    return String(value);
+}
+
+function openPlaceMergeModal(leftId, rightId, { onComplete = null } = {})
 {
     const left = getPlace(leftId);
     const right = getPlace(rightId);
-    const match = matchDuplicatePlaces(left, right);
-    if (!match || left.projectId !== currentProjectId()) return;
-    const placeCard = place => `<div class="place-merge-card"><strong data-i18n-skip>${escapeHtml(place.name)}</strong>
+    if (!matchDuplicatePlaces(left, right) || left.projectId !== currentProjectId()) return;
+
+    const mergeDraft = { keepId: '', fields: {} };
+    const placeCard = place => `<button class="place-merge-card" type="button"
+        data-place-merge-survivor="${escapeHtml(place.id)}" aria-pressed="false">
+        <span class="place-merge-card-status" data-place-merge-status></span>
+        <strong data-i18n-skip>${escapeHtml(place.name)}</strong>
         <small>${escapeHtml(placeMergeLocationLabel(place))}</small>
         ${placeAlternativeNames(place).length ? `<small data-i18n-skip>${escapeHtml(placeAlternativeNames(place).join(', '))}</small>` : ''}
-        <small>${escapeHtml(placeMergeConnectionSummary(place.id))}</small></div>`;
+        <small>${escapeHtml(t('Linked records'))}: ${placeReviewConnectionTotal(place)}</small>
+    </button>`;
+
     openModal(`<div class="modal place-merge-modal" role="dialog" aria-modal="true" aria-labelledby="placeMergeTitle">
-        <div class="modal-header"><div><h2 id="placeMergeTitle">${escapeHtml(t(compareOnly ? 'Compare places' : 'Merge places'))}</h2>
-        <p>${escapeHtml(t('Review both saved places and their connections.'))}</p></div>
+        <div class="modal-header"><div><h2 id="placeMergeTitle">${escapeHtml(t('Merge places'))}</h2>
+        <p>${escapeHtml(t('Choose the Place to keep. The other Place will be removed permanently and its links redirected.'))}</p></div>
         <button class="close-button" type="button" data-close aria-label="${escapeHtml(t('Close'))}">${icon.close}</button></div>
-        <div class="modal-body"><div class="place-merge-pair">${placeCard(left)}${placeCard(right)}</div>
-        <p>${escapeHtml(match.reasons.map(t).join(' '))}</p>
-        ${compareOnly ? '' : `<p>${escapeHtml(t('Choose the Place to keep. The other Place will be removed permanently and its links redirected.'))}</p>
-            <fieldset class="place-merge-survivor"><legend>${escapeHtml(t('Keep this place'))}</legend>
-            <label><input type="radio" name="placeMergeKeep" value="${escapeHtml(left.id)}"> <span data-i18n-skip>${escapeHtml(left.name)}</span></label>
-            <label><input type="radio" name="placeMergeKeep" value="${escapeHtml(right.id)}"> <span data-i18n-skip>${escapeHtml(right.name)}</span></label></fieldset>
-            <div data-place-merge-conflicts></div>`}</div>
-        <div class="modal-footer"><button class="button secondary" type="button" data-close>${escapeHtml(t('Cancel'))}</button>
-        ${compareOnly ? `<button class="button primary" type="button" data-place-merge-review>${escapeHtml(t('Review merge'))}</button>`
-            : `<button class="button danger" type="button" data-place-merge-confirm>${escapeHtml(t('Merge places'))}</button>`}</div></div>`);
+        <div class="modal-body">
+            <div class="place-merge-pair" role="group" aria-label="${escapeHtml(t('Keep this place'))}">
+                ${placeCard(left)}${placeCard(right)}
+            </div>
+            <div class="place-merge-fields" data-place-merge-fields></div>
+            <p class="place-merge-warning">${escapeHtml(t('This merge cannot be undone in this session.'))}</p>
+        </div>
+        <div class="modal-footer">
+            <button class="button secondary" type="button" data-close>${escapeHtml(t('Cancel'))}</button>
+            <button class="button danger" type="button" data-place-merge-confirm disabled>${escapeHtml(t('Merge places'))}</button>
+        </div></div>`);
+
     const root = modalBackdrop.querySelector('.place-merge-modal');
-    root.querySelector('[data-place-merge-review]')?.addEventListener('click', () =>
-        openPlaceMergeModal(leftId, rightId, { onComplete }));
-    const renderConflicts = () =>
+    const host = root.querySelector('[data-place-merge-fields]');
+    const confirm = root.querySelector('[data-place-merge-confirm]');
+    const fieldKeys = ['name', 'alternativeNames', 'coordinates', 'approximateRadiusMeters',
+        ...placeMergeEditableFieldKeys(left, right)];
+    const fieldLabel = key => ({
+        name: 'Place', alternativeNames: 'Historical / alternative names',
+        coordinates: 'Map location', approximateRadiusMeters: 'Approximate radius'
+    })[key] || key;
+    const choicesFor = (keep, removed) =>
     {
-        const keepId = root.querySelector('[name="placeMergeKeep"]:checked')?.value;
-        const keep = getPlace(keepId);
-        const removed = getPlace(keepId === leftId ? rightId : leftId);
-        const host = root.querySelector('[data-place-merge-conflicts]');
-        if (!keep || !removed) { host.innerHTML = ''; return; }
-        const aliases = normalizePlaceAlternativeNames([removed.name, ...placeAlternativeNames(removed)], keep.name);
-        const locationConflict = JSON.stringify([keep.coordinates || null, keep.approximateRadiusMeters ?? null])
-            !== JSON.stringify([removed.coordinates || null, removed.approximateRadiusMeters ?? null]);
-        const options = (name, key, leftValue, rightValue) => `<fieldset data-place-merge-conflict="${escapeHtml(key)}">
-            <legend>${escapeHtml(t(name))}</legend>
-            <label><input type="radio" name="merge-${escapeHtml(key)}" value="keep"> ${escapeHtml(t('Keep'))}: ${escapeHtml(leftValue)}</label>
-            <label><input type="radio" name="merge-${escapeHtml(key)}" value="remove"> ${escapeHtml(t('Use'))}: ${escapeHtml(rightValue)}</label></fieldset>`;
-        host.innerHTML = `${aliases.length ? `<label class="checkbox-row"><input type="checkbox" data-place-merge-aliases checked>
-            ${escapeHtml(t('Add the removed Place names as alternative names'))}: <span data-i18n-skip>${escapeHtml(aliases.join(', '))}</span></label>` : ''}
-            ${locationConflict ? options('Map location and approximate radius', 'location', placeMergeLocationLabel(keep), placeMergeLocationLabel(removed)) : ''}
-            ${placeMergeConflictingFields(keep, removed).map(key => options(key, key,
-                typeof keep[key] === 'object' ? JSON.stringify(keep[key]) : String(keep[key]),
-                typeof removed[key] === 'object' ? JSON.stringify(removed[key]) : String(removed[key]))).join('')}
-            <p class="place-merge-warning">${escapeHtml(t('This merge cannot be undone in this session.'))}</p>`;
+        const fields = { ...mergeDraft.fields };
+        for (const key of ['coordinates', 'approximateRadiusMeters', ...placeMergeConflictingFields(keep, removed)])
+            if (!fields[key]) fields[key] = 'keep';
+        return fields;
     };
-    root.querySelectorAll('[name="placeMergeKeep"]').forEach(input => input.addEventListener('change', renderConflicts));
-    root.querySelector('[data-place-merge-confirm]')?.addEventListener('click', () =>
+    const render = () =>
     {
-        const keepId = root.querySelector('[name="placeMergeKeep"]:checked')?.value;
-        if (!keepId) { root.querySelector('[name="placeMergeKeep"]')?.focus(); return; }
+        root.querySelectorAll('[data-place-merge-survivor]').forEach(card =>
+        {
+            const selected = card.dataset.placeMergeSurvivor === mergeDraft.keepId;
+            card.classList.toggle('is-selected', selected);
+            card.setAttribute('aria-pressed', String(selected));
+            card.querySelector('[data-place-merge-status]').textContent = !mergeDraft.keepId
+                ? t('Choose to keep')
+                : t(selected ? 'Selected to keep' : 'Will be merged');
+        });
+        const keep = mergeDraft.keepId && getPlace(mergeDraft.keepId);
+        const removed = keep && getPlace(keep.id === leftId ? rightId : leftId);
+        if (!keep || !removed)
+        {
+            host.innerHTML = `<p class="place-merge-prompt">${escapeHtml(t('Select the Place to keep to review its fields.'))}</p>`;
+            confirm.disabled = true;
+            return;
+        }
+        const fields = choicesFor(keep, removed);
+        const result = placeMergeFieldResult(keep, removed, { locationChoice: 'keep', fieldChoices: fields });
+        const invalid = !result;
+        host.innerHTML = `<h3>${escapeHtml(t('Fields to merge'))}</h3>
+            <p class="place-merge-help">${escapeHtml(t('Arrows copy values from the other Place into the selected Place. Original names remain available as alternative names.'))}</p>
+            ${fieldKeys.map(key =>
+            {
+                const fromLeft = left[key];
+                const fromRight = right[key];
+                const incoming = removed[key];
+                const current = keep[key];
+                const copied = mergeDraft.fields[key] === 'remove';
+                const different = JSON.stringify(current ?? null) !== JSON.stringify(incoming ?? null);
+                const autoFilled = !placeMergeValuePresent(current) && placeMergeValuePresent(incoming);
+                const value = result ? result[key] : copied ? incoming : current;
+                const copyLabel = `${t('Copy to surviving place')}: ${t(fieldLabel(key))}`;
+                const resetLabel = `${t('Keep original value')}: ${t(fieldLabel(key))}`;
+                const canCopy = different && !(autoFilled && !copied)
+                    && (key !== 'name' || placeMergeValuePresent(incoming));
+                return `<section class="place-merge-field" data-place-merge-field="${escapeHtml(key)}">
+                    <h4>${escapeHtml(t(fieldLabel(key)))}</h4>
+                    <div class="place-merge-field-values">
+                        <div class="place-merge-value ${keep.id === leftId ? 'is-survivor' : ''}" data-i18n-skip>
+                            ${escapeHtml(placeMergeFieldText(key, fromLeft))}
+                        </div>
+                        <div class="place-merge-transfer">
+                            <button class="gr-transfer ${keep.id === leftId ? 'is-left' : ''} ${copied ? 'is-selected' : ''}"
+                                type="button" data-place-merge-copy="${escapeHtml(key)}"
+                                aria-label="${escapeHtml(copyLabel)}" title="${escapeHtml(copyLabel)}"
+                                aria-pressed="${copied}" ${canCopy ? '' : 'disabled'}>${icon.arrow}</button>
+                            ${copied ? `<button class="gr-reset-icon" type="button"
+                                data-place-merge-reset="${escapeHtml(key)}"
+                                aria-label="${escapeHtml(resetLabel)}" title="${escapeHtml(resetLabel)}">${icon.undo}</button>` : ''}
+                        </div>
+                        <div class="place-merge-value ${keep.id === rightId ? 'is-survivor' : ''}" data-i18n-skip>
+                            ${escapeHtml(placeMergeFieldText(key, fromRight))}
+                        </div>
+                    </div>
+                    <div class="place-merge-result">${escapeHtml(t('Result'))}:
+                        <strong data-i18n-skip>${escapeHtml(placeMergeFieldText(key, value))}</strong>
+                        ${autoFilled ? `<span>${escapeHtml(t('Filled automatically'))}</span>` : ''}
+                    </div>
+                </section>`;
+            }).join('')}
+            ${invalid ? `<p class="place-merge-error" role="alert">${escapeHtml(t('The chosen location and radius are incompatible. Adjust the arrows before merging.'))}</p>` : ''}
+            <p class="place-merge-help">${escapeHtml(t('All linked records will be redirected to the selected Place.'))}</p>`;
+        confirm.disabled = invalid;
+    };
+
+    root.addEventListener('click', event =>
+    {
+        const card = event.target.closest('[data-place-merge-survivor]');
+        if (card)
+        {
+            mergeDraft.keepId = card.dataset.placeMergeSurvivor;
+            mergeDraft.fields = {};
+            render();
+            card.focus({ preventScroll: true });
+            return;
+        }
+        const copy = event.target.closest('[data-place-merge-copy]');
+        const reset = event.target.closest('[data-place-merge-reset]');
+        if (copy || reset)
+        {
+            const key = (copy || reset).dataset.placeMergeCopy || reset?.dataset.placeMergeReset;
+            if (reset) delete mergeDraft.fields[key];
+            else mergeDraft.fields[key] = 'remove';
+            render();
+            root.querySelector(`[data-place-merge-copy="${CSS.escape(key)}"]`)?.focus({ preventScroll: true });
+        }
+    });
+    confirm.addEventListener('click', () =>
+    {
+        const keepId = mergeDraft.keepId;
         const removeId = keepId === leftId ? rightId : leftId;
         const keep = getPlace(keepId);
         const removed = getPlace(removeId);
-        if (!keep || !removed || !matchDuplicatePlaces(keep, removed) || keep.projectId !== currentProjectId())
-        { showToast(t('These places are no longer available for merging.')); return; }
-        const choices = {};
-        for (const fieldset of root.querySelectorAll('[data-place-merge-conflict]'))
+        if (!keep || !removed || !matchDuplicatePlaces(keep, removed)
+            || keep.projectId !== currentProjectId())
         {
-            const choice = fieldset.querySelector('input:checked');
-            if (!choice) { fieldset.querySelector('input')?.focus(); return; }
-            choices[fieldset.dataset.placeMergeConflict] = choice.value;
+            showToast(t('These places are no longer available for merging.'));
+            return;
         }
-        const locationConflict = JSON.stringify([keep.coordinates || null, keep.approximateRadiusMeters ?? null])
-            !== JSON.stringify([removed.coordinates || null, removed.approximateRadiusMeters ?? null]);
-        if (locationConflict && !choices.location) { renderConflicts(); root.querySelector('[data-place-merge-conflict="location"] input')?.focus(); return; }
-        if (placeMergeConflictingFields(keep, removed).some(key => !choices[key]))
-        { renderConflicts(); root.querySelector('[data-place-merge-conflict] input')?.focus(); return; }
-        const aliases = root.querySelector('[data-place-merge-aliases]')?.checked ?? false;
-        if (!mergeSavedPlaces(keepId, removeId,
-            { aliases, locationChoice: choices.location, fieldChoices: choices }))
-        { showToast(t('These places could not be merged.')); return; }
+        const fields = choicesFor(keep, removed);
+        if (!placeMergeFieldResult(keep, removed, { locationChoice: 'keep', fieldChoices: fields })
+            || !mergeSavedPlaces(keepId, removeId, { locationChoice: 'keep', fieldChoices: fields }))
+        {
+            showToast(t('These places could not be merged.'));
+            render();
+            return;
+        }
         closeModal({ force: true });
         if (state.activeModule === 'Places') renderPlaces();
         if (onComplete) requestAnimationFrame(() => onComplete(getPlace(keepId), { merged: true }));
         showToast(t('Places merged.'));
     });
+    render();
 }
+

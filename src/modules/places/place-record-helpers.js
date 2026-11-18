@@ -237,12 +237,93 @@ function retargetStructuredPlaceReferences(record, removeId, keepId)
         if (Array.isArray(record[key])) record[key] = [...new Set(record[key].map(id => id === removeId ? keepId : id))];
 }
 
+function placeMergeValuePresent(value)
+{
+    return value !== null && value !== undefined && value !== ''
+        && (!Array.isArray(value) || value.length > 0)
+        && (typeof value !== 'object' || Array.isArray(value) || Object.keys(value).length > 0);
+}
+
+function placeMergeEditableFieldKeys(left, right)
+{
+    const reserved = new Set(['id', 'projectId', 'createdAt', 'updatedAt',
+        'name', 'alternativeNames', 'coordinates', 'approximateRadiusMeters']);
+    return [...new Set([...Object.keys(left || {}), ...Object.keys(right || {})])]
+        .filter(key => !reserved.has(key) && (placeMergeValuePresent(left?.[key]) || placeMergeValuePresent(right?.[key])));
+}
+
 function placeMergeConflictingFields(keep, removed)
 {
-    const reserved = new Set(['id', 'projectId', 'createdAt', 'updatedAt', 'name', 'alternativeNames', 'coordinates', 'approximateRadiusMeters']);
-    return Object.keys(keep).filter(key => !reserved.has(key) && Object.hasOwn(removed, key)
-        && keep[key] !== null && keep[key] !== '' && removed[key] !== null && removed[key] !== ''
+    return placeMergeEditableFieldKeys(keep, removed).filter(key =>
+        placeMergeValuePresent(keep[key]) && placeMergeValuePresent(removed[key])
         && JSON.stringify(keep[key]) !== JSON.stringify(removed[key]));
+}
+
+// Build a preview without mutating either saved Place.
+function placeMergeFieldResult(keep, removed, { aliases = true, locationChoice, fieldChoices = {} } = {})
+{
+    if (!keep || !removed) return null;
+    const result = structuredClone(keep);
+    const isChoice = choice => ['keep', 'remove'].includes(choice);
+    const nameChoice = fieldChoices.name || 'keep';
+    const alternativeChoice = fieldChoices.alternativeNames || 'keep';
+    if (!isChoice(nameChoice) || !isChoice(alternativeChoice)) return null;
+    if (nameChoice === 'remove') result.name = removed.name;
+    if (!String(result.name || '').trim()) return null;
+
+    if (aliases)
+    {
+        const first = alternativeChoice === 'remove' ? removed : keep;
+        const second = alternativeChoice === 'remove' ? keep : removed;
+        result.alternativeNames = normalizePlaceAlternativeNames([
+            ...placeAlternativeNames(first), second.name, ...placeAlternativeNames(second), first.name
+        ], result.name);
+    }
+    else result.alternativeNames = normalizePlaceAlternativeNames(placeAlternativeNames(keep), result.name);
+
+    for (const key of ['coordinates', 'approximateRadiusMeters'])
+    {
+        const original = keep[key] ?? null;
+        const incoming = removed[key] ?? null;
+        const different = JSON.stringify(original) !== JSON.stringify(incoming);
+        const choice = fieldChoices[key] || locationChoice;
+        if (different && !isChoice(choice)) return null;
+        if (choice && !isChoice(choice)) return null;
+        // Missing values are filled automatically; copying an empty value is
+        // an explicit user decision and may clear the survivor's value.
+        if (choice === 'remove')
+        {
+            if (placeMergeValuePresent(incoming)) result[key] = structuredClone(incoming);
+            else if (key === 'coordinates') result.coordinates = null;
+            else delete result[key];
+        }
+        else if (!placeMergeValuePresent(original) && placeMergeValuePresent(incoming))
+            result[key] = structuredClone(incoming);
+    }
+
+    for (const key of placeMergeEditableFieldKeys(keep, removed))
+    {
+        const current = keep[key];
+        const incoming = removed[key];
+        const conflict = placeMergeValuePresent(current) && placeMergeValuePresent(incoming)
+            && JSON.stringify(current) !== JSON.stringify(incoming);
+        const choice = fieldChoices[key];
+        if (conflict && !isChoice(choice)) return null;
+        if (choice && !isChoice(choice)) return null;
+        if (choice === 'remove')
+        {
+            if (placeMergeValuePresent(incoming)) result[key] = structuredClone(incoming);
+            else delete result[key];
+        }
+        else if (!placeMergeValuePresent(current) && placeMergeValuePresent(incoming))
+            result[key] = structuredClone(incoming);
+    }
+
+    const position = normalizePlaceCoordinates(result);
+    if (placeMergeValuePresent(result.coordinates) && !position) return null;
+    if (placeHasRadiusValue(result)
+        && (!validPlaceRadiusMeters(result.approximateRadiusMeters) || !position)) return null;
+    return result;
 }
 
 function mergeSavedPlaces(keepId, removeId, { aliases = true, locationChoice, fieldChoices = {} } = {})
@@ -253,23 +334,16 @@ function mergeSavedPlaces(keepId, removeId, { aliases = true, locationChoice, fi
         || keep.projectId !== currentProjectId()) return false;
     const match = matchDuplicatePlaces(keep, removed);
     if (!match) return false;
-    const locationConflict = JSON.stringify([keep.coordinates || null, keep.approximateRadiusMeters ?? null])
-        !== JSON.stringify([removed.coordinates || null, removed.approximateRadiusMeters ?? null]);
-    if (locationConflict && !['keep', 'remove'].includes(locationChoice)) return false;
-    if (placeMergeConflictingFields(keep, removed).some(key => !['keep', 'remove'].includes(fieldChoices[key]))) return false;
-    if (aliases)
-        keep.alternativeNames = normalizePlaceAlternativeNames([
-            ...placeAlternativeNames(keep), removed.name, ...placeAlternativeNames(removed)
-        ], keep.name);
-    if (locationConflict && locationChoice === 'remove')
+    const result = placeMergeFieldResult(keep, removed, { aliases, locationChoice, fieldChoices });
+    if (!result) return false;
+    const locationChanged = JSON.stringify([keep.coordinates || null, keep.approximateRadiusMeters ?? null])
+        !== JSON.stringify([result.coordinates || null, result.approximateRadiusMeters ?? null]);
+    for (const key of new Set([...Object.keys(keep), ...Object.keys(result)]))
     {
-        keep.coordinates = removed.coordinates ? { ...removed.coordinates } : null;
-        if (placeHasRadiusValue(removed)) keep.approximateRadiusMeters = removed.approximateRadiusMeters;
-        else delete keep.approximateRadiusMeters;
+        if (['id', 'projectId', 'createdAt', 'updatedAt'].includes(key)) continue;
+        if (Object.hasOwn(result, key)) keep[key] = result[key];
+        else delete keep[key];
     }
-    for (const [key, choice] of Object.entries(fieldChoices))
-        if (!['id', 'projectId', 'createdAt', 'updatedAt', 'name', 'alternativeNames', 'coordinates', 'approximateRadiusMeters'].includes(key)
-            && choice === 'remove' && Object.hasOwn(removed, key)) keep[key] = structuredClone(removed[key]);
     keep.updatedAt = new Date().toISOString();
 
     (sampleData.people || []).forEach(person =>
@@ -333,7 +407,7 @@ function mergeSavedPlaces(keepId, removeId, { aliases = true, locationChoice, fi
     sampleData.places = sampleData.places.filter(place => place.id !== removeId);
     sampleData.placeIssues = (sampleData.placeIssues || []).filter(issue =>
         issue.placeId !== removeId && issue.otherPlaceId !== removeId
-        && !(locationConflict && locationChoice === 'remove' && issue.placeId === keepId
+        && !(locationChanged && issue.placeId === keepId
             && PLACE_REVIEW_COORDINATE_ISSUE_TYPES.includes(issue.type)));
     if (state.albumsFilters?.placeId === removeId) state.albumsFilters.placeId = keepId;
     if (Array.isArray(state.placesFilters?.placeIds))
@@ -428,28 +502,6 @@ function getPlaceConnectionCounts(placeId, { projectId = currentProjectId() } = 
     };
 }
 
-function getPlaceMergeConnectionCounts(placeId, { projectId = currentProjectId() } = {})
-{
-    return {
-        ...getPlaceConnectionCounts(placeId, { projectId }),
-        sources: new Set([
-            ...(sampleData.sourceLinks || []).filter(link => link.projectId === projectId
-                && link.targetType === 'place' && link.targetId === placeId).map(link => link.sourceId),
-            ...(sampleData.sources || []).filter(source => source.projectId === projectId && source.placeId === placeId).map(source => source.id)
-        ]).size,
-        boards: (sampleData.boards || []).filter(board => board.projectId === projectId
-            && (board.diagram?.nodes || []).some(node => node.type === 'place'
-                && node.placeRef?.scope === 'project' && node.placeRef.id === placeId)).length
-    };
-}
-
-function placeMergeConnectionSummary(placeId)
-{
-    const labels = { people: 'People', events: 'Events', files: 'Files', photos: 'Photos',
-        notes: 'Notes', sources: 'Sources', boards: 'Boards' };
-    return Object.entries(getPlaceMergeConnectionCounts(placeId))
-        .map(([type, count]) => `${t(labels[type])}: ${count}`).join(' · ');
-}
 function getPlaceEventDisplay(event)
 {
     const linked = cleanEditFieldValue(getPlaceDisplay(event?.placeId));

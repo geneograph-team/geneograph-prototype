@@ -1425,7 +1425,7 @@ function placesReviewGroups()
         {
             key: 'possible_duplicates',
             title: 'Possible duplicates',
-            description: 'Compare these saved places before deciding whether to merge them.',
+            description: 'Review these saved places before deciding whether to merge them.',
             empty: 'No possible duplicates found.',
             items: sort(pairs.filter(item => !item.dismissal))
         },
@@ -1537,23 +1537,21 @@ function renderPlaceDuplicateReviewRow({ pair, dismissal })
         const coordinates = normalizePlaceCoordinates(place);
         const position = coordinates ? `${coordinates.lat.toFixed(6)}, ${coordinates.lng.toFixed(6)}` : t('No position set');
         const radius = placeHasRadiusValue(place) ? ` · ${formatPlaceRadius(place.approximateRadiusMeters)}` : '';
-        const linked = placeMergeConnectionSummary(place.id);
+        const linked = placeReviewConnectionTotal(place);
         return `<button class="places-review-duplicate-place ${place.id === state.selectedPlaceId ? 'is-selected' : ''}" type="button"
             data-place-pair-select="${escapeHtml(place.id)}" ${place.id === state.selectedPlaceId ? 'aria-current="true"' : ''}><strong data-i18n-skip>${escapeHtml(place.name)}</strong>
             ${placeAlternativeNames(place).length ? `<small data-i18n-skip>${escapeHtml(placeAlternativeNames(place).join(', '))}</small>` : ''}
-            <small>${escapeHtml(position + radius)}</small><small>${escapeHtml(linked)}</small></button>`;
+            <small>${escapeHtml(position + radius)}</small><small>${escapeHtml(t('Linked records'))}: ${linked}</small></button>`;
     };
     const leftId = escapeHtml(pair.left.id);
     const rightId = escapeHtml(pair.right.id);
     const actions = dismissal
         ? `<button class="button secondary" type="button" data-place-pair-restore="${escapeHtml(pair.key)}">${escapeHtml(t('Restore'))}</button>`
-        : `<button class="button secondary" type="button" data-place-pair-compare="${leftId}" data-place-pair-other="${rightId}">${escapeHtml(t('Compare'))}</button>
-           <button class="button primary" type="button" data-place-pair-merge="${leftId}" data-place-pair-other="${rightId}">${escapeHtml(t('Merge'))}</button>
+        : `<button class="button primary" type="button" data-place-pair-merge="${leftId}" data-place-pair-other="${rightId}">${escapeHtml(t('Merge'))}</button>
            <button class="button ghost" type="button" data-place-pair-dismiss="${leftId}" data-place-pair-other="${rightId}">${escapeHtml(t('Keep separate'))}</button>`;
     return `<div class="places-review-duplicate-row" role="listitem" data-place-id="${leftId}" data-place-other-id="${rightId}" tabindex="0"
         aria-label="${escapeHtml(`${pair.left.name} / ${pair.right.name}`)}">
         <div class="places-review-duplicate-pair">${placeSummary(pair.left)}${placeSummary(pair.right)}</div>
-        <p>${escapeHtml(pair.reasons.map(t).join(' '))}</p>
         <div class="places-review-row-actions">${actions}</div></div>`;
 }
 
@@ -1676,9 +1674,8 @@ function bindPlacesNeedsReviewControls()
         });
     });
 
-    main.querySelectorAll('[data-place-pair-compare], [data-place-pair-merge]').forEach(button => button.addEventListener('click', () =>
-        openPlaceMergeModal(button.dataset.placePairCompare || button.dataset.placePairMerge,
-            button.dataset.placePairOther, { compareOnly: Boolean(button.dataset.placePairCompare) })));
+    main.querySelectorAll('[data-place-pair-merge]').forEach(button => button.addEventListener('click', () =>
+        openPlaceMergeModal(button.dataset.placePairMerge, button.dataset.placePairOther)));
     main.querySelectorAll('[data-place-pair-select]').forEach(button => button.addEventListener('click', () =>
         selectPlace(button.dataset.placePairSelect, { focusMap: false })));
     main.querySelectorAll('[data-place-pair-dismiss]').forEach(button => button.addEventListener('click', () =>
