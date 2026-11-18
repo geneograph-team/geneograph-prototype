@@ -19,10 +19,12 @@ surviving Place using its complete card instead of a separate radio.
 
 ### Requirement: Configure fields through survivor-directed arrows
 
-Each available Place field SHALL show both original values and the proposed
-survivor value. An arrow SHALL stage copying only from the other Place
-into the selected survivor, with a reset option. Switching the survivor
-SHALL discard old staged choices.
+Each available Place field SHALL display the other Place's value in the
+left column and the survivor's staged value in the right column. Clicking
+the transfer arrow SHALL immediately update the right-hand value and its
+visual state without modifying saved data until confirmation. A reset
+option SHALL restore the original survivor value. Switching the survivor
+SHALL discard old staged choices and keep the survivor on the right.
 
 #### Scenario: Transfer name and preserve alternatives
 

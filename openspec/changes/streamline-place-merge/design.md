@@ -6,10 +6,13 @@ as well as normal Place rows.
 
 Merge opens directly, initially requiring a survivor-card selection. The
 survivor ID is fixed for the entire staged merge; choosing the other card
-resets field decisions. Each field shows the original value for both Places
-and the resulting survivor value, with one arrow transferring from the
-discarded Place into the survivor and a reset option. This interaction
-mirrors Geneograph's sync-arrow affordance; data are staged only.
+resets field decisions. Each field displays the non-survivor's original
+value on the left and the survivor's staged value on the right. Clicking
+the right-directed arrow immediately updates the right-hand field to the
+proposed value, with an updated visual style and an optional reset. The
+previous separate result row is redundant and removed. The three long
+instruction/warning paragraphs are omitted from this modal. This follows
+Geneograph's sync-arrow affordance; data are staged only.
 
 A pure `placeMergeFieldResult()` preflight validates proposed choices
 without mutating records. Both original primary names and alternative

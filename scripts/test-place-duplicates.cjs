@@ -249,4 +249,79 @@ assert.ok(read('modules/places/filters.js').includes("main.querySelectorAll('[da
 assert.ok(read('modules/places/editor.js').includes('data-place-merge-copy'),
     'field-level transfer controls are present');
 
+
+const previewScope = context();
+previewScope.sampleData.places.push(
+    { id: 'preview-left', projectId: 'p1', name: 'Tower House', alternativeNames: [], coordinates: null },
+    { id: 'preview-right', projectId: 'p1', name: 'Tower Hous', alternativeNames: [], coordinates: null }
+);
+previewScope.t = value => value;
+previewScope.escapeHtml = value => String(value ?? '');
+previewScope.icon = { close: '', arrow: '→', undo: '↶' };
+previewScope.placeReviewConnectionTotal = () => 0;
+previewScope.CSS = { escape: value => value };
+previewScope.openModal = () => {};
+const destinationHost = { innerHTML: '' };
+const keepCards = ['preview-left', 'preview-right'].map(id => ({
+    dataset: { placeMergeSurvivor: id },
+    classList: { toggle: () => {} },
+    setAttribute: () => {},
+    querySelector: () => ({ textContent: '' }),
+    focus: () => {}
+}));
+const mergeButton = { disabled: true, addEventListener: () => {} };
+const previewRoot = {
+    onClick: null,
+    querySelector: selector => selector === '[data-place-merge-fields]' ? destinationHost
+        : selector === '[data-place-merge-confirm]' ? mergeButton
+        : selector.startsWith('[data-place-merge-copy=') ? { focus: () => {} } : null,
+    querySelectorAll: selector => selector === '[data-place-merge-survivor]' ? keepCards : [],
+    addEventListener: (event, handler) => { if (event === 'click') previewRoot.onClick = handler; }
+};
+previewScope.modalBackdrop = { querySelector: () => previewRoot };
+previewScope.openPlaceMergeModal('preview-left', 'preview-right');
+
+const clickPreview = (selector, data) => previewRoot.onClick({
+    target: { closest: query => query === selector ? { dataset: data, focus: () => {} } : null }
+});
+const rightValue = key => {
+    const html = destinationHost.innerHTML;
+    const section = html.match(new RegExp('data-place-merge-field="' + key + '"[\\s\\S]*?</section>'))?.[0] || '';
+    return section.match(new RegExp('data-place-merge-destination="' + key + '"[^>]*>([\\s\\S]*?)</div>'))?.[1]?.trim();
+};
+clickPreview('[data-place-merge-survivor]', { placeMergeSurvivor: 'preview-left' });
+assert.equal(rightValue('name'), 'Tower House', 'right column starts with selected survivor value');
+clickPreview('[data-place-merge-copy]', { placeMergeCopy: 'name' });
+assert.equal(rightValue('name'), 'Tower Hous', 'copy updates right destination to source value');
+assert.ok(destinationHost.innerHTML.includes('is-updated'),
+    'copied field receives a visible updated style');
+assert.equal(previewScope.getPlace('preview-left').name, 'Tower House',
+    'arrow stages changes but does not mutate saved Place');
+clickPreview('[data-place-merge-reset]', { placeMergeReset: 'name' });
+assert.equal(rightValue('name'), 'Tower House', 'reset restores survivor value');
+clickPreview('[data-place-merge-survivor]', { placeMergeSurvivor: 'preview-right' });
+assert.equal(rightValue('name'), 'Tower Hous', 'changing survivor reorders destination');
+clickPreview('[data-place-merge-copy]', { placeMergeCopy: 'name' });
+assert.equal(rightValue('name'), 'Tower House',
+    'left remains source and right updates when the other survivor is chosen');
+
+previewScope.getPlace('preview-left').coordinates = { lat: 1, lng: 2 };
+previewScope.getPlace('preview-right').coordinates = { lat: 3, lng: 4 };
+clickPreview('[data-place-merge-survivor]', { placeMergeSurvivor: 'preview-right' });
+assert.equal(rightValue('coordinates'), '3.000000, 4.000000',
+    'destination initially reflects the right survivor coordinates');
+clickPreview('[data-place-merge-copy]', { placeMergeCopy: 'coordinates' });
+assert.equal(rightValue('coordinates'), '1.000000, 2.000000',
+    'copying a location immediately updates the right-hand coordinates');
+assert.equal(previewScope.getPlace('preview-right').coordinates.lat, 3,
+    'coordinate transfer also remains staged until Merge');
+
+const modalCode = read('modules/places/editor.js').split('function openPlaceMergeModal(')[1];
+for (const removedText of [
+    'All linked records will be redirected to the selected Place.',
+    'This merge cannot be undone in this session.',
+    'Arrows copy values from the other Place into the selected Place. Original names remain available as alternative names.'
+])
+    assert.equal(modalCode.includes(removedText), false, 'unwanted modal explanation is absent');
+
 console.log('Place duplicate review, survivor-directed merge, and nonblocking creation OK');
