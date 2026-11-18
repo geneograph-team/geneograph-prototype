@@ -284,37 +284,84 @@ previewScope.openPlaceMergeModal('preview-left', 'preview-right');
 const clickPreview = (selector, data) => previewRoot.onClick({
     target: { closest: query => query === selector ? { dataset: data, focus: () => {} } : null }
 });
-const rightValue = key => {
-    const html = destinationHost.innerHTML;
-    const section = html.match(new RegExp('data-place-merge-field="' + key + '"[\\s\\S]*?</section>'))?.[0] || '';
-    return section.match(new RegExp('data-place-merge-destination="' + key + '"[^>]*>([\\s\\S]*?)</div>'))?.[1]?.trim();
+const fieldPreview = key => {
+    const section = destinationHost.innerHTML
+        .match(new RegExp('data-place-merge-field="' + key + '"[\\s\\S]*?</section>'))?.[0] || '';
+    const cells = [...section.matchAll(/<div class="place-merge-value ([^"]*)"([^>]*)>\s*([^<]*?)\s*<\/div>/g)]
+        .map(([, classes, attributes, value]) => ({
+            classes, destination: attributes.includes('data-place-merge-destination'),
+            value: value.trim()
+        }));
+    assert.equal(cells.length, 2, 'both Place columns render');
+    return { cells, arrow: section.match(/<button class="gr-transfer ([^"]*)"/)?.[1] || '' };
 };
+const leftValue = key => fieldPreview(key).cells[0].value;
+const rightValue = key => fieldPreview(key).cells[1].value;
+const selectedSide = (key, side) => fieldPreview(key).cells[side].classes.includes('is-survivor');
+const destinationSide = (key, side) => fieldPreview(key).cells[side].destination;
+
 clickPreview('[data-place-merge-survivor]', { placeMergeSurvivor: 'preview-left' });
-assert.equal(rightValue('name'), 'Tower House', 'right column starts with selected survivor value');
+assert.equal(leftValue('name'), 'Tower House', 'left survivor retains original value');
+assert.equal(rightValue('name'), 'Tower Hous', 'right source retains original value');
+assert.equal(selectedSide('name', 0), true, 'left survivor is highlighted');
+assert.equal(selectedSide('name', 1), false, 'right source is not highlighted');
+assert.equal(destinationSide('name', 0), true, 'left field is staged destination');
+assert.equal(destinationSide('name', 1), false, 'right source is not staged destination');
+assert.ok(fieldPreview('name').arrow.includes('is-left'),
+    'left survivor uses right-to-left arrow');
 clickPreview('[data-place-merge-copy]', { placeMergeCopy: 'name' });
-assert.equal(rightValue('name'), 'Tower Hous', 'copy updates right destination to source value');
-assert.ok(destinationHost.innerHTML.includes('is-updated'),
-    'copied field receives a visible updated style');
+assert.equal(leftValue('name'), 'Tower Hous', 'copy updates left survivor');
+assert.equal(rightValue('name'), 'Tower Hous', 'copy does not change right source');
+assert.ok(fieldPreview('name').cells[0].classes.includes('is-updated'),
+    'copied survivor field gets updated styling');
 assert.equal(previewScope.getPlace('preview-left').name, 'Tower House',
-    'arrow stages changes but does not mutate saved Place');
+    'staging does not change original Place');
 clickPreview('[data-place-merge-reset]', { placeMergeReset: 'name' });
-assert.equal(rightValue('name'), 'Tower House', 'reset restores survivor value');
+assert.equal(leftValue('name'), 'Tower House', 'reset restores left original');
+
 clickPreview('[data-place-merge-survivor]', { placeMergeSurvivor: 'preview-right' });
-assert.equal(rightValue('name'), 'Tower Hous', 'changing survivor reorders destination');
+assert.equal(leftValue('name'), 'Tower House', 'left source stays original');
+assert.equal(rightValue('name'), 'Tower Hous', 'right survivor starts original');
+assert.equal(selectedSide('name', 0), false, 'left source loses highlight');
+assert.equal(selectedSide('name', 1), true, 'right survivor is highlighted');
+assert.equal(destinationSide('name', 1), true, 'right is staged destination');
+assert.equal(fieldPreview('name').arrow.includes('is-left'), false,
+    'right survivor uses left-to-right arrow');
 clickPreview('[data-place-merge-copy]', { placeMergeCopy: 'name' });
-assert.equal(rightValue('name'), 'Tower House',
-    'left remains source and right updates when the other survivor is chosen');
+assert.equal(rightValue('name'), 'Tower House', 'copy updates right survivor');
+assert.equal(leftValue('name'), 'Tower House', 'copy leaves left source original');
+assert.equal(previewScope.getPlace('preview-right').name, 'Tower Hous',
+    'right merge remains staged');
 
 previewScope.getPlace('preview-left').coordinates = { lat: 1, lng: 2 };
 previewScope.getPlace('preview-right').coordinates = { lat: 3, lng: 4 };
 clickPreview('[data-place-merge-survivor]', { placeMergeSurvivor: 'preview-right' });
 assert.equal(rightValue('coordinates'), '3.000000, 4.000000',
-    'destination initially reflects the right survivor coordinates');
+    'right survivor initially has its coordinates');
 clickPreview('[data-place-merge-copy]', { placeMergeCopy: 'coordinates' });
 assert.equal(rightValue('coordinates'), '1.000000, 2.000000',
-    'copying a location immediately updates the right-hand coordinates');
+    'copy updates right coordinates');
 assert.equal(previewScope.getPlace('preview-right').coordinates.lat, 3,
-    'coordinate transfer also remains staged until Merge');
+    'right coordinates remain staged');
+
+clickPreview('[data-place-merge-survivor]', { placeMergeSurvivor: 'preview-left' });
+assert.equal(leftValue('coordinates'), '1.000000, 2.000000',
+    'switching survivor resets field choices');
+assert.equal(rightValue('coordinates'), '3.000000, 4.000000',
+    'right now contains source coordinates');
+assert.ok(fieldPreview('coordinates').arrow.includes('is-left'),
+    'coordinate arrow points right to left');
+clickPreview('[data-place-merge-copy]', { placeMergeCopy: 'coordinates' });
+assert.equal(leftValue('coordinates'), '3.000000, 4.000000',
+    'copy updates left coordinate destination');
+assert.equal(previewScope.getPlace('preview-left').coordinates.lat, 1,
+    'left coordinates remain staged');
+
+const inspectorMarkup = read('modules/places/inspector.js');
+assert.equal(inspectorMarkup.includes('<small>$' + '{duplicatePairs.length}</small>'), false,
+    'duplicate warning badge is removed from inspector');
+assert.ok(inspectorMarkup.includes("t('Possible duplicates')"),
+    'duplicate warning is still visible');
 
 const modalCode = read('modules/places/editor.js').split('function openPlaceMergeModal(')[1];
 for (const removedText of [

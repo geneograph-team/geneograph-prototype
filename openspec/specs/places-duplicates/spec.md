@@ -34,15 +34,28 @@ material name, alias, coordinate, or radius change MAY reopen a pair.
 
 ### Requirement: Survivor-directed merge review
 Merge SHALL open directly without a Compare-only dialog. The user
-SHALL select the surviving Place through its card. Source values SHALL
-appear on the left; the survivor's staged values on the right. Clicking
-a field arrow SHALL immediately update the displayed right-hand value;
-Reset SHALL restore it without modifying saved data.
+SHALL select the surviving Place through its card. The left and right
+field columns SHALL correspond to the left and right Place cards in
+that order. The survivor's column SHALL be visibly highlighted.
+Field arrows SHALL point from the non-surviving Place toward the
+survivor (leftwards when keeping the left Place, rightwards when
+keeping the right Place). A field transfer SHALL immediately update
+the surviving column's staged value; Reset SHALL restore it without
+modifying saved data.
+
+#### Scenario: Keep the left Place
+- **WHEN** the user selects the left Place to keep
+- **THEN** the left field values are highlighted and arrows point right-to-left
+- **AND** a transfer updates the left column while the right column retains its original values
+
+#### Scenario: Keep the right Place
+- **WHEN** the user selects the right Place to keep
+- **THEN** the right field values are highlighted and arrows point left-to-right
+- **AND** a transfer updates the right column while the left column retains its original values
 
 #### Scenario: Choose a different survivor
 - **WHEN** the user selects the other Place to keep
-- **THEN** pending field choices reset and right-hand values reflect
-  the newly selected surviving Place
+- **THEN** pending field choices reset and only the newly selected side is highlighted
 
 ### Requirement: Safe merge confirmation
 The result SHALL preserve the survivor's ID/project/creation metadata,
@@ -61,7 +74,9 @@ links and remove the other Place.
 ### Requirement: Concise duplicate review
 Exactly one selected card SHALL be highlighted, connected record totals
 SHALL match the Missing map positions summary, and generic similarity
-explanations SHALL not clutter the list or Merge modal.
+explanations SHALL not clutter the list or Merge modal. The Place
+inspector's Possible duplicates warning SHALL display the candidate names
+without a separate numeric counter.
 
 #### Scenario: Change selected card
 - **WHEN** the user selects the other Place in the review list

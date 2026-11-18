@@ -1491,7 +1491,7 @@ function renderPlacesInspector(
             }
             ${duplicatePairs.length ? `<div class="places-attention" role="group" aria-label="${escapeHtml(t('Possible duplicates'))}">
                 <div class="places-attention-header"><div class="places-attention-copy">${icon.warning}
-                    <span><strong>${escapeHtml(t('Possible duplicates'))}</strong><small>${duplicatePairs.length}</small></span></div>
+                    <span><strong>${escapeHtml(t('Possible duplicates'))}</strong></span></div>
                     <button class="places-attention-open" type="button" data-place-review-view="${escapeHtml(place.id)}">
                         ${icon.openlink}<span>${escapeHtml(t('Open review'))}</span></button></div>
                 <p class="places-attention-description">${escapeHtml(duplicatePairs.map(pair =>

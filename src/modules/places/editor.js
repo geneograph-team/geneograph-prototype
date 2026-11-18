@@ -1833,14 +1833,15 @@ function openPlaceMergeModal(leftId, rightId, { onComplete = null } = {})
         const invalid = !result;
         host.innerHTML = `<h3>${escapeHtml(t('Fields to merge'))}</h3>
             <div class="place-merge-column-headings">
-                <span data-i18n-skip>${escapeHtml(removed.name)}</span>
+                <span data-i18n-skip>${escapeHtml(left.name)}</span>
                 <span aria-hidden="true"></span>
-                <span data-i18n-skip>${escapeHtml(keep.name)}</span>
+                <span data-i18n-skip>${escapeHtml(right.name)}</span>
             </div>
             ${fieldKeys.map(key =>
             {
-                const incoming = removed[key];
                 const current = keep[key];
+                const incoming = removed[key];
+                const keepLeft = keep.id === leftId;
                 const copied = mergeDraft.fields[key] === 'remove';
                 const different = JSON.stringify(current ?? null) !== JSON.stringify(incoming ?? null);
                 const autoFilled = !placeMergeValuePresent(current) && placeMergeValuePresent(incoming);
@@ -1849,14 +1850,16 @@ function openPlaceMergeModal(leftId, rightId, { onComplete = null } = {})
                 const resetLabel = `${t('Keep original value')}: ${t(fieldLabel(key))}`;
                 const canCopy = different && !(autoFilled && !copied)
                     && (key !== 'name' || placeMergeValuePresent(incoming));
+                const valueCell = (place, destination) => `<div class="place-merge-value ${destination ? `is-survivor ${copied || autoFilled ? 'is-updated' : ''}` : ''}"
+                    ${destination ? `data-place-merge-destination="${escapeHtml(key)}" aria-live="polite"` : ''} data-i18n-skip>
+                    ${escapeHtml(placeMergeFieldText(key, destination ? value : place[key]))}
+                </div>`;
                 return `<section class="place-merge-field" data-place-merge-field="${escapeHtml(key)}">
                     <h4>${escapeHtml(t(fieldLabel(key)))}</h4>
                     <div class="place-merge-field-values">
-                        <div class="place-merge-value" data-i18n-skip>
-                            ${escapeHtml(placeMergeFieldText(key, incoming))}
-                        </div>
+                        ${valueCell(left, keepLeft)}
                         <div class="place-merge-transfer">
-                            <button class="gr-transfer ${copied ? 'is-selected' : ''}"
+                            <button class="gr-transfer ${keepLeft ? 'is-left' : ''} ${copied ? 'is-selected' : ''}"
                                 type="button" data-place-merge-copy="${escapeHtml(key)}"
                                 aria-label="${escapeHtml(copyLabel)}" title="${escapeHtml(copyLabel)}"
                                 aria-pressed="${copied}" ${canCopy ? '' : 'disabled'}>${icon.arrow}</button>
@@ -1864,10 +1867,7 @@ function openPlaceMergeModal(leftId, rightId, { onComplete = null } = {})
                                 data-place-merge-reset="${escapeHtml(key)}"
                                 aria-label="${escapeHtml(resetLabel)}" title="${escapeHtml(resetLabel)}">${icon.undo}</button>` : ''}
                         </div>
-                        <div class="place-merge-value is-survivor ${copied || autoFilled ? 'is-updated' : ''}"
-                            data-place-merge-destination="${escapeHtml(key)}" aria-live="polite" data-i18n-skip>
-                            ${escapeHtml(placeMergeFieldText(key, value))}
-                        </div>
+                        ${valueCell(right, !keepLeft)}
                     </div>
                 </section>`;
             }).join('')}
