@@ -217,8 +217,10 @@ assert.match(warningActions, /class="button ghost compact place-duplicate-detail
     'Place details begins as an accessible collapsed disclosure');
 assert.match(warningActions, /<svg class="chevron-icon"><\/svg>/,
     'Place details has a disclosure chevron');
-assert.match(warningActions, /class="button secondary compact place-duplicate-merge"/,
-    'Merge uses a scoped neutral outline style');
+assert.match(warningActions, /class="button compact place-duplicate-merge"/,
+    'Merge uses a scoped amber warning action without the conflicting secondary class');
+assert.doesNotMatch(warningActions, /class="[^"]*secondary[^"]*place-duplicate-merge"/,
+    'Merge must not trigger the shared secondary:hover surface');
 assert.match(warningActions, /data-place-duplicate-details[\s\S]*data-place-review-merge/,
     'Place details and Merge share one action row');
 assert.match(warningActions, />Merge<\/button>/,
@@ -237,7 +239,9 @@ run('renderPlaceEditorDuplicateWarning()');
 const addWarning = sandbox.duplicateHost.innerHTML;
 assert.match(addWarning, /data-place-use-existing=/,
     'Create Place still offers Use existing');
-assert.match(addWarning, /class="button secondary compact place-duplicate-use-existing"/);
+assert.match(addWarning, /class="button compact place-duplicate-use-existing"/);
+assert.doesNotMatch(addWarning, /class="[^"]*secondary[^"]*place-duplicate-use-existing"/,
+    'Use existing place must not trigger the shared secondary:hover surface');
 assert.doesNotMatch(addWarning, /data-place-review-merge=/,
     'Create Place does not expose Merge');
 assert.match(addWarning.match(/<div class="place-duplicate-heading">([\s\S]*?)<\/div>/)?.[1] || '',

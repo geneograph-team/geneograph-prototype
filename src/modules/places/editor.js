@@ -598,7 +598,7 @@ function renderPlaceEditorDuplicateWarning()
         </div>
         <div class="place-duplicate-actions">
           ${draft.mode === 'add' ? `
-            <button class="button secondary compact place-duplicate-use-existing" type="button"
+            <button class="button compact place-duplicate-use-existing" type="button"
               data-place-use-existing="${escapeHtml(place.id)}">
               ${escapeHtml(t('Use existing place'))}
             </button>
@@ -608,7 +608,7 @@ function renderPlaceEditorDuplicateWarning()
             aria-controls="placeDuplicateReview">
             <span>${escapeHtml(t('Place details'))}</span>${icon.chevron}
           </button>
-          ${draft.mode === 'edit' ? `<button class="button secondary compact place-duplicate-merge" type="button"
+          ${draft.mode === 'edit' ? `<button class="button compact place-duplicate-merge" type="button"
             data-place-review-merge="${escapeHtml(place.id)}">${escapeHtml(t('Merge'))}</button>` : ''}
         </div>
       `;
