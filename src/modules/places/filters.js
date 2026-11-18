@@ -832,6 +832,116 @@ function placeReviewConnectionCount(placeId)
         .reduce((total, count) => total + Number(count || 0), 0);
 }
 
+function placeDuplicateNameSimilarity(left, right)
+{
+    const a = normalizePlaceLookupText(String(left || '').split(',')[0]);
+    const b = normalizePlaceLookupText(String(right || '').split(',')[0]);
+    if (!a || !b) return 0;
+    if (a === b) return 1;
+    const previous = Array.from({ length: b.length + 1 }, (_, index) => index);
+    for (let i = 1; i <= a.length; i += 1)
+    {
+        const current = [i];
+        for (let j = 1; j <= b.length; j += 1)
+            current[j] = Math.min(current[j - 1] + 1, previous[j] + 1, previous[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+        previous.splice(0, previous.length, ...current);
+    }
+    return 1 - previous[b.length] / Math.max(a.length, b.length);
+}
+
+function placeDuplicatePairKey(leftId, rightId)
+{
+    return [leftId, rightId].sort().join('|');
+}
+
+function placeDuplicateFingerprint(place)
+{
+    const coordinates = normalizePlaceCoordinates(place);
+    return JSON.stringify([
+        normalizePlaceLookupText(place.name),
+        normalizePlaceAlternativeNames(place.alternativeNames, place.name)
+            .map(normalizePlaceLookupText).sort(),
+        coordinates?.lat ?? null,
+        coordinates?.lng ?? null,
+        placeHasRadiusValue(place) ? Number(place.approximateRadiusMeters) : null
+    ]);
+}
+
+function matchDuplicatePlaces(left, right)
+{
+    if (!left || !right || left.id === right.id || left.projectId !== right.projectId) return null;
+    const leftNames = [left.name, ...placeAlternativeNames(left)];
+    const rightNames = [right.name, ...placeAlternativeNames(right)];
+    const leftName = normalizePlaceLookupText(left.name);
+    const rightName = normalizePlaceLookupText(right.name);
+    const exact = Boolean(leftName && leftName === rightName);
+    const alias = leftNames.some(name => rightNames.some(other =>
+        normalizePlaceLookupText(name) && normalizePlaceLookupText(name) === normalizePlaceLookupText(other))) && !exact;
+    const similarity = Math.max(0, ...leftNames.flatMap(name => rightNames.map(other => placeDuplicateNameSimilarity(name, other))));
+    const leftCoordinates = normalizePlaceCoordinates(left);
+    const rightCoordinates = normalizePlaceCoordinates(right);
+    const distanceKm = leftCoordinates && rightCoordinates
+        ? placeDistanceMeters(leftCoordinates, rightCoordinates) / 1000 : Infinity;
+    const close = distanceKm <= PLACE_EDITOR_CLOSE_COORDINATE_KM;
+    if (!(exact || alias || similarity >= 0.88 || (similarity >= 0.72 && distanceKm <= 2))) return null;
+    const reasons = [
+        exact ? 'The names match.' : '',
+        alias ? 'An alternative name matches.' : '',
+        similarity >= 0.88 && !exact && !alias ? 'The names are very similar.' : '',
+        similarity >= 0.72 && similarity < 0.88 ? 'The names are similar and the map positions are close.' : '',
+        close ? 'The map positions are very close.' : ''
+    ].filter(Boolean);
+    return { exact, alias, similar: similarity >= 0.88, close, similarity, distanceKm, reasons,
+        score: (exact ? 100 : 0) + (alias ? 80 : 0) + similarity * 20 + (close ? 30 : 0) };
+}
+
+function getPlaceDuplicatePairs(projectId = currentProjectId())
+{
+    const places = projectPlaces(projectId);
+    const pairs = [];
+    for (let i = 0; i < places.length; i += 1)
+        for (let j = i + 1; j < places.length; j += 1)
+        {
+            const match = matchDuplicatePlaces(places[i], places[j]);
+            if (match) pairs.push({ left: places[i], right: places[j], key: placeDuplicatePairKey(places[i].id, places[j].id), ...match });
+        }
+    return pairs.sort((a, b) => b.score - a.score || a.key.localeCompare(b.key));
+}
+
+function placeDuplicateDismissal(pair)
+{
+    return (sampleData.placeIssues || []).find(issue => issue.projectId === pair.left.projectId
+        && issue.type === 'possible_duplicate' && issue.pairKey === pair.key
+        && issue.status === 'dismissed'
+        && issue.fingerprints?.[pair.left.id] === placeDuplicateFingerprint(pair.left)
+        && issue.fingerprints?.[pair.right.id] === placeDuplicateFingerprint(pair.right)) || null;
+}
+
+function dismissPlaceDuplicatePair(pair)
+{
+    if (!pair) return false;
+    const current = getPlaceDuplicatePairs(pair.left.projectId).find(item => item.key === pair.key);
+    if (!current) return false;
+    sampleData.placeIssues = (sampleData.placeIssues || []).filter(issue =>
+        !(issue.projectId === current.left.projectId && issue.type === 'possible_duplicate' && issue.pairKey === current.key));
+    sampleData.placeIssues.push({ id: `place-pair-${Date.now()}`, projectId: current.left.projectId,
+        type: 'possible_duplicate', pairKey: current.key, placeId: current.left.id, otherPlaceId: current.right.id,
+        fingerprints: { [current.left.id]: placeDuplicateFingerprint(current.left), [current.right.id]: placeDuplicateFingerprint(current.right) },
+        status: 'dismissed', dismissedAt: new Date().toISOString(), reason: '' });
+    markPrototypeSessionEdited();
+    return true;
+}
+
+function restorePlaceDuplicatePair(key)
+{
+    const before = (sampleData.placeIssues || []).length;
+    sampleData.placeIssues = (sampleData.placeIssues || []).filter(issue =>
+        !(issue.projectId === currentProjectId() && issue.type === 'possible_duplicate' && issue.pairKey === key));
+    if (sampleData.placeIssues.length === before) return false;
+    markPrototypeSessionEdited();
+    return true;
+}
+
 function getPlaceReviewIssues(place)
 {
     if (!place || place.projectId !== currentProjectId()) return [];

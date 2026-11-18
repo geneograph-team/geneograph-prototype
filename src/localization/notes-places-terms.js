@@ -1677,6 +1677,32 @@ const RU_TERMS_STATUSES = {
     'Possible duplicate':
         'Возможный дубликат',
 
+    'Possible duplicates': 'Возможные дубликаты',
+    'Ignore for this draft': 'Игнорировать в этом черновике',
+    'Compare these saved places before deciding whether to merge them.': 'Сравните сохранённые места перед объединением.',
+    'No possible duplicates found.': 'Возможных дубликатов нет.',
+    'The names match.': 'Названия совпадают.',
+    'An alternative name matches.': 'Совпадает альтернативное название.',
+    'The names are similar and the map positions are close.': 'Названия похожи, а точки на карте близки.',
+    'Compare': 'Сравнить',
+    'Merge': 'Объединить',
+    'Merge places': 'Объединить места',
+    'Compare places': 'Сравнить места',
+    'Review / Merge': 'Проверить / объединить',
+    'Review merge': 'Проверить объединение',
+    'Review both saved places and their connections.': 'Проверьте оба сохранённых места и их связи.',
+    'Choose the Place to keep. The other Place will be removed permanently and its links redirected.': 'Выберите место, которое останется. Другое будет удалено, а его связи перенаправлены.',
+    'Keep this place': 'Оставить это место',
+    'Add the removed Place names as alternative names': 'Добавить названия удаляемого места как альтернативные',
+    'Map location and approximate radius': 'Положение на карте и приблизительный радиус',
+    'Keep': 'Оставить',
+    'Use': 'Использовать',
+    'This merge cannot be undone in this session.': 'Это объединение нельзя отменить в текущем сеансе.',
+    'These places are no longer available for merging.': 'Эти места больше нельзя объединить.',
+    'These places could not be merged.': 'Не удалось объединить эти места.',
+    'Places merged.': 'Места объединены.',
+    'Save or discard your changes before reviewing a merge.': 'Сохраните или отмените изменения перед объединением.',
+
     'Missing facts':
         'Недостающие сведения',
 

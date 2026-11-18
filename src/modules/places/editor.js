@@ -448,67 +448,18 @@ function schedulePlaceEditorMapSearch(query, { immediate = false } = {})
     }, immediate ? 0 : PLACE_EDITOR_GEOCODER_DEBOUNCE_MS);
 }
 
-function placeEditorNameSimilarity(left, right)
-{
-    const a = normalizePlaceLookupText(left);
-    const b = normalizePlaceLookupText(right);
-    if (!a || !b) return 0;
-    if (a === b) return 1;
-    const previous = Array.from({ length: b.length + 1 }, (_, index) => index);
-    for (let i = 1; i <= a.length; i += 1)
-    {
-        const current = [i];
-        for (let j = 1; j <= b.length; j += 1)
-        {
-            current[j] = Math.min(current[j - 1] + 1, previous[j] + 1, previous[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
-        }
-        previous.splice(0, previous.length, ...current);
-    }
-    return 1 - previous[b.length] / Math.max(a.length, b.length);
-}
-
-function placeEditorCoordinateDistanceKm(left, right)
-{
-    if (!clonePlaceEditorCoordinates(left) || !clonePlaceEditorCoordinates(right)) return Infinity;
-    const radians = value => value * Math.PI / 180;
-    const latDelta = radians(right.lat - left.lat);
-    const lngDelta = radians(right.lng - left.lng);
-    const a = Math.sin(latDelta / 2) ** 2 + Math.cos(radians(left.lat)) * Math.cos(radians(right.lat)) * Math.sin(lngDelta / 2) ** 2;
-    return 6371 * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-}
-
 function findPlaceEditorDuplicate(draft = placeEditorDraft)
 {
     if (!draft) return null;
-    if (draft.existingCandidateId)
-    {
-        const place = getPlace(draft.existingCandidateId);
-        if (place && place.id !== draft.placeId && place.projectId === currentProjectId())
-        {
-            return {
-                place,
-                exact: true,
-                similar: true,
-                close: placeEditorCoordinateDistanceKm(draft.coordinates, place.coordinates) <= PLACE_EDITOR_CLOSE_COORDINATE_KM,
-                alternativeConflict: placeAlternativeNames(place).some(name => normalizePlaceLookupText(name) === normalizePlaceLookupText(draft.name))
-            };
-        }
-    }
-    const canonical = normalizePlaceLookupText(draft.name);
-    const alternatives = normalizePlaceAlternativeNames(draft.alternativeNames, draft.name);
+    const proposed = { id: draft.placeId || '__new_place__', projectId: currentProjectId(),
+        name: draft.name, alternativeNames: draft.alternativeNames, coordinates: draft.coordinates,
+        approximateRadiusMeters: draft.approximateRadiusMeters };
     let best = null;
     projectPlaces().filter(place => place.id !== draft.placeId).forEach(place =>
     {
-        const names = [place.name, ...placeAlternativeNames(place)];
-        const exact = names.some(name => normalizePlaceLookupText(name) === canonical);
-        const alternativeConflict = alternatives.some(alternative => names.some(name => normalizePlaceLookupText(name) === normalizePlaceLookupText(alternative)));
-        const similarity = Math.max(...names.map(name => placeEditorNameSimilarity(draft.name, name)));
-        const distance = placeEditorCoordinateDistanceKm(draft.coordinates, place.coordinates);
-        const close = distance <= PLACE_EDITOR_CLOSE_COORDINATE_KM;
-        const likely = exact || alternativeConflict || similarity >= 0.88 || close || (similarity >= 0.72 && distance <= 2);
-        if (!likely) return;
-        const score = (exact ? 100 : 0) + (alternativeConflict ? 80 : 0) + similarity * 20 + (close ? 30 : 0);
-        if (!best || score > best.score) best = { place, exact, alternativeConflict, similar: similarity >= 0.88, similarity, close, distance, score };
+        const match = matchDuplicatePlaces(proposed, place);
+        if (match && (!best || match.score > best.score))
+            best = { place, ...match, alternativeConflict: match.alias };
     });
     return best;
 }
@@ -543,16 +494,7 @@ function renderPlaceEditorDuplicateWarning({ force = false } = {})
         if (details) details.open = true;
     }
 
-    const reasons = [
-        duplicate.exact ? 'The entered name matches this place.' : '',
-        duplicate.alternativeConflict
-            ? 'An alternative name conflicts with this place.'
-            : '',
-        duplicate.similar && !duplicate.exact
-            ? 'The names are very similar.'
-            : '',
-        duplicate.close ? 'The map positions are very close.' : ''
-    ].filter(Boolean);
+    const reasons = duplicate.reasons;
 
     const place = duplicate.place;
     const savedText = placeEditorCoordinateTextFromStored(place.coordinates);
@@ -632,6 +574,8 @@ function renderPlaceEditorDuplicateWarning({ force = false } = {})
             </button>
           ` : ''}
         </div>
+        ${draft.mode === 'edit' ? `<button class="button secondary compact" type="button"
+            data-place-review-merge="${escapeHtml(place.id)}">${escapeHtml(t('Review / Merge'))}</button>` : ''}
       `;
 
     localizeUI(host, { suppressObserverReplay: true });
@@ -1432,7 +1376,7 @@ function openPlaceDuplicateMenu(anchor, placeId)
           type="button"
           role="menuitem"
           data-duplicate-action="ignore">
-          ${escapeHtml(t('Ignore'))}
+          ${escapeHtml(t('Ignore for this draft'))}
         </button>
       `;
 
@@ -1754,6 +1698,20 @@ function bindPlaceEditor()
         {
             useExistingPlaceFromEditor(existingId);
         }
+        const mergeId = event.target.closest('[data-place-review-merge]')?.dataset.placeReviewMerge;
+        if (mergeId && draft.mode === 'edit')
+        {
+            syncPlaceEditorDraftFromModal();
+            if (updatePlaceEditorDraftDirty(draft))
+            {
+                showToast(t('Save or discard your changes before reviewing a merge.'));
+                return;
+            }
+            const completion = placeEditorCompletion;
+            resetPlaceEditorDraft();
+            closeModal({ force: true });
+            openPlaceMergeModal(draft.placeId, mergeId, { onComplete: completion?.onComplete });
+        }
     });
     root.querySelector('#placeForm')?.addEventListener('submit', event =>
     {
@@ -1893,7 +1851,8 @@ function openDeletePlaceModal(placeId, { returnToEditor = false } = {})
         );
         sampleData.places = sampleData.places.filter(item => item.id !== place.id);
         markPrototypeSessionEdited();
-        sampleData.placeIssues = (sampleData.placeIssues || []).filter(issue => issue.placeId !== place.id);
+        sampleData.placeIssues = (sampleData.placeIssues || []).filter(issue =>
+            issue.placeId !== place.id && issue.otherPlaceId !== place.id);
         sampleData.people.forEach(person => [person, person.birth, person.death, ...(person.events || []), ...(person.attributes || [])].filter(Boolean).forEach(record => clearStructuredPlaceReferences(record, place.id)));
         centralFamilyRecords().forEach(family => [family, ...(family.events || [])].forEach(record => clearStructuredPlaceReferences(record, place.id)));
         [sampleData.media, sampleData.archiveFiles, sampleData.sources, sampleData.notes].forEach(records => (records || []).forEach(record => clearStructuredPlaceReferences(record, place.id)));
@@ -1909,5 +1868,94 @@ function openDeletePlaceModal(placeId, { returnToEditor = false } = {})
         showToast(
             'Place deleted permanently.'
         );
+    });
+}
+
+function placeMergeLocationLabel(place)
+{
+    const coordinates = normalizePlaceCoordinates(place);
+    const position = coordinates ? `${coordinates.lat.toFixed(6)}, ${coordinates.lng.toFixed(6)}` : t('No position set');
+    return `${position}${placeHasRadiusValue(place) ? ` · ${formatPlaceRadius(place.approximateRadiusMeters)}` : ''}`;
+}
+
+function openPlaceMergeModal(leftId, rightId, { compareOnly = false, onComplete = null } = {})
+{
+    const left = getPlace(leftId);
+    const right = getPlace(rightId);
+    const match = matchDuplicatePlaces(left, right);
+    if (!match || left.projectId !== currentProjectId()) return;
+    const placeCard = place => `<div class="place-merge-card"><strong data-i18n-skip>${escapeHtml(place.name)}</strong>
+        <small>${escapeHtml(placeMergeLocationLabel(place))}</small>
+        ${placeAlternativeNames(place).length ? `<small data-i18n-skip>${escapeHtml(placeAlternativeNames(place).join(', '))}</small>` : ''}
+        <small>${escapeHtml(placeMergeConnectionSummary(place.id))}</small></div>`;
+    openModal(`<div class="modal place-merge-modal" role="dialog" aria-modal="true" aria-labelledby="placeMergeTitle">
+        <div class="modal-header"><div><h2 id="placeMergeTitle">${escapeHtml(t(compareOnly ? 'Compare places' : 'Merge places'))}</h2>
+        <p>${escapeHtml(t('Review both saved places and their connections.'))}</p></div>
+        <button class="close-button" type="button" data-close aria-label="${escapeHtml(t('Close'))}">${icon.close}</button></div>
+        <div class="modal-body"><div class="place-merge-pair">${placeCard(left)}${placeCard(right)}</div>
+        <p>${escapeHtml(match.reasons.map(t).join(' '))}</p>
+        ${compareOnly ? '' : `<p>${escapeHtml(t('Choose the Place to keep. The other Place will be removed permanently and its links redirected.'))}</p>
+            <fieldset class="place-merge-survivor"><legend>${escapeHtml(t('Keep this place'))}</legend>
+            <label><input type="radio" name="placeMergeKeep" value="${escapeHtml(left.id)}"> <span data-i18n-skip>${escapeHtml(left.name)}</span></label>
+            <label><input type="radio" name="placeMergeKeep" value="${escapeHtml(right.id)}"> <span data-i18n-skip>${escapeHtml(right.name)}</span></label></fieldset>
+            <div data-place-merge-conflicts></div>`}</div>
+        <div class="modal-footer"><button class="button secondary" type="button" data-close>${escapeHtml(t('Cancel'))}</button>
+        ${compareOnly ? `<button class="button primary" type="button" data-place-merge-review>${escapeHtml(t('Review merge'))}</button>`
+            : `<button class="button danger" type="button" data-place-merge-confirm>${escapeHtml(t('Merge places'))}</button>`}</div></div>`);
+    const root = modalBackdrop.querySelector('.place-merge-modal');
+    root.querySelector('[data-place-merge-review]')?.addEventListener('click', () =>
+        openPlaceMergeModal(leftId, rightId, { onComplete }));
+    const renderConflicts = () =>
+    {
+        const keepId = root.querySelector('[name="placeMergeKeep"]:checked')?.value;
+        const keep = getPlace(keepId);
+        const removed = getPlace(keepId === leftId ? rightId : leftId);
+        const host = root.querySelector('[data-place-merge-conflicts]');
+        if (!keep || !removed) { host.innerHTML = ''; return; }
+        const aliases = normalizePlaceAlternativeNames([removed.name, ...placeAlternativeNames(removed)], keep.name);
+        const locationConflict = JSON.stringify([keep.coordinates || null, keep.approximateRadiusMeters ?? null])
+            !== JSON.stringify([removed.coordinates || null, removed.approximateRadiusMeters ?? null]);
+        const options = (name, key, leftValue, rightValue) => `<fieldset data-place-merge-conflict="${escapeHtml(key)}">
+            <legend>${escapeHtml(t(name))}</legend>
+            <label><input type="radio" name="merge-${escapeHtml(key)}" value="keep"> ${escapeHtml(t('Keep'))}: ${escapeHtml(leftValue)}</label>
+            <label><input type="radio" name="merge-${escapeHtml(key)}" value="remove"> ${escapeHtml(t('Use'))}: ${escapeHtml(rightValue)}</label></fieldset>`;
+        host.innerHTML = `${aliases.length ? `<label class="checkbox-row"><input type="checkbox" data-place-merge-aliases checked>
+            ${escapeHtml(t('Add the removed Place names as alternative names'))}: <span data-i18n-skip>${escapeHtml(aliases.join(', '))}</span></label>` : ''}
+            ${locationConflict ? options('Map location and approximate radius', 'location', placeMergeLocationLabel(keep), placeMergeLocationLabel(removed)) : ''}
+            ${placeMergeConflictingFields(keep, removed).map(key => options(key, key,
+                typeof keep[key] === 'object' ? JSON.stringify(keep[key]) : String(keep[key]),
+                typeof removed[key] === 'object' ? JSON.stringify(removed[key]) : String(removed[key]))).join('')}
+            <p class="place-merge-warning">${escapeHtml(t('This merge cannot be undone in this session.'))}</p>`;
+    };
+    root.querySelectorAll('[name="placeMergeKeep"]').forEach(input => input.addEventListener('change', renderConflicts));
+    root.querySelector('[data-place-merge-confirm]')?.addEventListener('click', () =>
+    {
+        const keepId = root.querySelector('[name="placeMergeKeep"]:checked')?.value;
+        if (!keepId) { root.querySelector('[name="placeMergeKeep"]')?.focus(); return; }
+        const removeId = keepId === leftId ? rightId : leftId;
+        const keep = getPlace(keepId);
+        const removed = getPlace(removeId);
+        if (!keep || !removed || !matchDuplicatePlaces(keep, removed) || keep.projectId !== currentProjectId())
+        { showToast(t('These places are no longer available for merging.')); return; }
+        const choices = {};
+        for (const fieldset of root.querySelectorAll('[data-place-merge-conflict]'))
+        {
+            const choice = fieldset.querySelector('input:checked');
+            if (!choice) { fieldset.querySelector('input')?.focus(); return; }
+            choices[fieldset.dataset.placeMergeConflict] = choice.value;
+        }
+        const locationConflict = JSON.stringify([keep.coordinates || null, keep.approximateRadiusMeters ?? null])
+            !== JSON.stringify([removed.coordinates || null, removed.approximateRadiusMeters ?? null]);
+        if (locationConflict && !choices.location) { renderConflicts(); root.querySelector('[data-place-merge-conflict="location"] input')?.focus(); return; }
+        if (placeMergeConflictingFields(keep, removed).some(key => !choices[key]))
+        { renderConflicts(); root.querySelector('[data-place-merge-conflict] input')?.focus(); return; }
+        const aliases = root.querySelector('[data-place-merge-aliases]')?.checked ?? false;
+        if (!mergeSavedPlaces(keepId, removeId,
+            { aliases, locationChoice: choices.location, fieldChoices: choices }))
+        { showToast(t('These places could not be merged.')); return; }
+        closeModal({ force: true });
+        if (state.activeModule === 'Places') renderPlaces();
+        if (onComplete) requestAnimationFrame(() => onComplete(getPlace(keepId), { merged: true }));
+        showToast(t('Places merged.'));
     });
 }

@@ -228,6 +228,123 @@ function clearStructuredPlaceReferences(record, placeId)
     }
 }
 
+function retargetStructuredPlaceReferences(record, removeId, keepId)
+{
+    if (!record) return;
+    for (const key of ['placeId', 'birthPlaceId', 'deathPlaceId', 'burialPlaceId', 'documentPlaceId'])
+        if (record[key] === removeId) record[key] = keepId;
+    for (const key of ['placeIds', 'linkedPlaceIds'])
+        if (Array.isArray(record[key])) record[key] = [...new Set(record[key].map(id => id === removeId ? keepId : id))];
+}
+
+function placeMergeConflictingFields(keep, removed)
+{
+    const reserved = new Set(['id', 'projectId', 'createdAt', 'updatedAt', 'name', 'alternativeNames', 'coordinates', 'approximateRadiusMeters']);
+    return Object.keys(keep).filter(key => !reserved.has(key) && Object.hasOwn(removed, key)
+        && keep[key] !== null && keep[key] !== '' && removed[key] !== null && removed[key] !== ''
+        && JSON.stringify(keep[key]) !== JSON.stringify(removed[key]));
+}
+
+function mergeSavedPlaces(keepId, removeId, { aliases = true, locationChoice, fieldChoices = {} } = {})
+{
+    const keep = getPlace(keepId);
+    const removed = getPlace(removeId);
+    if (!keep || !removed || keepId === removeId || keep.projectId !== removed.projectId
+        || keep.projectId !== currentProjectId()) return false;
+    const match = matchDuplicatePlaces(keep, removed);
+    if (!match) return false;
+    const locationConflict = JSON.stringify([keep.coordinates || null, keep.approximateRadiusMeters ?? null])
+        !== JSON.stringify([removed.coordinates || null, removed.approximateRadiusMeters ?? null]);
+    if (locationConflict && !['keep', 'remove'].includes(locationChoice)) return false;
+    if (placeMergeConflictingFields(keep, removed).some(key => !['keep', 'remove'].includes(fieldChoices[key]))) return false;
+    if (aliases)
+        keep.alternativeNames = normalizePlaceAlternativeNames([
+            ...placeAlternativeNames(keep), removed.name, ...placeAlternativeNames(removed)
+        ], keep.name);
+    if (locationConflict && locationChoice === 'remove')
+    {
+        keep.coordinates = removed.coordinates ? { ...removed.coordinates } : null;
+        if (placeHasRadiusValue(removed)) keep.approximateRadiusMeters = removed.approximateRadiusMeters;
+        else delete keep.approximateRadiusMeters;
+    }
+    for (const [key, choice] of Object.entries(fieldChoices))
+        if (!['id', 'projectId', 'createdAt', 'updatedAt', 'name', 'alternativeNames', 'coordinates', 'approximateRadiusMeters'].includes(key)
+            && choice === 'remove' && Object.hasOwn(removed, key)) keep[key] = structuredClone(removed[key]);
+    keep.updatedAt = new Date().toISOString();
+
+    (sampleData.people || []).forEach(person =>
+        [person, person.birth, person.death, ...(person.events || []), ...(person.attributes || [])]
+            .forEach(record => retargetStructuredPlaceReferences(record, removeId, keepId)));
+    centralFamilyRecords().forEach(family =>
+        [family, ...(family.events || [])].forEach(record => retargetStructuredPlaceReferences(record, removeId, keepId)));
+    (sampleData.media || []).forEach(record => retargetStructuredPlaceReferences(record, removeId, keepId));
+    (sampleData.archiveFiles || []).forEach(file =>
+    {
+        if (![file.documentPlaceId, file.placeId, ...(file.linkedPlaceIds || []), ...(file.placeIds || [])].includes(removeId)) return;
+        const documentPlace = archiveDocumentPlace(file);
+        const related = archiveFilePlaceIds(file);
+        retargetStructuredPlaceReferences(file, removeId, keepId);
+        archiveApplyDocumentPlace(file,
+            documentPlace.placeId === removeId ? keepId : documentPlace.placeId,
+            documentPlace.placeText,
+            [...new Set(related.map(id => id === removeId ? keepId : id))]
+                .filter(id => id !== (documentPlace.placeId === removeId ? keepId : documentPlace.placeId)));
+    });
+    [sampleData.sources, sampleData.notes].forEach(records =>
+        (records || []).forEach(record => retargetStructuredPlaceReferences(record, removeId, keepId)));
+    (sampleData.sourceLinks || []).forEach(link =>
+    {
+        if (link.targetType === 'place' && link.targetId === removeId) link.targetId = keepId;
+    });
+    const sourceLinkKeys = new Set();
+    sampleData.sourceLinks = (sampleData.sourceLinks || []).filter(link =>
+    {
+        const key = [link.projectId, link.sourceId, link.targetType, link.targetId].join('|');
+        if (link.targetType === 'place' && link.targetId === keepId && sourceLinkKeys.has(key)) return false;
+        sourceLinkKeys.add(key);
+        return true;
+    });
+    (sampleData.links || []).forEach(link =>
+    {
+        for (const [typeKey, idKey] of [['sourceType', 'sourceId'], ['targetType', 'targetId'], ['fromType', 'fromId'], ['toType', 'toId']])
+            if (link[typeKey] === 'place' && link[idKey] === removeId) link[idKey] = keepId;
+    });
+    const linkKeys = new Set();
+    sampleData.links = (sampleData.links || []).filter(link =>
+    {
+        const key = JSON.stringify(Object.entries(link).filter(([name]) => name !== 'id')
+            .sort(([left], [right]) => left.localeCompare(right)));
+        if (placeLinkMatches(link, keepId) && linkKeys.has(key)) return false;
+        linkKeys.add(key);
+        return true;
+    });
+    (sampleData.boards || []).forEach(board =>
+    {
+        let updated = false;
+        (board.diagram?.nodes || []).forEach(node =>
+        {
+            if (node.type !== 'place' || node.placeRef?.scope !== 'project' || node.placeRef.id !== removeId) return;
+            node.placeRef.id = keepId;
+            node.placeRef.fallbackName = placePrimaryName(keep) || keep.name;
+            updated = true;
+        });
+        if (updated) board.updatedAt = keep.updatedAt;
+    });
+    sampleData.places = sampleData.places.filter(place => place.id !== removeId);
+    sampleData.placeIssues = (sampleData.placeIssues || []).filter(issue =>
+        issue.placeId !== removeId && issue.otherPlaceId !== removeId
+        && !(locationConflict && locationChoice === 'remove' && issue.placeId === keepId
+            && PLACE_REVIEW_COORDINATE_ISSUE_TYPES.includes(issue.type)));
+    if (state.albumsFilters?.placeId === removeId) state.albumsFilters.placeId = keepId;
+    if (Array.isArray(state.placesFilters?.placeIds))
+        state.placesFilters.placeIds = [...new Set(state.placesFilters.placeIds.map(id => id === removeId ? keepId : id))];
+    if (placesMapRuntime.pendingFocusPlaceId === removeId) placesMapRuntime.pendingFocusPlaceId = keepId;
+    state.selectedPlaceId = keepId;
+    sampleData.events = rebuildSampleEventsAndPruneSourceLinks();
+    markPrototypeSessionEdited();
+    return true;
+}
+
 function getEventsForPlace(placeId, { projectId = currentProjectId() } = {})
 {
     return (sampleData.events || []).filter(event =>
@@ -309,6 +426,29 @@ function getPlaceConnectionCounts(placeId, { projectId = currentProjectId() } = 
         photos: getPhotosForPlace(placeId, { projectId }).length,
         notes: getNotesForPlace(placeId, { projectId }).length
     };
+}
+
+function getPlaceMergeConnectionCounts(placeId, { projectId = currentProjectId() } = {})
+{
+    return {
+        ...getPlaceConnectionCounts(placeId, { projectId }),
+        sources: new Set([
+            ...(sampleData.sourceLinks || []).filter(link => link.projectId === projectId
+                && link.targetType === 'place' && link.targetId === placeId).map(link => link.sourceId),
+            ...(sampleData.sources || []).filter(source => source.projectId === projectId && source.placeId === placeId).map(source => source.id)
+        ]).size,
+        boards: (sampleData.boards || []).filter(board => board.projectId === projectId
+            && (board.diagram?.nodes || []).some(node => node.type === 'place'
+                && node.placeRef?.scope === 'project' && node.placeRef.id === placeId)).length
+    };
+}
+
+function placeMergeConnectionSummary(placeId)
+{
+    const labels = { people: 'People', events: 'Events', files: 'Files', photos: 'Photos',
+        notes: 'Notes', sources: 'Sources', boards: 'Boards' };
+    return Object.entries(getPlaceMergeConnectionCounts(placeId))
+        .map(([type, count]) => `${t(labels[type])}: ${count}`).join(' · ');
 }
 function getPlaceEventDisplay(event)
 {

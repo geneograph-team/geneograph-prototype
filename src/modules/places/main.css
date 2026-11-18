@@ -1038,6 +1038,78 @@
     outline-offset: -3px;
 }
 
+.places-review-duplicate-row {
+    display: grid;
+    gap: var(--space-2);
+    padding: var(--space-4);
+    border-bottom: 1px solid var(--border-default);
+}
+
+.places-review-duplicate-row:focus-visible {
+    outline: 2px solid var(--brand-green-300);
+    outline-offset: -3px;
+}
+
+.places-review-duplicate-pair,
+.place-merge-pair {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--space-3);
+}
+
+.places-review-duplicate-place,
+.place-merge-card {
+    display: grid;
+    gap: 4px;
+    min-width: 0;
+    padding: var(--space-3);
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-sm);
+    overflow-wrap: anywhere;
+}
+
+.places-review-duplicate-place {
+    width: 100%;
+    background: transparent;
+    color: var(--text-primary);
+    text-align: start;
+    cursor: pointer;
+}
+
+.places-review-duplicate-place:hover { background: var(--table-row-hover); }
+.places-review-duplicate-place.is-selected { border-color: var(--brand-green-300); background: var(--table-row-hover); }
+.places-review-duplicate-place:focus-visible { outline: 2px solid var(--brand-green-300); outline-offset: 2px; }
+
+.places-review-duplicate-place small,
+.place-merge-card small,
+.places-review-duplicate-row p {
+    color: var(--text-secondary);
+    line-height: 1.45;
+}
+
+.places-review-duplicate-row p { margin: 0; }
+
+.place-merge-modal { max-width: 760px; }
+.place-merge-modal .modal-body { display: grid; gap: var(--space-4); }
+.place-merge-modal .modal-body > p { margin: 0; color: var(--text-secondary); }
+.place-merge-survivor,
+.place-merge-modal [data-place-merge-conflict] {
+    display: grid;
+    gap: var(--space-2);
+    padding: var(--space-3);
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-sm);
+}
+.place-merge-survivor label,
+.place-merge-modal [data-place-merge-conflict] label { display: flex; align-items: flex-start; gap: var(--space-2); }
+.place-merge-modal [data-place-merge-conflicts] { display: grid; gap: var(--space-3); }
+.place-merge-warning { color: var(--gg-status-warning-on-container); }
+
+@media (max-width: 600px) {
+    .places-review-duplicate-pair,
+    .place-merge-pair { grid-template-columns: 1fr; }
+}
+
 .places-review-place-info {
     min-width: 0;
     display: grid;

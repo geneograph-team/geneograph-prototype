@@ -1284,6 +1284,9 @@ function renderPlacesInspector(
     const reviewIssues =
         getActivePlaceReviewIssues(place);
 
+    const duplicatePairs = getPlaceDuplicatePairs(place.projectId).filter(pair =>
+        (pair.left.id === place.id || pair.right.id === place.id) && !placeDuplicateDismissal(pair));
+
     const firstReviewIssue =
         reviewIssues[0] || null;
 
@@ -1486,6 +1489,13 @@ function renderPlacesInspector(
                 `
                     : ''
             }
+            ${duplicatePairs.length ? `<div class="places-attention" role="group" aria-label="${escapeHtml(t('Possible duplicates'))}">
+                <div class="places-attention-header"><div class="places-attention-copy">${icon.warning}
+                    <span><strong>${escapeHtml(t('Possible duplicates'))}</strong><small>${duplicatePairs.length}</small></span></div>
+                    <button class="places-attention-open" type="button" data-place-review-view="${escapeHtml(place.id)}">
+                        ${icon.openlink}<span>${escapeHtml(t('Open review'))}</span></button></div>
+                <p class="places-attention-description">${escapeHtml(duplicatePairs.map(pair =>
+                    pair.left.id === place.id ? pair.right.name : pair.left.name).join(', '))}</p></div>` : ''}
           </section>
 
           <div
@@ -1801,10 +1811,10 @@ function bindPlacesInspectorControls(
         openPlaceModalForCoordinateReview(button.dataset.placeReviewFix);
     });
 
-    root.querySelector('[data-place-review-view]')?.addEventListener('click', event =>
+    root.querySelectorAll('[data-place-review-view]').forEach(button => button.addEventListener('click', event =>
     {
         openPlacesNeedsReview(event.currentTarget.dataset.placeReviewView);
-    });
+    }));
 
     root.querySelector('[data-place-review-dismiss]')?.addEventListener('click', event =>
     {

@@ -1323,7 +1323,7 @@ function renderOpenProjectInsightsCard(project)
     const unsortedPhotos = projectPhotos.filter(photo => !(photo.albumIds || []).length).length;
     const placeCleanup = projectPlaceRecords.filter(place =>
         getActivePlaceReviewIssues(place).length
-    ).length;
+    ).length + getPlaceDuplicatePairs(project.id).filter(pair => !placeDuplicateDismissal(pair)).length;
     const items = [
         missingFacts ? { module: 'People', icon: icon.people, tone: 'people', title: 'Missing facts', detail: `${missingFacts} ${missingFacts === 1 ? 'person is' : 'people are'} missing birth details.` } : null,
         missingSourceData ? { module: 'Archive', icon: icon.file, tone: 'sources', title: 'Missing source data', detail: `${missingSourceData} archive ${missingSourceData === 1 ? 'file is' : 'files are'} missing source information.` } : null,

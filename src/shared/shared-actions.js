@@ -2977,10 +2977,19 @@ function normalizePlaceIssueDismissals()
     sampleData.placeIssues = (sampleData.placeIssues || []).filter(issue =>
     {
         if (!issue || issue.status !== 'dismissed') return false;
-        if (!PLACE_REVIEW_COORDINATE_ISSUE_TYPES.includes(issue.type)) return false;
+        const pairIssue = issue.type === 'possible_duplicate';
+        if (!pairIssue && !PLACE_REVIEW_COORDINATE_ISSUE_TYPES.includes(issue.type)) return false;
         const place = getPlace(issue.placeId);
         if (!place || place.projectId !== issue.projectId) return false;
-        const key = `${issue.projectId}:${issue.placeId}:${issue.type}`;
+        if (pairIssue)
+        {
+            const other = getPlace(issue.otherPlaceId);
+            if (!other || other.projectId !== issue.projectId
+                || issue.pairKey !== placeDuplicatePairKey(place.id, other.id)
+                || !issue.fingerprints?.[place.id] || !issue.fingerprints?.[other.id]) return false;
+        }
+        const key = pairIssue ? `${issue.projectId}:${issue.pairKey}:possible_duplicate`
+            : `${issue.projectId}:${issue.placeId}:${issue.type}`;
         if (seen.has(key)) return false;
         seen.add(key);
         issue.id = String(issue.id || `place-issue-dismissal-${Date.now()}-${seen.size}`);
