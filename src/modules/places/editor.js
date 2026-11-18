@@ -49,16 +49,16 @@ function parsePlaceEditorCoordinate(value, { label, minimum, maximum, example })
         : normalizedMinus;
     if (separatorCount > 1 || !/^[+-]?(?:\d+(?:\.\d*)?|\.\d+)$/.test(normalized))
     {
-        return { empty: false, valid: false, value: null, formatted: '', message: `${label} must use decimal degrees, for example ${example}.` };
+        return { empty: false, valid: false, value: null, formatted: '', message: t(`${label} must use decimal degrees, for example ${example}.`) };
     }
     const number = Number(normalized);
     if (!Number.isFinite(number))
     {
-        return { empty: false, valid: false, value: null, formatted: '', message: `${label} must be a valid number.` };
+        return { empty: false, valid: false, value: null, formatted: '', message: t(`${label} must be a valid number.`) };
     }
     if (number < minimum || number > maximum)
     {
-        return { empty: false, valid: false, value: null, formatted: '', message: `${label} must be between ${minimum} and ${maximum}.` };
+        return { empty: false, valid: false, value: null, formatted: '', message: t(`${label} must be between ${minimum} and ${maximum}.`) };
     }
     return { empty: false, valid: true, value: number, formatted: number.toFixed(6), message: '' };
 }
@@ -112,6 +112,45 @@ function readPlaceEditorRadiusState(text)
     }
     const meters = Math.round(kilometres * 1000);
     return { valid: true, meters, formatted: String(Number((meters / 1000).toFixed(3))), message: '' };
+}
+
+// Only bundled demo records receive localized editable presentation.
+// Source values and the corresponding Place IDs stay canonical in storage.
+const PLACE_EDITOR_SAMPLE_IDS = new Set([
+    'place-pawford', 'place-meowbridge', 'place-fishmarket-row',
+    'place-old-cattery', 'place-unknown', 'place-pawford-garden',
+    'place-meowbridge-school', 'place-archive', 'place-residence',
+    'place-cemetery'
+]);
+
+function placeEditorIsBundledSample(draft)
+{
+    return draft?.mode === 'edit' && PLACE_EDITOR_SAMPLE_IDS.has(draft.placeId)
+        && getPlace(draft.placeId)?.projectId === 'p1';
+}
+
+function placeEditorDisplayedName(draft, value)
+{
+    const source = String(value ?? '');
+    return state.language === 'ru' && placeEditorIsBundledSample(draft)
+        && Object.prototype.hasOwnProperty.call(RU_DATA_PLACES, source)
+        ? localizedDataFieldValue(source) : source;
+}
+
+function placeEditorCanonicalName(draft, value, originals)
+{
+    const text = String(value ?? '');
+    if (!placeEditorIsBundledSample(draft)) return text;
+    const original = (originals || []).find(source =>
+        Object.prototype.hasOwnProperty.call(RU_DATA_PLACES, source)
+        && RU_DATA_PLACES[source] === text);
+    return original ?? text;
+}
+
+function placeEditorCanonicalAlternatives(draft, value)
+{
+    return String(value ?? '').split('\n').map(line =>
+        placeEditorCanonicalName(draft, line, draft.original.alternativeNames));
 }
 
 function createPlaceEditorDraft(placeId = null, { initialCoordinates = null } = {})
@@ -237,9 +276,11 @@ function syncPlaceEditorDraftFromModal()
     const draft = placeEditorDraft;
     const root = modalBackdrop.querySelector('[data-place-editor]');
     if (!draft || !root) return draft;
-    draft.name = root.querySelector('#placeNameInput')?.value || '';
+    draft.name = placeEditorCanonicalName(draft,
+        root.querySelector('#placeNameInput')?.value || '', [draft.original.name]);
     draft.query = draft.name;
-    draft.alternativeNames = (root.querySelector('#placeAlternativeNamesInput')?.value || '').split('\n');
+    draft.alternativeNames = placeEditorCanonicalAlternatives(draft,
+        root.querySelector('#placeAlternativeNamesInput')?.value || '');
     draft.coordinateText = {
         latitude: root.querySelector('#placeLatitudeInput')?.value || '',
         longitude: root.querySelector('#placeLongitudeInput')?.value || ''
@@ -583,7 +624,7 @@ function updatePlaceEditorAlternativeSummary()
     const textarea = modalBackdrop.querySelector('#placeAlternativeNamesInput');
     const count = modalBackdrop.querySelector('[data-place-alternative-count]');
     if (!draft || !textarea || !count) return;
-    draft.alternativeNames = textarea.value.split('\n');
+    draft.alternativeNames = placeEditorCanonicalAlternatives(draft, textarea.value);
     const normalized = normalizePlaceAlternativeNames(draft.alternativeNames, draft.name);
     count.textContent = normalized.length ? ` · ${normalized.length}` : '';
     updatePlaceEditorDraftDirty(draft);
@@ -1000,7 +1041,7 @@ function renderPlaceEditorModal(draft)
                 <div class="place-editor-combobox" data-place-editor-combobox>
                   <input
                     id="placeNameInput"
-                    value="${escapeHtml(draft.name)}"
+                    value="${escapeHtml(placeEditorDisplayedName(draft, draft.name))}"
                     placeholder="${escapeHtml(t('e.g. Pawford, North Yorkshire, England'))}"
                     role="combobox"
                     aria-autocomplete="list"
@@ -1203,7 +1244,7 @@ function renderPlaceEditorModal(draft)
                   ${escapeHtml(t('Alternative names'))}
                 </label>
                 <textarea id="placeAlternativeNamesInput">${escapeHtml(
-                    draft.alternativeNames.join('\n')
+                    draft.alternativeNames.map(name => placeEditorDisplayedName(draft, name)).join('\n')
                 )}</textarea>
               </details>
 
@@ -1399,7 +1440,7 @@ function bindPlaceEditor()
     );
     input.addEventListener('input', () =>
     {
-        draft.name = input.value;
+        draft.name = placeEditorCanonicalName(draft, input.value, [draft.original.name]);
         draft.query = input.value;
         draft.searchTouched = true;
         draft.selectedSuggestion = null;

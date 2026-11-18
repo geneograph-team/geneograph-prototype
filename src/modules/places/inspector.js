@@ -1482,7 +1482,7 @@ function renderPlacesInspector(
                       </button>
                       <button class="places-attention-dismiss" type="button" data-place-review-dismiss="${escapeHtml(place.id)}" data-place-review-type="${escapeHtml(firstReviewIssue.type)}">
                         ${icon.close}
-                        <span>Dismiss</span>
+                        <span>${escapeHtml(placeReviewT('Dismiss'))}</span>
                       </button>
                     </div>
                   </div>
@@ -1516,7 +1516,7 @@ function renderPlacesInspector(
                         ? formatPlaceCoordinates(
                             place
                         )
-                        : 'Not on map'
+                        : t('Not on map')
                 )}
             </strong>
 

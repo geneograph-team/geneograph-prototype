@@ -1318,7 +1318,7 @@ function translateDynamicPhrase(core)
     repl(
         /^This place is connected to\s+(\d+)\s+records?\s+but has no map position\.$/i,
         (_, number) =>
-            `Это место связано с ${countPhrase(number, 'records')}, но не отмечено на карте.`
+            `Координаты не указаны. Связанных записей: ${formatNumber(number)}.`
     );
 
     repl(

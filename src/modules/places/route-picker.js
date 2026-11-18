@@ -518,11 +518,7 @@ function renderPlacesRoutePopupPreview(
     }
 
     const excludedSummary =
-        routeExcludedReasonSummary(
-            route
-        )
-            .split(' - ')
-            .join(' · ');
+        routeExcludedReasonSummary(route);
 
     const metrics = [
         route.mode === 'surname'
@@ -608,41 +604,10 @@ function renderPlacesRoutePopupPreview(
                 ? `<small>${escapeHtml(t('Approximate stops use representative centers; travel distances are not measured.'))}</small>`
                 : ''}
 
-            ${
-                route.excludedCount > 0
-                    ? `
-                  <small>
-                    <strong>
-                      ${
-                            route.excludedCount
-                        } ${
-                            escapeHtml(
-                                t(
-                                    route
-                                        .excludedCount
-                              === 1
-                                        ? 'event excluded'
-                                        : 'events excluded'
-                                )
-                            )
-                        }
-                    </strong>
-
-                    ${
-                        excludedSummary
-                            ? `
-                          <span>
-                            ${escapeHtml(
-                                excludedSummary
-                            )}
-                          </span>
-                        `
-                            : ''
-                    }
-                  </small>
-                `
-                    : ''
-            }
+            ${route.excludedCount > 0
+                ? `<small><strong>${escapeHtml(placesRouteExcludedHeading(route))}</strong>
+                    ${excludedSummary ? `<span>${escapeHtml(excludedSummary)}</span>` : ''}</small>`
+                : ''}
 
             ${
                 !route.available

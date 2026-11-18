@@ -1378,13 +1378,19 @@ function renderPlacesInspectorAside(place)
     return `<aside class="places-inspector ${state.placesInspectorCollapsed ? 'collapsed' : ''}" data-places-inspector aria-label="Selected place inspector">${renderPlacesInspector(place)}</aside>`;
 }
 
+function placeReviewT(key)
+{
+    return t(state.language === 'ru' && ['Dismiss', 'Dismissed', 'Restore'].includes(key)
+        ? `Places review: ${key}` : key);
+}
+
 function placeReviewMatchesSearch(item, query)
 {
     if (!query) return true;
     if (item.pair)
         return [item.pair.left, item.pair.right].flatMap(place =>
             [placePrimaryName(place), placeSecondaryName(place), ...placeAlternativeNames(place)])
-            .concat(item.pair.reasons.map(t), t('Possible duplicates'), item.dismissal ? t('Dismissed') : '', item.dismissal?.reason || '')
+            .concat(item.pair.reasons.map(t), t('Possible duplicates'), item.dismissal ? placeReviewT('Dismissed') : '', item.dismissal?.reason || '')
             .join(' ').toLowerCase().includes(query);
     const { place, issue, dismissal } = item;
     const label = issue.type === 'invalid_coordinates'
@@ -1396,7 +1402,7 @@ function placeReviewMatchesSearch(item, query)
         ...placeAlternativeNames(place),
         t(issue.title),
         label,
-        dismissal ? t('Dismissed') : '',
+        dismissal ? placeReviewT('Dismissed') : '',
         dismissal ? placeReviewDismissalReason(dismissal) : '',
         dismissal ? t(placeReviewDismissalReason(dismissal)) : ''
     ].join(' ').toLowerCase().includes(query);
@@ -1483,7 +1489,7 @@ function renderPlaceReviewListRow(item)
               data-place-review-type="${issueType}">${escapeHtml(t('Edit reason'))}</button>
             <button class="button secondary places-review-restore-button" type="button"
               data-place-review-restore="${placeId}"
-              data-place-review-type="${issueType}">${escapeHtml(t('Restore'))}</button>`
+              data-place-review-type="${issueType}">${escapeHtml(placeReviewT('Restore'))}</button>`
         : `<button class="button secondary places-review-position-button" type="button"
               data-place-review-fix="${placeId}"
               data-place-review-type="${issueType}">
@@ -1491,7 +1497,7 @@ function renderPlaceReviewListRow(item)
               <span>${escapeHtml(t(issue.actionLabel))}</span></button>
             <button class="button ghost places-review-quiet-button" type="button"
               data-place-review-dismiss="${placeId}"
-              data-place-review-type="${issueType}">${escapeHtml(t('Dismiss'))}</button>`;
+              data-place-review-type="${issueType}">${escapeHtml(placeReviewT('Dismiss'))}</button>`;
     const reason = dismissal ? placeReviewDismissalReason(dismissal) : '';
     const localizedReason = reason === PLACE_REVIEW_DEFAULT_MISSING_REASON
         ? t(reason)
@@ -1546,7 +1552,7 @@ function renderPlaceDuplicateReviewRow({ pair, dismissal })
     const leftId = escapeHtml(pair.left.id);
     const rightId = escapeHtml(pair.right.id);
     const actions = dismissal
-        ? `<button class="button secondary" type="button" data-place-pair-restore="${escapeHtml(pair.key)}">${escapeHtml(t('Restore'))}</button>`
+        ? `<button class="button secondary" type="button" data-place-pair-restore="${escapeHtml(pair.key)}">${escapeHtml(placeReviewT('Restore'))}</button>`
         : `<button class="button primary" type="button" data-place-pair-merge="${leftId}" data-place-pair-other="${rightId}">${escapeHtml(t('Merge'))}</button>
            <button class="button ghost" type="button" data-place-pair-dismiss="${leftId}" data-place-pair-other="${rightId}">${escapeHtml(t('Keep separate'))}</button>`;
     return `<div class="places-review-duplicate-row" role="listitem" data-place-id="${leftId}" data-place-other-id="${rightId}" tabindex="0"
@@ -1562,7 +1568,7 @@ function renderPlaceReviewGroup(group, query)
     return `<details class="places-review-group"
         data-place-review-group="${group.key}" ${isOpen ? 'open' : ''}>
         <summary>
-          <strong>${escapeHtml(t(group.title))}</strong>
+          <strong>${escapeHtml(placeReviewT(group.title))}</strong>
           <span class="places-review-group-count ${group.key !== 'dismissed' && group.items.length > 0 ? 'is-warning' : ''}">
             ${group.items.length}
           </span>
@@ -2448,19 +2454,31 @@ function renderPlacesListPanel(list)
                 const reviewIndicator = issueCount
                     ? `<button class="places-list-review" type="button" data-place-review-link="${escapeHtml(place.id)}">${issueCount > 1 ? `${issueCount} issues` : 'Needs review'}</button>`
                     : '';
-                return `<div class="places-list-row ${place.id === state.selectedPlaceId ? 'active' : ''}" data-place-id="${escapeHtml(place.id)}" tabindex="0" role="row" aria-selected="${place.id === state.selectedPlaceId}"><div><strong>${escapeHtml(placePrimaryName(place))}</strong><span>${escapeHtml(placeSecondaryName(place) || 'No broader place recorded')}</span><small class="places-list-mobile-status">${escapeHtml(t(placeHasCoordinates(place) ? 'On map' : 'Not on map'))}</small>${reviewIndicator}</div><span class="places-list-country">${escapeHtml(placeCountry(place) || 'Unknown')}</span><span class="places-list-map-state">${placeHasCoordinates(place) ? 'On map' : 'Not on map'}</span><span class="places-list-people"><span class="places-list-people-mobile-label">${escapeHtml(t('Linked people'))}: </span>${linkedPeople}</span><span class="places-list-updated">${escapeHtml(formatPlaceUpdatedAt(place.updatedAt))}</span>${place.id === state.selectedPlaceId ? `<button class="mobile-item-details" type="button" data-mobile-open-details aria-label="${escapeHtml(t('Details'))}">${icon.info}<span>${escapeHtml(t('Details'))}</span></button>` : ''}<button class="places-row-more" type="button" data-place-menu="${escapeHtml(place.id)}" aria-label="More actions for ${escapeHtml(place.name)}" aria-haspopup="menu">${icon.more}</button></div>`;
+                return `<div class="places-list-row ${place.id === state.selectedPlaceId ? 'active' : ''}" data-place-id="${escapeHtml(place.id)}" tabindex="0" role="row" aria-selected="${place.id === state.selectedPlaceId}"><div><strong>${escapeHtml(placePrimaryName(place))}</strong><span>${escapeHtml(placeSecondaryName(place) || 'No broader place recorded')}</span><small class="places-list-mobile-status">${escapeHtml(t(placeHasCoordinates(place) ? 'On map' : 'Not on map'))}</small>${reviewIndicator}</div><span class="places-list-country">${escapeHtml(placeCountry(place) || 'Unknown')}</span><span class="places-list-map-state">${escapeHtml(t(placeHasCoordinates(place) ? 'On map' : 'Not on map'))}</span><span class="places-list-people"><span class="places-list-people-mobile-label">${escapeHtml(t('Linked people'))}: </span>${linkedPeople}</span><span class="places-list-updated">${escapeHtml(formatPlaceUpdatedAt(place.updatedAt))}</span>${place.id === state.selectedPlaceId ? `<button class="mobile-item-details" type="button" data-mobile-open-details aria-label="${escapeHtml(t('Details'))}">${icon.info}<span>${escapeHtml(t('Details'))}</span></button>` : ''}<button class="places-row-more" type="button" data-place-menu="${escapeHtml(place.id)}" aria-label="More actions for ${escapeHtml(place.name)}" aria-haspopup="menu">${icon.more}</button></div>`;
             }).join('')}</div>`;
 }
 
 function routeExcludedReasonSummary(route)
 {
     const counts = route?.excludedByReason || {};
-    return [
-        counts.missingDate ? `${counts.missingDate} ${t('undated')}` : '',
-        counts.missingYear ? `${counts.missingYear} ${t('without a known year')}` : '',
-        counts.missingPlace ? `${counts.missingPlace} ${t('without place')}` : '',
-        counts.missingCoordinates ? `${counts.missingCoordinates} ${t('unmapped')}` : ''
-    ].filter(Boolean).join(' - ');
+    const reasons = [
+        ['missingDate', 'undated', 'Without date'],
+        ['missingYear', 'without a known year', 'Without known year'],
+        ['missingPlace', 'without place', 'Without place'],
+        ['missingCoordinates', 'unmapped', 'Without coordinates']
+    ];
+    return reasons.filter(([key]) => counts[key] > 0).map(([key, english, russian]) =>
+        state.language === 'ru'
+            ? `${t(russian)}: ${counts[key]}`
+            : `${counts[key]} ${t(english)}`
+    ).join(' · ');
+}
+
+function placesRouteExcludedHeading(route)
+{
+    if (state.language === 'ru')
+        return `${t('Excluded from route')}: ${translateCountPhrase(`${route.excludedCount} events`)}`;
+    return `${route.excludedCount} ${t(route.excludedCount === 1 ? 'event excluded' : 'events excluded')}`;
 }
 
 function renderPlacesRouteSummary()
@@ -2498,7 +2516,7 @@ function renderPlacesRouteSummary()
                     <span>${escapeHtml(t('Route uses representative centers for approximate stops, not measured historical travel distances.'))}</span>
                   </div>` : ''}
           ${route.excludedCount > 0
-                ? `<div class="places-route-summary-excluded">${route.excludedCount} ${escapeHtml(t(route.excludedCount === 1 ? 'event excluded' : 'events excluded'))}${excludedSummary ? ` - ${escapeHtml(excludedSummary)}` : ''}</div>`
+                ? `<div class="places-route-summary-excluded">${escapeHtml(placesRouteExcludedHeading(route))}${excludedSummary ? ` · ${escapeHtml(excludedSummary)}` : ''}</div>`
                 : ''}
         </section>`;
 }

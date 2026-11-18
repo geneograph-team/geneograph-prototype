@@ -551,10 +551,10 @@ const RU_UI_PLACES = Object.freeze({
         'Статус на карте',
 
     'On map':
-        'На карте',
+        'Есть координаты',
 
     'Not on map':
-        'Не на карте',
+        'Нет координат',
 
     'Enter a valid starting year.':
         'Введите корректный начальный год.',
@@ -650,25 +650,36 @@ const RU_UI_PLACES = Object.freeze({
         'Координаты нужно исправить',
 
     'Missing map positions':
-        'Нет позиции на карте',
+        'Места без координат',
 
     'These places have no identified map position. An exact position is optional.':
-        'Для этих мест не установлена позиция на карте. Точная позиция необязательна.',
+        'Для этих мест координаты не указаны. Точная позиция необязательна.',
 
     'No coordinates need correction.':
         'Нет координат, требующих исправления.',
 
     'No map positions are missing.':
-        'Нет мест без позиции на карте.',
+        'Нет мест без координат.',
 
     'Dismissed':
         'Скрытые',
 
+    // These contextual keys are used only by Places. Shared Dismiss / Restore
+    // translations must remain unchanged for other modules.
+    'Places review: Dismiss':
+        'Отклонить',
+
+    'Places review: Dismissed':
+        'Отклонённые',
+
+    'Places review: Restore':
+        'Вернуть на проверку',
+
     'Dismissed warnings can be restored or given an updated reason.':
-        'Скрытые предупреждения можно вернуть или изменить причину скрытия.',
+        'Отклонённые предупреждения можно вернуть на проверку или изменить причину отклонения.',
 
     'No dismissed review items.':
-        'Нет скрытых предупреждений.',
+        'Нет отклонённых предупреждений.',
 
     'Exact position not identified':
         'Точная позиция не установлена',
@@ -689,7 +700,7 @@ const RU_UI_PLACES = Object.freeze({
         'Предупреждение возвращено на проверку.',
 
     'Review reason saved.':
-        'Причина скрытия сохранена.',
+        'Причина отклонения сохранена.',
 
     'Coordinates need attention':
         'Координаты требуют проверки',
@@ -701,13 +712,13 @@ const RU_UI_PLACES = Object.freeze({
         'Исправить координаты',
 
     'No map position':
-        'Нет позиции на карте',
+        'Координаты не указаны',
 
     'This place has no map position.':
-        'Для этого места не указана позиция на карте.',
+        'Координаты не указаны.',
 
     'Add position':
-        'Добавить позицию',
+        'Добавить координаты',
 
     'No matching review items':
         'Нет подходящих элементов для проверки',
@@ -749,7 +760,7 @@ const RU_UI_PLACES = Object.freeze({
         'Открыть проверку',
 
     'Review item dismissed.':
-        'Элемент проверки скрыт.',
+        'Предупреждение отклонено.',
 
     // ========================================
     // Map
@@ -1058,7 +1069,7 @@ const RU_UI_PLACES = Object.freeze({
         'Позиция указана',
 
     'No position set':
-        'Позиция не указана',
+        'Координаты не указаны',
 
     'Edit on map':
         'Изменить на карте',
@@ -1145,6 +1156,39 @@ const RU_UI_PLACES = Object.freeze({
 
     'Enter both latitude and longitude.':
         'Введите и широту, и долготу.',
+
+    'Latitude must use decimal degrees, for example 53.959400.':
+        'Широту нужно указать в десятичных градусах, например 53,959400.',
+
+    'Longitude must use decimal degrees, for example -1.082000.':
+        'Долготу нужно указать в десятичных градусах, например −1,082000.',
+
+    'Latitude must be a valid number.':
+        'Широта должна быть корректным числом.',
+
+    'Longitude must be a valid number.':
+        'Долгота должна быть корректным числом.',
+
+    'Latitude must be between -90 and 90.':
+        'Широта должна быть в диапазоне от −90 до 90.',
+
+    'Longitude must be between -180 and 180.':
+        'Долгота должна быть в диапазоне от −180 до 180.',
+
+    'Excluded from route':
+        'Не включено в маршрут',
+
+    'Without date':
+        'без даты',
+
+    'Without known year':
+        'без известного года',
+
+    'Without place':
+        'без места',
+
+    'Without coordinates':
+        'без координат',
 
 
     'The entered name matches this place.':
