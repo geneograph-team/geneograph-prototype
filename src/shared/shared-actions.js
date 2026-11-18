@@ -2991,72 +2991,6 @@ function normalizePlaceIssueDismissals()
     });
 }
 
-function normalizeCentralPlaceRecords()
-{
-    sampleData.places.forEach(place =>
-    {
-        place.projectId = String(place.projectId || '');
-        const legacyName = String(place.name || '').trim();
-        const legacyDisplay = String(place.display || '').trim();
-        const legacyHierarchy = place.hierarchy && typeof place.hierarchy === 'object' && !Array.isArray(place.hierarchy)
-            ? [place.hierarchy.locality, place.hierarchy.county || place.hierarchy.region, place.hierarchy.nation || place.hierarchy.country].filter(Boolean).join(', ')
-            : String(place.hierarchy || '').trim();
-        const fullName = legacyDisplay.includes(',')
-            ? legacyDisplay
-            : (legacyName.includes(',') ? legacyName : (legacyHierarchy || legacyName));
-        place.name = fullName || legacyName || 'Unnamed place';
-        const candidates = [
-            ...(Array.isArray(place.alternativeNames) ? place.alternativeNames : []),
-            ...(Array.isArray(place.aliases) ? place.aliases : []),
-            ...(legacyName && legacyName !== place.name ? [legacyName] : [])
-        ];
-        place.alternativeNames = normalizePlaceAlternativeNames(candidates, place.name);
-        place.deleted = Boolean(place.deleted);
-        const normalizedCoordinates = normalizePlaceCoordinates(place);
-        if (normalizedCoordinates)
-        {
-            place.coordinates = normalizedCoordinates;
-        }
-        else if (place.coordinates && typeof place.coordinates === 'object')
-        {
-            place.coordinates = {
-                lat: place.coordinates.lat ?? '',
-                lng: place.coordinates.lng ?? ''
-            };
-        }
-        else
-        {
-            place.coordinates = null;
-        }
-        place.updatedAt = Number.isFinite(Date.parse(place.updatedAt || '')) ? place.updatedAt : new Date().toISOString();
-        delete place.display;
-        delete place.type;
-        delete place.hierarchy;
-        delete place.coordinateStatus;
-        delete place.coordinateAccuracy;
-        delete place.coordinateSource;
-        delete place.coordinateProvider;
-        delete place.externalPlaceId;
-        delete place.boundingBox;
-        delete place.coordinateReference;
-        delete place.markerType;
-        delete place.aliases;
-        delete place.collections;
-        delete place.topEvents;
-        delete place.coords;
-        delete place.x;
-        delete place.y;
-        delete place.status;
-        delete place.statusLabel;
-        delete place.updated;
-        delete place.people;
-        delete place.events;
-        delete place.files;
-        delete place.photos;
-        delete place.notes;
-    });
-}
-
 function normalizeEventPlaceAddresses()
 {
     const normalizeRecord = record =>
@@ -4443,7 +4377,6 @@ function normalizeCentralRuntimeData()
     sampleData.notifications = Array.isArray(sampleData.notifications) ? sampleData.notifications : [];
     sampleData.activity = Array.isArray(sampleData.activity) ? sampleData.activity : [];
     normalizePlaceSavedFilters();
-    normalizeCentralPlaceRecords();
     normalizePlaceIssueDismissals();
     normalizeEventPlaceAddresses();
     normalizeSampleGenealogyDates();

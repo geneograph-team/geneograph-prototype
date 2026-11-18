@@ -17,17 +17,9 @@ function validLongitude(value)
     return Number.isFinite(number) && number >= -180 && number <= 180;
 }
 
-function parseLegacyCoordinateString(value)
-{
-    if (typeof value !== 'string') return null;
-    const parts = value.split(',').map(part => Number(part.trim()));
-    if (parts.length !== 2 || !validLatitude(parts[0]) || !validLongitude(parts[1])) return null;
-    return { lat: parts[0], lng: parts[1] };
-}
-
 function normalizePlaceCoordinates(place)
 {
-    const source = place?.coordinates || parseLegacyCoordinateString(place?.coords);
+    const source = place?.coordinates;
     if (!source || !validLatitude(source.lat) || !validLongitude(source.lng)) return null;
     return { lat: Number(source.lat), lng: Number(source.lng) };
 }

@@ -1400,7 +1400,6 @@ function placesReviewGroups()
             key: 'invalid_coordinates',
             title: 'Coordinates need correction',
             description: 'The saved coordinates are incomplete or outside the valid range.',
-            empty: 'No coordinates need correction.',
             items: sort(active.filter(item => item.issue.type === 'invalid_coordinates'))
         },
         {
@@ -1419,10 +1418,12 @@ function placesReviewGroups()
         }
     ];
     const dismissedGroup = groups.pop();
-    groups.sort((left, right) => right.items.length - left.items.length);
-    groups.push(dismissedGroup);
+    const visibleGroups = groups.filter(group =>
+        group.key !== 'invalid_coordinates' || group.items.length > 0);
+    visibleGroups.sort((left, right) => right.items.length - left.items.length);
+    visibleGroups.push(dismissedGroup);
 
-    return { groups };
+    return { groups: visibleGroups };
 }
 
 function placeReviewConnectionTotal(place)
@@ -1596,7 +1597,8 @@ function rerenderPlacesReviewAfterAction(focusPlaceId = '', groupKey = '')
         group.open = true;
         state.placesReviewExpandedGroups[groupKey] = true;
     }
-    (row || group?.querySelector('summary'))?.focus({ preventScroll: true });
+    (row || group?.querySelector('summary') || panel?.querySelector('summary')
+        || main.querySelector('#placesReviewSearch'))?.focus({ preventScroll: true });
 }
 
 function bindPlacesNeedsReviewControls()
