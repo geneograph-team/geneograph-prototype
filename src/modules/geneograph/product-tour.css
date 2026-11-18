@@ -177,7 +177,11 @@ body.geneo-tour-people-popover #peopleColumnsPopover .people-columns-footer {
 }
 
 .geneo-tour-cover-dots {
-    fill: var(--brand-green-300);
+    fill: var(--gg-accent-map-cyan-accent);
+}
+
+.geneo-tour-cover-dots circle {
+    r: 2.5px;
 }
 
 /* Balance light-outline modules with the Archive and Geneograph icons. */
