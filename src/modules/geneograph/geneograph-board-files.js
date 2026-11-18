@@ -365,7 +365,7 @@ function importGeneographBoardPayload(payload, projectId = currentProjectId())
     {
         if (node.type !== 'place' || node.placeRef?.scope !== 'project') continue;
         const place = getPlace(node.placeRef.id);
-        if (!place || place.projectId !== projectId || place.deleted
+        if (!place || place.projectId !== projectId
             || (placePrimaryName(place) || place.name) !== node.placeRef.fallbackName)
             node.placeRef = { scope: 'board', name: node.placeRef.fallbackName || 'Place' };
     }

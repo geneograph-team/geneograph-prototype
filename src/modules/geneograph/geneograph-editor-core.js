@@ -1788,7 +1788,6 @@ function validateSampleGeneographCollections(
                 || (ref.scope === 'board' && !String(ref.name || '').trim())
                 || (ref.scope === 'project' && (
                     !projectPlace
-                  || projectPlace.deleted
                   || projectPlace.projectId !== board.projectId
                 ))
                     )
@@ -3121,7 +3120,7 @@ function normalizeGeneographPlaceRef(node, projectId = selectedGeneographBoard()
     {
         const id = String(source.id || '').trim();
         const place = id ? getPlace(id) : null;
-        if (place && !place.deleted && place.projectId === projectId)
+        if (place && place.projectId === projectId)
         {
             return {
                 scope: 'project',
@@ -3139,7 +3138,7 @@ function normalizeGeneographPlaceRef(node, projectId = selectedGeneographBoard()
     }
     const legacyPlaceId = String(node?.placeId || '').trim();
     const legacyPlace = legacyPlaceId ? getPlace(legacyPlaceId) : null;
-    if (legacyPlace && !legacyPlace.deleted && legacyPlace.projectId === projectId)
+    if (legacyPlace && legacyPlace.projectId === projectId)
     {
         return {
             scope: 'project',
@@ -3158,7 +3157,7 @@ function resolveGeneographPlace(node, board = selectedGeneographBoard())
     if (ref.scope === 'project')
     {
         const place = getPlace(ref.id);
-        if (place && !place.deleted && place.projectId === board?.projectId)
+        if (place && place.projectId === board?.projectId)
         {
             return {
                 ref,

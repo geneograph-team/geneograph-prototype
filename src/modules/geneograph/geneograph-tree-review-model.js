@@ -336,7 +336,7 @@ function geneoReviewValidatePerson(person, projectId)
     for (const key of ['birth', 'death'])
     {
         const vital = person[key] || {};
-        if (vital.placeId && !(sampleData.places || []).some(place => place.id === vital.placeId && place.projectId === projectId && !place.deleted))
+        if (vital.placeId && !(sampleData.places || []).some(place => place.id === vital.placeId && place.projectId === projectId))
             return 'A selected place is unavailable in this project.';
         const normalized = normalizeGenealogyDateInput(vital);
         const text = formatGenealogyDateLabel(normalized);

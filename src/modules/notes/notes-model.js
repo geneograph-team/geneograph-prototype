@@ -368,7 +368,6 @@ const NOTE_ENTITY_TYPES =
                     place =>
                         place.projectId
                     === projectId
-                  && !place.deleted
                 ),
 
             label:

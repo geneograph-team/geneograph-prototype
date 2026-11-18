@@ -231,7 +231,7 @@ function archiveEntityConfig(type)
         },
         place: {
             singular: 'place', title: 'Places', addLabel: 'Add places',
-            records: () => (sampleData.places || []).filter(place => !place.deleted && place.projectId === projectId),
+            records: () => (sampleData.places || []).filter(place => place.projectId === projectId),
             label: record => record?.name || 'Place',
             meta: record => (record?.alternativeNames || []).slice(0, 2).join(' · ') || 'Place record'
         },

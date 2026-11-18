@@ -2979,7 +2979,7 @@ function normalizePlaceIssueDismissals()
         if (!issue || issue.status !== 'dismissed') return false;
         if (!PLACE_REVIEW_COORDINATE_ISSUE_TYPES.includes(issue.type)) return false;
         const place = getPlace(issue.placeId);
-        if (!place || place.deleted || place.projectId !== issue.projectId) return false;
+        if (!place || place.projectId !== issue.projectId) return false;
         const key = `${issue.projectId}:${issue.placeId}:${issue.type}`;
         if (seen.has(key)) return false;
         seen.add(key);

@@ -279,7 +279,7 @@ function rpOpenPlacePicker(options = {})
         || getNote(noteId, { includeArchived: true })?.projectId || currentProjectId();
     if (!rpRecordProjectValid(projectId) || (!context && !note())) return null;
     const mode = 'manage';
-    const records = () => projectPlaces(projectId).filter(place => !place.deleted && place.projectId === projectId);
+    const records = () => projectPlaces(projectId);
     const existing = () => rpRecordIds(context ? context.getPlaceIds?.() || context.initialPlaceIds : note()?.linkedPlaceIds);
     const suggested = () => new Set(context ? context.suggestedPlaceIds || [] : notesSuggestedPlaceIds(note()));
     const names = place => [place.name, placePrimaryName(place), placeSecondaryName(place), ...placeAlternativeNames(place)].filter(Boolean);

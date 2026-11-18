@@ -483,7 +483,7 @@ function findPlaceEditorDuplicate(draft = placeEditorDraft)
     if (draft.existingCandidateId)
     {
         const place = getPlace(draft.existingCandidateId);
-        if (place && place.id !== draft.placeId && !place.deleted && place.projectId === currentProjectId())
+        if (place && place.id !== draft.placeId && place.projectId === currentProjectId())
         {
             return {
                 place,
@@ -832,7 +832,6 @@ function useExistingPlaceFromEditor(
 
     if (
         !place
-        || place.deleted
         || place.projectId
           !== currentProjectId()
     )
@@ -942,8 +941,7 @@ function commitPlaceEditorDraft({ allowDuplicate = false } = {})
     if (!projectId) return;
     const place = existing || {
         id: uniquePlaceIdFromText(draft.name),
-        projectId,
-        deleted: false
+        projectId
     };
     const coordinatesChanged = Boolean(
         existing
@@ -1903,13 +1901,7 @@ function openDeletePlaceModal(placeId, { returnToEditor = false } = {})
         sampleData.events =
             rebuildSampleEventsAndPruneSourceLinks();
 
-        state.selectedPlaceId =
-            projectPlaces()
-                .find(item =>
-                    !item.deleted
-                )
-                ?.id
-          || null;
+        state.selectedPlaceId = projectPlaces()[0]?.id || null;
 
         closeModal();
         renderPlaces();

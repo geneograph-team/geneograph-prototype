@@ -1184,7 +1184,6 @@ function getProfileConnectedPlaces(
 
             if (
                 !place
-            || place.deleted
             || place.projectId
               !== person.projectId
             )

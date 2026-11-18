@@ -1139,7 +1139,7 @@ function findExactPlaceMatch(text, projectId = currentProjectId())
 
     return sampleData.places.find(place =>
     {
-        if (!place || place.deleted || place.projectId !== projectId) return false;
+        if (!place || place.projectId !== projectId) return false;
 
         const values = [
             place.name,
@@ -1199,8 +1199,7 @@ function createPlaceFromText(text, { projectId = currentProjectId(), coordinates
             ? { lat: Number(coordinates.lat), lng: Number(coordinates.lng) }
             : null,
         createdAt: now,
-        updatedAt: now,
-        deleted: false
+        updatedAt: now
     };
 
     sampleData.places.push(place);
@@ -1227,7 +1226,7 @@ function resolvePlaceInputValue(text, selectedPlaceId = '', address = '', option
 
     const selectedPlace = selectedPlaceId ? getPlace(selectedPlaceId) : null;
     if (
-        selectedPlace && !selectedPlace.deleted && selectedPlace.projectId === projectId &&
+        selectedPlace && selectedPlace.projectId === projectId &&
         normalizePlaceLookupText(placeText) === normalizePlaceLookupText(placeDisplayText(selectedPlace))
     )
     {

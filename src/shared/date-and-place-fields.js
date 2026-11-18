@@ -535,7 +535,7 @@ function bindPlaceComboboxes(root = document)
         function buildOptions(query)
         {
             const pool = projectId
-                ? (sampleData.places || []).filter(p => !p.deleted && p.projectId === projectId)
+                ? (sampleData.places || []).filter(p => p.projectId === projectId)
                 : [];
             const trimmed = (query || '').trim();
             const scored = pool

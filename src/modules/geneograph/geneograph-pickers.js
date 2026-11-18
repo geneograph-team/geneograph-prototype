@@ -80,12 +80,7 @@ function geneographPlacePickerViewModel(
             pickerState.query
         );
 
-    const allPlaces =
-        projectPlaces(projectId)
-            .filter(place =>
-                place &&
-            !place.deleted
-            );
+    const allPlaces = projectPlaces(projectId);
 
     const exactPlace =
         query
@@ -917,7 +912,6 @@ function openGeneographPlaceModal(
 
                 if (
                     !place
-              || place.deleted
               || place.projectId
                 !== board.projectId
                 )
@@ -996,7 +990,6 @@ function openGeneographPlaceModal(
 
                 const validProjectPlace =
                     projectPlace
-              && !projectPlace.deleted
               && projectPlace.projectId
                 === board.projectId;
 

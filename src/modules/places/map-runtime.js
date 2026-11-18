@@ -4,7 +4,7 @@ function placesMapDataKey(places)
     {
         const coordinates = normalizePlaceCoordinates(place);
         return [place.id, coordinates?.lat ?? '', coordinates?.lng ?? '',
-            place.approximateRadiusMeters ?? '', place.deleted].join(':');
+            place.approximateRadiusMeters ?? ''].join(':');
     }).join('|');
 }
 

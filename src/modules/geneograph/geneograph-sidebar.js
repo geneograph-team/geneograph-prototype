@@ -528,7 +528,7 @@ function geneoResolveBoardPersonPlace(value)
 {
     const text = String(value?.text ?? value ?? '').trim();
     const projectId = selectedGeneographBoard()?.projectId || currentProjectId();
-    const selected = text && (sampleData.places || []).find(place => place.id === value?.selectedPlaceId && place.projectId === projectId && !place.deleted);
+    const selected = text && (sampleData.places || []).find(place => place.id === value?.selectedPlaceId && place.projectId === projectId);
     const place = selected || (text ? findExactPlaceMatch(text, projectId) : null);
     return { placeId: place?.id || null, placeText: text, address: value?.address || '', created: false };
 }

@@ -1,6 +1,6 @@
-function projectPlaces(projectId = currentProjectId(), { includeDeleted = false } = {})
+function projectPlaces(projectId = currentProjectId())
 {
-    return (sampleData.places || []).filter(place => place.projectId === projectId && (includeDeleted || !place.deleted));
+    return (sampleData.places || []).filter(place => place.projectId === projectId);
 }
 
 function placeSavedFiltersForProject(
@@ -834,7 +834,7 @@ function placeReviewConnectionCount(placeId)
 
 function getPlaceReviewIssues(place)
 {
-    if (!place || place.deleted || place.projectId !== currentProjectId()) return [];
+    if (!place || place.projectId !== currentProjectId()) return [];
     const coordinateState = placeCoordinateReviewState(place);
     const connectionCount = placeReviewConnectionCount(place.id);
     const issues = [];
@@ -917,7 +917,7 @@ function getDismissedPlaceReviewItems()
         .map(issue =>
         {
             const place = getPlace(issue.placeId);
-            if (!place || place.deleted || place.projectId !== currentProjectId()) return null;
+            if (!place || place.projectId !== currentProjectId()) return null;
             const review = getPlaceReviewIssues(place).find(item => item.type === issue.type);
             return review ? { place, issue, review } : null;
         })
@@ -927,7 +927,7 @@ function getDismissedPlaceReviewItems()
 function dismissPlaceReviewIssue(placeId, issueType)
 {
     const place = getPlace(placeId);
-    if (!place || place.deleted || place.projectId !== currentProjectId()) return false;
+    if (!place || place.projectId !== currentProjectId()) return false;
     if (!getPlaceReviewIssues(place).some(issue => issue.type === issueType)) return false;
     if (isPlaceReviewIssueDismissed(placeId, issueType)) return false;
 
@@ -1016,7 +1016,6 @@ function selectPlace(
 
     if (
         !place
-        || place.deleted
         || place.projectId
           !== currentProjectId()
     )
@@ -1110,7 +1109,6 @@ function showPlaceOnMap(
 
     if (
         !place
-        || place.deleted
         || place.projectId
           !== currentProjectId()
     )

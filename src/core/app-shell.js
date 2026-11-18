@@ -422,7 +422,7 @@ function appNavigationValid(location)
     if (location.albumId && !(sampleData.albums || []).some(album => album.id === location.albumId && album.projectId === projectId)) return false;
     if (location.photoId && !getPhoto(location.photoId, { projectId })) return false;
     if (location.noteId && !getNote(location.noteId, { projectId })) return false;
-    if (location.placeId && !(sampleData.places || []).some(place => place.id === location.placeId && place.projectId === projectId && !place.deleted)) return false;
+    if (location.placeId && !(sampleData.places || []).some(place => place.id === location.placeId && place.projectId === projectId)) return false;
     if (location.archive?.folderId && !archiveFolderById(location.archive.folderId, projectId)) return false;
     if (location.archive?.selectedFileId && !archiveFileById(location.archive.selectedFileId, projectId)) return false;
     if (location.sourceId && !archiveSourceById(location.sourceId, projectId)) return false;

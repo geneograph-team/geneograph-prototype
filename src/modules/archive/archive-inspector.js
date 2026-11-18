@@ -1009,7 +1009,7 @@ function renderArchiveFilePlaces(file, readOnly)
 {
     const places = archiveFilePlaceIds(file)
         .map(id => getPlace(id))
-        .filter(place => place && !place.deleted && place.projectId === file.projectId);
+        .filter(place => place && place.projectId === file.projectId);
     const legacyText = !file.documentPlaceId
         ? String(file.documentPlaceText || '').trim()
         : '';

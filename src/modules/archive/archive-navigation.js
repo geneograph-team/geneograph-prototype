@@ -59,7 +59,7 @@ function archiveFilePlaceIds(
 function archiveSetFilePlaces(file, placeIds, { resolveLegacy = false } = {})
 {
     const ids = archiveUniqueIds(placeIds || []);
-    if (!file || ids.some(id => !getPlace(id) || getPlace(id).deleted || getPlace(id).projectId !== file.projectId)) return false;
+    if (!file || ids.some(id => !getPlace(id) || getPlace(id).projectId !== file.projectId)) return false;
     const legacyText = !file.documentPlaceId
         ? String(file.documentPlaceText || '').trim()
         : '';

@@ -361,7 +361,7 @@ window.addEventListener('geneograph-theme-change', handlePlacesMapThemeChange);
 
 function updatePlacesMapData(places, { force = false } = {})
 {
-    const list = (places || []).filter(place => !place.deleted);
+    const list = places || [];
     placesMapRuntime.currentPlaces = [...list];
     if (!placesMapReady()) return;
     const key = placesMapDataKey(list);
@@ -510,7 +510,7 @@ function normalizeRouteEvent(event)
     const date = normalizeGenealogyDateInput(event || {});
     const sortValue = genealogyDateSortValue(date);
     const place = getPlace(event?.placeId);
-    const placeIsValid = Boolean(place && !place.deleted && place.projectId === currentProjectId());
+    const placeIsValid = Boolean(place && place.projectId === currentProjectId());
     const coordinates = placeIsValid ? placeLatLng(place) : null;
     const hasSortableDate = Number.isFinite(sortValue);
     const hasCoordinates = Boolean(

@@ -1911,7 +1911,7 @@ function normalizeGeneographPersonVital(value, projectId)
     const normalized = normalizeGenealogyDateInput(value || emptyGenealogyDate('Exact date'));
     const requestedPlaceId = cleanDatePlaceId(source.placeId || normalized.placeId);
     const place = requestedPlaceId
-        ? (sampleData.places || []).find(item => item.id === requestedPlaceId && item.projectId === projectId && !item.deleted)
+        ? (sampleData.places || []).find(item => item.id === requestedPlaceId && item.projectId === projectId)
         : null;
     return {
         ...normalized,

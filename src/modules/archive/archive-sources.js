@@ -165,7 +165,7 @@ function archiveSourceById(id, projectId = currentProjectId())
 function archiveSourceCustodialPlace(source)
 {
     const place = source?.placeId ? getPlace(source.placeId) : null;
-    return place && !place.deleted && place.projectId === source.projectId
+    return place && place.projectId === source.projectId
         ? place
         : null;
 }
