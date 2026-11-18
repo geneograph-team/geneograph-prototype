@@ -105,6 +105,8 @@
 }
 
 .notes-people-modal:not(.archive-person-area-modal) .photo-people-selected-list {
+    align-self: start;
+    max-height: 100%;
     gap: 0;
     border: 1px solid var(--border-default);
     border-radius: var(--radius-sm);
@@ -123,6 +125,20 @@
 
 .notes-people-modal:not(.archive-person-area-modal) .photo-people-selected-chip:last-child {
     border-bottom: 0;
+}
+
+.notes-people-modal:not(.archive-person-area-modal) .photo-people-selected-name {
+    grid-column: auto;
+}
+
+.notes-people-modal:not(.archive-person-area-modal) :is(
+    .photo-people-result:not(.is-already-linked):hover,
+    .photo-people-result:focus-within,
+    .photo-people-selected-chip:hover,
+    .photo-people-selected-chip:focus-visible
+) {
+    background: var(--surface-card-hover);
+    box-shadow: inset 3px 0 0 var(--gg-primary);
 }
 
 .notes-people-modal:not(.archive-person-area-modal) :is(.photo-people-result-avatar, .photo-people-chip-avatar) {

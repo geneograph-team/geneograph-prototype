@@ -766,31 +766,24 @@ function openPeopleLinkModal({
                 return;
             }
 
-            const choiceIndex = [
-                ...modal.querySelectorAll(
-                    '[data-notes-people-choice]'
-                )
-            ].indexOf(input);
+            const personId = input.value;
+            const restoreKeyboardFocus = lastInteractionWasKeyboard;
 
-            selectedIds.add(
-                input.value
-            );
+            selectedIds.add(personId);
 
-            if (imageArea) activeAreaPersonId = input.value;
+            if (imageArea) activeAreaPersonId = personId;
 
             refresh();
 
-            restoreModalChoiceFocus({
-                modal,
-                selector:
-              '[data-notes-people-choice]',
-                value:
-              input.value,
-                index:
-              choiceIndex,
-                fallbackSelector:
-              '[data-notes-people-search]'
-            });
+            if (restoreKeyboardFocus)
+            {
+                requestAnimationFrame(() =>
+                {
+                    [...modal.querySelectorAll('[data-notes-people-remove]')]
+                        .find(button => button.dataset.notesPeopleRemove === personId)
+                        ?.focus({ preventScroll: true });
+                });
+            }
         }
     );
 
