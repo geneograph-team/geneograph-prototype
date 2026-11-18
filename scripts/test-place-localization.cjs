@@ -253,8 +253,19 @@ assert.match(placesCss, /\.place-editor-duplicate \.button\s*\{[^}]*min-height:\
     'buttons use consistent compact typography and normal letter spacing');
 assert.match(placesCss, /\.place-duplicate-details\[aria-expanded="true"\] svg\s*\{[^}]*transform:\s*rotate\(-90deg\)/s,
     'disclosure chevron reflects aria-expanded without another handler');
-assert.match(placesCss, /\.place-editor-duplicate \.place-duplicate-merge,\s*\.place-editor-duplicate \.place-duplicate-use-existing\s*\{/,
-    'merge and Use existing have neutral outlines');
+const amberButtons = placesCss.match(/\.places-attention-actions \.places-attention-fix,\s*\.place-editor-duplicate \.place-duplicate-merge,\s*\.place-editor-duplicate \.place-duplicate-use-existing\s*\{([^}]+)\}/)?.[1] || '';
+assert.match(amberButtons, /background:\s*var\(--gg-status-warning-accent\);/,
+    'Merge and Use existing share the sidebar Add position warning-accent background');
+assert.match(amberButtons, /color:\s*var\(--gg-status-warning-on-accent\);/,
+    'warning-accent buttons share the sidebar foreground contrast role');
+assert.match(amberButtons, /border-color:\s*var\(--gg-status-warning-outline\);/,
+    'warning-accent buttons share the sidebar outline');
+assert.match(placesCss, /\.places-attention-actions \.places-attention-fix:hover,\s*\.place-editor-duplicate \.place-duplicate-merge:hover,\s*\.place-editor-duplicate \.place-duplicate-use-existing:hover\s*\{[^}]*filter:\s*brightness\(1\.06\)/s,
+    'Merge and Use existing share the sidebar hover treatment');
+assert.match(placesCss, /\.place-editor-duplicate \.place-duplicate-merge,\s*\.place-editor-duplicate \.place-duplicate-use-existing\s*\{[^}]*min-height:\s*32px;[^}]*padding:\s*5px 9px;[^}]*font-size:\s*12px/s,
+    'warning primary actions match Add position button dimensions and typography');
+assert.doesNotMatch(placesCss, /\.place-editor-duplicate \.place-duplicate-merge:hover,\s*\.place-editor-duplicate \.place-duplicate-use-existing:hover\s*\{\s*background:\s*var\(--surface-card-hover\)/s,
+    'obsolete neutral hover override is removed');
 assert.match(placesCss, /@media \(pointer: coarse\)\s*\{[^}]*\.place-editor-duplicate \.button\s*\{[^}]*min-height:\s*44px/s,
     'coarse pointer controls provide a larger touch target');
 assert.match(editor, /draft\.dismissedDuplicateId = ignoreId;/,

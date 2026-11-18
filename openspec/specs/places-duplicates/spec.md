@@ -19,20 +19,25 @@ close icon at the trailing top-right of its heading, using the same quiet
 visual treatment as the Place inspector warning. In Russian this action
 SHALL read «Отклонить», without changing the shared Dismiss translation.
 Place details SHALL be a lightweight disclosure with a chevron reflecting
-its expanded state, and Merge SHALL be a neutral outlined action beside it
-in edit mode. Compact buttons SHALL have consistent typography and dimensions,
-with accessible hover, focus and touch states. None of these actions SHALL
-gate a valid Place save or change saved review decisions.
+its expanded state. Merge in edit mode and Use existing place in add mode
+SHALL use the same bright warning-accent surface, contrast role, border,
+hover treatment, and compact sizing as the inspector's Add position action.
+These are entry points to further actions, not immediate merge or destructive
+operations. Dismiss SHALL remain quiet and secondary; Place details SHALL
+remain tertiary. Buttons SHALL retain accessible focus and touch states.
+None of these actions SHALL gate a valid Place save or change saved
+review decisions.
 
 #### Scenario: Edit a possible duplicate
 - **WHEN** a Place edit has a possible duplicate candidate
 - **THEN** Dismiss with the close icon is at the top of the warning,
-  Place details has an accessible disclosure chevron, and Merge is an
-  outlined peer action beneath the warning evidence
+  Place details has an accessible disclosure chevron, and Merge is a
+  bright warning-accent action beneath the warning evidence
 
 #### Scenario: Add a possible duplicate
 - **WHEN** a new Place draft has a possible duplicate candidate
-- **THEN** the warning offers top-right Dismiss and optional Use existing place
+- **THEN** the warning offers top-right Dismiss and a bright
+  warning-accent Use existing place action
 - **AND** creation remains valid without interacting with the warning
 
 ### Requirement: Context-aware, name-based matching

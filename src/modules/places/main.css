@@ -2228,13 +2228,17 @@
     flex: 0 0 auto;
 }
 
-.places-attention-actions .places-attention-fix {
+.places-attention-actions .places-attention-fix,
+.place-editor-duplicate .place-duplicate-merge,
+.place-editor-duplicate .place-duplicate-use-existing {
     border-color: var(--gg-status-warning-outline);
     background: var(--gg-status-warning-accent);
     color: var(--gg-status-warning-on-accent);
 }
 
-.places-attention-actions .places-attention-fix:hover {
+.places-attention-actions .places-attention-fix:hover,
+.place-editor-duplicate .place-duplicate-merge:hover,
+.place-editor-duplicate .place-duplicate-use-existing:hover {
     border-color: var(--gg-status-warning-accent);
     filter: brightness(1.06);
 }
@@ -3208,15 +3212,9 @@
 
 .place-editor-duplicate .place-duplicate-merge,
 .place-editor-duplicate .place-duplicate-use-existing {
-    border-color: var(--border-default);
-    background: transparent;
-    color: var(--text-primary);
-}
-
-.place-editor-duplicate .place-duplicate-merge:hover,
-.place-editor-duplicate .place-duplicate-use-existing:hover {
-    background: var(--surface-card-hover);
-    border-color: var(--border-strong);
+    min-height: 32px;
+    padding: 5px 9px;
+    font-size: 12px;
 }
 
 .place-editor-duplicate .button:focus-visible {
