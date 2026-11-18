@@ -567,7 +567,6 @@ function completePlaceEditorMapSelection()
     draft.coordinateText = placeEditorCoordinateText(draft.coordinates);
     if (draft.locationMode !== 'approximate') draft.approximateRadiusMeters = null;
     draft.mapSession = null;
-    draft.duplicateOverride = false;
     draft.dismissedDuplicateId = null;
     draft.disclosures.coordinates = true;
     updatePlaceEditorDraftDirty(draft);

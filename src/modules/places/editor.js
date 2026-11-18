@@ -152,7 +152,6 @@ function createPlaceEditorDraft(placeId = null, { initialCoordinates = null } = 
         dirty: Boolean(initialCoordinates && !existing),
         selectedSuggestion: null,
         existingCandidateId: null,
-        duplicateOverride: false,
         dismissedDuplicateId: null,
         disclosures: {
             alternativeNames: alternativeNames.length > 0,
@@ -464,12 +463,8 @@ function findPlaceEditorDuplicate(draft = placeEditorDraft)
     return best;
 }
 
-function renderPlaceEditorDuplicateWarning({ force = false } = {})
+function renderPlaceEditorDuplicateWarning()
 {
-    if (document.querySelector('[data-place-duplicate-menu]'))
-    {
-        closeMenu();
-    }
     const draft = placeEditorDraft;
     const host = modalBackdrop.querySelector('[data-place-duplicate-warning]');
 
@@ -479,7 +474,7 @@ function renderPlaceEditorDuplicateWarning({ force = false } = {})
 
     if (
         !duplicate
-        || (!force && duplicate.place.id === draft.dismissedDuplicateId)
+        || duplicate.place.id === draft.dismissedDuplicateId
     )
     {
         host.hidden = true;
@@ -521,17 +516,8 @@ function renderPlaceEditorDuplicateWarning({ force = false } = {})
         </div>
 
         <p>${escapeHtml(reasons.map(reason => t(reason)).join(' '))}</p>
+        <p>${escapeHtml(t('You can create this place without dismissing the warning.'))}</p>
 
-        <button
-          class="button ghost compact icon-only place-duplicate-more"
-          type="button"
-          data-place-duplicate-more="${escapeHtml(place.id)}"
-          aria-label="${escapeHtml(t('More actions'))}"
-          title="${escapeHtml(t('More actions'))}"
-          aria-haspopup="menu"
-          aria-expanded="false">
-          ${icon.more}
-        </button>
 
         <div
           class="place-duplicate-review"
@@ -565,14 +551,23 @@ function renderPlaceEditorDuplicateWarning({ force = false } = {})
             ` : ''}
           </dl>
 
+        </div>
+        <div class="place-duplicate-actions">
           ${draft.mode === 'add' ? `
-            <button
-              class="button secondary compact"
-              type="button"
+            <button class="button secondary compact" type="button"
               data-place-use-existing="${escapeHtml(place.id)}">
               ${escapeHtml(t('Use existing place'))}
             </button>
           ` : ''}
+          <button class="button ghost compact" type="button"
+            data-place-duplicate-ignore="${escapeHtml(place.id)}">
+            ${escapeHtml(t('Ignore'))}
+          </button>
+          <button class="button ghost compact" type="button"
+            data-place-duplicate-details aria-expanded="false"
+            aria-controls="placeDuplicateReview">
+            ${escapeHtml(t('Place details'))}
+          </button>
         </div>
         ${draft.mode === 'edit' ? `<button class="button secondary compact" type="button"
             data-place-review-merge="${escapeHtml(place.id)}">${escapeHtml(t('Review / Merge'))}</button>` : ''}
@@ -728,7 +723,6 @@ function selectPlaceEditorSuggestion(index)
     const input = modalBackdrop.querySelector('#placeNameInput');
     if (!draft || !suggestion || !input) return;
     draft.selectedSuggestion = suggestion;
-    draft.duplicateOverride = false;
     draft.dismissedDuplicateId = null;
     if (suggestion.kind === 'existing')
     {
@@ -843,7 +837,7 @@ function setPlaceEditorNameError(message = '')
     input?.setAttribute('aria-invalid', String(Boolean(message)));
 }
 
-function commitPlaceEditorDraft({ allowDuplicate = false } = {})
+function commitPlaceEditorDraft()
 {
     const draft = syncPlaceEditorDraftFromModal();
     if (!draft) return;
@@ -867,14 +861,6 @@ function commitPlaceEditorDraft({ allowDuplicate = false } = {})
     draft.coordinateText = placeEditorCoordinateText(draft.coordinates);
     draft.approximateRadiusMeters = coordinateState.radiusMeters;
     draft.alternativeNames = normalizePlaceAlternativeNames(draft.alternativeNames, draft.name);
-    const duplicate = findPlaceEditorDuplicate(draft);
-    if (duplicate && !(allowDuplicate || draft.duplicateOverride))
-    {
-        draft.existingCandidateId = duplicate.place.id;
-        renderPlaceEditorDuplicateWarning({ force: true });
-        modalBackdrop.querySelector('[data-place-duplicate-warning]')?.scrollIntoView({ block: 'nearest' });
-        return;
-    }
     const existing = draft.placeId ? getPlace(draft.placeId) : null;
     if (draft.mode === 'edit' && !existing)
     {
@@ -1339,138 +1325,6 @@ async function startPlaceEditorMapSelection()
     });
 }
 
-function openPlaceDuplicateMenu(anchor, placeId)
-{
-    const root = anchor.closest('[data-place-editor]');
-    const draft = placeEditorDraft;
-
-    if (!root || !draft) return;
-
-    if (
-        document.querySelector('[data-place-duplicate-menu]')
-        && menuLifecycleAnchor === anchor
-    )
-    {
-        closeMenu();
-        return;
-    }
-
-    closeMenu();
-
-    const menu = document.createElement('div');
-    menu.id = 'projectMenu';
-    menu.className = 'menu-popover';
-    menu.dataset.placeDuplicateMenu = '';
-    menu.setAttribute('role', 'menu');
-    menu.setAttribute('aria-label', t('More actions'));
-
-    menu.innerHTML = `
-        <button
-          type="button"
-          role="menuitem"
-          data-duplicate-action="details">
-          ${escapeHtml(t('Place details'))}
-        </button>
-
-        <button
-          type="button"
-          role="menuitem"
-          data-duplicate-action="ignore">
-          ${escapeHtml(t('Ignore for this draft'))}
-        </button>
-      `;
-
-    // Keep the menu inside the modal's focus boundary,
-    // but outside its scrolling content.
-    modalBackdrop.appendChild(menu);
-
-    const rect = anchor.getBoundingClientRect();
-    const menuRect = menu.getBoundingClientRect();
-
-    const left = Math.max(
-        12,
-        Math.min(rect.right - menuRect.width,
-            window.innerWidth - menuRect.width - 12)
-    );
-
-    const preferredTop = rect.bottom + 6;
-    const top = preferredTop + menuRect.height <= window.innerHeight - 12
-        ? preferredTop
-        : Math.max(12, rect.top - menuRect.height - 6);
-
-    menu.style.left = `${left}px`;
-    menu.style.top = `${top}px`;
-
-    anchor.setAttribute('aria-expanded', 'true');
-    bindMenuLifecycle(anchor);
-
-    menu.addEventListener('click', event =>
-    {
-        const action = event.target.closest('[data-duplicate-action]')
-            ?.dataset.duplicateAction;
-
-        if (!action) return;
-
-        closeMenu();
-
-        if (!root.isConnected || placeEditorDraft !== draft) return;
-
-        if (action === 'details')
-        {
-            const panel = root.querySelector('#placeDuplicateReview');
-            if (panel) panel.hidden = !panel.hidden;
-
-            anchor.focus({ preventScroll: true });
-            return;
-        }
-
-        if (action === 'ignore')
-        {
-            draft.dismissedDuplicateId = placeId;
-            draft.existingCandidateId = null;
-            draft.duplicateOverride = true;
-
-            renderPlaceEditorDuplicateWarning();
-
-            root.querySelector('[data-place-choose-map]')?.focus({
-                preventScroll: true
-            });
-        }
-    });
-
-    const items = [...menu.querySelectorAll('[role="menuitem"]')];
-
-    menu.addEventListener('keydown', event =>
-    {
-        const index = items.indexOf(document.activeElement);
-        let next;
-
-        if (event.key === 'ArrowDown') next = (index + 1) % items.length;
-        else if (event.key === 'ArrowUp')
-        {
-            next = (index - 1 + items.length) % items.length;
-        }
-        else if (event.key === 'Home') next = 0;
-        else if (event.key === 'End') next = items.length - 1;
-        else if (event.key === 'Tab')
-        {
-            event.preventDefault();
-            closeMenu();
-            anchor.focus({ preventScroll: true });
-            return;
-        }
-        else
-        {
-            return;
-        }
-
-        event.preventDefault();
-        items[next].focus({ preventScroll: true });
-    });
-
-    items[0]?.focus({ preventScroll: true });
-}
-
 function bindPlaceEditor()
 {
     const draft =
@@ -1550,7 +1404,6 @@ function bindPlaceEditor()
         draft.searchTouched = true;
         draft.selectedSuggestion = null;
         draft.existingCandidateId = null;
-        draft.duplicateOverride = false;
         draft.dismissedDuplicateId = null;
         setPlaceEditorNameError();
         updatePlaceEditorDraftDirty(draft);
@@ -1575,8 +1428,11 @@ function bindPlaceEditor()
         }
         else if (event.key === 'Enter')
         {
-            event.preventDefault();
-            if (draft.activeSuggestionIndex >= 0) selectPlaceEditorSuggestion(draft.activeSuggestionIndex);
+            if (draft.activeSuggestionIndex >= 0)
+            {
+                event.preventDefault();
+                selectPlaceEditorSuggestion(draft.activeSuggestionIndex);
+            }
             else closePlaceEditorSuggestions();
         }
         else if (event.key === 'Escape')
@@ -1603,7 +1459,6 @@ function bindPlaceEditor()
     root.querySelector('#placeAlternativeNamesInput')?.addEventListener('input', () =>
     {
         draft.dismissedDuplicateId = null;
-        draft.duplicateOverride = false;
         updatePlaceEditorAlternativeSummary();
         renderPlaceEditorDuplicateWarning();
     });
@@ -1616,13 +1471,16 @@ function bindPlaceEditor()
     {
         input.addEventListener('change', () =>
         {
+            draft.dismissedDuplicateId = null;
             updatePlaceEditorCoordinateUi();
             renderPlaceEditorDuplicateWarning();
         });
     });
     root.querySelector('#placeApproximateRadiusInput')?.addEventListener('input', () =>
     {
+        draft.dismissedDuplicateId = null;
         updatePlaceEditorCoordinateUi();
+        renderPlaceEditorDuplicateWarning();
     });
     root.querySelector('#placeApproximateRadiusInput')?.addEventListener('blur', () =>
         updatePlaceEditorCoordinateUi({ formatValues: true })
@@ -1633,7 +1491,6 @@ function bindPlaceEditor()
         {
             draft.selectedSuggestion = null;
             draft.dismissedDuplicateId = null;
-            draft.duplicateOverride = false;
             updatePlaceEditorSelectionNotice();
             updatePlaceEditorCoordinateUi();
             renderPlaceEditorDuplicateWarning();
@@ -1666,7 +1523,6 @@ function bindPlaceEditor()
         if (radius) radius.value = '';
 
         draft.selectedSuggestion = null;
-        draft.duplicateOverride = false;
         draft.dismissedDuplicateId = null;
 
         updatePlaceEditorSelectionNotice();
@@ -1680,24 +1536,37 @@ function bindPlaceEditor()
     root.querySelector('[data-place-choose-map]')?.addEventListener('click', startPlaceEditorMapSelection);
     root.querySelector('[data-place-duplicate-warning]')?.addEventListener('click', event =>
     {
-        const moreButton = event.target.closest('[data-place-duplicate-more]');
-
-        if (moreButton)
-        {
-            openPlaceDuplicateMenu(
-                moreButton,
-                moreButton.dataset.placeDuplicateMore
-            );
-            return;
-        }
-
         const existingId = event.target.closest('[data-place-use-existing]')
             ?.dataset.placeUseExisting;
-
         if (existingId && draft.mode === 'add')
         {
             useExistingPlaceFromEditor(existingId);
+            return;
         }
+
+        const ignoreId = event.target.closest('[data-place-duplicate-ignore]')
+            ?.dataset.placeDuplicateIgnore;
+        if (ignoreId)
+        {
+            draft.dismissedDuplicateId = ignoreId;
+            draft.existingCandidateId = null;
+            renderPlaceEditorDuplicateWarning();
+            input.focus({ preventScroll: true });
+            return;
+        }
+
+        const detailsButton = event.target.closest('[data-place-duplicate-details]');
+        if (detailsButton)
+        {
+            const panel = root.querySelector('#placeDuplicateReview');
+            if (panel)
+            {
+                panel.hidden = !panel.hidden;
+                detailsButton.setAttribute('aria-expanded', String(!panel.hidden));
+            }
+            return;
+        }
+
         const mergeId = event.target.closest('[data-place-review-merge]')?.dataset.placeReviewMerge;
         if (mergeId && draft.mode === 'edit')
         {

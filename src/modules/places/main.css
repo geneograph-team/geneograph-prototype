@@ -3049,7 +3049,6 @@
 }
 
 .place-duplicate-heading {
-    padding-inline-end: 48px;
     display: flex;
     align-items: center;
     gap: var(--space-2);
@@ -3071,12 +3070,6 @@
     overflow-wrap: anywhere;
 }
 
-.place-editor-duplicate>.place-duplicate-more {
-    position: absolute;
-    inset-block-start: var(--space-2);
-    inset-inline-end: var(--space-2);
-}
-
 .place-editor-duplicate p {
     margin: 0;
     color: var(--text-tertiary);
@@ -3090,6 +3083,12 @@
 
 .place-editor-duplicate>p:empty {
     display: none;
+}
+
+.place-duplicate-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
 }
 
 .place-duplicate-review {
@@ -3121,10 +3120,6 @@
 .place-duplicate-review ul {
     margin: 0;
     padding-left: 18px;
-}
-
-.place-duplicate-review .button {
-    justify-self: start;
 }
 
 .place-map-location {

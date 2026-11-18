@@ -1679,6 +1679,7 @@ const RU_TERMS_STATUSES = {
 
     'Possible duplicates': 'Возможные дубликаты',
     'Ignore for this draft': 'Игнорировать в этом черновике',
+    'You can create this place without dismissing the warning.': 'Вы можете создать это место, не закрывая предупреждение.',
     'Compare these saved places before deciding whether to merge them.': 'Сравните сохранённые места перед объединением.',
     'No possible duplicates found.': 'Возможных дубликатов нет.',
     'The names match.': 'Названия совпадают.',

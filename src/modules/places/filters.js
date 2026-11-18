@@ -832,8 +832,23 @@ function placeReviewConnectionCount(placeId)
         .reduce((total, count) => total + Number(count || 0), 0);
 }
 
+function placeDuplicateContextsConflict(left, right)
+{
+    const context = value => String(value || '').split(',').slice(1)
+        .map(normalizePlaceLookupText).filter(Boolean);
+    const a = context(left);
+    const b = context(right);
+    const sharedDepth = Math.min(a.length, b.length);
+    for (let depth = 1; depth <= sharedDepth; depth += 1)
+    {
+        if (a[a.length - depth] !== b[b.length - depth]) return true;
+    }
+    return false;
+}
+
 function placeDuplicateNameSimilarity(left, right)
 {
+    if (placeDuplicateContextsConflict(left, right)) return 0;
     const a = normalizePlaceLookupText(String(left || '').split(',')[0]);
     const b = normalizePlaceLookupText(String(right || '').split(',')[0]);
     if (!a || !b) return 0;
@@ -870,6 +885,8 @@ function placeDuplicateFingerprint(place)
 function matchDuplicatePlaces(left, right)
 {
     if (!left || !right || left.id === right.id || left.projectId !== right.projectId) return null;
+    // A shared locality name does not imply the same Place across regions.
+    if (placeDuplicateContextsConflict(left.name, right.name)) return null;
     const leftNames = [left.name, ...placeAlternativeNames(left)];
     const rightNames = [right.name, ...placeAlternativeNames(right)];
     const leftName = normalizePlaceLookupText(left.name);

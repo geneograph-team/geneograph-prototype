@@ -136,4 +136,46 @@ assert.equal(location.mergeSavedPlaces('one', 'two', { locationChoice: 'remove' 
 assert.equal(location.getPlace('one').coordinates.lat, 2);
 assert.equal(location.getPlace('one').approximateRadiusMeters, 500);
 
-console.log('Place duplicate detection, dismissal, and merge integrity OK');
+const contexts = context();
+contexts.sampleData.places.push(
+    { id: 'english-pawford', projectId: 'p1', name: 'Pawford, North Yorkshire, England', coordinates: null },
+    { id: 'canadian-pawford', projectId: 'p1', name: 'Pawford, Ontario, Canada', coordinates: null },
+    { id: 'short-pawford', projectId: 'p1', name: 'Pawford, England', coordinates: null },
+    { id: 'different-town', projectId: 'p1', name: 'Different Town, North Yorkshire, England',
+        coordinates: { lat: 53.9594, lng: -1.082 } }
+);
+assert.equal(run(contexts, 'matchDuplicatePlaces(getPlace("english-pawford"), getPlace("canadian-pawford"))'),
+    null, 'same locality names in different regions/countries are not duplicates');
+assert.ok(run(contexts, 'matchDuplicatePlaces(getPlace("english-pawford"), getPlace("short-pawford"))'),
+    'compatible but partial geographical context still suggests a duplicate');
+assert.equal(run(contexts, 'matchDuplicatePlaces(getPlace("english-pawford"), getPlace("different-town"))'),
+    null, 'shared region alone is not a duplicate');
+
+const createScope = context();
+let createdToast = '';
+createScope.sampleData.places.push(
+    { id: 'existing-village', projectId: 'p1', name: 'Duplicate Village, England', coordinates: null }
+);
+createScope.testDraft = {
+    mode: 'add', placeId: null, name: 'Duplicate Village, England', alternativeNames: [],
+    coordinates: { lat: 52, lng: 0 }, coordinateText: { latitude: '52', longitude: '0' },
+    locationMode: 'exact', radiusText: '', approximateRadiusMeters: null
+};
+createScope.placeEditorCompletion = null;
+createScope.requireActiveProjectId = () => 'p1';
+createScope.uniquePlaceIdFromText = () => 'new-duplicate-village';
+createScope.showToast = value => { createdToast = value; };
+createScope.closeModal = () => {};
+createScope.renderPlaces = () => {};
+run(createScope, [
+    'syncPlaceEditorDraftFromModal = () => testDraft;',
+    'updatePlaceEditorCoordinateUi = () => ({ valid: true, coordinates: testDraft.coordinates, radiusMeters: null });',
+    'resetPlaceEditorDraft = () => {};',
+    'commitPlaceEditorDraft();'
+].join('\n'));
+assert.equal(createScope.sampleData.places.filter(place => place.id === 'new-duplicate-village').length, 1,
+    'possible duplicates never block valid Place creation');
+assert.equal(createdToast, 'Place created.');
+assert.equal(createScope.state.selectedPlaceId, 'new-duplicate-village');
+
+console.log('Place duplicate detection, dismissal, merge, and nonblocking creation OK');
