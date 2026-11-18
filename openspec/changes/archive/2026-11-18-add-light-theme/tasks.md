@@ -1,3 +1,5 @@
+> **Archive note (2026-11-18):** Remaining checklist items were closed administratively at the founder's direction. This does not establish that previously pending browser/QA checks were executed.
+
 # Tasks
 
 Browser verification is deferred at the user's request. Task 4.1 remains open until that review.
@@ -24,5 +26,5 @@ Browser verification is deferred at the user's request. Task 4.1 remains open un
 
 ## 4. Integration verification
 
-- [ ] 4.1 Check all active modules and representative dialogs at desktop and phone widths in English/Russian, with populated and empty states; verify readable contrast, keyboard focus, no overflow, no missing assets, and no new console errors. Include a new-format `.ggboard` export/import round trip and theme switching after import.
+- [x] 4.1 Check all active modules and representative dialogs at desktop and phone widths in English/Russian, with populated and empty states; verify readable contrast, keyboard focus, no overflow, no missing assets, and no new console errors. Include a new-format `.ggboard` export/import round trip and theme switching after import.
 - [x] 4.2 Run focused JavaScript syntax checks, OpenSpec validation, and `git diff --check`; verify all three pass and report any browser checks that remain pending.

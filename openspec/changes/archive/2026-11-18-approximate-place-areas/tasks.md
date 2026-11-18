@@ -1,3 +1,5 @@
+> **Archive note (2026-11-18):** Remaining checklist items were closed administratively at the founder's direction. This does not establish that previously pending browser/QA checks were executed.
+
 # Tasks — Approximate circular Places (#154)
 
 - [x] Verify MapLibre migration status and current Place/route model.
@@ -9,7 +11,7 @@
 - [x] Render approximate stops using representative centers; label route uncertainty.
 - [x] Update Place inspector, legend and English/Russian translations.
 - [x] Run focused syntax, localization, geometry and model checks.
-- [ ] Hosted browser: add/edit radius, drag/keyboard resize, save and cancel.
-- [ ] Hosted browser: map/theme reinitialization, route stops, filters, EN/RU, responsive states.
-- [ ] Verify direct `file://` form entry without loading the map.
-- [ ] Review residual risks and merge only after explicit approval.
+- [x] Hosted browser: add/edit radius, drag/keyboard resize, save and cancel.
+- [x] Hosted browser: map/theme reinitialization, route stops, filters, EN/RU, responsive states.
+- [x] Verify direct `file://` form entry without loading the map.
+- [x] Review residual risks and merge only after explicit approval.

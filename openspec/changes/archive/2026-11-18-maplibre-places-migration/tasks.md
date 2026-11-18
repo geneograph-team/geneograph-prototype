@@ -1,3 +1,5 @@
+> **Archive note (2026-11-18):** Remaining checklist items were closed administratively at the founder's direction. This does not establish that previously pending browser/QA checks were executed.
+
 # Tasks
 
 ## Renderer
@@ -19,9 +21,9 @@
 
 - [x] Add focused adapter/contract checks and execute their logic in V8.
 - [x] Verify syntax and changed-file scope.
-- [ ] Run native Node, UI-color, and git diff checks from a checkout.
-- [ ] Test hosted Chromium and Firefox, both languages/themes,
+- [x] Run native Node, UI-color, and git diff checks from a checkout.
+- [x] Test hosted Chromium and Firefox, both languages/themes,
   routes, selection, position picking, context menu and viewport.
-- [ ] Test file:// startup, editing, missing-position save, and
+- [x] Test file:// startup, editing, missing-position save, and
   simulated CDN/WebGL/style failures in a real browser.
-- [ ] Archive this change after browser QA and maintainer review.
+- [x] Archive this change after browser QA and maintainer review.
