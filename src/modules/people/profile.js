@@ -349,6 +349,11 @@ function renderProfileStatusValue(status)
 
 function renderProfileCard(person)
 {
+    if (profileFactPersonId !== person.id)
+    {
+        profileFactPersonId = person.id;
+        profileFactRecordIds.clear();
+    }
     const activeSection = normalizeProfileCardSection(state.peopleProfileEditTab);
 
     return `
@@ -1706,6 +1711,30 @@ function bindPeopleProfileControls(person)
         '[data-profile-card-root]'
     );
     bindProfileCardTabs(profileCard);
+    profileCard?.addEventListener('click', event =>
+    {
+        const add = event.target.closest('[data-profile-new-fact]');
+        if (add)
+        {
+            openTimelinePersonEditor({ kind: 'newAttribute', personId: person.id, tag: add.dataset.profileNewFact });
+            return;
+        }
+
+        const step = event.target.closest('[data-profile-fact-step]');
+        if (!step || step.disabled) return;
+        const panel = step.closest('[data-profile-card-panel]');
+        const tag = step.closest('[data-profile-fact-tag]').dataset.profileFactTag;
+        const direction = step.dataset.profileFactStep;
+        const hadFocus = document.activeElement === step;
+        panel.innerHTML = renderRepeatableFactReadOnly(person, tag, step.dataset.profileFactId);
+        localizeUI(panel);
+        if (hadFocus)
+        {
+            const nextFocus = panel.querySelector(`[data-profile-fact-step="${direction}"]:enabled`)
+                || panel.querySelector('[data-profile-fact-step]:enabled');
+            nextFocus?.focus({ preventScroll: true });
+        }
+    });
     main.querySelector('#profileEditButton')?.addEventListener('click', () =>
     {
         const currentPerson = getPerson(person.id);

@@ -137,23 +137,64 @@ function applyRepeatableFacts(person, draft)
     });
 }
 
-function renderRepeatableFactReadOnly(person, tag)
+const PROFILE_FACT_EMPTY_TEXT = {
+    EDUC: ['No education recorded', 'Add education'],
+    OCCU: ['No occupations recorded', 'Add occupation'],
+    FACT: ['No custom facts recorded', 'Add custom fact']
+};
+
+let profileFactPersonId = null;
+const profileFactRecordIds = new Map();
+
+function renderRepeatableFactReadOnly(person, tag, preferredId = profileFactRecordIds.get(tag))
 {
     const records = (getPerson(person.id)?.attributes || []).filter(record => record.tag === tag);
-    if (!records.length) return `<p class="panel-muted">${escapeHtml(t('No facts recorded.'))}</p>`;
-    return `<div class="repeatable-fact-readonly">${records.map(record =>
+    if (!records.length)
     {
-        const fields = tag === 'EDUC'
-            ? [['Institution name', educationInstitutionLabel(record)], ['Institution type', educationInstitutionTypeLabel(record) === 'Unknown' ? '' : educationInstitutionTypeLabel(record)], ['Education or credential', educationValueLabel(record)]]
-            : tag === 'OCCU' ? [['Occupation', record.value], ['Company name', record.company || record.agency]]
-                : [['Fact details', record.value]];
-        fields.push(['Place', editPlaceValue(record.placeId, record.placeText)], ['Address', record.address]);
-        if (tag === 'FACT') fields.push(['Date or period', formatGenealogyDateLabel(record.date)]);
-        else fields.push(['Start date', formatGenealogyDateLabel(record.fromDate || record.date)], ['End date', formatGenealogyDateLabel(record.toDate)]);
-        fields.push(['Notes', record.notes]);
-        const edit = tag === 'FACT' ? `<button class="panel-action" type="button" data-person-attribute-edit="${escapeHtml(record.id)}" data-person-id="${escapeHtml(person.id)}">${icon.edit}${escapeHtml(t('Edit fact'))}</button>` : '';
-        return `<section class="profile-info-block repeatable-fact-summary"><h4 ${tag === 'FACT' ? 'data-user-content' : ''}>${escapeHtml(tag === 'FACT' ? record.type || t('Custom fact') : t(repeatableFactLabel(tag)))}</h4>${fields.filter(([, value]) => value).map(([label, value]) => renderProfileInfoRow(label, value)).join('')}${edit}</section>`;
-    }).join('')}</div>`;
+        profileFactRecordIds.delete(tag);
+        const [heading, action] = PROFILE_FACT_EMPTY_TEXT[tag];
+        const glyph = addPersonFactDefinition(repeatableFactKind(tag)).icon;
+        return `<div class="profile-fact-empty">
+            <span class="profile-fact-empty-icon" aria-hidden="true">${glyph}</span>
+            <h4>${escapeHtml(t(heading))}</h4>
+            <button class="button primary" type="button" data-profile-new-fact="${tag}">${icon.plus}${escapeHtml(t(action))}</button>
+        </div>`;
+    }
+
+    const index = Math.max(0, records.findIndex(record => record.id === preferredId));
+    const record = records[index];
+    profileFactRecordIds.set(tag, record.id);
+
+    const fields = tag === 'EDUC'
+        ? [['Institution name', educationInstitutionLabel(record)], ['Institution type', educationInstitutionTypeLabel(record) === 'Unknown' ? '' : educationInstitutionTypeLabel(record)], ['Education or credential', educationValueLabel(record)]]
+        : tag === 'OCCU' ? [['Occupation', record.value], ['Company name', record.company || record.agency]]
+            : [['Fact details', record.value]];
+    fields.push(['Place', editPlaceValue(record.placeId, record.placeText)], ['Address', record.address]);
+    if (tag === 'FACT') fields.push(['Date or period', formatGenealogyDateLabel(record.date)]);
+    else fields.push(['Start date', formatGenealogyDateLabel(record.fromDate || record.date)], ['End date', formatGenealogyDateLabel(record.toDate)]);
+    fields.push(['Notes', record.notes]);
+
+    const title = escapeHtml(tag === 'FACT' ? record.type || t('Custom fact') : t(repeatableFactLabel(tag)));
+    const counter = t('{current} of {total}').replace('{current}', index + 1).replace('{total}', records.length);
+    const navigation = records.length > 1 ? `<div class="profile-fact-navigation">
+        <button type="button" class="control-icon-button" data-profile-fact-step="-1"
+            data-profile-fact-id="${escapeHtml(records[index - 1]?.id || '')}" aria-label="${escapeHtml(t('Previous fact'))}" ${index === 0 ? 'disabled' : ''}>${icon.chevron}</button>
+        <span role="status">${escapeHtml(counter)}</span>
+        <button type="button" class="control-icon-button" data-profile-fact-step="1"
+            data-profile-fact-id="${escapeHtml(records[index + 1]?.id || '')}" aria-label="${escapeHtml(t('Next fact'))}" ${index === records.length - 1 ? 'disabled' : ''}>${icon.chevron}</button>
+    </div>` : '';
+    const edit = tag === 'FACT' ? `<button class="panel-action" type="button" data-person-attribute-edit="${escapeHtml(record.id)}" data-person-id="${escapeHtml(person.id)}">${icon.edit}${escapeHtml(t('Edit fact'))}</button>` : '';
+    return `<section class="profile-info-block repeatable-fact-summary" data-profile-fact-tag="${tag}">
+        <header class="profile-fact-heading">
+            <h4 ${tag === 'FACT' ? `data-user-content tabindex="0" title="${title}"` : ''}>${title}</h4>
+            ${navigation}
+        </header>
+        ${fields.filter(([, value]) => value).map(([label, value]) => renderProfileInfoRow(label, value, {
+            fullValue: true,
+            userContent: label === 'Notes'
+        })).join('')}
+        ${edit}
+    </section>`;
 }
 
 function openTimelinePersonEditor(target)
