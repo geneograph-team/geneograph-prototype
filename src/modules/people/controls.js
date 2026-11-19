@@ -152,26 +152,26 @@ function deletePeopleRecords(personIds)
     render();
     showToast(validIds.length === 1 ? 'Person deleted.' : `${validIds.length} people deleted.`);
 }
-function bindPeopleToolbarControls(rows)
+function bindPeopleToolbarControls(root = main)
 {
-    main.querySelector('[data-people-mobile-search]')?.addEventListener('click', () =>
+    root.querySelector('[data-people-mobile-search]')?.addEventListener('click', () =>
     {
         peopleMobileSearchOpen = true;
-        main.querySelector('.people-normal-toolbar')?.classList.add('mobile-search-open');
-        main.querySelector('#peopleSearch')?.focus();
+        root.querySelector('.people-normal-toolbar')?.classList.add('mobile-search-open');
+        root.querySelector('#peopleSearch')?.focus();
     });
-    main.querySelector('[data-people-mobile-search-close]')?.addEventListener('click', () =>
+    root.querySelector('[data-people-mobile-search-close]')?.addEventListener('click', () =>
     {
         peopleMobileSearchOpen = false;
-        main.querySelector('.people-normal-toolbar')?.classList.remove('mobile-search-open');
-        main.querySelector('[data-people-mobile-search]')?.focus();
+        root.querySelector('.people-normal-toolbar')?.classList.remove('mobile-search-open');
+        root.querySelector('[data-people-mobile-search]')?.focus();
     });
-    bindSearchInput(main, '#peopleSearch', 'peopleSearch', () =>
+    bindSearchInput(root, '#peopleSearch', 'peopleSearch', () =>
     {
         clearPeopleSelection();
         renderPeople();
     });
-    bindAppSortControl(main, {
+    bindAppSortControl(root, {
         id: 'peopleSort',
         options: APP_SORT_OPTIONS.people,
         getField: () => state.peopleSort,
@@ -190,23 +190,58 @@ function bindPeopleToolbarControls(rows)
             renderPeople();
         }
     });
-    main.querySelector('#peopleColumnsButton')?.addEventListener('click', event => openPeopleColumnsPopover(event.currentTarget));
-    main.querySelector('#peopleFilterButton')?.addEventListener('click', event => openPeopleFilterPopover(event.currentTarget));
-    main.querySelector('#peopleClearFilters')?.addEventListener('click', clearPeopleFilters);
-    main.querySelector('#peopleSaveView')?.addEventListener('click', openSavePeopleViewModal);
-    main.querySelectorAll('[data-people-remove-filter]').forEach(button =>
+    root.querySelector('#peopleColumnsButton')?.addEventListener('click', event => openPeopleColumnsPopover(event.currentTarget));
+    root.querySelector('#peopleFilterButton')?.addEventListener('click', event => openPeopleFilterPopover(event.currentTarget));
+    root.querySelector('#peopleClearFilters')?.addEventListener('click', clearPeopleFilters);
+    root.querySelector('#peopleSaveView')?.addEventListener('click', openSavePeopleViewModal);
+    root.querySelectorAll('[data-people-remove-filter]').forEach(button =>
     {
         button.addEventListener('click', () => removePeopleFilter(button.dataset.peopleRemoveFilter));
     });
-    main.querySelector('#addPeoplePerson')?.addEventListener('click', () => openAddPersonModal('Add person', 'Create a new person in this project'));
-    main.querySelector('[data-people-bulk-export]')?.addEventListener('click', () => showToast('Export selected people'));
-    main.querySelector('[data-people-bulk-add-board]')?.addEventListener('click', () => openGeneographBoardChooser(state.peopleSelectedIds));
-    main.querySelector('[data-people-bulk-delete]')?.addEventListener('click', () => openDeletePeopleConfirm(state.peopleSelectedIds));
-    main.querySelector('[data-people-bulk-clear]')?.addEventListener('click', () =>
+    root.querySelector('#addPeoplePerson')?.addEventListener('click', () => openAddPersonModal('Add person', 'Create a new person in this project'));
+    root.querySelector('[data-people-bulk-add-board]')?.addEventListener('click', () => openGeneographBoardChooser(state.peopleSelectedIds));
+    root.querySelector('[data-people-bulk-delete]')?.addEventListener('click', () => openDeletePeopleConfirm(state.peopleSelectedIds));
+    root.querySelector('[data-people-bulk-clear]')?.addEventListener('click', () =>
     {
         clearPeopleSelection();
-        renderPeople();
+        refreshPeopleSelectionControls();
+        main.querySelector('#peopleSearch')?.focus({ preventScroll: true });
     });
+}
+
+function refreshPeopleSelectionControls()
+{
+    const selectedIds = peopleSelectedIdSet();
+    const checkboxes = [...main.querySelectorAll('[data-people-select-id]')];
+    const visibleIds = new Set(checkboxes.map(checkbox => checkbox.dataset.peopleSelectId));
+    const visibleSelected = [...visibleIds].filter(id => selectedIds.has(id)).length;
+
+    for (const checkbox of checkboxes)
+    {
+        checkbox.checked = selectedIds.has(checkbox.dataset.peopleSelectId);
+        checkbox.closest('[data-people-row]')?.classList.toggle('is-selected', checkbox.checked);
+    }
+
+    main.querySelectorAll('[data-people-select-visible]').forEach(checkbox =>
+    {
+        checkbox.checked = visibleIds.size > 0 && visibleSelected === visibleIds.size;
+        checkbox.indeterminate = visibleSelected > 0 && !checkbox.checked;
+        checkbox.disabled = visibleIds.size === 0;
+    });
+
+    const slot = main.querySelector('.people-toolbar-slot');
+    const summary = slot?.querySelector('.people-bulk-summary');
+    if (selectedIds.size && summary)
+    {
+        summary.textContent = `${selectedIds.size} selected`;
+        localizeUI(summary);
+    }
+    else if (slot && Boolean(summary) !== Boolean(selectedIds.size))
+    {
+        slot.innerHTML = selectedIds.size ? renderPeopleBulkToolbar() : renderPeopleNormalToolbar();
+        localizeUI(slot);
+        bindPeopleToolbarControls(slot);
+    }
 }
 
 function bindPeopleSelectionControls(rows)
@@ -220,17 +255,15 @@ function bindPeopleSelectionControls(rows)
         headerCheckbox.addEventListener('click', event =>
         {
             event.stopPropagation();
+            const { visibleIds, allVisibleSelected } = peopleVisibleSelectionState(rows);
             const selectedIds = peopleSelectedIdSet();
-            if (selectionState.allVisibleSelected)
+            visibleIds.forEach(personId =>
             {
-                selectionState.visibleIds.forEach(personId => selectedIds.delete(personId));
-            }
-            else
-            {
-                selectionState.visibleIds.forEach(personId => selectedIds.add(personId));
-            }
+                if (allVisibleSelected) selectedIds.delete(personId);
+                else selectedIds.add(personId);
+            });
             setPeopleSelection([...selectedIds]);
-            renderPeople();
+            refreshPeopleSelectionControls();
         });
     });
 
@@ -239,11 +272,10 @@ function bindPeopleSelectionControls(rows)
         checkbox.addEventListener('click', event =>
         {
             event.stopPropagation();
-            togglePeopleSelection(checkbox.dataset.peopleSelectId, {
-                shiftKey: event.shiftKey,
-                rows
-            });
-            renderPeople();
+            const personId = checkbox.dataset.peopleSelectId;
+            togglePeopleSelection(personId, { shiftKey: event.shiftKey, rows });
+            refreshPeopleSelectionControls();
+            previewPeoplePerson(personId);
         });
     });
 }
@@ -498,9 +530,7 @@ function bindPeopleControls(
     });
     bindPeopleSidebar(main);
 
-    bindPeopleToolbarControls(
-        rows
-    );
+    bindPeopleToolbarControls();
 
     bindPeoplePaginationControls();
 

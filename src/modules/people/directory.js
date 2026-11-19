@@ -1799,24 +1799,23 @@ function renderPeopleNormalToolbar()
       `;
 }
 
-function renderPeopleBulkToolbar(rows)
+function renderPeopleBulkToolbar()
 {
     const count = peopleSelectedRecords().length;
     return `<div class="people-bulk-toolbar" aria-label="Bulk actions for selected people">
         <strong class="people-bulk-summary">${count} selected</strong>
         <div class="people-bulk-actions">
-          <button class="button secondary" type="button" data-people-bulk-export>${icon.export} Export selected people</button>
-          <button class="button secondary" type="button" data-people-bulk-add-board>${icon.whiteboard} Add selected people to a Geneograph board</button>
+          <button class="button secondary" type="button" data-people-bulk-add-board>${icon.whiteboard} ${escapeHtml(t('Add to Geneograph'))}</button>
           <button class="button danger" type="button" data-people-bulk-delete>${icon.trash} Delete selected</button>
           <button class="button secondary" type="button" data-people-bulk-clear>Clear</button>
         </div>
       </div>`;
 }
 
-function renderPeopleDirectoryControls(rows)
+function renderPeopleDirectoryControls()
 {
     const toolbar = state.peopleSelectedIds.length
-        ? renderPeopleBulkToolbar(rows)
+        ? renderPeopleBulkToolbar()
         : renderPeopleNormalToolbar();
 
     return `<div class="people-directory-controls">
@@ -1902,9 +1901,7 @@ function renderPeople()
             class="people-content"
             aria-label="People directory">
 
-            ${renderPeopleDirectoryControls(
-                visibleRows
-            )}
+            ${renderPeopleDirectoryControls()}
 
             <div
               class="people-table-wrap ${!filteredRows.length ? 'is-empty' : ''}">
@@ -2090,7 +2087,7 @@ function renderPeopleMobileList(rows)
     const selectedIds = peopleSelectedIdSet();
     return `<div class="people-mobile-list" aria-label="${escapeHtml(t('People'))}">
         <label class="people-mobile-select-all"><input class="people-select-checkbox" type="checkbox" data-people-select-visible aria-label="${escapeHtml(t('Select all visible people'))}"><span>${escapeHtml(t('Select all visible people'))}</span></label>
-        ${rows.map(person => `<article class="people-mobile-row ${person.id === state.selectedPeopleId ? 'is-previewed' : ''}" data-people-row="${escapeHtml(person.id)}" tabindex="0" ${person.id === state.selectedPeopleId ? 'aria-current="true"' : ''}>
+        ${rows.map(person => `<article class="people-mobile-row ${person.id === state.selectedPeopleId ? 'is-previewed' : ''} ${selectedIds.has(person.id) ? 'is-selected' : ''}" data-people-row="${escapeHtml(person.id)}" tabindex="0" ${person.id === state.selectedPeopleId ? 'aria-current="true"' : ''}>
             <input class="people-select-checkbox" type="checkbox" data-people-select-id="${escapeHtml(person.id)}" aria-label="${escapeHtml(t('Select'))} ${escapeHtml(person.name)}" ${selectedIds.has(person.id) ? 'checked' : ''}>
             ${renderPersonAvatar(person, 'small-avatar')}
             <div class="people-mobile-copy">

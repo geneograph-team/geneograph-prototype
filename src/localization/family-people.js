@@ -264,8 +264,7 @@ const RU_UI_PEOPLE = {
     'Create': 'Создать',
 
     'Bulk actions for selected people': 'Массовые действия с выбранными людьми',
-    'Export selected people': 'Экспортировать выбранных людей',
-    'Add selected people to a Geneograph board': 'Добавить выбранных людей на холст Генеографа',
+    'Add to Geneograph': 'Добавить в Генеограф',
     'Select all visible people': 'Выбрать всех видимых людей',
 
     'Review center': 'Центр проверки',
