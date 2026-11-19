@@ -774,7 +774,7 @@
     width: 100%;
     border-collapse: separate;
     border-spacing: 0;
-    min-width: 820px;
+    table-layout: fixed;
 }
 
 .people-table th,
@@ -795,6 +795,11 @@
     font-size: 12px;
     letter-spacing: .04em;
     font-weight: 800;
+}
+
+.people-table [data-people-table-column] {
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .people-table tr {
@@ -903,11 +908,31 @@
     text-align: center !important;
 }
 
-.people-actions-column {
-    width: 72px;
-    min-width: 72px;
-    max-width: 72px;
-    text-align: center !important;
+.people-table .people-actions-column {
+    position: sticky;
+    inset-inline-end: 0;
+    width: 52px;
+    min-width: 52px;
+    padding-inline: 8px;
+    text-align: center;
+    box-shadow: -1px 0 0 var(--table-divider);
+}
+
+.people-table td.people-actions-column {
+    z-index: 1;
+    background-color: var(--table-surface);
+}
+
+.people-table tr:hover td.people-actions-column {
+    background-image: linear-gradient(var(--table-row-hover), var(--table-row-hover));
+}
+
+.people-table tr.is-selected td.people-actions-column {
+    background-image: linear-gradient(var(--table-row-selected), var(--table-row-selected));
+}
+
+.people-table th.people-actions-column {
+    z-index: 3;
 }
 
 .people-select-checkbox {

@@ -3,81 +3,69 @@ function openAddFactOverlay(person)
     openTimelinePersonEditor({ kind: 'additionalFacts', personId: person.id });
 }
 
-function closePeopleColumnsPopover()
+function openPeopleColumnsModal()
 {
-    document.getElementById('peopleColumnsPopover')?.remove();
-    document.getElementById('peopleColumnsButton')?.setAttribute('aria-expanded', 'false');
-    document.removeEventListener('click', closePeopleColumnsOnOutside);
-    document.removeEventListener('keydown', closePeopleColumnsOnEscape);
-}
-
-function closePeopleColumnsOnOutside(event)
-{
-    if (!event.target.closest('#peopleColumnsPopover') && !event.target.closest('#peopleColumnsButton')) closePeopleColumnsPopover();
-}
-
-function closePeopleColumnsOnEscape(event)
-{
-    if (event.key === 'Escape') closePeopleColumnsPopover();
-}
-
-function positionPeopleColumnsPopover(popover, anchor)
-{
-    const rect = anchor.getBoundingClientRect();
-    popover.style.maxHeight = '';
-    const width = popover.offsetWidth;
-    const height = popover.offsetHeight;
-    const below = window.innerHeight - rect.bottom - 20;
-    const above = rect.top - 20;
-    const placeBelow = below >= height || below >= above;
-    popover.style.left = `${Math.max(12, Math.min(rect.left, window.innerWidth - width - 12))}px`;
-    popover.style.top = `${placeBelow ? rect.bottom + 8 : Math.max(12, rect.top - height - 8)}px`;
-    popover.style.maxHeight = `${Math.max(0, placeBelow ? below : above)}px`;
-    anchor.setAttribute('aria-expanded', 'true');
-}
-
-function openPeopleColumnsPopover(anchor)
-{
-    if (document.getElementById('peopleColumnsPopover'))
-    {
-        closePeopleColumnsPopover();
-        return;
-    }
-    closePeopleColumnsPopover();
     closePeopleFilterPopover();
     closeMenu();
-    const columns = peopleColumnsWithDefaults();
-    const optionalColumns = Object.entries(peopleColumnLabels).map(([key, label]) => `<label class="people-columns-option"><input type="checkbox" data-people-column="${key}" ${columns[key] ? 'checked' : ''}> <span>${escapeHtml(t(label))}</span></label>`).join('');
-    const popover = document.createElement('div');
-    popover.className = 'people-columns-popover';
-    popover.id = 'peopleColumnsPopover';
-    popover.setAttribute('role', 'dialog');
-    popover.setAttribute('aria-label', t('Choose People table columns'));
-    popover.innerHTML = `<div class="people-columns-header"><h3>${escapeHtml(t('Columns'))}</h3><p>${escapeHtml(t('Choose which fields are visible in the people table.'))}</p></div><div class="people-columns-list">${optionalColumns}</div><div class="people-columns-footer"><button class="button secondary" type="button" data-people-columns-reset>${escapeHtml(t('Reset columns'))}</button><button class="button primary" type="button" data-people-columns-close>${escapeHtml(t('Done'))}</button></div>`;
-    document.body.appendChild(popover);
-    positionPeopleColumnsPopover(popover, anchor);
-    popover.querySelectorAll('[data-people-column]').forEach(input => input.addEventListener('change', () =>
+    const wrap = main.querySelector('.people-table-wrap');
+    let draft = { ...state.peopleVisibleColumns };
+    const width = () => wrap?.clientWidth ?? Infinity;
+    const groupMarkup = peopleColumnGroups.map(([heading, definitions]) => `<fieldset class="people-columns-group">
+        <legend>${escapeHtml(t(heading))}</legend>
+        <div class="people-columns-list">${definitions.map(([key, label]) => `<label class="people-columns-option">
+            <input type="checkbox" data-people-column="${key}">
+            <span>${escapeHtml(t(label))}</span>
+        </label>`).join('')}</div>
+    </fieldset>`).join('');
+
+    openModal(`<div class="modal people-columns-modal" role="dialog" aria-modal="true" aria-labelledby="peopleColumnsTitle">
+        <header class="modal-header">
+            <div><h2 id="peopleColumnsTitle">${escapeHtml(t('Columns'))}</h2>
+            <p>${escapeHtml(t('Birth place and Death place adjust to the available width unless you choose them manually.'))}</p></div>
+            <button class="close-button" type="button" data-close aria-label="${escapeHtml(t('Close'))}">${icon.close}</button>
+        </header>
+        <div class="modal-body people-columns-body">${groupMarkup}</div>
+        <footer class="modal-footer people-columns-footer">
+            <button class="button secondary" type="button" data-people-columns-reset>${escapeHtml(t('Reset to defaults'))}</button>
+            <div class="people-columns-submit">
+                <button class="button secondary" type="button" data-close>${escapeHtml(t('Cancel'))}</button>
+                <button class="button primary" type="button" data-people-columns-apply>${escapeHtml(t('Apply columns'))}</button>
+            </div>
+        </footer>
+    </div>`);
+    const modal = modalBackdrop.querySelector('.people-columns-modal');
+    const inputs = [...modal.querySelectorAll('[data-people-column]')];
+    const update = () =>
     {
-        state.peopleVisibleColumns = peopleColumnsWithDefaults();
-        state.peopleVisibleColumns[input.dataset.peopleColumn] = input.checked;
-        renderPeople();
-        const newAnchor = document.getElementById('peopleColumnsButton');
-        if (newAnchor) positionPeopleColumnsPopover(popover, newAnchor);
+        const columns = peopleColumnsWithDefaults(draft, width());
+        inputs.forEach(input => { input.checked = columns[input.dataset.peopleColumn]; });
+    };
+    inputs.forEach(input => input.addEventListener('change', () =>
+    {
+        const key = input.dataset.peopleColumn;
+        if (!['birthPlace', 'deathPlace'].includes(key) && input.checked === defaultPeopleColumns[key])
+            delete draft[key];
+        else draft[key] = input.checked;
+        update();
     }));
-    popover.querySelector('[data-people-columns-reset]')?.addEventListener('click', () =>
+    modal.querySelector('[data-people-columns-reset]').addEventListener('click', () =>
     {
-        state.peopleVisibleColumns = { ...defaultPeopleColumns };
-        popover.querySelectorAll('[data-people-column]').forEach(input => { input.checked = true; });
-        renderPeople();
-        const newAnchor = document.getElementById('peopleColumnsButton');
-        if (newAnchor) positionPeopleColumnsPopover(popover, newAnchor);
+        draft = {};
+        update();
     });
-    popover.querySelector('[data-people-columns-close]')?.addEventListener('click', closePeopleColumnsPopover);
-    setTimeout(() =>
+    modal.querySelector('[data-people-columns-apply]').addEventListener('click', () =>
     {
-        document.addEventListener('click', closePeopleColumnsOnOutside);
-        document.addEventListener('keydown', closePeopleColumnsOnEscape);
-    }, 0);
+        state.peopleVisibleColumns = draft;
+        const position = { top: wrap?.scrollTop || 0, left: wrap?.scrollLeft || 0 };
+        closeModal();
+        renderPeople();
+        main.querySelector('.people-table-wrap')?.scrollTo(position);
+        main.querySelector('#peopleColumnsButton')?.focus({ preventScroll: true });
+    });
+    const observer = new ResizeObserver(update);
+    if (wrap) observer.observe(wrap);
+    modalBackdrop.afterClose = () => observer.disconnect();
+    update();
 }
 
 let peopleFilterReturnFocus =
@@ -221,7 +209,6 @@ function openPeopleFilterPopover(
     }
     closePeopleFilterPopover();
     closeAlbumsFilterPopover();
-    closePeopleColumnsPopover();
     closeMenu();
 
     peopleFilterReturnFocus =
@@ -984,7 +971,6 @@ function openPeopleSavedViewMenu(viewId, anchor)
 {
     closeMenu();
     closePeopleFilterPopover();
-    closePeopleColumnsPopover();
 
     const view = peopleProjectSavedViews().find(item => item.id === viewId);
     if (!view || !anchor) return;
@@ -1199,7 +1185,6 @@ function openPeopleActionsMenu(
     }
     closeMenu();
     closePeopleFilterPopover();
-    closePeopleColumnsPopover();
 
     const person = getPerson(personId);
 

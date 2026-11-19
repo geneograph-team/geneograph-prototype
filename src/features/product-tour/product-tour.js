@@ -156,7 +156,6 @@ const geneoTourSecondarySelectors = {
     'tour-navigation-intro': '[data-topbar-help]',
     'tree-to-people': '.tree-person-hero-profile',
     'tree-add-relative': '.tree-inspector #addRelative',
-    'people-columns': '#peopleColumnsButton',
     'people-filters': '#peopleFilterButton',
     'albums-filters': '#albumsFilterButton',
     'archive-filters': '#archiveFilterButton',
@@ -721,7 +720,7 @@ function geneoTourApplyTreeReveal(step)
             document.body.classList.add('geneo-tour-people-sidebar');
         if (step.id === 'people-to-profile') document.body.classList.add('geneo-tour-people-preview');
         if (step.id === 'people-to-geneograph') document.body.classList.add('geneo-tour-people-tabs');
-        if (step.id === 'people-columns' || step.id === 'people-filters')
+        if (step.id === 'people-filters')
             document.body.classList.add('geneo-tour-people-popover');
         return;
     }
@@ -775,7 +774,7 @@ function geneoTourTarget(index)
         'tree-to-people': '.topnav [data-module="People"]',
         'people-navigation': '.side-nav [data-people-side="people"]',
         'people-table': '.people-table-wrap',
-        'people-columns': '#peopleColumnsPopover',
+        'people-columns': '.people-columns-modal',
         'people-filters': '#peopleFilterPopover',
         'people-save-filter': '#peopleSaveView',
         'people-saved-filters': '.people-saved-filter-row',
@@ -944,7 +943,6 @@ function geneoTourClosePreview()
     }
     if (geneoTourRuntime.ownedPreview === 'modal' && modalBackdrop.classList.contains('open'))
         closeModal({ force: true });
-    if (geneoTourRuntime.ownedPreview === 'people-columns') closePeopleColumnsPopover();
     if (geneoTourRuntime.ownedPreview === 'people-filters') closePeopleFilterPopover();
     if (geneoTourRuntime.ownedPreview === 'albums-filters') closeAlbumsFilterPopover();
     if (geneoTourRuntime.ownedPreview === 'archive-filters') closeArchiveFilterPopover();
@@ -1249,18 +1247,30 @@ function geneoTourOpenPreview(step)
             geneoTourRuntime.openingPreview = false;
         }
     }
-    if (step.id === 'people-columns' || step.id === 'people-filters')
+    if (step.id === 'people-columns')
     {
-        const columns = step.id === 'people-columns';
-        const anchor = document.getElementById(columns ? 'peopleColumnsButton' : 'peopleFilterButton');
+        geneoTourRuntime.openingPreview = true;
+        try
+        {
+            openPeopleColumnsModal();
+            modalBackdrop.inert = true;
+            geneoTourRuntime.ownedPreview = 'modal';
+        }
+        finally
+        {
+            geneoTourRuntime.openingPreview = false;
+        }
+    }
+    if (step.id === 'people-filters')
+    {
+        const anchor = document.getElementById('peopleFilterButton');
         if (!anchor) return;
-        if (columns) openPeopleColumnsPopover(anchor);
-        else openPeopleFilterPopover(anchor);
-        const popover = document.getElementById(columns ? 'peopleColumnsPopover' : 'peopleFilterPopover');
+        openPeopleFilterPopover(anchor);
+        const popover = document.getElementById('peopleFilterPopover');
         if (popover)
         {
             popover.inert = true;
-            geneoTourRuntime.ownedPreview = columns ? 'people-columns' : 'people-filters';
+            geneoTourRuntime.ownedPreview = 'people-filters';
         }
     }
     if (step.id === 'tree-add-relative')
@@ -1826,7 +1836,7 @@ function geneoTourPosition()
         card.style.top = '';
         return;
     }
-    if (stepId === 'people-columns' || stepId === 'people-filters')
+    if (stepId === 'people-filters')
     {
         const popover = target;
         const anchor = geneoTourRuntime.secondaryTarget;
@@ -1836,7 +1846,7 @@ function geneoTourPosition()
             const top = anchorRect.bottom + 8;
             if (innerWidth > 640)
             {
-                const width = Math.min(stepId === 'people-columns' ? 360 : 560,
+                const width = Math.min(560,
                     innerWidth - card.offsetWidth - 44);
                 popover.style.width = `${width}px`;
                 popover.style.left = `${Math.max(card.offsetWidth + 24,

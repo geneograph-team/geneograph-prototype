@@ -463,8 +463,24 @@ function resetPeopleFilterFields(
         ?.reset();
 }
 
-const defaultPeopleColumns = Object.freeze({ living: true, birth: true, birthPlace: true, death: true, deathPlace: true, updated: false });
-const peopleColumnLabels = { living: 'Living', birth: 'Birth date', birthPlace: 'Birth place', death: 'Death date', deathPlace: 'Death place', updated: 'Updated' };
+const peopleColumnGroups = [
+    ['Identity & personal', [
+        ['living', 'Living status', 120, true], ['gender', 'Gender', 104],
+        ['middle', 'Middle name / Patronymic', 200], ['maiden', 'Maiden name', 145], ['religion', 'Religion', 135]
+    ]],
+    ['Life events', [
+        ['birth', 'Birth date', 130, true], ['birthPlace', 'Birth place', 175, true],
+        ['death', 'Death date', 130, true], ['deathPlace', 'Death place', 175, true],
+        ['age', 'Age / Age at death', 150], ['baptismDate', 'Baptism date', 138],
+        ['baptismPlace', 'Baptism place', 175], ['burialPlace', 'Burial place', 175], ['causeOfDeath', 'Cause of death', 160]
+    ]],
+    ['Family', [['relationship', 'Relationship', 150], ['children', 'Children count', 130]]],
+    ['Record metadata', [['created', 'Created', 130], ['updated', 'Last updated', 130]]]
+];
+const peopleColumns = peopleColumnGroups.flatMap(([, columns]) => columns);
+const defaultPeopleColumns = Object.fromEntries(peopleColumns.map(([key, , , enabled]) => [key, Boolean(enabled)]));
+const peopleFixedColumnWidth = 48 + 220 + 52;
+let peopleColumnsResizeObserver;
 
 let peopleSavedViews = [
     {
@@ -823,15 +839,49 @@ function renderPeopleHeroLifeSummary(
       `;
 }
 
-function peopleColumnsWithDefaults(columns = state.peopleVisibleColumns)
+function peopleTableMinimumWidth(columns)
 {
-    return { ...defaultPeopleColumns, ...(columns || {}) };
+    return peopleFixedColumnWidth + peopleColumns.reduce((total, [key, , width]) =>
+        total + (columns[key] ? width : 0), 0);
+}
+
+function peopleColumnsWithDefaults(overrides = state.peopleVisibleColumns, width = Infinity)
+{
+    const columns = { ...defaultPeopleColumns, ...overrides };
+    for (const key of ['deathPlace', 'birthPlace'])
+    {
+        if (typeof overrides?.[key] !== 'boolean' && peopleTableMinimumWidth(columns) > width)
+            columns[key] = false;
+    }
+    return columns;
 }
 
 function peopleColumnsCustomized()
 {
-    const columns = peopleColumnsWithDefaults();
-    return Object.keys(defaultPeopleColumns).some(key => columns[key] !== defaultPeopleColumns[key]);
+    return Object.keys(state.peopleVisibleColumns || {}).length > 0;
+}
+
+function observePeopleTableColumns()
+{
+    peopleColumnsResizeObserver?.disconnect();
+    const wrap = main.querySelector('.people-table-wrap');
+    const table = wrap?.querySelector('.people-table');
+    if (!table) return;
+    const update = () =>
+    {
+        const columns = peopleColumnsWithDefaults(state.peopleVisibleColumns, wrap.clientWidth);
+        table.style.minWidth = `${peopleTableMinimumWidth(columns)}px`;
+        for (const cell of table.querySelectorAll('[data-people-table-column]'))
+            cell.hidden = !columns[cell.dataset.peopleTableColumn];
+    };
+    const observer = new ResizeObserver(() =>
+    {
+        if (wrap.isConnected) update();
+        else observer.disconnect();
+    });
+    peopleColumnsResizeObserver = observer;
+    observer.observe(wrap);
+    update();
 }
 
 function getPeopleSourceCount(
@@ -1734,7 +1784,6 @@ function renderPeopleNormalToolbar()
             type="button"
             id="peopleColumnsButton"
             aria-haspopup="dialog"
-            aria-expanded="false"
             aria-label="Columns"
             title="Columns">
             ${icon.grid}
@@ -2022,19 +2071,40 @@ function renderPeopleSidebarInner()
         </div>`;
 }
 
+function peopleTableColumnValue(key, row, person)
+{
+    switch (key)
+    {
+        case 'gender': return t(row.gender === 'female' ? 'Female' : row.gender === 'male' ? 'Male' : 'Unknown');
+        case 'middle': return person?.names?.middle;
+        case 'maiden': return person?.names?.maiden;
+        case 'religion': return personAttributeByTag(person, 'RELI')?.value;
+        case 'age':
+            if (row.living === 'Deceased') return genealogyAgeRange(person?.birth, person?.death || null);
+            return row.living === 'Living' ? genealogyAgeRange(person?.birth) : null;
+        case 'baptismDate': return formatGenealogyDateLabel(personEventByTag(person, 'BAPM')?.date);
+        case 'baptismPlace': return getPlaceEventDisplay(personEventByTag(person, 'BAPM'));
+        case 'burialPlace': return editPlaceValue(person?.death?.burialPlaceId, person?.death?.burialPlaceText)
+            || getPlaceEventDisplay(personEventByTag(person, 'BURI'));
+        case 'causeOfDeath': return person?.death?.cause || person?.death?.reason;
+        case 'relationship': return row.relation;
+        case 'children': return getChildren(row.id).length;
+        case 'created': return formatProjectDate(row.createdAt, '');
+        case 'updated': return formatProjectDate(row.updatedAt, row.updated || '');
+        default: return row[key];
+    }
+}
+
 function renderPeopleTable(rows)
 {
     const columns = peopleColumnsWithDefaults();
+    const enabledColumns = peopleColumns.filter(([key]) => columns[key]);
     const selectedIds = peopleSelectedIdSet();
     const headers = [
         `<th class="people-select-column"><input class="people-select-checkbox" type="checkbox" data-people-select-visible aria-label="${escapeHtml(t('Select all visible people'))}" ${rows.length ? '' : 'disabled'}></th>`,
         '<th>Name</th>',
-        columns.living ? '<th>Living</th>' : '',
-        columns.birth ? '<th>Birth date</th>' : '',
-        columns.birthPlace ? '<th>Birth place</th>' : '',
-        columns.death ? '<th>Death date</th>' : '',
-        columns.deathPlace ? '<th>Death place</th>' : '',
-        columns.updated ? '<th>Updated</th>' : '',
+        ...enabledColumns.map(([key, label, width]) =>
+            `<th data-people-table-column="${key}" style="width:${width}px" title="${escapeHtml(t(label))}">${escapeHtml(t(label))}</th>`),
         `<th class="people-actions-column"><span class="sr-only">${escapeHtml(t('Actions'))}</span></th>`
     ].join('');
     return `<table class="people-table"><thead><tr>${headers}</tr></thead><tbody>
@@ -2042,6 +2112,7 @@ function renderPeopleTable(rows)
         {
             const isPreviewed = person.id === state.selectedPeopleId;
             const isSelected = selectedIds.has(person.id);
+            const central = getPerson(person.id);
             const rowClasses = [isPreviewed ? 'is-previewed' : '', isSelected ? 'is-selected' : ''].filter(Boolean).join(' ');
             return `
             <tr
@@ -2077,7 +2148,13 @@ function renderPeopleTable(rows)
                 </div>
               </div>
             </td>
-                ${columns.living ? `<td>${escapeHtml(person.living)}</td>` : ''}${columns.birth ? `<td>${escapeHtml(person.birth)}</td>` : ''}${columns.birthPlace ? `<td>${escapeHtml(person.birthPlace)}</td>` : ''}${columns.death ? `<td>${escapeHtml(person.death)}</td>` : ''}${columns.deathPlace ? `<td>${escapeHtml(person.deathPlace)}</td>` : ''}${columns.updated ? `<td>${escapeHtml(person.updated)}</td>` : ''}<td class="people-actions-column"><button class="more-button people-row-action" type="button" aria-label="Actions for ${escapeHtml(person.name)}" aria-haspopup="menu" aria-expanded="false" data-people-row-menu="${person.id}">${icon.more}</button></td></tr>`;
+            ${enabledColumns.map(([key]) =>
+            {
+                const value = peopleTableColumnValue(key, person, central);
+                const display = escapeHtml(value === '' || value == null ? '—' : String(value));
+                return `<td data-people-table-column="${key}" title="${display}">${display}</td>`;
+            }).join('')}
+            <td class="people-actions-column"><button class="more-button people-row-action" type="button" aria-label="Actions for ${escapeHtml(person.name)}" aria-haspopup="menu" aria-expanded="false" data-people-row-menu="${escapeHtml(person.id)}">${icon.more}</button></td></tr>`;
         }).join('')}
       </tbody></table>`;
 }

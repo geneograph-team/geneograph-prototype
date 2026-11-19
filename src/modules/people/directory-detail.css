@@ -783,54 +783,58 @@
     color: var(--brand-green-300);
 }
 
-.people-columns-popover {
-    position: fixed;
-    width: min(360px, calc(100vw - 24px));
-    z-index: 90;
-    border: 1px solid var(--border-strong);
-    border-radius: var(--radius-lg);
-    background: var(--surface-card);
-    box-shadow: var(--shadow-soft);
+.modal.people-columns-modal {
+    width: min(740px, 100%);
+    max-height: 88dvh;
+    display: flex;
+    flex-direction: column;
     overflow: hidden;
+}
+
+.people-columns-body {
+    min-height: 0;
+    overflow-y: auto;
     display: grid;
-    grid-template-rows: auto minmax(0, 1fr) auto;
+    gap: var(--space-4);
 }
 
-.people-columns-header {
-    padding: var(--space-4);
-    border-bottom: 1px solid var(--border-default);
-}
-
-.people-columns-header h3 {
-    margin: 0 0 4px;
-    font-size: 16px;
-}
-
-.people-columns-header p {
+.people-columns-group {
+    min-width: 0;
     margin: 0;
-    color: var(--text-tertiary);
-    font-size: 13px;
+    padding: var(--space-2);
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-sm);
+}
+
+.people-columns-group legend {
+    padding-inline: var(--space-2);
+    color: var(--text-primary);
+    font-weight: 700;
 }
 
 .people-columns-list {
-    padding: 8px;
     display: grid;
     gap: 4px;
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    align-content: start;
-    overflow-y: auto;
 }
 
-.people-columns-footer {
-    border-top: 1px solid var(--border-default);
-    padding: var(--space-3);
+.people-columns-modal .people-columns-footer {
+    flex-shrink: 0;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+}
+
+.people-columns-submit {
     display: flex;
-    justify-content: flex-end;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+    margin-inline-start: auto;
 }
 
-.people-columns-footer .button {
-    min-height: 36px;
-    letter-spacing: .01em;
+@media (max-width: 560px) {
+    .people-columns-list { grid-template-columns: minmax(0, 1fr); }
+    .modal.people-columns-modal { max-height: 100dvh; }
 }
 
 .people-hero-copy h2 {

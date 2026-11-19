@@ -1912,7 +1912,6 @@ function closeMenu()
     document.getElementById('projectMenu')?.remove();
     document.getElementById('relativePopover')?.remove();
     document.getElementById('topbarPopover')?.remove();
-    document.getElementById('peopleColumnsPopover')?.remove();
     document
         .getElementById(
             'peopleFilterPopover'

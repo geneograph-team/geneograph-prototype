@@ -190,7 +190,7 @@ function bindPeopleToolbarControls(root = main)
             renderPeople();
         }
     });
-    root.querySelector('#peopleColumnsButton')?.addEventListener('click', event => openPeopleColumnsPopover(event.currentTarget));
+    root.querySelector('#peopleColumnsButton')?.addEventListener('click', openPeopleColumnsModal);
     root.querySelector('#peopleFilterButton')?.addEventListener('click', event => openPeopleFilterPopover(event.currentTarget));
     root.querySelector('#peopleClearFilters')?.addEventListener('click', clearPeopleFilters);
     root.querySelector('#peopleSaveView')?.addEventListener('click', openSavePeopleViewModal);
@@ -531,6 +531,7 @@ function bindPeopleControls(
     bindPeopleSidebar(main);
 
     bindPeopleToolbarControls();
+    observePeopleTableColumns();
 
     bindPeoplePaginationControls();
 
