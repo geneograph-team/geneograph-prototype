@@ -86,6 +86,10 @@ async function archiveDocumentRenderPdf(blob, host, modal) {
     pdfjs.GlobalWorkerOptions.workerSrc = new URL('./vendor/pdfjs-worker-5.6.205.min.mjs', location.href).href;
     const bytes = await blob.arrayBuffer();
     const pdf = await pdfjs.getDocument({ data: bytes, isEvalSupported: false, useSystemFonts: true }).promise;
+    if (!modal.isConnected) {
+        await pdf.destroy();
+        return;
+    }
     if (!pdf.numPages) throw new Error('Empty PDF');
     host.replaceChildren();
     const toolbar = modal.querySelector('[data-document-tools]');
@@ -147,8 +151,6 @@ async function archiveDocumentRenderPdf(blob, host, modal) {
         if (!modal.isConnected) { observer.disconnect(); return; }
         render().catch(error => { if (modal.isConnected && error.name !== 'RenderingCancelledException') host.textContent = error.message; });
     });
-    await render();
-    observer.observe(host);
     const cleanup = new MutationObserver(() => {
         if (modal.isConnected) return;
         observer.disconnect();
@@ -156,7 +158,9 @@ async function archiveDocumentRenderPdf(blob, host, modal) {
         pdf.destroy();
         cleanup.disconnect();
     });
-    cleanup.observe(modalBackdrop, { childList: true });
+    cleanup.observe(modalBackdrop, { childList: true, subtree: true });
+    observer.observe(host);
+    await render();
 }
 
 function archiveDocumentRenderCsv(text, host) {
@@ -209,6 +213,11 @@ async function openArchiveDocumentViewer(fileId) {
     }
     openModal(`<div class="modal archive-document-modal" role="dialog" aria-modal="true" aria-labelledby="archiveDocumentTitle"><div class="modal-header"><div><h2 id="archiveDocumentTitle" data-user-content>${escapeHtml(file.name)}</h2><p>${escapeHtml(extension.toUpperCase())}</p></div><button class="close-button" type="button" data-close aria-label="Close">${icon.close}</button></div><div class="archive-document-tools" data-document-tools hidden></div><div class="modal-body archive-document-body" data-document-body data-user-content><p>${escapeHtml(archiveDocumentLabel('Loading document…', 'Загрузка документа…'))}</p></div></div>`);
     const modal = modalBackdrop.querySelector('.archive-document-modal');
+    await renderArchiveDocumentContent(file, modal);
+}
+
+async function renderArchiveDocumentContent(file, modal) {
+    const extension = archiveDocumentExtension(file.name);
     const host = modal?.querySelector('[data-document-body]');
     if (!host) return;
     try {

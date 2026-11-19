@@ -239,51 +239,6 @@ function renderPeopleProfile(person)
     bindPeopleProfileControls(person);
 }
 
-function peopleProfileAssets(person)
-{
-    const archiveMap = {
-        silver: [
-            { type: 'PNG', name: 'Pawford household register', meta: 'Four linked people - Source assigned', fileId: 'af1' },
-            { type: 'JPG', name: 'Silver kitten portrait', meta: 'Added Feb 20 2021 - Personal album', fileId: null },
-            { type: 'PNG', name: 'Silver birth announcement', meta: 'Name marked in image', fileId: 'af7' },
-            { type: 'PNG', name: 'Meowbridge marriage record', meta: 'Linked to Luna', fileId: 'af5' }
-        ],
-        luna: [
-            { type: 'JPG', name: 'Luna Purrington portrait', meta: 'Added Apr 30 2026 - Personal album', fileId: null },
-            { type: 'PNG', name: 'Meowbridge marriage record', meta: 'Name marked in image', fileId: 'af5' },
-            { type: 'PNG', name: 'Daisy letter to Luna', meta: 'Family correspondence', fileId: 'af4' }
-        ],
-        barnaby: [
-            { type: 'PNG', name: 'Pawford household register', meta: 'Name marked in image', fileId: 'af1' },
-            { type: 'PNG', name: 'Pawford register index', meta: 'Page reference', fileId: 'af3' }
-        ],
-        daisy: [
-            { type: 'PNG', name: 'Daisy birth record', meta: 'Name marked in image', fileId: 'af-birth-sample' },
-            { type: 'PNG', name: 'Daisy letter to Luna', meta: 'Family correspondence', fileId: 'af4' },
-            { type: 'JPG', name: 'Daisy Milkpaw scan', meta: 'Added May 2 2026 - Family album', fileId: null }
-        ]
-    };
-    return {
-        archive:
-          archiveMap[person.id]
-          || [
-              {
-                  type:
-                'PDF',
-
-                  name:
-                'Linked archive file.pdf',
-
-                  meta:
-                'Added recently - Source assigned',
-
-                  fileId:
-                null
-              }
-          ]
-    };
-}
-
 function splitProfileName(person)
 {
     const centralPerson = getPerson(person?.id);
@@ -619,119 +574,6 @@ function renderProfileCardPanels(person, activeSection)
       `;
 }
 
-function profileResourceNoun(count, singular, plural)
-{
-    return count === 1 ? singular : plural;
-}
-
-function renderProfileResourceEmpty(message)
-{
-    return `
-        <div class="profile-resource-empty">
-          ${escapeHtml(message)}
-        </div>
-      `;
-}
-
-function renderProfileResourceCard({
-    type,
-    iconSvg,
-    title,
-    count,
-    singular,
-    plural,
-    addLabel,
-    addToast,
-    addAction = '',
-    showFooter = true,
-    body
-})
-{
-    const noun = profileResourceNoun(
-        count,
-        singular,
-        plural
-    );
-
-    return `
-        <article
-          class="
-            profile-resource-card
-            profile-connected-card
-            profile-resource-card--${type}
-          ">
-
-          <h3 class="profile-connected-head">
-            <span class="profile-connected-title">
-              <span class="profile-connected-icon">
-                ${iconSvg}
-              </span>
-
-              <span>${escapeHtml(title)}</span>
-
-              <span
-                class="profile-resource-count"
-                aria-label="${escapeHtml(`${count} ${noun}`)}">
-                ${count}
-              </span>
-            </span>
-
-            ${addLabel
-                    ? `
-                <span class="profile-connected-actions">
-                  <button
-                    class="panel-action profile-connected-action"
-                    type="button"
-                    ${
-                        addAction
-                            ? `data-profile-resource-action="${escapeHtml(addAction)}"`
-                            : `data-toast="${escapeHtml(addToast || '')}"`
-                    }>
-
-                    ${icon.plus}
-
-                    <span>
-                      ${escapeHtml(addLabel)}
-                    </span>
-                  </button>
-                </span>
-              `
-                    : ''
-            }
-          </h3>
-
-          <div class="profile-resource-card__body">
-            ${body}
-          </div>
-
-          ${showFooter && count > 0
-                ? `
-              <button
-                class="profile-resource-card__footer"
-                type="button"
-                data-profile-view-all="${type}">
-                <span>
-                  View all ${count} ${escapeHtml(noun)}
-                </span>
-
-                ${icon.chevron}
-              </button>
-            `
-                : ''}
-        </article>
-      `;
-}
-
-function profileArchiveAddedLabel(item)
-{
-    const meta = String(item?.meta || '').trim();
-
-    if (!meta) return 'Added recently';
-
-    return meta.split(/\s+-\s+/)[0]
-        || 'Added recently';
-}
-
 function profileConnectedPlaceEventLabel(
     event
 )
@@ -861,6 +703,7 @@ function getProfileConnectedPlaces(
     ]
         .map(group => ({
             id: group.place.id,
+            events: group.events,
 
             title:
             placeDisplayText(
@@ -891,100 +734,383 @@ function getProfileConnectedPlaces(
         );
 }
 
-function renderProfileConnectedSources(
-    person
-)
+const profileConnectedCategories = [
+    ['photos', 'Photos', 'image', 'Add photos', 'add-photos'],
+    ['archive', 'Archive', 'archive', 'Add files', 'add-files'],
+    ['notes', 'Notes', 'note', 'Add note', 'add-note'],
+    ['places', 'Places', 'mapPin'],
+    ['sources', 'Sources', 'archive', 'Add sources', 'add-sources']
+];
+const profileConnectedPageSize = 8;
+let profileConnectedView;
+let profileConnectedResizeObserver;
+
+function profileConnectedRecords(person)
 {
-    const centralPerson =
-        getPerson(
-            person.id
-        );
-
-    const sources =
-        centralPerson
-            ? sourcesForTarget(
-                'person',
-                centralPerson.id,
-                centralPerson.projectId
-            )
-            : [];
-
-    const body =
-        centralPerson
-            ? renderConnectedSourceList({
-                targetType:
-                'person',
-
-                targetId:
-                centralPerson.id,
-
-                projectId:
-                centralPerson.projectId,
-
-                sources,
-
-                emptyText:
-                'No sources linked to this person.'
-            })
-            : renderProfileResourceEmpty(
-                'No sources linked to this person.'
-            );
-
-    return renderProfileResourceCard({
-        type:
-          'sources',
-
-        iconSvg:
-          icon.archive,
-
-        title:
-          'Sources',
-
-        count:
-          sources.length,
-
-        singular:
-          'source',
-
-        plural:
-          'sources',
-
-        addLabel:
-          'Add source',
-
-        addAction:
-          'add-sources',
-
-        showFooter:
-          false,
-
-        body
-    });
+    const albums = getProjectAlbums(person.projectId);
+    const places = getProfileConnectedPlaces(person.id).map(item => ({ ...item, record: getPlace(item.id) }));
+    const knownPlaces = new Set(places.map(item => item.id));
+    const placeFields = [person.birth, person.death, ...(person.attributes || []), ...(person.events || [])];
+    for (const place of sampleData.places || [])
+    {
+        if (place.projectId !== person.projectId || knownPlaces.has(place.id)) continue;
+        if (!placeFields.some(field => recordHasPlaceReference(field, place.id))) continue;
+        places.push({ id: place.id, record: place, title: placeDisplayText(place) || t('Unnamed place'), meta: placeCountry(place), events: [] });
+    }
+    return {
+        photos: getPhotosForPerson(person.id).map(photo => ({
+            id: photo.id, record: photo, title: photo.title || photo.filename || t('Photo'),
+            meta: [formatPhotoDate(photo), ...albums.filter(album => (photo.albumIds || []).includes(album.id)).map(album => album.name)].filter(Boolean).join(' · ')
+        })),
+        archive: getArchiveFilesForPerson(person.id).map(file => ({
+            id: file.id, record: file, title: file.name, meta: connectedFileMeta(file)
+        })),
+        notes: getNotesForPerson(person.id).map(note => ({
+            id: note.id, record: note, title: note.title, meta: formatProjectDate(note.updatedAt || note.createdAt, '')
+        })),
+        places,
+        sources: sourcesForTarget('person', person.id, person.projectId).map(source => ({
+            id: source.id, record: source, title: source.title, meta: connectedSourceDetailMeta(source)
+        }))
+    };
 }
 
-function renderProfileConnectedCube(
-    person
-)
+function profileConnectedSelection(person, records)
 {
-    return `
-        <section
-          class="profile-connected-cube"
-          aria-label="Connected profile items">
+    if (profileConnectedView?.personId !== person.id || profileConnectedView.projectId !== person.projectId)
+    {
+        profileConnectedView = { personId: person.id, projectId: person.projectId, expanded: new Set(), limits: {}, kind: '', id: '', index: 0 };
+    }
+    const view = profileConnectedView;
+    const kind = records[view.kind]?.length ? view.kind : profileConnectedCategories.find(([key]) => records[key].length)?.[0];
+    if (!kind)
+    {
+        view.kind = '';
+        view.id = '';
+        return view;
+    }
+    const categoryChanged = kind !== view.kind;
+    const index = records[kind].findIndex(item => item.id === view.id);
+    view.index = index >= 0 ? index : Math.min(categoryChanged ? 0 : view.index, records[kind].length - 1);
+    view.kind = kind;
+    view.id = records[kind][view.index].id;
+    if (categoryChanged) view.expanded.add(kind);
+    view.limits[kind] = Math.max(view.limits[kind] || profileConnectedPageSize, view.index + 1);
+    return view;
+}
 
-          ${renderProfileConnectedPhotos(
-                person
-            )}
-          ${renderProfileConnectedFiles(
-                person
-            )}
-          ${renderProfileConnectedNotes(
-                person
-            )}
-          ${renderProfileConnectedPlaces(
-                person
-            )}
+function renderProfileConnectedCube(person)
+{
+    person = getPerson(person.id);
+    if (!person) return '';
+    return `<section class="profile-connected-cube profile-connected-card" data-profile-connected-explorer>
+        <h3 class="profile-connected-head"><span class="profile-connected-title"><span class="profile-connected-icon">${icon.link}</span>${escapeHtml(t('Connected records'))}</span></h3>
+        <div data-profile-connected-content>${renderProfileConnectedContent(person)}</div>
+    </section>`;
+}
+
+function renderProfileConnectedContent(person)
+{
+    const records = profileConnectedRecords(person);
+    const view = profileConnectedSelection(person, records);
+    if (!view.kind)
+    {
+        return `<div class="profile-connected-empty">
+            <p>${escapeHtml(t('No connected records'))}</p>
+            <div>${profileConnectedCategories.slice(0, 3).map(([, , , label, action]) =>
+                `<button class="button secondary" type="button" data-profile-resource-action="${action}">${icon.plus}${escapeHtml(t(label))}</button>`).join('')}</div>
+        </div>`;
+    }
+    const selected = records[view.kind][view.index];
+    return `<div class="profile-connected-layout">
+        <div class="profile-connected-browser">${profileConnectedCategories.filter(([key]) => records[key].length).map(([key, label, glyph, addLabel, action]) =>
+        {
+            const expanded = view.expanded.has(key);
+            const limit = view.limits[key] || profileConnectedPageSize;
+            return `<section class="profile-connected-category">
+                <div class="profile-connected-category-head">
+                    <button type="button" class="panel-action" data-profile-category="${key}" aria-expanded="${expanded}" aria-controls="profile-connected-${key}">
+                        ${icon.chevron}${escapeHtml(t(label))}<span>${records[key].length}</span>
+                    </button>
+                    ${action ? `<button type="button" class="control-icon-button" data-profile-resource-action="${action}" aria-label="${escapeHtml(t(addLabel))}" title="${escapeHtml(t(addLabel))}">${icon.plus}</button>` : ''}
+                </div>
+                <div id="profile-connected-${key}" ${expanded ? '' : 'hidden'}>
+                ${expanded ? records[key].slice(0, limit).map(item =>
+                    `<button type="button" class="profile-connected-record" data-profile-record-kind="${key}" data-profile-record-id="${escapeHtml(item.id)}"
+                        aria-pressed="${view.kind === key && view.id === item.id}" title="${escapeHtml(item.title)}">
+                        <span class="profile-connected-record-icon">${key === 'photos' ? renderPhotoThumbnail(item.record) : icon[glyph]}</span>
+                        <span class="profile-connected-record-copy"><strong>${escapeHtml(item.title)}</strong>${item.meta ? `<small>${escapeHtml(item.meta)}</small>` : ''}</span>
+                    </button>`).join('') : ''}
+                ${expanded && limit < records[key].length ? `<button class="panel-action" type="button" data-profile-more-records="${key}">${escapeHtml(t('Show more'))}</button>` : ''}
+                </div>
+            </section>`;
+        }).join('')}</div>
+        <section class="profile-connected-preview" aria-label="${escapeHtml(t('Preview'))}">
+            <h4>${escapeHtml(selected.title)}</h4>
+            ${renderProfileConnectedRecord(view.kind, selected)}
+            <div class="profile-connected-preview-actions">
+                <button type="button" class="button secondary" data-profile-view-record>${escapeHtml(t('Open full view'))}</button>
+                ${view.kind !== 'places' ? `<button type="button" class="panel-action" data-profile-unlink-record>${escapeHtml(t('Unlink from person'))}</button>` : ''}
+            </div>
         </section>
-      `;
+    </div>`;
+}
+
+function renderProfileConnectedRecord(kind, item, full = false)
+{
+    const record = item.record;
+    const paragraph = text => text ? `<p>${escapeHtml(text)}</p>` : '';
+    const meta = paragraph(item.meta);
+    if (kind === 'photos')
+    {
+        return `${renderPhotoThumbnail(record, { className: 'profile-connected-media', label: item.title })}${meta}${paragraph(record.caption)}`;
+    }
+    if (kind === 'archive')
+    {
+        const image = archiveImageExtensions.has(archiveDocumentExtension(record.name)) && archiveImageSource(record);
+        if (full && archiveCanViewFile(record) && !image)
+        {
+            return `${meta}${paragraph(record.description)}
+                <div data-document-tools hidden></div>
+                <div class="archive-document-body" data-document-body>${paragraph(t('Loading document…'))}</div>`;
+        }
+        return `${image ? renderPhotoThumbnail({ src: image }, { className: 'profile-connected-media', label: item.title }) : ''}
+            ${meta}${paragraph(record.description)}${full && !image ? paragraph(t('No in-app viewer is available for this file.')) : ''}`;
+    }
+    if (kind === 'notes')
+    {
+        const body = record.body || (record.bodyDelta?.ops || []).map(op => typeof op.insert === 'string' ? op.insert : '').join('');
+        return `${meta}<div class="profile-connected-note${full ? '' : ' is-excerpt'}" ${full ? 'data-profile-full-note' : ''} data-user-content>${escapeHtml(body)}</div>`;
+    }
+    if (kind === 'places')
+    {
+        const point = placeLatLng(record);
+        const details = [placeSecondaryName(record), placeCountry(record)].filter(Boolean);
+        return `${point && placesMapAdapter.supportedProtocol() ? '<div class="profile-connected-map" data-profile-place-map hidden></div>' : ''}
+            ${paragraph(point ? point.join(', ') : t('No coordinates'))}
+            ${paragraph([...new Set(details)].join(' · '))}
+            ${paragraph(record.description || record.notes)}
+            ${full && item.events.length ? `<ul>${item.events.map(event => `<li>${escapeHtml([profileConnectedPlaceEventLabel(event), formatGenealogyDateLabel(event.date)].filter(Boolean).join(' · '))}</li>`).join('')}</ul>` : meta}`;
+    }
+    if (!full) return `${meta}${paragraph(record.notes)}`;
+    const references = [
+        ...archiveFilesForSource(record.id).map(file => file.name),
+        ...sourceLinksForSource(record.id, null, record.projectId).map(link =>
+        {
+            const target = sourceTargetRecord(link.targetType, link.targetId, record.projectId);
+            return target?.names?.display || target?.title || target?.name;
+        }).filter(Boolean)
+    ];
+    return `${renderArchiveSourceDetails(record, localizedSourceCategoryLabel(record.category), { allowPlaceNavigation: false })}
+        ${references.length ? `<h4>${escapeHtml(t('References'))}</h4><ul>${[...new Set(references)].map(reference => `<li>${escapeHtml(reference)}</li>`).join('')}</ul>` : ''}`;
+}
+
+async function mountProfileConnectedMap(host, place)
+{
+    if (!host) return;
+    const point = placeLatLng(place);
+    if (!point) return;
+    let map;
+    try
+    {
+        const library = await placesMapAdapter.load();
+        if (!host.isConnected) return;
+        host.hidden = false;
+        map = new library.Map({
+            container: host, style: placesMapAdapter.styleUrl(document.documentElement.dataset.theme),
+            center: placesMapAdapter.toLngLat(point), zoom: 12,
+            interactive: Boolean(host.closest('.profile-connected-viewer'))
+        });
+        new library.Marker().setLngLat(placesMapAdapter.toLngLat(point)).addTo(map);
+        const observer = new MutationObserver(() =>
+        {
+            if (host.isConnected) return;
+            observer.disconnect();
+            map.remove();
+        });
+        observer.observe(document.body, { childList: true, subtree: true });
+        map.once('error', () =>
+        {
+            observer.disconnect();
+            map.remove();
+            host.hidden = true;
+        });
+    }
+    catch (_error)
+    {
+        map?.remove();
+        host.hidden = true;
+    }
+}
+
+function mountProfileConnectedPreview(explorer)
+{
+    const layout = explorer.querySelector('.profile-connected-layout');
+    const preview = explorer.querySelector('.profile-connected-preview');
+    if (layout && preview)
+    {
+        const selectedRow = layout.querySelector('[data-profile-record-id][aria-pressed="true"]');
+        if (selectedRow && getComputedStyle(layout).gridTemplateColumns.split(' ').length === 1)
+        {
+            if (selectedRow.nextElementSibling !== preview) selectedRow.after(preview);
+        }
+        else if (preview.parentElement !== layout) layout.append(preview);
+    }
+    const host = explorer.querySelector('[data-profile-place-map]');
+    if (!host || host.dataset.mounted) return;
+    host.dataset.mounted = 'true';
+    const selected = profileConnectedView;
+    mountProfileConnectedMap(host, getPlace(selected.id));
+}
+
+function openProfileConnectedViewer(person, explorer)
+{
+    const view = profileConnectedView;
+    const category = view.kind;
+    const records = profileConnectedRecords(person)[category];
+    if (!records?.length) return;
+    const scrollTop = main.scrollTop;
+    openModal(`<div class="modal profile-connected-viewer" role="dialog" aria-modal="true" aria-labelledby="profile-connected-viewer-title">
+        <div class="modal-header"><h2 id="profile-connected-viewer-title" data-user-content></h2>
+            <button class="close-button" type="button" data-close aria-label="${escapeHtml(t('Close'))}">${icon.close}</button>
+        </div>
+        <div class="modal-body" data-profile-viewer-body></div>
+        <div class="modal-footer">
+            <button class="button secondary" type="button" data-profile-viewer-step="-1">${escapeHtml(t('Previous record'))}</button>
+            <span data-profile-viewer-count role="status"></span>
+            <button class="button secondary" type="button" data-profile-viewer-step="1">${escapeHtml(t('Next record'))}</button>
+        </div>
+    </div>`);
+    const modal = modalBackdrop.querySelector('.profile-connected-viewer');
+    const body = modal.querySelector('[data-profile-viewer-body]');
+    const previous = modal.querySelector('[data-profile-viewer-step="-1"]');
+    const next = modal.querySelector('[data-profile-viewer-step="1"]');
+    let index = view.index;
+    const show = () =>
+    {
+        const item = records[index];
+        modal.querySelector('h2').textContent = item.title;
+        const content = document.createElement('div');
+        content.innerHTML = renderProfileConnectedRecord(category, item, true);
+        body.replaceChildren(content);
+        body.scrollTop = 0;
+        previous.disabled = index === 0;
+        next.disabled = index === records.length - 1;
+        modal.querySelector('[data-profile-viewer-count]').textContent =
+            t('{current} of {total}').replace('{current}', index + 1).replace('{total}', records.length);
+        localizeUI(content);
+        if (content.querySelector('[data-document-body]')) renderArchiveDocumentContent(item.record, content);
+        const noteHost = content.querySelector('[data-profile-full-note]');
+        if (noteHost && window.Quill && item.record.bodyDelta)
+        {
+            const note = document.createElement('div');
+            try
+            {
+                const quill = new window.Quill(note, { readOnly: true, modules: { toolbar: false } });
+                quill.setContents(localizedNoteBodyDelta(cloneRichTextDelta(item.record.bodyDelta)), 'silent');
+                noteHost.replaceChildren(note);
+            }
+            catch (_error) { /* Plain text remains available. */ }
+        }
+        if (category === 'places') mountProfileConnectedMap(content.querySelector('[data-profile-place-map]'), item.record);
+    };
+    [previous, next].forEach(button => button.addEventListener('click', () =>
+    {
+        const target = index + Number(button.dataset.profileViewerStep);
+        if (target < 0 || target >= records.length) return;
+        index = target;
+        show();
+        if (button.disabled) (button === next ? previous : next).focus();
+    }));
+    modalBackdrop.afterClose = () =>
+    {
+        if (!explorer.isConnected) return;
+        view.index = index;
+        view.id = records[index].id;
+        view.expanded.add(category);
+        explorer.querySelector('[data-profile-connected-content]').innerHTML = renderProfileConnectedContent(person);
+        localizeUI(explorer);
+        mountProfileConnectedPreview(explorer);
+        explorer.querySelector('[data-profile-view-record]')?.focus({ preventScroll: true });
+        main.scrollTop = scrollTop;
+    };
+    show();
+}
+
+function bindProfileConnectedExplorer(person)
+{
+    person = getPerson(person.id);
+    const explorer = main.querySelector('[data-profile-connected-explorer]');
+    if (!explorer || !person) return;
+    profileConnectedResizeObserver?.disconnect();
+    const observer = new ResizeObserver(() =>
+    {
+        if (explorer.isConnected) mountProfileConnectedPreview(explorer);
+        else observer.disconnect();
+    });
+    profileConnectedResizeObserver = observer;
+    observer.observe(explorer);
+    mountProfileConnectedPreview(explorer);
+    explorer.addEventListener('click', event =>
+    {
+        const button = event.target.closest('button');
+        if (!button) return;
+        const view = profileConnectedView;
+        const { profileCategory, profileRecordKind, profileRecordId, profileMoreRecords, profileResourceAction } = button.dataset;
+        if (button.hasAttribute('data-profile-view-record'))
+        {
+            openProfileConnectedViewer(person, explorer);
+            return;
+        }
+        if (button.hasAttribute('data-profile-unlink-record'))
+        {
+            const context = { contextType: 'person', contextId: person.id, onUnlinked: renderAfterPersonConnectedResourcesChanged };
+            if (view.kind === 'photos') removePhotoPersonTag(view.id, person.id);
+            if (view.kind === 'archive') openConnectedFileUnlinkConfirm({ ...context, fileId: view.id });
+            if (view.kind === 'notes') openConnectedNoteUnlinkConfirm({ ...context, noteId: view.id });
+            if (view.kind === 'sources') openConnectedSourceUnlinkConfirm({
+                sourceId: view.id, targetType: 'person', targetId: person.id,
+                projectId: person.projectId, onUnlinked: renderAfterPersonConnectedResourcesChanged
+            });
+            return;
+        }
+        if (profileResourceAction)
+        {
+            if (profileResourceAction === 'add-photos') openAddPhotosToPersonModal(person.id);
+            if (profileResourceAction === 'add-files') openPersonFilesModal(person.id);
+            if (profileResourceAction === 'add-note') openPersonNotesModal(person.id, 'profile');
+            if (profileResourceAction === 'add-sources') openSourcesForTargetModal({
+                targetType: 'person', targetId: person.id, projectId: person.projectId,
+                title: 'Add sources', subtitle: person.names?.display || person.name,
+                afterSave: renderAfterPersonConnectedResourcesChanged
+            });
+            return;
+        }
+        let focus;
+        if (profileCategory)
+        {
+            if (view.expanded.has(profileCategory)) view.expanded.delete(profileCategory);
+            else view.expanded.add(profileCategory);
+            focus = `[data-profile-category="${profileCategory}"]`;
+        }
+        else if (profileMoreRecords)
+        {
+            const oldLimit = view.limits[profileMoreRecords] || profileConnectedPageSize;
+            view.limits[profileMoreRecords] = oldLimit + profileConnectedPageSize;
+            focus = `#profile-connected-${profileMoreRecords} > .profile-connected-record:nth-of-type(${oldLimit + 1})`;
+        }
+        else if (profileRecordKind)
+        {
+            view.kind = profileRecordKind;
+            view.id = profileRecordId;
+            focus = '[data-profile-record-id][aria-pressed="true"]';
+        }
+        else return;
+        explorer.querySelector('[data-profile-connected-content]').innerHTML = renderProfileConnectedContent(person);
+        localizeUI(explorer);
+        mountProfileConnectedPreview(explorer);
+        explorer.querySelector(focus)?.focus({ preventScroll: true });
+    });
 }
 
 function renderProfileCompactTimeline(person)
@@ -1015,366 +1141,6 @@ function renderProfileCompactTimeline(person)
       `;
 }
 
-function renderProfileConnectedPhotos(person)
-{
-    const photos = getPhotosForPerson(person.id);
-    const hasOverflow = photos.length > 3;
-    const trackId = `profilePhotoTrack-${person.id}`;
-
-    const body = photos.length
-        ? `
-          <div
-            class="
-              profile-photo-carousel
-              ${hasOverflow ? 'has-overflow' : ''}
-            "
-            data-profile-photo-carousel>
-
-            ${hasOverflow
-                ? `
-                <button
-                  class="
-                    profile-photo-carousel-button
-                    previous
-                  "
-                  type="button"
-                  data-profile-photo-prev
-                  aria-label="Previous photos"
-                  aria-controls="${escapeHtml(trackId)}"
-                  disabled>
-                  ${icon.arrow}
-                </button>
-              `
-                : ''}
-
-            <div
-              class="profile-photo-track"
-              id="${escapeHtml(trackId)}"
-              data-profile-photo-track
-              aria-label="Photos for ${escapeHtml(person.name)}">
-
-              ${photos
-                    .map(photo =>
-                    {
-                        const label =
-                            photo.title
-                    || photo.filename
-                    || 'Photo';
-
-                        return `
-                    <div
-                      class="
-                        person-connected-photo-item
-                        profile-photo-item
-                      ">
-
-                      <button
-                        class="profile-photo-thumb"
-                        type="button"
-                        data-profile-photo="${escapeHtml(
-                            photo.id
-                        )}"
-                        title="${escapeHtml(
-                            label
-                        )}"
-                        aria-label="Open ${escapeHtml(
-                            label
-                        )}">
-
-                        ${renderPhotoThumbnail(
-                            photo,
-                            { label }
-                        )}
-                      </button>
-
-                      ${renderPersonPhotoUnlinkButton(
-                            photo,
-                            person.id
-                        )}
-                    </div>
-                  `;
-                    })
-                    .join('')}
-            </div>
-
-            ${hasOverflow
-                ? `
-                <button
-                  class="
-                    profile-photo-carousel-button
-                    next
-                  "
-                  type="button"
-                  data-profile-photo-next
-                  aria-label="Next photos"
-                  aria-controls="${escapeHtml(trackId)}">
-                  ${icon.chevron}
-                </button>
-              `
-                : ''}
-          </div>
-        `
-        : renderProfileResourceEmpty('No photos yet');
-
-    return renderProfileResourceCard({
-        type: 'photos',
-        iconSvg: icon.image,
-        title: 'Photos',
-        count: photos.length,
-        singular: 'photo',
-        plural: 'photos',
-        addLabel: 'Add photos',
-        addAction: 'add-photos',
-        body
-    });
-}
-
-function renderProfileConnectedFiles(
-    person
-)
-{
-    const files =
-        getArchiveFilesForPerson(
-            person.id
-        );
-
-    const preview =
-        files.slice(
-            0,
-            3
-        );
-
-    const body =
-        preview.length
-            ? renderConnectedFileList({
-                files:
-              preview,
-
-                contextType:
-              'person',
-
-                contextId:
-              person.id,
-
-                emptyText:
-              'No archive files linked'
-            })
-            : renderProfileResourceEmpty(
-                'No archive files linked'
-            );
-
-    return renderProfileResourceCard({
-        type:
-          'archive',
-
-        iconSvg:
-          icon.file,
-
-        title:
-          'Archive',
-
-        count:
-          files.length,
-
-        singular:
-          'file',
-
-        plural:
-          'files',
-
-        addLabel:
-          'Add file',
-
-        addAction:
-          'add-files',
-
-        body
-    });
-}
-
-function renderProfileNoteRows(
-    person,
-    notes =
-        getNotesForPerson(
-            person.id
-        )
-)
-{
-    const preview =
-        notes.slice(
-            0,
-            3
-        );
-
-    if (!preview.length)
-    {
-        return renderProfileResourceEmpty(
-            'No notes yet'
-        );
-    }
-
-    return renderConnectedNoteList({
-        notes: preview,
-        contextType: 'person',
-        contextId: person.id,
-        limit: 3
-    });
-}
-
-function renderProfileConnectedNotes(
-    person
-)
-{
-    const notes =
-        getNotesForPerson(
-            person.id
-        );
-
-    return renderProfileResourceCard({
-        type:
-          'notes',
-
-        iconSvg:
-          icon.note,
-
-        title:
-          'Notes',
-
-        count:
-          notes.length,
-
-        singular:
-          'note',
-
-        plural:
-          'notes',
-
-        addLabel:
-          'Add note',
-
-        addAction:
-          'add-note',
-
-        body:
-          renderProfileNoteRows(
-              person,
-              notes
-          )
-    });
-}
-
-function renderProfileConnectedPlaces(
-    person
-)
-{
-    const places =
-        getProfileConnectedPlaces(
-            person.id
-        );
-
-    const preview =
-        places.slice(0, 3);
-
-    const coordinateWarning =
-        t(
-            'Location has no coordinates'
-        );
-
-    const body = preview.length
-        ? `
-          <div
-            class="
-              profile-resource-list
-            ">
-
-            ${preview
-                .map(place =>
-                {
-                    const accessibleLabel = [
-                        `Open ${place.title}`,
-
-                        !place.hasCoordinates
-                            ? coordinateWarning
-                            : ''
-                    ]
-                        .filter(Boolean)
-                        .join('. ');
-
-                    return `
-                  <button
-                    class="
-                      profile-resource-row
-                      profile-place-preview-row
-                    "
-                    type="button"
-                    data-profile-place="${escapeHtml(
-                        place.id
-                    )}"
-                    aria-label="${escapeHtml(
-                        accessibleLabel
-                    )}">
-
-                    <span
-                      class="
-                        profile-place-preview-title
-                      ">
-
-                      <strong>
-                        ${escapeHtml(
-                            place.title
-                        )}
-                      </strong>
-
-                      ${
-                            !place.hasCoordinates
-                                ? `
-                            <span
-                              class="
-                                profile-place-coordinate-warning
-                              "
-                              role="img"
-                              aria-label="${escapeHtml(
-                                    coordinateWarning
-                                )}"
-                              title="${escapeHtml(
-                                    coordinateWarning
-                                )}">
-                              ${icon.warning}
-                            </span>
-                          `
-                                : ''
-                        }
-                    </span>
-
-                    <small
-                      class="
-                        profile-place-preview-meta
-                      ">
-                      ${escapeHtml(
-                            place.meta
-                        )}
-                    </small>
-                  </button>
-                `;
-                })
-                .join('')}
-          </div>
-        `
-        : renderProfileResourceEmpty(
-            'No places linked'
-        );
-
-    return renderProfileResourceCard({
-        type: 'places',
-        iconSvg: icon.mapPin,
-        title: 'Places',
-        count: places.length,
-        singular: 'place',
-        plural: 'places',
-        body
-    });
-}
-
 function renderProfileFamilyHub(person)
 {
     return `
@@ -1403,86 +1169,6 @@ function renderProfileFamilyHub(person)
           </div>
         </section>
       `;
-}
-
-function updateProfilePhotoCarousel(carousel)
-{
-    const track = carousel?.querySelector(
-        '[data-profile-photo-track]'
-    );
-
-    const previous = carousel?.querySelector(
-        '[data-profile-photo-prev]'
-    );
-
-    const next = carousel?.querySelector(
-        '[data-profile-photo-next]'
-    );
-
-    if (!track || !previous || !next) return;
-
-    previous.disabled = track.scrollLeft <= 2;
-
-    next.disabled =
-        track.scrollLeft + track.clientWidth
-        >= track.scrollWidth - 2;
-}
-
-function bindProfilePhotoCarousels(root = main)
-{
-    root
-        .querySelectorAll('[data-profile-photo-carousel]')
-        .forEach(carousel =>
-        {
-            const track = carousel.querySelector(
-                '[data-profile-photo-track]'
-            );
-
-            const previous = carousel.querySelector(
-                '[data-profile-photo-prev]'
-            );
-
-            const next = carousel.querySelector(
-                '[data-profile-photo-next]'
-            );
-
-            /*
-          * Carousels with three or fewer photos do not render
-          * navigation buttons.
-          */
-            if (!track || !previous || !next) return;
-
-            const scrollTrack = direction =>
-            {
-                track.scrollBy({
-                    left:
-                Math.max(track.clientWidth * .82, 160)
-                * direction,
-                    behavior: 'smooth'
-                });
-            };
-
-            previous.addEventListener('click', () =>
-            {
-                scrollTrack(-1);
-            });
-
-            next.addEventListener('click', () =>
-            {
-                scrollTrack(1);
-            });
-
-            track.addEventListener(
-                'scroll',
-                () => updateProfilePhotoCarousel(carousel),
-                { passive: true }
-            );
-
-            requestAnimationFrame(() =>
-            {
-                updateProfilePhotoCarousel(carousel);
-            });
-        });
 }
 
 function activateProfileCardSection(
@@ -1653,8 +1339,7 @@ function bindPeopleProfileControls(person)
     bindToasts(main);
 
     bindRelationshipList(main, 'profile');
-    bindProfilePhotoCarousels(main);
-    bindPersonPhotoUnlinkButtons(main);
+    bindProfileConnectedExplorer(person);
     bindConnectedNoteLinks(
         main
     );
@@ -1761,196 +1446,6 @@ function bindPeopleProfileControls(person)
     });
     main.querySelector('[data-profile-add-relative]')?.addEventListener('click', event =>
         openRelativePopover(event.currentTarget, person.id));
-    main.querySelectorAll('[data-profile-photo]').forEach(button => button.addEventListener('click', () => openProfilePhoto(button.dataset.profilePhoto)));
-    main.querySelector('[data-profile-resource-action="add-photos"]') ?.addEventListener('click', () => openAddPhotosToPersonModal(person.id));
-    main
-        .querySelector(
-            '[data-profile-resource-action="add-files"]'
-        )
-        ?.addEventListener(
-            'click',
-            () =>
-            {
-                openPersonFilesModal(
-                    person.id
-                );
-            }
-        );
-    main
-        .querySelector(
-            '[data-profile-resource-action="add-note"]'
-        )
-        ?.addEventListener(
-            'click',
-            () =>
-                openPersonNotesModal(
-                    person.id,
-                    'profile'
-                )
-        );
-    main
-        .querySelector(
-            '[data-profile-resource-action="add-sources"]'
-        )
-        ?.addEventListener(
-            'click',
-            () =>
-            {
-                const centralPerson =
-                    getPerson(
-                        person.id
-                    );
-
-                if (!centralPerson)
-                {
-                    return;
-                }
-
-                openSourcesForTargetModal({
-                    targetType:
-                'person',
-
-                    targetId:
-                centralPerson.id,
-
-                    projectId:
-                centralPerson.projectId,
-
-                    title:
-                'Add sources',
-
-                    subtitle:
-                `Connect existing sources to ${
-                    centralPerson.names?.display
-                  || 'this person'
-                }.`,
-
-                    afterSave:
-                renderAfterPersonConnectedResourcesChanged
-                });
-            }
-        );
-    main.querySelectorAll('[data-profile-place]').forEach(button => button.addEventListener('click', () => openProfilePlace(button.dataset.profilePlace)));
-    const profileViewAllActions = {
-        archive:
-          () =>
-              openProfileAllArchive(
-                  person.id
-              ),
-
-        notes:
-          () =>
-              openProfileAllNotes(
-                  person.id
-              ),
-
-        photos:
-          () =>
-              openProfileAllPhotos(
-                  person.id
-              ),
-
-        places:
-          () =>
-              openProfileAllPlaces(
-                  person.id
-              )
-    };
-
-    main
-        .querySelectorAll('[data-profile-view-all]')
-        .forEach(button =>
-        {
-            button.addEventListener('click', () =>
-            {
-                profileViewAllActions[
-                    button.dataset.profileViewAll
-                ]?.();
-            });
-        });
-}
-
-function openProfileArchiveFile(fileId)
-{
-    if (!fileId)
-    {
-        showToast('Archive item preview is simulated.'); return;
-    }
-    openFamilyArchiveItem(fileId);
-}
-
-function openProfilePhoto(photoId)
-{
-    openAlbumsForPhoto(photoId);
-}
-
-function openProfilePlace(placeId)
-{
-    if (!placeId)
-    {
-        showToast('Place record not found.');
-        return;
-    }
-
-    appNavigationMarkIntent({ type: 'place', id: placeId });
-
-    state.activeModule = 'Places';
-    state.placesView = 'all';
-    state.selectedPlaceId = placeId;
-    render();
-}
-
-function openProfileAllArchive(
-    personId =
-        state.selectedPeopleId
-)
-{
-    openArchiveForPerson(
-        personId
-    );
-}
-
-function openProfileAllNotes(
-    personId =
-        state.selectedPeopleId
-)
-{
-    openNotesForContext(
-        'person',
-        personId
-    );
-}
-
-function openProfileAllPhotos(personId = state.selectedPeopleId)
-{
-    openAlbumsForPerson(personId);
-}
-
-function openProfileAllPlaces(
-    personId =
-        state.selectedPeopleId
-)
-{
-    const person =
-        getPerson(personId);
-
-    state.activeModule = 'Places';
-    state.placesView = 'all';
-
-    state.placesSavedFilterId =
-        '';
-
-    state.placesFilters = {
-        ...defaultPlaceFilters,
-
-        personId:
-          person?.id || ''
-    };
-
-    state.selectedPlaceId = null;
-    state.placesSearch = '';
-
-    render();
 }
 
 function openProfileFamilyMember(

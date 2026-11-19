@@ -37,7 +37,7 @@ const geneoTourSteps = [
     { id: 'people-profile-welcome', module: 'People', presentation: 'centered', title: "Inside a profile", body: "A profile brings a person's life details and connected research together." },
     { id: 'people-profile-hero', module: 'People', title: "Profile overview", body: "The top section shows the person’s photo, name, key life details, and available actions." },
     { id: 'people-profile-card', module: 'People', title: "Explore profile details", body: "Four tabs organize the person’s main information into clear sections." },
-    { id: 'people-connected', module: 'People', title: "Explore related research", body: "Find photos, archive files, places, and notes connected to this person." },
+    { id: 'people-connected', module: 'People', title: "Explore related research", body: "Find photos, archive files, places, notes, and sources connected to this person." },
     { id: 'people-to-geneograph', module: 'People', title: "Continue to Geneograph", body: "Next, see how your research comes together in a visual workspace." },
     { id: 'geneograph-welcome', module: 'Geneograph', presentation: 'centered', title: "Welcome to Geneograph", body: "Use visual boards to explore family relationships, connect evidence, and work through research ideas." },
     { id: 'geneograph-navigation', module: 'Geneograph', title: "Board navigation", body: "Use the navigation menu to view all boards, favourites, boards not in collection, or archived boards." },
@@ -163,7 +163,6 @@ const geneoTourSecondarySelectors = {
     'archive-inspector': '[data-archive-file-row="af1"]',
     'archive-folder-actions': '.archive-page-head [data-archive-create-folder]',
     'people-to-profile': '.people-layout .tree-person-hero-profile',
-    'people-connected': '.profile-resource-card--archive',
     'notes-filters': '#notesFilterButton',
     'places-list': '.places-view-switch',
     'places-filters': '#placesFilterButton',
@@ -179,13 +178,10 @@ const geneoTourSecondarySelectors = {
     'geneograph-other-objects': '#projectMenu.geneo-toolbar-overflow-menu [data-geneo-toolbar-action="image"]'
 };
 const geneoTourTertiarySelectors = {
-    'people-connected': '.profile-resource-card--notes',
     'archive-folder-actions': '.archive-folder-inspector-actions [data-archive-create-folder]',
     'geneograph-sockets-children': geneoTourFamilySelector(geneoTourSeedTargets.couple)
 };
-const geneoTourQuaternarySelectors = {
-    'people-connected': '.profile-resource-card--places'
-};
+const geneoTourQuaternarySelectors = {};
 
 const geneoTourRuntime = {
     active: false,
@@ -786,7 +782,7 @@ function geneoTourTarget(index)
         'people-to-profile': '.side-nav [data-open-profile]',
         'people-profile-hero': '.profile-hero',
         'people-profile-card': '[data-profile-card-root]',
-        'people-connected': '.profile-resource-card--photos',
+        'people-connected': '[data-profile-connected-explorer]',
         'people-to-geneograph': '.topnav [data-module="Geneograph"]',
         'albums-photos': '.albums-justified-grid .albums-justified-row',
         'albums-navigation': '[data-albums-tour-target="navigation"]',
@@ -2536,14 +2532,7 @@ async function geneoTourMoveTo(index)
             || geneoTourSteps[index].id === 'people-connected')
         {
             const rect = target.getBoundingClientRect();
-            if (geneoTourSteps[index].id === 'people-profile-card' || innerWidth <= 1280)
-                geneoTourScrollTarget(target, rect.top - Math.max(80, innerHeight * .16), true, true);
-            else if (geneoTourSteps[index].id === 'people-connected')
-            {
-                const last = main.querySelector('.profile-resource-card--places')?.getBoundingClientRect();
-                if (last) geneoTourScrollTarget(target, (rect.top + last.bottom) / 2 - innerHeight / 2,
-                    true, true);
-            }
+            geneoTourScrollTarget(target, rect.top - Math.max(80, innerHeight * .16), true, true);
         }
         else if (geneoTourSteps[index].id === 'albums-summary' || geneoTourSteps[index].id === 'albums-actions')
             main.querySelector('.albums-detail')?.scrollTo(0, 0);

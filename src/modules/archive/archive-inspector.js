@@ -1963,7 +1963,8 @@ function renderArchiveSourceConnectionSection(
 
 function renderArchiveSourceDetails(
     source,
-    categoryLabel
+    categoryLabel,
+    { allowPlaceNavigation = true } = {}
 )
 {
     const url =
@@ -2056,7 +2057,7 @@ function renderArchiveSourceDetails(
                     ? escapeHtml(row.value)
                     : `
                   ${
-                        row.placeId
+                        row.placeId && allowPlaceNavigation
                             ? `
                         <button
                           class="text-action"
