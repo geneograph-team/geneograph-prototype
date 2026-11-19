@@ -413,6 +413,17 @@ function updateAddPersonFactSummary()
         countLabel.textContent =
             formatAddPersonFactSummary(count);
     }
+
+    section.querySelectorAll('[data-fact-entry-count]').forEach(counter =>
+    {
+        const button = counter.closest('[data-add-person-add-fact]');
+        const factId = button.dataset.addPersonAddFact;
+        const tag = REPEATABLE_PERSON_FACTS[factId];
+        const entries = section.querySelectorAll(`[data-repeat-list="${tag}"] [data-repeat-entry]`).length;
+        counter.textContent = entries;
+        button.classList.toggle('is-added', entries > 0);
+        button.nextElementSibling.hidden = entries === 0;
+    });
 }
 
 function collectAddPersonActiveFactIds()
@@ -445,7 +456,7 @@ function updateDeceasedOnlyFactButtons()
 
         const added = Boolean(section.querySelector(`[data-add-person-fact-card="${CSS.escape(factId)}"]`));
         // Use aria-disabled while unavailable so hover and keyboard focus can show the tooltip.
-        button.disabled = isDeceased && added;
+        button.classList.toggle('is-added', isDeceased && added);
         if (isDeceased)
         {
             button.removeAttribute('aria-disabled');
@@ -456,7 +467,7 @@ function updateDeceasedOnlyFactButtons()
         {
             button.setAttribute('aria-disabled', 'true');
             button.title = message;
-            button.setAttribute('aria-label', `${button.lastElementChild?.textContent?.trim() || factId}. ${message}`);
+            button.setAttribute('aria-label', `${button.querySelector('[data-fact-label]').textContent.trim()}. ${message}`);
         }
     });
 }
@@ -478,17 +489,14 @@ function addPersonFactToModal(factId, personId = '')
         const body = section.querySelector('[data-add-person-facts-body]');
         if (body) body.hidden = false;
         section.querySelector('[data-add-person-facts-toggle]')?.setAttribute('aria-expanded', 'true');
-        appendRepeatableFact(list); updateAddPersonFactSummary(); return;
+        appendRepeatableFact(list);
+        return;
     }
     if (!section || !target || target.querySelector(`[data-add-person-fact-card="${CSS.escape(factId)}"]`)) return;
     const person = personId ? getPerson(personId) : null;
     target.insertAdjacentHTML('beforeend', addPersonFactCardHtml(factId, person));
     const button = section.querySelector(`[data-add-person-add-fact="${CSS.escape(factId)}"]`);
-    if (button)
-    {
-        button.disabled = true;
-        button.classList.add('is-added');
-    }
+    button?.classList.add('is-added');
     const body = section.querySelector('[data-add-person-facts-body]');
     const toggle = section.querySelector('[data-add-person-facts-toggle]');
     if (body) body.hidden = false;
@@ -500,18 +508,14 @@ function addPersonFactToModal(factId, personId = '')
 
     updateAddPersonFactSummary();
     updateDeceasedOnlyFactButtons();
-    insertedFact.scrollIntoView({ block: 'nearest' });
+    focusAddPersonFactCard(insertedFact);
 }
 
 function removeAddPersonFactCard(section, factId)
 {
     section.querySelector(`[data-add-person-fact-card="${CSS.escape(factId)}"]`)?.remove();
     const button = section.querySelector(`[data-add-person-add-fact="${CSS.escape(factId)}"]`);
-    if (button)
-    {
-        button.disabled = false;
-        button.classList.remove('is-added');
-    }
+    button?.classList.remove('is-added');
     updateAddPersonFactSummary();
     updateDeceasedOnlyFactButtons();
 }
@@ -628,7 +632,7 @@ function confirmRemoveAddPersonFact(
         });
 }
 
-function scrollAddPersonSectionIntoView(section)
+function scrollAddPersonSectionIntoView(section, focusTarget = null)
 {
     const modal = section?.closest('.add-person-modal');
     if (!modal) return;
@@ -638,7 +642,19 @@ function scrollAddPersonSectionIntoView(section)
         const headerHeight = modal.querySelector('.add-person-header')?.getBoundingClientRect().height || 0;
         const sectionTop = section.getBoundingClientRect().top - modal.getBoundingClientRect().top;
         modal.scrollTo({ top: modal.scrollTop + sectionTop - headerHeight - 12 });
+        focusTarget?.focus({ preventScroll: true });
     });
+}
+
+function focusAddPersonFactCard(card)
+{
+    const field = card.querySelector('input:not([type="hidden"]):not(:disabled), select:not(:disabled), textarea:not(:disabled)');
+    if (field) scrollAddPersonSectionIntoView(card, field);
+    else
+    {
+        card.tabIndex = -1;
+        scrollAddPersonSectionIntoView(card, card);
+    }
 }
 
 function bindAddPersonAdditionalFacts(personId = '')
@@ -656,8 +672,15 @@ function bindAddPersonAdditionalFacts(personId = '')
     });
     section.querySelectorAll('[data-add-person-add-fact]').forEach(button => button.addEventListener('click', () =>
     {
-        addPersonFactToModal(button.dataset.addPersonAddFact, personId);
+        if (button.getAttribute('aria-disabled') === 'true') return;
+        const factId = button.dataset.addPersonAddFact;
+        const card = section.querySelector(`[data-add-person-fact-card="${CSS.escape(factId)}"]`);
+        const existing = REPEATABLE_PERSON_FACTS[factId] ? card?.querySelector('[data-repeat-entry]') : card;
+        if (existing) focusAddPersonFactCard(existing);
+        else addPersonFactToModal(factId, personId);
     }));
+    section.querySelectorAll('[data-add-person-repeat-fact]').forEach(button => button.addEventListener('click', () =>
+        addPersonFactToModal(button.dataset.addPersonRepeatFact, personId)));
     section.addEventListener('click', event =>
     {
         const remove = event.target.closest('[data-add-person-remove-fact]');

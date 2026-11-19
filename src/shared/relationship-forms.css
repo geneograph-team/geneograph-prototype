@@ -2228,20 +2228,44 @@ body.mobile-person-details-open .relative-popover-body {
     outline-offset: 2px;
 }
 
-.fact-button.fact-button-repeatable { padding-left: 0; gap: 0; }
-.fact-button-plus {
-    align-self: stretch;
-    display: inline-grid;
-    place-items: center;
-    width: 32px;
-    flex: 0 0 32px;
-    margin-right: var(--space-3);
-    border-right: 1px solid var(--border-default);
+.fact-button-repeatable {
+    display: inline-flex;
+    align-items: stretch;
+    min-width: 0;
 }
-.fact-button-plus svg { width: 16px; height: 16px; }
-.fact-button-repeatable > .fact-button-icon { margin-right: var(--space-2); }
 
-.fact-button.is-added,
+.fact-button-repeatable:has(.fact-button-plus:not([hidden])) > .fact-button:first-child {
+    border-start-end-radius: 0;
+    border-end-end-radius: 0;
+}
+
+.fact-button-plus {
+    padding: 0;
+    width: 34px;
+    flex: 0 0 34px;
+    border-inline-start: 0;
+    border-start-start-radius: 0;
+    border-end-start-radius: 0;
+}
+
+.fact-button-plus[hidden] { display: none; }
+.fact-button-plus svg { width: 16px; height: 16px; }
+
+.fact-button-count {
+    min-width: 19px;
+    padding: 3px 5px;
+    border-radius: 999px;
+    background: var(--surface-card);
+    color: var(--text-secondary);
+    font-size: 11px;
+    text-align: center;
+}
+
+.fact-button.is-added {
+    background: var(--surface-selected);
+    color: var(--text-primary);
+}
+
 .fact-button:disabled,
 .fact-button[aria-disabled="true"] {
     opacity: 1;

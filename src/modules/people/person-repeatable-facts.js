@@ -50,8 +50,8 @@ function appendRepeatableFact(list)
     entries.insertAdjacentHTML('beforeend', renderRepeatableFactEntry(list.dataset.repeatList));
     const entry = entries.lastElementChild;
     bindGenealogyDateFields(entry); bindPlaceComboboxes(entry); localizeUI(entry);
-    entry.scrollIntoView({ block: 'nearest' });
-    entry.querySelector('input,select,textarea')?.focus({ preventScroll: true });
+    updateAddPersonFactSummary();
+    focusAddPersonFactCard(entry);
     return entry;
 }
 
@@ -62,7 +62,14 @@ function bindRepeatableFacts(root)
     root.addEventListener('click', event =>
     {
         const remove = event.target.closest('[data-repeat-remove]');
-        if (remove) { remove.closest('[data-repeat-entry]').remove(); updateAddPersonFactSummary(); }
+        if (remove)
+        {
+            const entry = remove.closest('[data-repeat-entry]');
+            const factId = repeatableFactKind(entry.dataset.repeatTag);
+            entry.remove();
+            updateAddPersonFactSummary();
+            root.querySelector(`[data-add-person-add-fact="${CSS.escape(factId)}"]`)?.focus({ preventScroll: true });
+        }
         const edit = event.target.closest('[data-person-attribute-edit]');
         if (edit) openTimelinePersonEditor({ kind: 'attribute', personId: edit.dataset.personId, recordId: edit.dataset.personAttributeEdit });
     });
@@ -236,10 +243,10 @@ function focusPersonFactTarget(target)
         else if (target.kind === 'newAttribute')
         {
             const kind = repeatableFactKind(tag);
-            let list = section.querySelector(`[data-repeat-list="${tag}"]`);
-            if (!list) { addPersonFactToModal(kind, target.personId); list = section.querySelector(`[data-repeat-list="${tag}"]`); }
+            const list = section.querySelector(`[data-repeat-list="${tag}"]`);
+            if (!list) addPersonFactToModal(kind, target.personId);
             else appendRepeatableFact(list);
-            field = list?.querySelector('[data-repeat-entry]:last-child input');
+            return;
         }
         else field = modalBackdrop.querySelector(`[data-repeat-id="${CSS.escape(target.recordId)}"] input`);
     }
@@ -266,5 +273,5 @@ function focusPersonFactTarget(target)
             field = modalBackdrop.querySelector(`[data-genealogy-date-field="${dateId}"] [data-genealogy-date-input]`);
         }
     }
-    requestAnimationFrame(() => { field?.scrollIntoView({ block: 'center' }); field?.focus({ preventScroll: true }); });
+    if (field) scrollAddPersonSectionIntoView(field.closest('[data-repeat-entry], [data-add-person-fact-card]') || field, field);
 }

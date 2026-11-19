@@ -571,18 +571,32 @@ function renderAddPersonAdditionalFacts(person = null)
     const activeFacts = addPersonAddedFactsFromPerson(person);
     const expanded = activeFacts.length > 0;
     const definitions = addPersonFactDefinitions();
+    const repeatableActions = { education: 'Add education', occupation: 'Add occupation', customFact: 'Add custom fact' };
+    const countFor = factId => person?.attributes?.filter(record => record.tag === REPEATABLE_PERSON_FACTS[factId]).length || 0;
+    const addedCount = activeFacts.reduce((total, factId) => total + (REPEATABLE_PERSON_FACTS[factId] ? countFor(factId) : 1), 0);
     return `<section class="add-person-additional-section">
         <div class="add-person-facts-section" data-add-person-facts>
           <button class="add-person-facts-header" type="button" data-add-person-facts-toggle aria-expanded="${expanded ? 'true' : 'false'}">
             <span class="add-person-facts-header-main"><span class="add-person-facts-chevron" aria-hidden="true">${icon.chevron}</span><span>Additional facts</span></span>
-            <span class="add-person-facts-meta" data-add-person-facts-count>${escapeHtml(formatAddPersonFactSummary(activeFacts.length))}</span>
+            <span class="add-person-facts-meta" data-add-person-facts-count>${escapeHtml(formatAddPersonFactSummary(addedCount))}</span>
           </button>
           <div class="add-person-facts-body" data-add-person-facts-body ${expanded ? '' : 'hidden'}>
             <div class="fact-buttons" data-add-person-fact-buttons>
               ${definitions.map(fact => {
                 const repeatable = Boolean(REPEATABLE_PERSON_FACTS[fact.id]);
-                const added = activeFacts.includes(fact.id) && !repeatable;
-                return `<button class="fact-button ${repeatable ? 'fact-button-repeatable' : ''} ${added ? 'is-added' : ''}" type="button" data-add-person-add-fact="${escapeHtml(fact.id)}" ${added ? 'disabled' : ''}>${repeatable ? `<span class="fact-button-plus" aria-hidden="true">${icon.plus}</span>` : ''}<span class="fact-button-icon" aria-hidden="true">${fact.icon}</span><span>${escapeHtml(fact.label)}</span></button>`;
+                const count = repeatable ? countFor(fact.id) : 0;
+                const added = activeFacts.includes(fact.id);
+                const id = escapeHtml(fact.id);
+                const button = `<button class="fact-button${added ? ' is-added' : ''}" type="button" data-add-person-add-fact="${id}">
+                    <span class="fact-button-icon" aria-hidden="true">${fact.icon}</span>
+                    <span data-fact-label>${escapeHtml(t(fact.label))}</span>
+                    ${repeatable ? `<span class="fact-button-count" data-fact-entry-count>${count}</span>` : ''}
+                </button>`;
+                if (!repeatable) return button;
+                const action = escapeHtml(t(repeatableActions[fact.id]));
+                return `<div class="fact-button-repeatable">${button}
+                    <button class="fact-button fact-button-plus" type="button" data-add-person-repeat-fact="${id}" aria-label="${action}" title="${action}" ${count ? '' : 'hidden'}>${icon.plus}</button>
+                </div>`;
               }).join('')}
             </div>
             <div class="add-person-facts-added" data-add-person-facts-added>${activeFacts.map(factId => addPersonFactCardHtml(factId, person)).join('')}</div>

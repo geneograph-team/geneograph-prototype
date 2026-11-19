@@ -1,6 +1,6 @@
 function openAddFactOverlay(person)
 {
-    openTimelinePersonEditor({ kind: 'newAttribute', personId: person.id, tag: 'FACT' });
+    openTimelinePersonEditor({ kind: 'additionalFacts', personId: person.id });
 }
 
 function closePeopleColumnsPopover()
