@@ -351,7 +351,7 @@ function geneoTourPrepare(index)
             'peopleFilters', 'peopleSavedViewId', 'peopleSavedView', 'peopleSearch',
             'selectedPeopleId', 'selectedPersonId', 'peopleSelectedIds', 'peopleSelectionAnchorId',
             'peoplePage', 'peoplePaginationQueryKey', 'peopleView', 'peopleSide',
-            'peoplePreviewCollapsed', 'peopleProfileEditing', 'peopleProfileEditTab'
+            'peoplePreviewCollapsed', 'peopleProfileEditTab'
         ].map(key => [key, structuredClone(state[key])]));
     }
     if (step.module === 'Projects' && step.projectView === 'library')
@@ -414,7 +414,6 @@ function geneoTourPrepare(index)
         state.peopleSavedView = 'All people';
         state.peopleSearch = '';
         state.peoplePreviewCollapsed = false;
-        state.peopleProfileEditing = false;
         state.peopleFilters = step.id === 'people-save-filter' || step.id === 'people-saved-filters'
             ? peopleFiltersWithDefaults({ surnames: ['Whiskerfield'] })
             : peopleFiltersWithDefaults({});

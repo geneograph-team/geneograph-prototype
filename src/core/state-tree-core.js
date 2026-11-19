@@ -46,7 +46,6 @@ const state = {
     },
     peopleVisibleColumns: { living: true, birth: true, birthPlace: true, death: true, deathPlace: true, updated: true },
     peoplePreviewCollapsed: false,
-    peopleProfileEditing: false,
     peopleProfileEditTab: 'main',
     geneoView: 'home',
     geneoLibraryView: 'all',

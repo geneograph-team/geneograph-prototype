@@ -244,7 +244,7 @@ function collectGenealogyDateField(fieldId, options = {})
         reason: model.reason || '',
         burialPlaceId: cleanDatePlaceId(model.burialPlaceId)
     };
-    const startId = ({ addPersonDeath: 'addPersonBirth', geneoPersonDeath: 'geneoPersonBirth', profileInlineDeathField: 'profileInlineBirthField' })[fieldId]
+    const startId = ({ addPersonDeath: 'addPersonBirth', geneoPersonDeath: 'geneoPersonBirth' })[fieldId]
         || (/To(?:Date)?$/.test(fieldId) ? fieldId.replace(/To(Date)?$/, 'From$1') : /EndDate$/.test(fieldId) ? fieldId.replace(/EndDate$/, 'StartDate') : '');
     const startRoot = startId ? document.querySelector(`[data-genealogy-date-field="${CSS.escape(startId)}"]`) : null;
     if (startRoot)

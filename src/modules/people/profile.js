@@ -69,14 +69,6 @@ function renderPeopleProfile(person)
             state.peopleProfileEditTab
         );
 
-    if (
-        typeof state.peopleProfileEditing
-        !== 'boolean'
-    )
-    {
-        state.peopleProfileEditing = false;
-    }
-
     // Match chip placement to the life facts actually rendered.
     const hasDeathLifeRow =
         peopleHeroLifeSummaryItems(person).length > 1;
@@ -210,26 +202,9 @@ function renderPeopleProfile(person)
             </div>
 
             <div class="profile-hero-actions">
-              <button
-                class="button ${
-                    state.peopleProfileEditing
-                        ? 'secondary'
-                        : 'primary'
-                }"
-                type="button"
-                id="profileEditButton">
-
-                ${
-                    state.peopleProfileEditing
-                        ? icon.close
-                        : icon.edit
-                }
-
-                ${
-                    state.peopleProfileEditing
-                        ? 'Cancel editing'
-                        : 'Edit profile'
-                }
+              <button class="button primary" type="button" id="profileEditButton">
+                ${icon.edit}
+                Edit profile
               </button>
 
               <button
@@ -247,7 +222,7 @@ function renderPeopleProfile(person)
           </header>
 
           <div class="person-profile__top">
-            ${renderEditableProfileCard(person)}
+            ${renderProfileCard(person)}
 
             <div class="profile-family-slot">
               ${renderProfileFamilyHub(person)}
@@ -454,75 +429,22 @@ function renderProfilePartnersInfo(person)
         `;
 }
 
-function renderEditableProfileCard(person)
+function renderProfileCard(person)
 {
-    const editing = Boolean(
-        state.peopleProfileEditing
-    );
-
-    const activeSection =
-        normalizeProfileCardSection(
-            state.peopleProfileEditTab
-        );
+    const activeSection = normalizeProfileCardSection(state.peopleProfileEditTab);
 
     return `
-        <article
-          class="
-            profile-card
-            profile-full-card
-            ${editing ? 'editing' : 'locked'}
-          "
-          data-profile-card-root>
-
-          <h3>
-            <span class="section-title">
-              ${icon.people}
-              Profile
-            </span>
-
-            <span
-              class="
-                profile-edit-card-state
-                ${editing ? 'editing' : ''}
-              ">
-              ${editing ? 'Editing' : 'Locked'}
-            </span>
-          </h3>
-
+        <article class="profile-card profile-full-card" data-profile-card-root>
+          <h3><span class="section-title">${icon.people} Profile</span></h3>
           <div class="profile-card-body">
             ${renderProfileCardTabs(activeSection)}
-
-            ${renderProfileCardPanels(
-                person,
-                editing,
-                activeSection
-            )}
-
-            ${editing
-                ? `
-                <div class="profile-edit-inline-actions">
-                  <button
-                    class="button secondary"
-                    type="button"
-                    id="profileCancelEdit">
-                    Cancel
-                  </button>
-
-                  <button
-                    class="button primary"
-                    type="button"
-                    id="profileSaveInlineEdit">
-                    Save changes
-                  </button>
-                </div>
-              `
-                : ''}
+            ${renderProfileCardPanels(person, activeSection)}
           </div>
         </article>
       `;
 }
 
-function renderProfileLockedPanelContent(
+function renderProfileReadOnlyPanelContent(
     person,
     sectionId
 )
@@ -752,42 +674,7 @@ function renderProfileCardTabs(activeSection)
       `;
 }
 
-function renderProfileEditPanelContent(
-    person,
-    sectionId
-)
-{
-    switch (
-        normalizeProfileCardSection(sectionId)
-    )
-    {
-        case 'education':
-            return renderProfileEducationEditFields(
-                person
-            );
-
-        case 'work':
-            return renderProfileWorkEditFields(
-                person
-            );
-
-        case 'other':
-            return renderProfileOtherEditFields(
-                person
-            ) + renderRepeatableFactList(person, 'FACT', 'profile');
-
-        default:
-            return renderProfileMainEditFields(
-                person
-            );
-    }
-}
-
-function renderProfileCardPanels(
-    person,
-    editing,
-    activeSection
-)
+function renderProfileCardPanels(person, activeSection)
 {
     const active =
         normalizeProfileCardSection(activeSection);
@@ -805,15 +692,7 @@ function renderProfileCardPanels(
                 const panelId =
                     `profile-card-panel-${section.id}`;
 
-                const content = editing
-                    ? renderProfileEditPanelContent(
-                        person,
-                        section.id
-                    )
-                    : renderProfileLockedPanelContent(
-                        person,
-                        section.id
-                    );
+                const content = renderProfileReadOnlyPanelContent(person, section.id);
 
                 return `
               <section
@@ -835,147 +714,6 @@ function renderProfileCardPanels(
               </section>
             `;
             }).join('')}
-        </div>
-      `;
-}
-
-function renderProfileMainEditFields(person)
-{
-    const name = splitProfileName(person);
-    const details = peopleProfileDetailsFor(person);
-    const isFemale = person.gender === 'female';
-    const currentStatus = person.living === 'Deceased' ? 'Deceased' : person.living === 'Unknown' ? 'Unknown' : 'Living';
-    const isDeceased = currentStatus === 'Deceased';
-    const genderValue = person.gender === 'female' ? 'Female' : person.gender === 'male' ? 'Male' : 'Unknown';
-    const centralPerson = getPerson(person.id);
-    const birthPlaceValue = editPlaceValue(centralPerson?.birth?.placeId, centralPerson?.birth?.placeText || person.birthPlace);
-    const rawDeathPlace = person.deathPlace === '-' ? '' : (person.deathPlace || '');
-    const deathPlaceValue = editPlaceValue(centralPerson?.death?.placeId, centralPerson?.death?.placeText || rawDeathPlace);
-    const burialPlaceValue = editPlaceValue(centralPerson?.death?.burialPlaceId, centralPerson?.death?.burialPlaceText || details.burialPlace);
-    const birthDateModel = centralPerson?.birth || { date: person.birth, dateLabel: person.birth, dateType: details.birthDateType || 'Unknown' };
-    const deathDateModel = centralPerson?.death || { date: person.death, dateLabel: person.death, dateType: details.deathDateType || 'Exact date' };
-    return `<div class="profile-main-edit-grid ${isFemale ? 'has-maiden' : 'no-maiden'} ${isDeceased ? 'is-deceased' : ''}">
-        <div class="field profile-field-gender add-person-select-field">
-          <label>Gender</label>
-          <select class="compact-select add-person-select" id="profileInlineGender">
-            <option ${genderValue === 'Male' ? 'selected' : ''}>Male</option>
-            <option ${genderValue === 'Female' ? 'selected' : ''}>Female</option>
-            <option ${genderValue === 'Unknown' ? 'selected' : ''}>Unknown</option>
-          </select>
-          <span class="add-person-select-chevron" aria-hidden="true">${icon.chevron}</span>
-        </div>
-        <div class="field add-person-status-field profile-status-field profile-field-living"><label>Living status</label><button class="add-person-status-button" type="button" id="profileStatusButton" aria-haspopup="listbox" aria-expanded="false"><span class="add-person-status-current"><span class="add-person-status-dot ${statusDotClass(currentStatus)}"></span><span id="profileStatusLabel">${escapeHtml(currentStatus)}</span></span><span class="add-person-status-chevron" aria-hidden="true">${icon.chevron}</span></button><input type="hidden" id="profileInlineLiving" value="${escapeHtml(currentStatus)}"><div class="add-person-status-menu" id="profileStatusMenu" role="listbox" hidden>${['Living','Deceased','Unknown'].map(status => `<button class="add-person-status-option ${status === currentStatus ? 'active' : ''}" type="button" role="option" aria-selected="${status === currentStatus ? 'true' : 'false'}" data-profile-status-value="${status}"><span><span class="add-person-status-dot ${statusDotClass(status)}"></span>${status}</span><span data-profile-status-check>${status === currentStatus ? icon.check : ''}</span></button>`).join('')}</div></div>
-
-        <div class="field profile-field-first"><label>First name</label><input id="profileInlineFirst" data-source-value="${escapeHtml(name.first)}" value="${escapeHtml(localizedDataFieldValue(name.first))}"></div>
-        <div class="field profile-field-last"><label>Last name</label><input id="profileInlineLast" data-source-value="${escapeHtml(name.surname)}" value="${escapeHtml(localizedDataFieldValue(name.surname))}"></div>
-        ${renderNameAffixCombobox({ id: 'profileInlinePrefix', label: 'Prefix', value: details.prefix || '', kind: 'prefix', className: 'profile-field-prefix' })}
-
-        <div class="field profile-field-patronym"><label>Patronym</label><input id="profileInlinePatronym" data-source-value="${escapeHtml(name.patronym)}" value="${escapeHtml(localizedDataFieldValue(name.patronym))}"></div>
-        <div class="field profile-field-maiden" id="profileInlineMaiden" ${isFemale ? '' : 'hidden'}><label>Maiden Name</label><input id="profileInlineMaidenInput" data-source-value="${escapeHtml(details.maidenName || '')}" value="${escapeHtml(localizedDataFieldValue(details.maidenName || ''))}" placeholder="Maiden surname"></div>
-        ${renderNameAffixCombobox({ id: 'profileInlineSuffix', label: 'Suffix', value: details.suffix || '', kind: 'suffix', className: 'profile-field-suffix' })}
-
-        ${renderGenealogyDateField('profileInlineBirthField', 'Birth Date', birthDateModel, {
-            inputId: 'profileInlineBirth',
-            typeId: 'profileInlineBirthType',
-            className: 'profile-field-birth-date genealogy-date-inline-range',
-            placeholder: 'e.g. 14 Feb 1915'
-        })}
-        ${renderPlaceCombobox({
-            id: 'profileInlineBirthPlace',
-            label: 'Birth Place',
-            value: birthPlaceValue,
-            selectedPlaceId: centralPerson?.birth?.placeId || '',
-            addressValue: centralPerson?.birth?.address || '',
-            placeholder: 'e.g. Pawford, England',
-            className: 'profile-field-birth-place'
-        })}
-
-        <div class="profile-death-fields-group" id="profileInlineDeathFields" ${isDeceased ? '' : 'hidden'}>
-          ${renderGenealogyDateField('profileInlineDeathField', 'Death Date', deathDateModel, {
-                inputId: 'profileInlineDeath',
-                typeId: 'profileInlineDeathType',
-                className: 'profile-field-death-date genealogy-date-inline-range',
-                placeholder: 'e.g. 20 Oct 1926',
-                defaultDateType: 'Exact date'
-            })}
-          ${renderPlaceCombobox({
-                id: 'profileInlineDeathPlace',
-                label: 'Death Place',
-                value: deathPlaceValue,
-                selectedPlaceId: centralPerson?.death?.placeId || '',
-                addressValue: centralPerson?.death?.address || '',
-                placeholder: 'e.g. Meowbridge, England',
-                className: 'profile-field-death-place'
-            })}
-        </div>
-        <div class="profile-death-fields-group" id="profileInlineDeathExtraFields" ${isDeceased ? '' : 'hidden'}>
-          ${renderGenealogyDateField('profileBurialDate', 'Burial date', personEventByTag(centralPerson, 'BURI')?.date, { className: 'profile-field-burial-date genealogy-date-inline-range' })}
-          <div class="field profile-field-death-reason"><label>Cause of Death</label><input id="profileInlineDeathReason" value="${escapeHtml(details.deathReason || '')}" placeholder="Cause or reason"></div>
-          ${renderPlaceCombobox({
-                id: 'profileInlineBurialPlace',
-                label: 'Burial Place',
-                value: burialPlaceValue,
-                selectedPlaceId: centralPerson?.death?.burialPlaceId || '',
-                addressValue: centralPerson?.death?.burialAddress || '',
-                placeholder: 'Burial place',
-                className: 'profile-field-burial-place'
-            })}
-        </div>
-      </div>`;
-}
-
-function renderProfileEducationEditFields(person)
-{
-    return renderRepeatableFactList(person, 'EDUC', 'profile');
-}
-
-function renderProfileWorkEditFields(person)
-{
-    return renderRepeatableFactList(person, 'OCCU', 'profile');
-}
-
-function renderProfileOtherEditFields(person)
-{
-    const centralPerson = ensurePersonCentralStructures(
-        getPerson(person.id) || person
-    );
-
-    const details = peopleProfileDetailsFor(person);
-    const baptism = personEventByTag(centralPerson, 'BAPM');
-
-    return `
-        <div class="profile-card-edit-grid two profile-other-edit-grid">
-          ${renderReligionField({
-                id: 'profileReligion',
-                value: details.religion,
-                className: 'profile-other-religion'
-            })}
-
-          ${renderGenealogyDateField(
-                'profileBaptismDate',
-                'Baptism date',
-                details.baptismDate,
-                {
-                    inputId: 'profileBaptismDate',
-                    typeId: 'profileBaptismDateType',
-                    className: 'profile-other-baptism-date genealogy-date-inline-range',
-                    defaultDateType: 'Exact date',
-                    placeholder: 'e.g. 14 Feb 1915'
-                }
-            )}
-
-          ${renderPlaceCombobox({
-                id: 'profileBaptismPlace',
-                label: 'Baptism place',
-                value: editPlaceValue(
-                    baptism?.placeId,
-                    baptism?.placeText || details.baptismPlace
-                ),
-                selectedPlaceId: baptism?.placeId || '',
-                addressValue: baptism?.address || '',
-                placeholder: 'e.g. Pawford, England',
-                className: 'full profile-other-baptism-place'
-            })}
         </div>
       `;
 }
@@ -2025,506 +1763,10 @@ function bindProfileCardTabs(card)
     });
 }
 
-function profileEditValidationFailure(
-    section,
-    message,
-    focusSelector
-)
-{
-    return {
-        ok: false,
-        section,
-        message,
-        focusSelector
-    };
-}
-
-function collectProfileMainEdit()
-{
-    const living =
-        main.querySelector(
-            '#profileInlineLiving'
-        )?.value || 'Unknown';
-
-    const birthDate =
-        collectGenealogyDateField(
-            'profileInlineBirthField'
-        );
-
-    if (!birthDate)
-    {
-        return profileEditValidationFailure(
-            'main',
-            'Check the birth date before saving.',
-            `
-            [data-genealogy-date-field=
-              "profileInlineBirthField"]
-            [data-genealogy-date-input]
-          `.replace(/\s+/g, ' ')
-        );
-    }
-
-    const deathDate =
-        living === 'Deceased'
-            ? collectGenealogyDateField(
-                'profileInlineDeathField'
-            )
-            : emptyGenealogyDate(
-                'Exact date'
-            );
-
-    if (!deathDate)
-    {
-        return profileEditValidationFailure(
-            'main',
-            'Check the death date before saving.',
-            `
-            [data-genealogy-date-field=
-              "profileInlineDeathField"]
-            [data-genealogy-date-input]
-          `.replace(/\s+/g, ' ')
-        );
-    }
-
-    const burialDate = living === 'Deceased' ? collectGenealogyDateField('profileBurialDate') : null;
-    if (living === 'Deceased' && !burialDate) return profileEditValidationFailure('main', 'Check the burial date before saving.', '#profileBurialDateDate');
-    if (living === 'Deceased' && genealogyDateDefinitelyAfter(birthDate, deathDate))
-        return profileEditValidationFailure('main', 'The death date is earlier than the birth date.', '#profileInlineDeath');
-
-    return {
-        ok: true,
-        section: 'main',
-        payload: {
-            first:
-            (() =>
-            {
-                const input = main.querySelector('#profileInlineFirst');
-                return collectLocalizedDataFieldValue(input, input?.dataset.sourceValue || '').trim();
-            })(),
-
-            last:
-            (() =>
-            {
-                const input = main.querySelector('#profileInlineLast');
-                return collectLocalizedDataFieldValue(input, input?.dataset.sourceValue || '').trim();
-            })(),
-
-            patronym:
-            (() =>
-            {
-                const input = main.querySelector('#profileInlinePatronym');
-                return collectLocalizedDataFieldValue(input, input?.dataset.sourceValue || '').trim();
-            })(),
-
-            prefix:
-            main.querySelector(
-                '#profileInlinePrefix'
-            )?.value.trim() || '',
-
-            suffix:
-            main.querySelector(
-                '#profileInlineSuffix'
-            )?.value.trim() || '',
-
-            maidenName:
-            (() =>
-            {
-                const input = main.querySelector('#profileInlineMaidenInput');
-                return collectLocalizedDataFieldValue(input, input?.dataset.sourceValue || '').trim();
-            })(),
-
-            gender:
-            main.querySelector(
-                '#profileInlineGender'
-            )?.value || 'Unknown',
-
-            living,
-
-            birthDate,
-            birthPlace:
-            readPlaceInputValue(
-                '#profileInlineBirthPlace',
-                main
-            ),
-
-            deathDate,
-            deathPlace:
-            readPlaceInputValue(
-                '#profileInlineDeathPlace',
-                main
-            ),
-
-            deathReason:
-            main.querySelector(
-                '#profileInlineDeathReason'
-            )?.value.trim() || '',
-
-            burialPlace:
-            readPlaceInputValue(
-                '#profileInlineBurialPlace',
-                main
-            ),
-            burialDate
-        }
-    };
-}
-
-function collectProfileEducationEdit()
-{
-    const payload = collectRepeatableFacts(main, 'EDUC');
-    return payload.invalid ? { ok: false, section: 'education', message: payload.message, focusSelector: payload.focusSelector } : { ok: true, section: 'education', payload };
-}
-
-function collectProfileWorkEdit()
-{
-    const payload = collectRepeatableFacts(main, 'OCCU');
-    return payload.invalid ? { ok: false, section: 'work', message: payload.message, focusSelector: payload.focusSelector } : { ok: true, section: 'work', payload };
-}
-
-function collectProfileOtherEdit()
-{
-    const repeatable = collectRepeatableFacts(main, 'FACT');
-    if (repeatable.invalid) return { ok: false, section: 'other', message: repeatable.message, focusSelector: repeatable.focusSelector };
-    const baptismDate =
-        collectGenealogyDateField(
-            'profileBaptismDate'
-        );
-
-    if (!baptismDate)
-    {
-        return profileEditValidationFailure(
-            'other',
-            'Check the baptism date before saving.',
-            `
-            [data-genealogy-date-field=
-              "profileBaptismDate"]
-            [data-genealogy-date-input]
-          `.replace(/\s+/g, ' ')
-        );
-    }
-
-    return {
-        ok: true,
-        section: 'other',
-        payload: {
-            repeatable,
-            religion:
-            readReligionField(
-                main,
-                'profileReligion'
-            ),
-
-            baptismDate,
-
-            baptismPlace:
-            readPlaceInputValue(
-                '#profileBaptismPlace',
-                main
-            )
-        }
-    };
-}
-
-function collectProfileEditSections()
-{
-    const card = main.querySelector('[data-profile-card-root]');
-    const collectors = { main: collectProfileMainEdit, education: collectProfileEducationEdit,
-        work: collectProfileWorkEdit, other: collectProfileOtherEdit };
-    const results = Object.entries(collectors).filter(([section]) =>
-    {
-        const initial = card?.profileSectionSnapshots?.[section];
-        return initial === undefined || initial !== profileSectionDraftSnapshot(card.querySelector(`[data-profile-card-panel="${section}"]`));
-    }).map(([, collect]) => collect());
-
-    const invalid = results.find(
-        result => !result.ok
-    );
-
-    if (invalid) return invalid;
-
-    return {
-        ok: true,
-        payloads: Object.fromEntries(
-            results.map(result => [
-                result.section,
-                result.payload
-            ])
-        )
-    };
-}
-
-function applyProfileMainEdit(
-    person,
-    payload
-)
-{
-    const centralPerson =
-        getPerson(person.id);
-
-    if (!centralPerson) return;
-
-    ensurePersonCentralStructures(
-        centralPerson
-    );
-
-    const first =
-        payload.first
-        || centralPerson.names.first
-        || person.first
-        || '';
-
-    const last =
-        payload.last
-        || centralPerson.names.last
-        || person.surname
-        || '';
-
-    // display name is derived below via rebuildPersonDisplayName
-
-
-    const gender =
-        String(payload.gender || '')
-            .toLowerCase();
-
-    const normalizedGender =
-        gender === 'male'
-        || gender === 'female'
-            ? gender
-            : 'unknown';
-
-    const livingStatus =
-        normalizeLivingStatus(
-            payload.living
-        );
-
-    const birthPlace =
-        resolvePlaceAssignment(
-            payload.birthPlace,
-            centralPerson.birth?.placeId
-        );
-
-    const deathPlace =
-        resolvePlaceAssignment(
-            payload.deathPlace,
-            centralPerson.death?.placeId
-        );
-
-    const burialPlace =
-        resolvePlaceAssignment(
-            payload.burialPlace,
-            centralPerson.death
-                ?.burialPlaceId
-        );
-
-    centralPerson.names.first = first;
-    centralPerson.names.middle = payload.patronym || '';
-    centralPerson.names.last = last;
-    centralPerson.names.prefix = normalizeNameSegment(payload.prefix);
-    centralPerson.names.suffix = normalizeNameSegment(payload.suffix);
-    centralPerson.names.maiden = payload.maidenName || '';
-    rebuildPersonDisplayName(centralPerson);
-
-
-    centralPerson.gender =
-        normalizedGender;
-
-    centralPerson.livingStatus =
-        livingStatus;
-
-    centralPerson.birth = {
-        ...payload.birthDate,
-        placeId: birthPlace.placeId,
-        placeText: birthPlace.placeText,
-        address: birthPlace.address
-    };
-
-    if (livingStatus === 'Deceased')
-    {
-        if (personEventByTag(centralPerson, 'BURI') || hasGenealogyDateValue(payload.burialDate) || burialPlace.placeId || burialPlace.placeText)
-            upsertPersonEvent(centralPerson, 'BURI', { date: genealogyDateOrNull(payload.burialDate), placeId: burialPlace.placeId, placeText: burialPlace.placeText, address: burialPlace.address });
-        centralPerson.death = {
-            ...payload.deathDate,
-            placeId: deathPlace.placeId,
-            placeText: deathPlace.placeText,
-            address: deathPlace.address,
-            reason: payload.deathReason,
-            cause: payload.deathReason,
-            burialPlaceId:
-            burialPlace.placeId,
-            burialPlaceText:
-            burialPlace.placeText,
-            burialAddress:
-            burialPlace.address
-        };
-    }
-    else
-    {
-        centralPerson.death = normalizeGenealogyDateInput(centralPerson.death);
-    }
-
-    person.first = first;
-    person.surname = last;
-    person.name = centralPerson.names.display;
-    person.gender = normalizedGender;
-    person.living = livingStatus;
-    person.birth =
-        formatGenealogyDateLabel(
-            payload.birthDate
-        );
-    person.birthPlace =
-        birthPlace.placeText;
-
-    if (livingStatus === 'Deceased')
-    {
-        person.death =
-            formatGenealogyDateLabel(
-                payload.deathDate
-            );
-
-        person.deathPlace =
-            deathPlace.placeText;
-    }
-    else
-    {
-        person.death = '';
-        person.deathPlace = '';
-    }
-}
-
-function applyProfileEducationEdit(person, payload)
-{
-    applyRepeatableFacts(getPerson(person.id), payload);
-}
-
-function applyProfileWorkEdit(person, payload)
-{
-    applyRepeatableFacts(getPerson(person.id), payload);
-}
-
-function applyProfileOtherEdit(
-    person,
-    payload
-)
-{
-    const centralPerson =
-        getPerson(person.id);
-
-    if (!centralPerson) return;
-
-    upsertPersonAttribute(
-        centralPerson,
-        'RELI',
-        {
-            value:
-            normalizeReligionValue(
-                payload.religion
-            )
-        }
-    );
-
-    const baptism =
-        upsertPersonEvent(
-            centralPerson,
-            'BAPM',
-            {
-                date:
-              genealogyDateOrNull(
-                  payload.baptismDate,
-                  'Exact date'
-              )
-            }
-        );
-
-    const resolvedPlace =
-        resolvePlaceAssignment(
-            payload.baptismPlace,
-            baptism.placeId
-        );
-
-    baptism.placeId =
-        resolvedPlace.placeId;
-
-    baptism.placeText =
-        resolvedPlace.placeText;
-
-    baptism.address =
-        resolvedPlace.address;
-    applyRepeatableFacts(centralPerson, payload.repeatable);
-}
-
-function applyProfileEditSections(
-    person,
-    payloads
-)
-{
-    if (payloads.main) applyProfileMainEdit(
-        person,
-        payloads.main
-    );
-
-    if (payloads.education) applyProfileEducationEdit(
-        person,
-        payloads.education
-    );
-
-    if (payloads.work) applyProfileWorkEdit(
-        person,
-        payloads.work
-    );
-
-    if (payloads.other) applyProfileOtherEdit(
-        person,
-        payloads.other
-    );
-
-    person.updated =
-        'Just now';
-
-    const centralPerson =
-        getPerson(person.id);
-
-    markPersonUpdated(
-        centralPerson
-    );
-
-    sampleData.events =
-        rebuildSampleEventsAndPruneSourceLinks();
-}
-
-function showProfileEditValidationError(
-    card,
-    result
-)
-{
-    activateProfileCardSection(
-        card,
-        result.section
-    );
-
-    showToast(result.message);
-
-    requestAnimationFrame(() =>
-    {
-        card?.querySelector(
-            result.focusSelector
-        )?.focus();
-    });
-}
-
-function cancelPeopleProfileEditing()
-{
-    state.peopleProfileEditing = false;
-    renderPeople();
-    showToast('Profile editing cancelled.');
-}
-
 function bindPeopleProfileControls(person)
 {
     bindRepeatableFacts(main);
     bindToasts(main);
-    bindGenealogyDateFields(main);
-    bindPlaceComboboxes(main);
-    bindNameAffixComboboxes(main);
 
     bindRelationshipList(main, 'profile');
     bindProfilePhotoCarousels(main);
@@ -2580,23 +1822,13 @@ function bindPeopleProfileControls(person)
     const profileCard = main.querySelector(
         '[data-profile-card-root]'
     );
-    if (state.peopleProfileEditing && profileCard)
-        profileCard.profileSectionSnapshots = Object.fromEntries([...profileCard.querySelectorAll('[data-profile-card-panel]')]
-            .map(panel => [panel.dataset.profileCardPanel, profileSectionDraftSnapshot(panel)]));
     bindProfileCardTabs(profileCard);
-    main
-        .querySelector('#profileEditButton')
-        ?.addEventListener('click', () =>
-        {
-            if (state.peopleProfileEditing)
-            {
-                cancelPeopleProfileEditing();
-                return;
-            }
-
-            state.peopleProfileEditing = true;
-            renderPeople();
-        });
+    main.querySelector('#profileEditButton')?.addEventListener('click', () =>
+    {
+        const currentPerson = getPerson(person.id);
+        if (currentPerson && !currentPerson.deleted && currentPerson.projectId === currentProjectId())
+            openEditPersonModal(currentPerson.id);
+    });
     main
         .querySelector('#profileMoreActions')
         ?.addEventListener(
@@ -2612,109 +1844,6 @@ function bindPeopleProfileControls(person)
                 );
             }
         );
-    main.querySelector('#profileInlineGender')?.addEventListener('change', event =>
-    {
-        const isFemale = event.target.value === 'Female';
-        const row = main.querySelector('#profileInlineMaiden');
-        const editGrid = main.querySelector('.profile-main-edit-grid');
-        if (row) row.hidden = !isFemale;
-        if (editGrid)
-        {
-            editGrid.classList.toggle('has-maiden', isFemale);
-            editGrid.classList.toggle('no-maiden', !isFemale);
-        }
-    });
-    const profileStatusButton = main.querySelector('#profileStatusButton');
-    const profileStatusMenu = main.querySelector('#profileStatusMenu');
-    profileStatusButton?.addEventListener('click', event =>
-    {
-        event.stopPropagation();
-        const expanded = profileStatusButton.getAttribute('aria-expanded') === 'true';
-        profileStatusButton.setAttribute('aria-expanded', expanded ? 'false' : 'true');
-        if (profileStatusMenu) profileStatusMenu.hidden = expanded;
-    });
-    main.querySelectorAll('[data-profile-status-value]').forEach(option => option.addEventListener('click', event =>
-    {
-        event.stopPropagation();
-        const status = option.dataset.profileStatusValue;
-        const input = main.querySelector('#profileInlineLiving');
-        const label = main.querySelector('#profileStatusLabel');
-        const dot = main.querySelector('#profileStatusButton .add-person-status-current .add-person-status-dot');
-        if (input) input.value = status;
-        if (label) label.textContent = status;
-        if (dot) dot.className = `add-person-status-dot ${statusDotClass(status)}`;
-        main.querySelectorAll('[data-profile-status-value]').forEach(item =>
-        {
-            const active = item.dataset.profileStatusValue === status;
-            item.classList.toggle('active', active);
-            item.setAttribute('aria-selected', active ? 'true' : 'false');
-            const check = item.querySelector('[data-profile-status-check]');
-            if (check) check.innerHTML = active ? icon.check : '';
-        });
-        const isDeceased = status === 'Deceased';
-        const deathModel = main.querySelector('[data-genealogy-date-field="profileInlineDeathField"] [data-genealogy-date-model]');
-        if (deathModel)
-        {
-            const currentDeath = normalizeGenealogyDateInput(JSON.parse(deathModel.value || '{}'));
-            if (isDeceased && !currentDeath.date && !currentDeath.dateLabel)
-            {
-                applyGenealogyDateToField('profileInlineDeathField', emptyGenealogyDate('Exact date'));
-            }
-            if (!isDeceased)
-            {
-                applyGenealogyDateToField('profileInlineDeathField', emptyGenealogyDate('Exact date'));
-            }
-        }
-        const group = main.querySelector('#profileInlineDeathFields');
-        const extraGroup = main.querySelector('#profileInlineDeathExtraFields');
-        if (group) group.hidden = !isDeceased;
-        if (extraGroup) extraGroup.hidden = !isDeceased;
-        main.querySelectorAll('.profile-field-death-date, .profile-field-death-place, .profile-field-death-reason, .profile-field-burial-place').forEach(field =>
-        {
-            field.hidden = !isDeceased;
-        });
-        const editGrid = main.querySelector('.profile-main-edit-grid');
-        if (editGrid) editGrid.classList.toggle('is-deceased', isDeceased);
-        if (profileStatusMenu) profileStatusMenu.hidden = true;
-        profileStatusButton?.setAttribute('aria-expanded', 'false');
-    }));
-    main
-        .querySelector('#profileCancelEdit')
-        ?.addEventListener(
-            'click',
-            cancelPeopleProfileEditing
-        );
-
-    main
-        .querySelector('#profileSaveInlineEdit')
-        ?.addEventListener('click', () =>
-        {
-            const result =
-                collectProfileEditSections();
-
-            if (!result.ok)
-            {
-                showProfileEditValidationError(
-                    profileCard,
-                    result
-                );
-
-                return;
-            }
-
-            applyProfileEditSections(
-                person,
-                result.payloads
-            );
-
-            state.peopleProfileEditing = false;
-
-            renderPeople();
-
-            showToast(
-                'Profile changes saved.'
-            );
-        });
     main.querySelector('[data-profile-add-fact]')?.addEventListener('click', () => openAddFactOverlay(person));
     main.querySelectorAll('[data-profile-partner-id]').forEach(button =>
     {

@@ -1,11 +1,5 @@
 const REPEATABLE_PERSON_FACTS = Object.freeze({ education: 'EDUC', occupation: 'OCCU', customFact: 'FACT' });
 
-function profileSectionDraftSnapshot(panel)
-{
-    return JSON.stringify([...panel.querySelectorAll('input,select,textarea')].map(field =>
-        [field.id, field.value, field.checked, field.dataset.placeId || '']));
-}
-
 function repeatableFactKind(tag)
 {
     return Object.keys(REPEATABLE_PERSON_FACTS).find(kind => REPEATABLE_PERSON_FACTS[kind] === tag);
@@ -16,7 +10,7 @@ function repeatableFactLabel(tag)
     return tag === 'EDUC' ? 'Education' : tag === 'OCCU' ? 'Occupation' : 'Custom fact';
 }
 
-function renderRepeatableFactEntry(tag, record = null, scope = 'person')
+function renderRepeatableFactEntry(tag, record = null)
 {
     const prefix = createRuntimeId('fact-field');
     const value = record ? { ...record,
@@ -32,23 +26,28 @@ function renderRepeatableFactEntry(tag, record = null, scope = 'person')
     const fields = tag === 'FACT' ? renderCustomFactFields(prefix, value)
         : `${tag === 'EDUC' ? `${text('institutionName', 'Institution name')}<div class="field"><label for="${prefix}-institutionType">${escapeHtml(t('Institution type'))}</label><div class="common-select-shell"><select class="compact-select common-select" id="${prefix}-institutionType" data-repeat-field="institutionType">${educationInstitutionTypeOptions(value.institutionType || 'Unknown')}</select><span class="common-select-chevron" aria-hidden="true">${icon.chevron}</span></div></div>${text('value', 'Education or credential')}` : `${text('company', 'Company name')}${text('value', 'Occupation')}`}
           ${tag === 'EDUC' ? dates + place : place + dates}${text('notes', 'Notes', true)}`;
-    const title = scope === 'person'
-        ? `<div class="add-person-fact-card-title"><span class="fact-button-icon" aria-hidden="true">${addPersonFactDefinition(repeatableFactKind(tag)).icon}</span><span>${escapeHtml(t(repeatableFactLabel(tag)))}</span></div>`
-        : `<h4>${escapeHtml(t(repeatableFactLabel(tag)))}</h4>`;
-    return `<section class="repeatable-fact-entry${scope === 'person' ? ' add-person-fact-card' : ''}" data-repeat-entry data-repeat-id="${escapeHtml(record?.id || '')}" data-repeat-prefix="${prefix}" data-repeat-tag="${tag}"><div class="repeatable-fact-entry-head${scope === 'person' ? ' add-person-fact-card-header' : ''}">${title}<button type="button" class="${scope === 'person' ? 'add-person-fact-remove' : 'relation-action-button'}" data-repeat-remove aria-label="${escapeHtml(t('Remove fact'))}" title="${escapeHtml(t('Remove fact'))}">${icon.trash}</button></div><div class="add-person-fact-grid">${fields}</div><p class="repeatable-fact-error" data-repeat-error hidden role="alert"></p></section>`;
+    const title = `<div class="add-person-fact-card-title"><span class="fact-button-icon" aria-hidden="true">${addPersonFactDefinition(repeatableFactKind(tag)).icon}</span><span>${escapeHtml(t(repeatableFactLabel(tag)))}</span></div>`;
+    return `<section class="repeatable-fact-entry add-person-fact-card" data-repeat-entry data-repeat-id="${escapeHtml(record?.id || '')}" data-repeat-prefix="${prefix}" data-repeat-tag="${tag}">
+        <div class="repeatable-fact-entry-head add-person-fact-card-header">
+            ${title}<button type="button" class="add-person-fact-remove" data-repeat-remove aria-label="${escapeHtml(t('Remove fact'))}" title="${escapeHtml(t('Remove fact'))}">${icon.trash}</button>
+        </div>
+        <div class="add-person-fact-grid">${fields}</div>
+        <p class="repeatable-fact-error" data-repeat-error hidden role="alert"></p>
+    </section>`;
 }
 
-function renderRepeatableFactList(person, tag, scope = 'person')
+function renderRepeatableFactList(person, tag)
 {
     const records = (getPerson(person?.id)?.attributes || person?.attributes || []).filter(record => record.tag === tag);
-    const label = tag === 'EDUC' ? 'Add education' : tag === 'OCCU' ? 'Add occupation' : 'Add custom fact';
-    return `<div class="repeatable-fact-list" data-repeat-list="${tag}" data-repeat-scope="${scope}" ${scope === 'person' ? `data-add-person-fact-card="${repeatableFactKind(tag)}"` : ''}><div data-repeat-entries>${records.map(record => renderRepeatableFactEntry(tag, record, scope)).join('')}</div>${scope === 'profile' ? `<button type="button" class="button secondary repeatable-fact-add" data-repeat-add="${tag}">${icon.plus}<span>${escapeHtml(t(label))}</span></button>` : ''}</div>`;
+    return `<div class="repeatable-fact-list" data-repeat-list="${tag}" data-add-person-fact-card="${repeatableFactKind(tag)}">
+        <div data-repeat-entries>${records.map(record => renderRepeatableFactEntry(tag, record)).join('')}</div>
+    </div>`;
 }
 
 function appendRepeatableFact(list)
 {
     const entries = list.querySelector('[data-repeat-entries]');
-    entries.insertAdjacentHTML('beforeend', renderRepeatableFactEntry(list.dataset.repeatList, null, list.dataset.repeatScope));
+    entries.insertAdjacentHTML('beforeend', renderRepeatableFactEntry(list.dataset.repeatList));
     const entry = entries.lastElementChild;
     bindGenealogyDateFields(entry); bindPlaceComboboxes(entry); localizeUI(entry);
     entry.scrollIntoView({ block: 'nearest' });
@@ -62,8 +61,6 @@ function bindRepeatableFacts(root)
     root.dataset.repeatableBound = 'true';
     root.addEventListener('click', event =>
     {
-        const add = event.target.closest('[data-repeat-add]');
-        if (add) { appendRepeatableFact(add.closest('[data-repeat-list]')); return; }
         const remove = event.target.closest('[data-repeat-remove]');
         if (remove) { remove.closest('[data-repeat-entry]').remove(); updateAddPersonFactSummary(); }
         const edit = event.target.closest('[data-person-attribute-edit]');
@@ -162,17 +159,6 @@ function renderRepeatableFactReadOnly(person, tag)
 function openTimelinePersonEditor(target)
 {
     if (!target || !getPerson(target.personId)) return;
-    const profile = main.querySelector('[data-profile-card-root]');
-    if (state.peopleProfileEditing && profile?.profileSectionSnapshots
-        && [...profile.querySelectorAll('[data-profile-card-panel]')].some(panel =>
-            profile.profileSectionSnapshots[panel.dataset.profileCardPanel] !== profileSectionDraftSnapshot(panel)))
-    {
-        openManageRelationshipsDiscardConfirm(() =>
-        {
-            state.peopleProfileEditing = false; renderPeople(); openTimelinePersonEditor(target);
-        }, { message: 'Unsaved profile changes will be lost.' });
-        return;
-    }
     const selectedPersonId = state.selectedPersonId, selectedPeopleId = state.selectedPeopleId;
     const scrollSelector = '.tree-inspector,.profile-compact-timeline-list,.profile-card-panel';
     const scrolls = [...document.querySelectorAll(scrollSelector)].map(element => ({ top: element.scrollTop, left: element.scrollLeft }));

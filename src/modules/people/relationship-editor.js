@@ -3865,7 +3865,6 @@ function refreshAfterRelationshipChange(
         state.activeModule = 'People';
         state.peopleView = 'profile';
         state.peopleSide = 'profile';
-        state.peopleProfileEditing = false;
         renderPeople();
         return;
     }

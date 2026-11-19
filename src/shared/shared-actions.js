@@ -725,7 +725,6 @@ function resetProjectModuleState(projectId)
         birthYear: { mode: '', from: '', to: '' },
         living: 'Any'
     };
-    state.peopleProfileEditing = false;
 
     const treeView = treeProjectViewState(projectId);
     const validTreeFocus = people.some(person => person.id === treeView.focusPersonId)
