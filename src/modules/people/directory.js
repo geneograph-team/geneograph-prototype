@@ -463,7 +463,7 @@ function resetPeopleFilterFields(
         ?.reset();
 }
 
-const defaultPeopleColumns = Object.freeze({ living: true, birth: true, birthPlace: true, death: true, deathPlace: true, updated: true });
+const defaultPeopleColumns = Object.freeze({ living: true, birth: true, birthPlace: true, death: true, deathPlace: true, updated: false });
 const peopleColumnLabels = { living: 'Living', birth: 'Birth date', birthPlace: 'Birth place', death: 'Death date', deathPlace: 'Death place', updated: 'Updated' };
 
 let peopleSavedViews = [
@@ -1805,7 +1805,7 @@ function renderPeopleBulkToolbar()
     return `<div class="people-bulk-toolbar" aria-label="Bulk actions for selected people">
         <strong class="people-bulk-summary">${count} selected</strong>
         <div class="people-bulk-actions">
-          <button class="button secondary" type="button" data-people-bulk-add-board>${icon.whiteboard} ${escapeHtml(t('Add to Geneograph'))}</button>
+          <button class="button secondary" type="button" data-people-bulk-add-board>${icon.whiteboard} ${escapeHtml(t('Add to canvas'))}</button>
           <button class="button danger" type="button" data-people-bulk-delete>${icon.trash} Delete selected</button>
           <button class="button secondary" type="button" data-people-bulk-clear>Clear</button>
         </div>
