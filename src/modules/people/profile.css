@@ -224,9 +224,10 @@
 }
 
 .profile-card-panel > .repeatable-fact-summary {
-    flex: 1 0 auto;
-    align-content: start;
-    grid-auto-rows: max-content;
+    flex: 1 1 0;
+    min-height: 0;
+    grid-template-rows: max-content;
+    grid-auto-rows: minmax(max-content, 1fr);
     gap: 4px;
     padding: 10px;
 }
@@ -238,7 +239,11 @@
     gap: 8px;
 }
 
-.profile-fact-heading h4 {
+.repeatable-fact-summary .profile-fact-heading h4 {
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: .02em;
+    text-transform: none;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -273,18 +278,35 @@
 }
 
 .repeatable-fact-summary .profile-info-row {
-    grid-template-columns: minmax(min(90px, 46%), .72fr) minmax(0, 1fr);
+    grid-template-columns: min(42%, 200px) minmax(0, 1fr);
+    align-items: center;
     column-gap: 8px;
-    padding-bottom: 3px;
+    padding-block: 3px;
+}
+
+.repeatable-fact-summary .profile-info-row > span:first-child {
+    color: var(--text-secondary);
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.repeatable-fact-summary .profile-info-row > strong {
+    color: var(--text-primary);
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.repeatable-fact-summary .profile-info-row-multiline > strong {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 3;
+    white-space: pre-line;
+    overflow-wrap: anywhere;
 }
 
 .repeatable-fact-summary [tabindex="0"]:focus-visible {
     outline: var(--control-focus-width) solid var(--control-focus-color);
     outline-offset: -1px;
-}
-
-.repeatable-fact-summary > .panel-action {
-    justify-self: start;
 }
 
 .profile-fact-empty {

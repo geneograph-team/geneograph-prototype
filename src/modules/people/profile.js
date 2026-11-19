@@ -304,14 +304,14 @@ function splitProfileName(person)
     };
 }
 
-function renderProfileInfoRow(label, value, { fullValue = false, userContent = false } = {})
+function renderProfileInfoRow(label, value, { fullValue = false, userContent = false, multiline = false } = {})
 {
     const tooltip = fullValue && value !== '-'
         ? ` tabindex="0" title="${escapeHtml(value)}"`
         : '';
     const attributes = value === '-' ? ' class="profile-info-placeholder"' : tooltip;
     return `
-        <div class="profile-info-row">
+        <div class="profile-info-row${multiline ? ' profile-info-row-multiline' : ''}">
           <span>${escapeHtml(label)}</span>
           <strong${attributes}${userContent ? ' data-user-content' : ''}>${escapeHtml(value)}</strong>
         </div>
@@ -358,7 +358,12 @@ function renderProfileCard(person)
 
     return `
         <article class="profile-card profile-full-card" data-profile-card-root>
-          <h3><span class="section-title">${icon.people} Profile</span></h3>
+          <h3>
+            <span class="section-title">${icon.people} Profile</span>
+            <button class="panel-action profile-connected-action" type="button" data-profile-add-fact>
+              ${icon.plus}<span>${escapeHtml(t('Add fact'))}</span>
+            </button>
+          </h3>
           <div class="profile-card-body">
             ${renderProfileCardTabs(activeSection)}
             ${renderProfileCardPanels(person, activeSection)}
@@ -1001,15 +1006,6 @@ function renderProfileCompactTimeline(person)
               <span>Timeline</span>
             </span>
 
-            <span class="profile-connected-actions">
-              <button
-                class="panel-action profile-connected-action"
-                type="button"
-                data-profile-add-fact>
-                ${icon.plus}
-                <span>Add fact</span>
-              </button>
-            </span>
           </h3>
 
           <div class="profile-compact-timeline-list">
@@ -1756,7 +1752,13 @@ function bindPeopleProfileControls(person)
                 );
             }
         );
-    main.querySelector('[data-profile-add-fact]')?.addEventListener('click', () => openAddFactOverlay(person));
+    profileCard?.querySelector('[data-profile-add-fact]')?.addEventListener('click', () =>
+    {
+        const tab = normalizeProfileCardSection(state.peopleProfileEditTab);
+        const tag = { education: 'EDUC', work: 'OCCU', other: 'FACT' }[tab];
+        const target = tag ? { kind: 'newAttribute', tag } : { kind: 'additionalFacts' };
+        openTimelinePersonEditor({ ...target, personId: person.id });
+    });
     main.querySelector('[data-profile-add-relative]')?.addEventListener('click', event =>
         openRelativePopover(event.currentTarget, person.id));
     main.querySelectorAll('[data-profile-photo]').forEach(button => button.addEventListener('click', () => openProfilePhoto(button.dataset.profilePhoto)));

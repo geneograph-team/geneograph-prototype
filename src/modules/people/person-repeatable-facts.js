@@ -183,7 +183,6 @@ function renderRepeatableFactReadOnly(person, tag, preferredId = profileFactReco
         <button type="button" class="control-icon-button" data-profile-fact-step="1"
             data-profile-fact-id="${escapeHtml(records[index + 1]?.id || '')}" aria-label="${escapeHtml(t('Next fact'))}" ${index === records.length - 1 ? 'disabled' : ''}>${icon.chevron}</button>
     </div>` : '';
-    const edit = tag === 'FACT' ? `<button class="panel-action" type="button" data-person-attribute-edit="${escapeHtml(record.id)}" data-person-id="${escapeHtml(person.id)}">${icon.edit}${escapeHtml(t('Edit fact'))}</button>` : '';
     return `<section class="profile-info-block repeatable-fact-summary" data-profile-fact-tag="${tag}">
         <header class="profile-fact-heading">
             <h4 ${tag === 'FACT' ? `data-user-content tabindex="0" title="${title}"` : ''}>${title}</h4>
@@ -191,9 +190,9 @@ function renderRepeatableFactReadOnly(person, tag, preferredId = profileFactReco
         </header>
         ${fields.filter(([, value]) => value).map(([label, value]) => renderProfileInfoRow(label, value, {
             fullValue: true,
-            userContent: label === 'Notes'
+            userContent: label === 'Notes',
+            multiline: label === 'Notes'
         })).join('')}
-        ${edit}
     </section>`;
 }
 
@@ -224,14 +223,17 @@ function focusPersonFactTarget(target)
 {
     if (!target) return;
     let field;
-    if (target.kind === 'attribute' || target.kind === 'newAttribute')
+    if (target.kind === 'attribute' || target.kind === 'newAttribute' || target.kind === 'additionalFacts')
     {
         const record = getPerson(target.personId)?.attributes?.find(record => record.id === target.recordId);
         const tag = record?.tag || target.tag;
         const section = modalBackdrop.querySelector('[data-add-person-facts]');
-        section?.querySelector('[data-add-person-facts-toggle]')?.setAttribute('aria-expanded', 'true');
-        const body = section?.querySelector('[data-add-person-facts-body]'); if (body) body.hidden = false;
-        if (target.kind === 'newAttribute')
+        if (!section) return;
+        const toggle = section.querySelector('[data-add-person-facts-toggle]');
+        toggle?.setAttribute('aria-expanded', 'true');
+        const body = section.querySelector('[data-add-person-facts-body]'); if (body) body.hidden = false;
+        if (target.kind === 'additionalFacts') field = toggle;
+        else if (target.kind === 'newAttribute')
         {
             const kind = repeatableFactKind(tag);
             let list = section.querySelector(`[data-repeat-list="${tag}"]`);
