@@ -326,6 +326,8 @@ const RU_UI_PEOPLE = {
     ,
     'Identity': 'Основные сведения',
     'No connected records': 'Нет связанных записей',
+    'Map preview unavailable': 'Предпросмотр карты недоступен',
+    'Loading map…': 'Загрузка карты…',
     'Show more': 'Показать ещё',
     'Preview': 'Предпросмотр',
     'Open full view': 'Открыть полностью',

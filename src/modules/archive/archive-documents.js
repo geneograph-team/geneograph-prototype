@@ -81,7 +81,7 @@ async function archiveValidateImage(source, extension) {
     }
 }
 
-async function archiveDocumentRenderPdf(blob, host, modal) {
+async function archiveDocumentRenderPdf(blob, host, modal, { preview = false } = {}) {
     const pdfjs = await import('../../vendor/pdfjs-5.6.205.min.mjs');
     pdfjs.GlobalWorkerOptions.workerSrc = new URL('./vendor/pdfjs-worker-5.6.205.min.mjs', location.href).href;
     const bytes = await blob.arrayBuffer();
@@ -118,10 +118,11 @@ async function archiveDocumentRenderPdf(blob, host, modal) {
         }
         if (serial !== renderSerial || !modal.isConnected) return;
         const hostStyle = getComputedStyle(host);
-        const available = Math.max(160, host.clientWidth
+        const available = Math.max(preview ? 1 : 160, host.clientWidth
             - parseFloat(hostStyle.paddingLeft) - parseFloat(hostStyle.paddingRight) - 32);
         const natural = page.getViewport({ scale: 1 });
-        const viewport = page.getViewport({ scale: available / natural.width * zoom });
+        const scale = preview ? Math.min(available / natural.width, 480 / natural.height) : available / natural.width * zoom;
+        const viewport = page.getViewport({ scale });
         if (serial !== renderSerial || !modal.isConnected) return;
         const ratio = Math.min(devicePixelRatio || 1, 2);
         canvas.width = Math.round(viewport.width * ratio);
@@ -158,7 +159,7 @@ async function archiveDocumentRenderPdf(blob, host, modal) {
         pdf.destroy();
         cleanup.disconnect();
     });
-    cleanup.observe(modalBackdrop, { childList: true, subtree: true });
+    cleanup.observe(preview ? document.body : modalBackdrop, { childList: true, subtree: true });
     observer.observe(host);
     await render();
 }
@@ -216,7 +217,7 @@ async function openArchiveDocumentViewer(fileId) {
     await renderArchiveDocumentContent(file, modal);
 }
 
-async function renderArchiveDocumentContent(file, modal) {
+async function renderArchiveDocumentContent(file, modal, { preview = false, onError } = {}) {
     const extension = archiveDocumentExtension(file.name);
     const host = modal?.querySelector('[data-document-body]');
     if (!host) return;
@@ -224,7 +225,18 @@ async function renderArchiveDocumentContent(file, modal) {
         const blob = await archiveDocumentBlob(file);
         if (!modal.isConnected) return;
         host.replaceChildren();
-        if (extension === 'txt') {
+        if (archiveImageExtensions.has(extension)) {
+            const url = URL.createObjectURL(blob);
+            host.innerHTML = renderPhotoThumbnail({ src: url }, { className: 'profile-connected-media', label: file.name });
+            const image = host.querySelector('img');
+            if (!image || image.complete) URL.revokeObjectURL(url);
+            else {
+                const release = () => URL.revokeObjectURL(url);
+                image.addEventListener('load', release, { once: true });
+                image.addEventListener('error', release, { once: true });
+                image.loading = 'eager';
+            }
+        } else if (extension === 'txt') {
             const pre = document.createElement('pre');
             pre.className = 'archive-document-text';
             pre.textContent = await blob.text();
@@ -239,10 +251,13 @@ async function renderArchiveDocumentContent(file, modal) {
             article.innerHTML = DOMPurify.sanitize(converted.value, { USE_PROFILES: { html: true }, FORBID_TAGS: ['iframe', 'object', 'embed', 'form'] });
             host.append(article);
         } else {
-            await archiveDocumentRenderPdf(blob, host, modal);
+            await archiveDocumentRenderPdf(blob, host, modal, { preview });
         }
     } catch (error) {
-        if (modal.isConnected) host.textContent = `${archiveDocumentLabel('This document could not be opened:', 'Не удалось открыть документ:')} ${error.message}`;
+        if (modal.isConnected) {
+            host.textContent = `${archiveDocumentLabel('This document could not be opened:', 'Не удалось открыть документ:')} ${error.message}`;
+            onError?.(host);
+        }
     }
 }
 

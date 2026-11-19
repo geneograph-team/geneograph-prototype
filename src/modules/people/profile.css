@@ -12,9 +12,6 @@
 .person-profile {
     --profile-primary-card-min-h: 450px;
 
-    --profile-connected-card-h: 276px;
-    --profile-connected-grid-h:
-        calc(var(--profile-connected-card-h) + var(--profile-connected-card-h) + var(--space-4));
     container-name: people-profile;
     container-type: inline-size;
     min-height: 100%;
@@ -374,10 +371,6 @@
 
 /* Connected resources and Timeline */
 
-.person-profile__bottom {
-    align-items: start;
-}
-
 .profile-connected-card {
     min-width: 0;
     border: 1px solid var(--border-default);
@@ -458,13 +451,12 @@
 
 
 .person-profile .profile-connected-cube {
-    align-self: start;
     container-type: inline-size;
 }
 
 .profile-connected-layout {
     display: grid;
-    grid-template-columns: minmax(0, 3fr) minmax(0, min(40%, 420px));
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     align-items: start;
     gap: var(--space-4);
     padding: var(--space-4);
@@ -486,25 +478,20 @@
     padding-block: 4px;
 }
 
-.profile-connected-category-head .panel-action {
+.profile-connected-category-head [data-profile-category] {
     flex: 1;
     justify-content: flex-start;
     min-height: 38px;
     color: var(--text-primary);
 }
 
-.profile-connected-category-head .panel-action > span {
+.profile-connected-category-head [data-profile-category] > span {
     color: var(--text-secondary);
-    margin-inline-start: auto;
+    font-weight: 500;
 }
 
 .profile-connected-category-head [aria-expanded="true"] svg {
     transform: rotate(90deg);
-}
-
-.profile-connected-category-head .control-icon-button {
-    width: 34px;
-    height: 34px;
 }
 
 .profile-connected-category-head svg,
@@ -515,11 +502,11 @@
 
 .profile-connected-record {
     display: grid;
-    grid-template-columns: 32px minmax(0, 1fr);
-    gap: var(--space-2);
+    grid-template-columns: 42px minmax(0, 1fr);
+    gap: var(--space-3);
     align-items: center;
     width: 100%;
-    padding: 6px 8px;
+    padding: 8px;
     border: 1px solid transparent;
     background: transparent;
     color: var(--text-primary);
@@ -539,16 +526,51 @@
 .profile-connected-record-icon {
     display: grid;
     place-items: center;
-    height: 32px;
+    height: 42px;
     color: var(--text-secondary);
 }
 
-.profile-connected-record-icon .photo-thumbnail {
-    display: block;
+.profile-connected-record-icon > .archive-file-icon,
+.profile-connected-record-icon > .notes-place-icon,
+.profile-connected-record-icon > .connected-source-icon-record {
     width: 32px;
     height: 32px;
+}
+
+.profile-connected-records.is-photo-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, max(110px, calc((100% - var(--space-2) - var(--space-2) - var(--space-2)) / 4))), 1fr));
+    gap: var(--space-2);
+}
+
+.is-photo-grid .profile-connected-record {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 4px;
+    padding: 4px;
+}
+
+.is-photo-grid .profile-connected-record[aria-pressed="true"] {
+    background: var(--surface-card-hover);
+    border-color: var(--gg-primary);
+}
+
+.is-photo-grid .profile-connected-record-icon {
+    height: auto;
+    min-width: 0;
+}
+
+.is-photo-grid .photo-thumbnail {
+    display: block;
+    width: 100%;
+    aspect-ratio: 3 / 2;
     overflow: hidden;
     border-radius: var(--radius-sm);
+}
+
+.is-photo-grid .photo-thumbnail img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
 }
 
 .profile-connected-record-copy {
@@ -568,14 +590,27 @@
 
 .profile-connected-preview {
     width: 100%;
-    max-width: 420px;
+    grid-column: auto;
     padding: var(--space-3);
     border: 1px solid var(--border-default);
     border-radius: var(--radius-sm);
 }
 
-.profile-connected-preview h4 {
-    margin: 0 0 var(--space-2);
+.profile-connected-records > .profile-connected-preview {
+    grid-column: 1 / -1;
+}
+
+.profile-connected-preview-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: start;
+    gap: var(--space-2);
+    margin-bottom: var(--space-3);
+}
+
+.profile-connected-preview-head h4 {
+    min-width: 0;
+    margin: 0;
 }
 
 .profile-connected-preview,
@@ -596,7 +631,18 @@
 }
 
 .profile-connected-preview-actions {
-    margin-top: var(--space-3);
+    flex: 0 0 auto;
+    gap: 4px;
+}
+
+.profile-connected-preview-actions .control-icon-button {
+    width: 32px;
+    height: 32px;
+}
+
+.profile-connected-preview-actions svg {
+    width: 16px;
+    height: 16px;
 }
 
 .profile-connected-empty {
@@ -611,16 +657,19 @@
     justify-content: center;
 }
 
-.profile-connected-media {
+.photo-thumbnail.profile-connected-media {
     display: grid;
     place-items: center;
     width: 100%;
-    min-height: 90px;
+    height: auto;
+    min-height: 220px;
 }
 
-.profile-connected-media img {
+.photo-thumbnail.profile-connected-media > .thumb-img {
+    position: static;
     width: 100%;
-    max-height: 170px;
+    height: auto;
+    max-height: 420px;
     object-fit: contain;
 }
 
@@ -628,16 +677,65 @@
     white-space: pre-wrap;
 }
 
-.profile-connected-note.is-excerpt {
-    display: -webkit-box;
-    -webkit-box-orient: vertical;
-    -webkit-line-clamp: 5;
+.profile-connected-preview .archive-document-body {
+    overflow: visible;
+}
+
+.profile-connected-preview .archive-document-table {
+    width: 100%;
+    table-layout: fixed;
+    overflow-wrap: anywhere;
+}
+
+.profile-connected-preview .archive-document-pdf-tools .archive-document-tool-group + .archive-document-tool-group {
+    display: none;
+}
+
+.profile-connected-map-preview,
+.profile-connected-file-placeholder {
+    position: relative;
+    display: grid;
+    place-items: center;
+    min-height: 220px;
+    aspect-ratio: 3 / 2;
+    max-height: 420px;
+    background: var(--surface-card-hover);
+    border-radius: var(--radius-sm);
     overflow: hidden;
 }
 
-.profile-connected-map:not([hidden]) {
-    height: 150px;
-    border-radius: var(--radius-sm);
+.profile-connected-file-placeholder .archive-file-icon {
+    width: 72px;
+    height: 72px;
+    font-size: 16px;
+}
+
+.profile-connected-file-media:not(:has([data-photo-state="missing"])) > .profile-connected-file-placeholder,
+.profile-connected-file-media > .profile-connected-media[data-photo-state="missing"] {
+    display: none;
+}
+
+.profile-connected-map-fallback:not([hidden]) {
+    display: grid;
+    gap: var(--space-2);
+    justify-items: center;
+    text-align: center;
+    color: var(--text-secondary);
+}
+
+.profile-connected-map-fallback svg {
+    width: 28px;
+    height: 28px;
+}
+
+.profile-connected-map {
+    position: absolute;
+    inset: 0;
+    visibility: hidden;
+}
+
+.profile-connected-map.is-ready {
+    visibility: visible;
 }
 
 .modal.profile-connected-viewer {
@@ -658,24 +756,17 @@
     justify-content: space-between;
 }
 
-.profile-connected-viewer .profile-connected-media img {
+.profile-connected-viewer .photo-thumbnail.profile-connected-media > .thumb-img {
     max-height: 64dvh;
 }
 
-.profile-connected-viewer .profile-connected-map:not([hidden]) {
-    height: min(46dvh, 420px);
-}
-
+.profile-connected-preview .ql-editor,
 .profile-connected-viewer .ql-editor {
     white-space: pre-wrap;
     padding: 0;
 }
 .person-profile .profile-compact-timeline.profile-connected-card {
     width: 100%;
-    height: var(--profile-connected-grid-h);
-    min-height: var(--profile-connected-grid-h);
-    max-height: var(--profile-connected-grid-h);
-    align-self: start;
     display: flex;
     flex-direction: column;
 }
@@ -691,10 +782,6 @@
     min-width: 0;
     min-height: 0;
     padding: var(--space-4);
-    overflow-x: hidden;
-    overflow-y: auto;
-    overscroll-behavior: auto;
-    scrollbar-gutter: stable;
 }
 
 .profile-compact-timeline-list>.timeline {
@@ -840,14 +927,18 @@
         grid-template-rows: auto auto auto auto;
     }
 
-    .person-profile__top,
-    .person-profile__bottom {
+    .person-profile__top {
         display: contents;
+    }
+
+    .person-profile__bottom {
+        grid-row: 4;
+        grid-template-columns: minmax(0, 1fr) minmax(0, .75fr);
     }
 
     .person-profile .profile-command-hero,
     .person-profile .profile-full-card,
-    .person-profile .profile-connected-cube {
+    .person-profile .profile-family-slot {
         grid-column: 1 / -1;
     }
 
@@ -856,23 +947,7 @@
     }
 
     .person-profile .profile-family-slot {
-        grid-column: 1;
         grid-row: 3;
-    }
-
-    .person-profile .profile-compact-timeline {
-        grid-column: 2;
-        grid-row: 3;
-    }
-
-    .person-profile .profile-compact-timeline.profile-connected-card {
-        height: auto;
-        max-height: none;
-        align-self: stretch;
-    }
-
-    .person-profile .profile-connected-cube {
-        grid-row: 4;
     }
 
     .person-profile__top .profile-family-hub {
@@ -896,9 +971,4 @@
         border-radius: 0;
     }
 
-    .person-profile .profile-compact-timeline.profile-connected-card {
-        height: 520px;
-        min-height: 520px;
-        max-height: 520px;
-    }
 }
