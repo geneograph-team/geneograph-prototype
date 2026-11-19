@@ -760,7 +760,8 @@ function profileConnectedRecords(person)
     return {
         photos: getPhotosForPerson(person.id).map(photo => ({
             id: photo.id, record: photo, title: photo.title || photo.filename || t('Photo'),
-            meta: [formatPhotoDate(photo), ...albums.filter(album => (photo.albumIds || []).includes(album.id)).map(album => album.name)].filter(Boolean).join(' · ')
+            date: formatPhotoDate(photo),
+            albumNames: albums.filter(album => (photo.albumIds || []).includes(album.id)).map(album => album.name)
         })),
         archive: getArchiveFilesForPerson(person.id).map(file => ({
             id: file.id, record: file, title: file.name, meta: connectedFileMeta(file)
@@ -849,7 +850,7 @@ function renderProfileConnectedContent(person)
         }).join('')}</div>
         <section class="profile-connected-preview" aria-label="${escapeHtml(t('Preview'))}">
             <div class="profile-connected-preview-head">
-                <h4>${escapeHtml(selected.title)}</h4>
+                ${['photos', 'archive'].includes(view.kind) ? '' : `<h4>${escapeHtml(selected.title)}</h4>`}
                 <div class="profile-connected-preview-actions">
                     ${view.kind === 'places'
                         ? `<button type="button" class="panel-action" data-profile-view-place>${renderPanelButtonLabel(icon.mapPin, 'Show on map')}</button>`
@@ -877,23 +878,36 @@ function renderProfileConnectedRecord(kind, item, full = false)
     const meta = paragraph(item.meta);
     if (kind === 'photos')
     {
-        return `${renderPhotoThumbnail(record, { className: 'profile-connected-media', label: item.title })}${meta}${paragraph(record.caption)}`;
+        return `${renderPhotoThumbnail(record, { className: 'profile-connected-media', label: item.title })}
+            <div class="profile-connected-media-details">
+                ${full ? '' : `<h4 data-user-content>${escapeHtml(item.title)}</h4>`}
+                ${paragraph(record.caption)}
+                <dl class="profile-connected-photo-details">
+                    <div><dt>${escapeHtml(t('Date'))}</dt><dd>${escapeHtml(item.date)}</dd></div>
+                    ${item.albumNames.length ? `<div><dt>${escapeHtml(t('Albums'))}</dt><dd>${item.albumNames.map(name => `<span class="profile-connected-album" data-user-content>${escapeHtml(name)}</span>`).join('')}</dd></div>` : ''}
+                </dl>
+            </div>`;
     }
     if (kind === 'archive')
     {
         const image = archiveImageExtensions.has(archiveDocumentExtension(record.name)) && archiveImageSource(record);
+        const details = `<div class="profile-connected-media-details">
+            <p class="profile-connected-file-meta">${escapeHtml([record.size, t(archiveFileTypeLabel(record))].filter(Boolean).join(' · '))}</p>
+            ${full ? '' : `<h4 data-user-content>${escapeHtml(item.title)}</h4>`}
+            ${paragraph(record.description)}
+        </div>`;
         if (archiveCanViewFile(record) && !image)
         {
-            return `${meta}${paragraph(record.description)}
-                <div data-document-tools hidden></div>
-                <div class="archive-document-body" data-document-body>${paragraph(t('Loading document…'))}</div>`;
+            return `<div data-document-tools hidden></div>
+                <div class="archive-document-body" data-document-body>${paragraph(t('Loading document…'))}</div>
+                ${details}`;
         }
         const badge = renderProfileArchiveBadge(record);
         const media = image
             ? `<div class="profile-connected-file-media">${renderPhotoThumbnail({ src: image }, { className: 'profile-connected-media', label: item.title })}${badge}</div>`
             : badge;
         return `${media}
-            ${meta}${paragraph(record.description)}${!image ? paragraph(archiveDocumentLabel('No in-app viewer is available for this file.', 'Этот файл пока нельзя открыть в приложении.')) : ''}`;
+            ${details}${!image ? paragraph(archiveDocumentLabel('No in-app viewer is available for this file.', 'Этот файл пока нельзя открыть в приложении.')) : ''}`;
     }
     if (kind === 'notes')
     {
@@ -958,11 +972,8 @@ async function mountProfileConnectedMap(host, place)
     {
         const library = await placesMapAdapter.load();
         if (!host.isConnected) return;
-        map = new library.Map({
-            container: host, style: placesMapAdapter.styleUrl(document.documentElement.dataset.theme),
-            center: placesMapAdapter.toLngLat(point), zoom: 12,
-            interactive: Boolean(host.closest('.profile-connected-viewer'))
-        });
+        map = placesMapAdapter.createMap(host, document.documentElement.dataset.theme);
+        map.jumpTo({ center: placesMapAdapter.toLngLat(point), zoom: 12 });
         new library.Marker().setLngLat(placesMapAdapter.toLngLat(point)).addTo(map);
         observer = new MutationObserver(() =>
         {
