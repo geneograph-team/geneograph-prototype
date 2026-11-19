@@ -166,11 +166,6 @@
     .repeatable-fact-dates { grid-template-columns: 1fr; }
 }
 
-.profile-readonly-grid.profile-readonly-grid-single {
-    grid-template-columns: 1fr;
-    align-items: stretch;
-}
-
 .profile-readonly-grid.profile-readonly-grid-tabbed.main {
     grid-template-columns: repeat(3, minmax(0, 1fr));
     align-items: stretch;
@@ -183,8 +178,36 @@
     grid-auto-rows: max-content;
 }
 
-.profile-readonly-grid.profile-readonly-grid-tabbed.main .profile-info-row {
-    align-items: start;
+.profile-readonly-grid-tabbed.main .profile-info-block h4 {
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: .02em;
+    text-transform: none;
+}
+
+.profile-readonly-grid-tabbed.main .profile-info-row {
+    grid-template-columns: minmax(min(72px, 36%), 36fr) minmax(0, 64fr);
+    column-gap: 8px;
+}
+
+.profile-readonly-grid-tabbed.main .profile-info-row > span:first-child {
+    color: var(--text-secondary);
+    font-weight: 600;
+}
+
+.profile-readonly-grid-tabbed.main .profile-info-row > strong {
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.profile-readonly-grid-tabbed.main .profile-info-row > strong:focus-visible {
+    outline: var(--control-focus-width) solid var(--control-focus-color);
+    outline-offset: -1px;
+}
+
+.profile-readonly-grid-tabbed.main .profile-info-row > .profile-info-placeholder {
+    color: var(--text-secondary);
+    font-weight: 400;
 }
 
 /* Make read-only tab content fill the available height */
@@ -193,7 +216,7 @@
     flex-direction: column;
 }
 
-/* Main information and Other */
+/* Main information */
 .person-profile .profile-card-panel > .profile-readonly-grid {
     flex: 1 0 auto;
     align-items: stretch;
@@ -768,21 +791,6 @@
     max-width: 24px;
     max-height: 24px;
     display: block;
-}
-
-.person-profile .profile-family-count {
-    min-width: 24px;
-    height: 24px;
-    padding: 0 8px;
-    border: 1px solid color-mix(in srgb, var(--gg-text) 7%, transparent);
-    border-radius: 999px;
-    background: color-mix(in srgb, var(--gg-text) 4%, transparent);
-    color: var(--text-tertiary);
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 11px;
-    font-weight: 900;
 }
 
 .person-profile__top .profile-family-scroll {

@@ -325,6 +325,8 @@ const RU_UI_PEOPLE = {
     'Statistics will be built in a later People iteration.': 'Статистика будет добавлена на одном из следующих этапов разработки раздела «Люди».'
     ,
     'Identity': 'Основные сведения',
+    'Vital records': 'Сведения о жизни',
+    'Additional information': 'Дополнительные сведения',
     'Middle name / Patronym': 'Второе имя / отчество',
     'Life events': 'События жизни',
     'Attach to this person': 'Связать с этим человеком',

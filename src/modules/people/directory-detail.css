@@ -1179,40 +1179,6 @@
     letter-spacing: .08em;
 }
 
-.profile-partner-value {
-    display: grid;
-    gap: 3px;
-    min-width: 0;
-}
-
-.profile-partner-meta {
-    color: var(--text-secondary);
-    font-size: 13px;
-    line-height: 1.35;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-.profile-partner-link {
-    border: 0;
-    background: transparent;
-    color: var(--text-primary);
-    padding: 0;
-    font: inherit;
-    font-weight: 900;
-    text-align: left;
-    cursor: pointer;
-    min-width: 0;
-}
-
-.profile-partner-link:hover,
-.profile-partner-link:focus-visible {
-    color: var(--brand-green-300);
-    text-decoration: underline;
-    text-underline-offset: 3px;
-    outline: none;
-}
-
 .profile-card-tabs {
     flex: 0 0 auto;
     display: grid;

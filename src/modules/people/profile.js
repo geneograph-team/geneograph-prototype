@@ -304,12 +304,16 @@ function splitProfileName(person)
     };
 }
 
-function renderProfileInfoRow(label, value)
+function renderProfileInfoRow(label, value, { fullValue = false, userContent = false } = {})
 {
+    const tooltip = fullValue && value !== '-'
+        ? ` tabindex="0" title="${escapeHtml(value)}"`
+        : '';
+    const attributes = value === '-' ? ' class="profile-info-placeholder"' : tooltip;
     return `
         <div class="profile-info-row">
           <span>${escapeHtml(label)}</span>
-          <strong>${escapeHtml(value)}</strong>
+          <strong${attributes}${userContent ? ' data-user-content' : ''}>${escapeHtml(value)}</strong>
         </div>
       `;
 }
@@ -341,92 +345,6 @@ function renderProfileStatusValue(status)
           ${escapeHtml(safeStatus)}
         </span>
       `;
-}
-
-function renderProfilePartnersInfo(person)
-{
-    const centralPerson = getPerson(person?.id);
-
-    if (!centralPerson)
-    {
-        return `
-          <div class="panel-muted">
-            No partners recorded
-          </div>
-        `;
-    }
-
-    const rows = getPartnerRelationships(
-        centralPerson.id
-    )
-        .filter(family =>
-            !family.projectId
-          || !centralPerson.projectId
-          || family.projectId
-            === centralPerson.projectId
-        )
-        .map(family =>
-        {
-            const partnerId = familyPartnerId(
-                family,
-                centralPerson.id
-            );
-
-            const partner = getPerson(partnerId);
-
-            if (!partner) return '';
-
-            const relationshipType =
-                relationshipTypeFromLegacy(family);
-
-            const relationshipLabel =
-                relationshipType
-            === 'Unknown relationship'
-                    ? 'Relationship'
-                    : relationshipType;
-
-            const dateLabel =
-                partnerRelationshipDateSummary(
-                    family
-                ).rangeLabel;
-
-            const partnerName =
-                partner.names?.display
-            || 'Unnamed person';
-
-            return renderProfileInfoRowRaw(
-                relationshipLabel,
-                `
-              <span class="profile-partner-value">
-                <button
-                  class="profile-partner-link"
-                  type="button"
-                  data-profile-partner-id="${
-                        escapeHtml(partner.id)
-                    }">
-                  ${escapeHtml(partnerName)}
-                </button>
-
-                ${dateLabel
-                    ? `
-                    <small class="profile-partner-meta">
-                      ${escapeHtml(dateLabel)}
-                    </small>
-                  `
-                    : ''}
-              </span>
-            `
-            );
-        })
-        .filter(Boolean);
-
-    return rows.length
-        ? rows.join('')
-        : `
-          <div class="panel-muted">
-            No partners recorded
-          </div>
-        `;
 }
 
 function renderProfileCard(person)
@@ -483,45 +401,16 @@ function renderProfileReadOnlyPanelContent(
 
     if (activeSection === 'other')
     {
-        return renderRepeatableFactReadOnly(centralPerson, 'FACT') + `
-          <div
-            class="
-              profile-readonly-grid
-              profile-readonly-grid-single
-            ">
-
-            <section class="profile-info-block wide">
-              <h4>Other</h4>
-
-              ${renderProfileInfoRow(
-                    'Religion',
-                    normalizeReligionValue(
-                        details.religion
-                    )
-                )}
-
-              ${renderProfileInfoRow(
-                    'Baptism date',
-                    profileDetailDateLabel(
-                        details.baptismDate
-                    )
-                )}
-
-              ${renderProfileInfoRow(
-                    'Baptism place',
-                    details.baptismPlace || '-'
-                )}
-
-              ${renderProfileInfoRow(
-                    'Privacy',
-                    person.living === 'Living'
-                        ? 'Living person protected'
-                        : 'Standard record'
-                )}
-            </section>
-          </div>
-        `;
+        return renderRepeatableFactReadOnly(centralPerson, 'FACT');
     }
+
+    const religion = normalizeReligionValue(details.religion);
+    const additionalRows = [
+        ['Alternative names', details.alternativeNames, { fullValue: true, userContent: true }],
+        ['Religion', religion === DEFAULT_RELIGION ? '' : religion],
+        ['Baptism date', profileDetailDateLabel(details.baptismDate, '')],
+        ['Baptism place', cleanEditFieldValue(details.baptismPlace), { fullValue: true }]
+    ].filter(([, value]) => value);
 
     return `
         <div
@@ -532,7 +421,7 @@ function renderProfileReadOnlyPanelContent(
           ">
 
           <section class="profile-info-block">
-            <h4>Main information</h4>
+            <h4>${escapeHtml(t('Identity'))}</h4>
             ${renderProfileInfoRow(
                 'Gender',
                 isFemale
@@ -543,39 +432,39 @@ function renderProfileReadOnlyPanelContent(
             )}
             ${renderProfileInfoRow(
                 'First name',
-                name.first || '-'
+                name.first || '-', { fullValue: true }
             )}
 
             ${renderProfileInfoRow(
                 'Last name',
-                name.surname || '-'
+                name.surname || '-', { fullValue: true }
             )}
 
             ${renderProfileInfoRow(
                 'Patronym',
-                name.patronym || '-'
+                name.patronym || '-', { fullValue: true }
             )}
 
             ${isFemale
                 ? renderProfileInfoRow(
                     'Maiden name',
-                    details.maidenName || '-'
+                    details.maidenName || '-', { fullValue: true }
                 )
                 : ''}
 
             ${renderProfileInfoRow(
                 'Prefix',
-                details.prefix || '-'
+                details.prefix || '-', { fullValue: true }
             )}
 
             ${renderProfileInfoRow(
                 'Suffix',
-                details.suffix || '-'
+                details.suffix || '-', { fullValue: true }
             )}
           </section>
 
           <section class="profile-info-block">
-            <h4>Birth and life</h4>
+            <h4>${escapeHtml(t('Vital records'))}</h4>
 
             ${renderProfileInfoRowRaw(
                 'Living status',
@@ -591,7 +480,7 @@ function renderProfileReadOnlyPanelContent(
 
             ${renderProfileInfoRow(
                 'Birth place',
-                person.birthPlace || '-'
+                person.birthPlace || '-', { fullValue: true }
             )}
 
             ${isDeceased
@@ -603,7 +492,7 @@ function renderProfileReadOnlyPanelContent(
 
                 ${renderProfileInfoRow(
                     'Death place',
-                    deathPlaceLabel || '-'
+                    deathPlaceLabel || '-', { fullValue: true }
                 )}
 
                 ${renderProfileInfoRow(
@@ -613,15 +502,17 @@ function renderProfileReadOnlyPanelContent(
 
                 ${renderProfileInfoRow(
                     'Burial place',
-                    details.burialPlace || '-'
+                    details.burialPlace || '-', { fullValue: true }
                 )}
               `
                 : ''}
           </section>
 
           <section class="profile-info-block">
-            <h4>Partners</h4>
-            ${renderProfilePartnersInfo(person)}
+            <h4>${escapeHtml(t('Additional information'))}</h4>
+            ${additionalRows.length
+                ? additionalRows.map(([label, value, options]) => renderProfileInfoRow(label, value, options)).join('')
+                : `<p class="panel-muted">${escapeHtml(t('Not recorded'))}</p>`}
           </section>
         </div>
       `;
@@ -1485,8 +1376,6 @@ function renderProfileConnectedPlaces(
 
 function renderProfileFamilyHub(person)
 {
-    const count = relationshipCount(person.id);
-
     return `
         <section
           class="profile-side-card profile-family-hub"
@@ -1503,15 +1392,9 @@ function renderProfileFamilyHub(person)
               <span>Family</span>
             </span>
 
-            <span
-              class="profile-family-count"
-              aria-label="${count} ${
-                    count === 1
-                        ? 'relationship'
-                        : 'relationships'
-                }">
-              ${count}
-            </span>
+            <button class="panel-action profile-connected-action" type="button" data-profile-add-relative aria-haspopup="dialog" aria-expanded="false">
+              ${icon.plus}<span>${escapeHtml(t('Add relative'))}</span>
+            </button>
           </h3>
 
           <div class="profile-family-scroll">
@@ -1845,17 +1728,8 @@ function bindPeopleProfileControls(person)
             }
         );
     main.querySelector('[data-profile-add-fact]')?.addEventListener('click', () => openAddFactOverlay(person));
-    main.querySelectorAll('[data-profile-partner-id]').forEach(button =>
-    {
-        button.addEventListener('click', () => openProfileFamilyMember(button.dataset.profilePartnerId));
-        button.addEventListener('keydown', event =>
-        {
-            if (event.key === 'Enter' || event.key === ' ')
-            {
-                event.preventDefault(); openProfileFamilyMember(button.dataset.profilePartnerId);
-            }
-        });
-    });
+    main.querySelector('[data-profile-add-relative]')?.addEventListener('click', event =>
+        openRelativePopover(event.currentTarget, person.id));
     main.querySelectorAll('[data-profile-photo]').forEach(button => button.addEventListener('click', () => openProfilePhoto(button.dataset.profilePhoto)));
     main.querySelector('[data-profile-resource-action="add-photos"]') ?.addEventListener('click', () => openAddPhotosToPersonModal(person.id));
     main
