@@ -848,9 +848,11 @@ function peopleTableMinimumWidth(columns)
 function peopleColumnsWithDefaults(overrides = state.peopleVisibleColumns, width = Infinity)
 {
     const columns = { ...defaultPeopleColumns, ...overrides };
+    if (Object.keys(overrides || {}).length) return columns;
+
     for (const key of ['deathPlace', 'birthPlace'])
     {
-        if (typeof overrides?.[key] !== 'boolean' && peopleTableMinimumWidth(columns) > width)
+        if (peopleTableMinimumWidth(columns) > width)
             columns[key] = false;
     }
     return columns;
@@ -2138,11 +2140,11 @@ function renderPeopleTable(rows)
                 )}
 
                 <div class="person-cell-copy">
-                  <strong>
+                  <strong title="${escapeHtml(person.name)}">
                     ${escapeHtml(person.name)}
                   </strong>
 
-                  <span>
+                  <span title="${escapeHtml(person.relation)}">
                     ${escapeHtml(person.relation)}
                   </span>
                 </div>

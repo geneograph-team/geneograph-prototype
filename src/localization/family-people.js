@@ -352,7 +352,7 @@ const RU_UI_PEOPLE = {
     'Children count': 'Количество детей',
     'Reset to defaults': 'Восстановить настройки по умолчанию',
     'Apply columns': 'Применить столбцы',
-    'Birth place and Death place adjust to the available width unless you choose them manually.': 'Столбцы места рождения и смерти зависят от доступной ширины, если их видимость не задана вручную.',
+    'In the default layout, place columns adjust to the available width.': 'В стандартной раскладке видимость столбцов с местами зависит от доступной ширины.',
     'Attach to this person': 'Связать с этим человеком',
     'Add File': 'Добавить файл',
     'Choose or connect a file': 'Выберите или свяжите файл',

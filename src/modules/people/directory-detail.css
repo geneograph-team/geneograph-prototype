@@ -1,6 +1,6 @@
 /* People table identity cell */
 .person-cell {
-    min-width: 230px;
+    min-width: 0;
 
     display: grid;
     grid-template-columns:
@@ -28,9 +28,13 @@
 }
 
 .person-cell-copy>strong {
-    color: var(--text-primary);
+    color: color-mix(in srgb, var(--text-primary) 85%, var(--text-secondary));
     font-weight: 800;
     line-height: 1.2;
+}
+
+.people-table .is-previewed .person-cell-copy > strong {
+    color: var(--text-primary);
 }
 
 .person-cell-copy>span {

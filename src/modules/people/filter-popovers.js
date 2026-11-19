@@ -21,7 +21,7 @@ function openPeopleColumnsModal()
     openModal(`<div class="modal people-columns-modal" role="dialog" aria-modal="true" aria-labelledby="peopleColumnsTitle">
         <header class="modal-header">
             <div><h2 id="peopleColumnsTitle">${escapeHtml(t('Columns'))}</h2>
-            <p>${escapeHtml(t('Birth place and Death place adjust to the available width unless you choose them manually.'))}</p></div>
+            <p>${escapeHtml(t('In the default layout, place columns adjust to the available width.'))}</p></div>
             <button class="close-button" type="button" data-close aria-label="${escapeHtml(t('Close'))}">${icon.close}</button>
         </header>
         <div class="modal-body people-columns-body">${groupMarkup}</div>

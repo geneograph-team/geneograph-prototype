@@ -743,11 +743,6 @@
     gap: var(--space-2);
 }
 
-.people-columns-footer .button {
-    min-height: 36px;
-    letter-spacing: .01em;
-}
-
 .people-table-wrap {
     min-height: 0;
     border: 1px solid var(--border-default);
@@ -807,10 +802,16 @@
 }
 
 .people-table tbody tr:hover {
-    background: var(--table-row-hover);
+    --people-row-surface: var(--table-row-hover);
+}
+
+.people-table tbody tr {
+    --people-row-surface: var(--table-surface);
+    background: var(--people-row-surface);
 }
 
 .people-table tbody tr.is-previewed {
+    --people-row-surface: color-mix(in srgb, var(--gg-primary) 9%, var(--table-surface));
     box-shadow: inset 3px 0 0 var(--table-current-marker);
 }
 
@@ -819,7 +820,7 @@
 }
 
 .people-table tbody tr.is-selected {
-    background: var(--table-row-selected);
+    --people-row-surface: color-mix(in srgb, var(--table-row-selected), var(--table-surface));
 }
 
 .people-table tbody tr.is-selected td {
@@ -827,7 +828,7 @@
 }
 
 .people-table tbody tr.is-previewed.is-selected {
-    box-shadow: inset 3px 0 0 var(--table-current-marker);
+    --people-row-surface: color-mix(in srgb, var(--gg-primary) 12%, var(--table-surface));
 }
 
 
@@ -864,28 +865,6 @@
     color: var(--text-primary);
 }
 
-.people-table .more-button {
-    background: var(--surface-card);
-    border-color: var(--border-default);
-    color: var(--text-secondary);
-}
-
-.people-table .more-button:hover,
-.people-table .more-button:focus-visible {
-    background: var(--surface-input);
-    border-color: color-mix(in srgb, var(--gg-primary) 32%, transparent);
-    color: var(--text-primary);
-    box-shadow: 0 0 0 1px color-mix(in srgb, var(--gg-scrim) 12%, transparent);
-}
-
-.people-table tr.is-previewed .more-button,
-.people-table tr.is-selected .more-button {
-    background: color-mix(in srgb, var(--gg-text) 6%, transparent);
-    border-color: color-mix(in srgb, var(--gg-primary) 36%, transparent);
-    color: var(--text-primary);
-}
-
-
 .people-table .people-row-action {
     background: transparent;
     border-color: transparent;
@@ -894,7 +873,8 @@
 }
 
 .people-table .people-row-action:hover,
-.people-table .people-row-action:focus-visible {
+.people-table .people-row-action:focus-visible,
+.people-table .people-row-action[aria-expanded="true"] {
     background: color-mix(in srgb, var(--gg-text) 6%, transparent);
     border-color: var(--border-default);
     color: var(--text-primary);
@@ -915,23 +895,26 @@
     min-width: 52px;
     padding-inline: 8px;
     text-align: center;
-    box-shadow: -1px 0 0 var(--table-divider);
+    background: var(--people-action-surface);
 }
 
 .people-table td.people-actions-column {
+    --people-action-surface: var(--people-row-surface);
     z-index: 1;
-    background-color: var(--table-surface);
 }
 
-.people-table tr:hover td.people-actions-column {
-    background-image: linear-gradient(var(--table-row-hover), var(--table-row-hover));
-}
-
-.people-table tr.is-selected td.people-actions-column {
-    background-image: linear-gradient(var(--table-row-selected), var(--table-row-selected));
+.people-table .people-actions-column::before {
+    content: "";
+    position: absolute;
+    inset-block: 0;
+    inset-inline-end: 100%;
+    width: 14px;
+    background: linear-gradient(90deg, transparent, var(--people-action-surface));
+    pointer-events: none;
 }
 
 .people-table th.people-actions-column {
+    --people-action-surface: var(--table-header-surface);
     z-index: 3;
 }
 
