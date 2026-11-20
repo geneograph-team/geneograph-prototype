@@ -68,7 +68,6 @@ const geneoTourSteps = [
     { id: 'albums-albums', module: 'Albums', title: "Organize with albums", body: "Open an existing album, or create a new one with the plus button." },
     { id: 'albums-filters', module: 'Albums', title: "Filter photos", body: "Use filters to narrow the photo list and find the images you need faster." },
     { id: 'albums-summary', module: 'Albums', title: "Explore photo details", body: "Use the right panel to view the selected photo and learn more about it." },
-    { id: 'albums-actions', module: 'Albums', title: "Photo details", body: "Review the information recorded for this photo. Choose Edit to update it." },
     { id: 'albums-connections', module: 'Albums', title: "People in this photo", body: "See who is tagged in the photo. Hover over a name to highlight that person in the preview." },
     { id: 'albums-tag-person-modal', module: 'Albums', title: "Tag people in a photo", body: "Choose a person to tag them immediately. You can mark their area directly in the photo preview." },
     { id: 'albums-add-to-album-action', module: 'Albums', title: "Albums for this photo", body: "See which albums include the photo, add it to another album, or remove it from one." },
@@ -715,7 +714,7 @@ function geneoTourApplyTreeReveal(step)
     {
         if (step.id === 'albums-navigation' || step.id === 'albums-albums')
             document.body.classList.add('geneo-tour-albums-sidebar');
-        if (['albums-summary', 'albums-actions', 'albums-connections',
+        if (['albums-summary', 'albums-connections',
             'albums-add-to-album-action'].includes(step.id))
             document.body.classList.add('geneo-tour-albums-inspector');
         if (step.id === 'albums-filters')
@@ -798,7 +797,6 @@ function geneoTourTarget(index)
         'albums-albums': '[data-albums-tour-target="albums"]',
         'albums-filters': '#albumsFilterPopover',
         'albums-summary': '.albums-detail-toolbar',
-        'albums-actions': '[data-albums-section-toggle="details"]',
         'albums-connections': '[data-albums-section-toggle="people"]',
         'albums-tag-person-modal': '#modalBackdrop .photo-people-modal',
         'albums-add-to-album-action': '#albumsLinkAlbum',
@@ -874,7 +872,6 @@ function geneoTourTarget(index)
         'archive-table': '.archive-mobile-items'
     }[id];
     const target = document.querySelector(mobileGeneographTarget || mobileArchiveTarget || selectors[id]);
-    if (id === 'albums-actions') return target?.closest('.panel-section');
     if (id === 'places-add-map')
         return target || modalBackdrop.querySelector('[data-place-coordinate-details]')
             || main.querySelector('[data-places-map-status]:not([hidden])');
@@ -2269,12 +2266,12 @@ function geneoTourTargetRect(target)
                 bottom: Math.max(top + 40, Math.min(details.bottom, inspector.bottom)) };
         }
     }
-    if (['archive-file-actions', 'albums-actions'].includes(stepId))
+    if (stepId === 'archive-file-actions')
     {
-        const scroller = target.closest('.archive-inspector-scroll, .albums-detail');
+        const scroller = target.closest('.archive-inspector-scroll');
         const viewport = scroller?.getBoundingClientRect();
         if (viewport) return { left: rect.left, right: rect.right,
-            top: Math.max(rect.top, viewport.top, scroller.querySelector('.albums-detail-toolbar')?.getBoundingClientRect().bottom || 0),
+            top: Math.max(rect.top, viewport.top),
             bottom: Math.min(rect.bottom, viewport.bottom) };
     }
     if (stepId === 'archive-table')
@@ -2586,7 +2583,7 @@ async function geneoTourMoveTo(index)
         }
         else if (geneoTourSteps[index].id === 'albums-summary')
             main.querySelector('.albums-detail')?.scrollTo(0, 0);
-        else if (['albums-actions', 'albums-connections', 'albums-add-to-album-action'].includes(geneoTourSteps[index].id))
+        else if (['albums-connections', 'albums-add-to-album-action'].includes(geneoTourSteps[index].id))
         {
             const inspector = main.querySelector('.albums-detail');
             const section = target.closest('.panel-section');
