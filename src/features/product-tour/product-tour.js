@@ -935,6 +935,7 @@ function geneoTourDestroyOverlay({ keepInert = false } = {})
         document.querySelector('.app').inert = false;
         modalBackdrop.inert = false;
     }
+    document.removeEventListener('visibilitychange', geneoTourSyncVisibility);
     document.removeEventListener('scroll', geneoTourQueuePosition, true);
     window.removeEventListener('resize', geneoTourOnResize);
 }
@@ -1648,13 +1649,13 @@ function geneoTourRenderOverlay(target = null)
         <div class="geneo-tour-target-block" data-geneo-tour-block-quaternary hidden></div>
         <section class="geneo-tour-card" role="dialog" aria-modal="true" aria-labelledby="geneoTourTitle" aria-describedby="geneoTourBody">
             <div class="geneo-tour-card-head">
-                ${outerScreen ? '' : `<div class="geneo-tour-chapter"><button class="geneo-tour-browse" type="button" data-geneo-tour-action="browse-modules">${icon.grid}<span data-geneo-tour-module-name aria-live="polite"></span></button></div>`}
+                ${outerScreen ? '' : `<div class="geneo-tour-chapter"><button class="geneo-tour-browse" type="button" data-geneo-tour-action="browse-modules">${icon.grid}<span data-geneo-tour-module-name aria-live="polite"></span><span class="geneo-tour-browse-chevron" aria-hidden="true">${icon.chevron}</span></button></div>`}
                 ${outerScreen ? '' : '<h2 class="geneo-tour-map-title" id="geneoTourMapTitle" data-geneo-tour-map-title></h2>'}
+                ${outerScreen ? '' : '<div class="geneo-tour-progress"><span class="geneo-tour-progress-track" aria-hidden="true"><span class="geneo-tour-progress-fill"></span></span><span data-geneo-tour-progress></span></div>'}
                 <button class="geneo-tour-close" type="button" aria-label="${escapeHtml(t('Skip tour'))}" data-geneo-tour-action="skip">${icon.close}</button>
             </div>
             <div data-geneo-tour-step-view>
                 ${index < 0 ? `<div class="geneo-tour-welcome"><span class="geneo-tour-brand">${icon.logo}<strong>GeneoGraph</strong></span><div class="geneo-tour-cover" aria-hidden="true">${GENEO_TOUR_COVER_SVG}</div></div>` : ''}
-                ${outerScreen ? '' : '<div class="geneo-tour-progress"><span class="geneo-tour-progress-track" aria-hidden="true"><span class="geneo-tour-progress-fill"></span></span><span data-geneo-tour-progress></span></div>'}
                 <h2 id="geneoTourTitle" data-geneo-tour-title></h2>
                 <p id="geneoTourBody" data-geneo-tour-body></p>
                 <p class="geneo-tour-fallback" data-geneo-tour-fallback hidden>${escapeHtml(t('This part of the sample is unavailable. Continue to the next stop.'))}</p>
@@ -1677,6 +1678,8 @@ function geneoTourRenderOverlay(target = null)
     geneoTourRuntime.quaternaryTarget = quaternarySelector ? document.querySelector(quaternarySelector) : null;
     document.querySelector('.app').inert = true;
     modalBackdrop.inert = true;
+    document.addEventListener('visibilitychange', geneoTourSyncVisibility);
+    geneoTourSyncVisibility();
     document.addEventListener('scroll', geneoTourQueuePosition, true);
     window.addEventListener('resize', geneoTourOnResize);
     root.querySelectorAll('[data-geneo-tour-action]').forEach(button => button.addEventListener('click', () =>
@@ -1715,6 +1718,11 @@ function geneoTourRenderOverlay(target = null)
     root.querySelector('[data-geneo-tour-action="start"], [data-geneo-tour-action="next"], [data-geneo-tour-action="finish"]')?.focus({ preventScroll: true });
     geneoTourPosition();
     document.fonts.ready.then(geneoTourQueuePosition);
+}
+
+function geneoTourSyncVisibility()
+{
+    geneoTourRuntime.root?.toggleAttribute('data-geneo-tour-paused', document.hidden);
 }
 
 function geneoTourQueuePosition()

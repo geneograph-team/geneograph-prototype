@@ -70,7 +70,7 @@ body.geneo-tour-tree-relationship-actions .tree-inspector
 
 @media (min-width: 641px) {
     .geneo-tour.is-places-add-map .geneo-tour-card {
-        padding: var(--space-3);
+        padding: var(--space-2);
     }
 }
 
@@ -212,7 +212,7 @@ body.geneo-tour-people-popover #peopleColumnsPopover .people-columns-footer {
     gap: var(--space-2);
 }
 
-.geneo-tour.is-module-map .geneo-tour-chapter {
+.geneo-tour.is-module-map :is(.geneo-tour-chapter, .geneo-tour-progress) {
     display: none;
 }
 
@@ -233,27 +233,20 @@ body.geneo-tour-people-popover #peopleColumnsPopover .people-columns-footer {
     min-height: 40px;
     align-items: center;
     gap: var(--space-2);
-    padding: 4px 0;
-    border: 0;
+    padding: 4px var(--space-2);
+    border: 0px solid var(--border-default);
     border-radius: var(--radius-sm);
-    background: transparent;
+    background: var(--surface-card);
     color: var(--text-primary);
     cursor: pointer;
 }
 
 .geneo-tour-browse:hover {
+    border-color: var(--border-strong);
     background: var(--surface-card-hover);
-    color: var(--text-primary);
 }
 
-.geneo-tour.is-navigation-intro .geneo-tour-browse {
-    padding: 0 var(--space-3);
-    border: 1px solid var(--border-strong);
-    background: var(--surface-main);
-    color: var(--text-primary);
-}
-
-.geneo-tour.is-navigation-intro .geneo-tour-browse:hover {
+.geneo-tour-browse:active {
     border-color: var(--text-primary);
     background: var(--surface-card-hover);
 }
@@ -262,6 +255,18 @@ body.geneo-tour-people-popover #peopleColumnsPopover .people-columns-footer {
     width: 18px;
     height: 18px;
     flex: 0 0 18px;
+}
+
+.geneo-tour-browse-chevron {
+    display: inline-flex;
+    transform: rotate(90deg);
+    color: var(--text-secondary);
+}
+
+.geneo-tour-browse-chevron svg {
+    width: 14px;
+    height: 14px;
+    flex-basis: 14px;
 }
 
 .geneo-tour-browse [data-geneo-tour-module-name] {
@@ -326,6 +331,31 @@ body.geneo-tour-people-popover #peopleColumnsPopover .people-columns-footer {
     color: var(--text-primary);
 }
 
+[data-geneo-tour-module="Family Tree"] .geneo-tour-map-icon svg,
+[data-geneo-tour-module="People"] .geneo-tour-map-icon svg {
+    color: var(--gg-accent-heritage-green-accent);
+}
+
+[data-geneo-tour-module="Geneograph"] .geneo-tour-map-icon svg {
+    color: var(--gg-accent-creative-blue-accent);
+}
+
+[data-geneo-tour-module="Albums"] .geneo-tour-map-icon svg {
+    color: var(--gg-accent-rose-sepia-accent);
+}
+
+[data-geneo-tour-module="Archive"] .geneo-tour-map-icon svg {
+    color: var(--gg-accent-sepia-gold-accent);
+}
+
+[data-geneo-tour-module="Notes"] .geneo-tour-map-icon svg {
+    color: var(--gg-accent-investigation-purple-accent);
+}
+
+[data-geneo-tour-module="Places"] .geneo-tour-map-icon svg {
+    color: var(--gg-accent-map-cyan-accent);
+}
+
 .geneo-tour-map-current {
     visibility: hidden;
 }
@@ -375,8 +405,9 @@ body.geneo-tour-people-popover #peopleColumnsPopover .people-columns-footer {
 
 .geneo-tour-close {
     display: grid;
-    width: 28px;
-    height: 28px;
+    flex: 0 0 40px;
+    width: 40px;
+    height: 40px;
     padding: 4px;
     place-items: center;
     border: 0;
@@ -418,14 +449,18 @@ body.geneo-tour-people-popover #peopleColumnsPopover .people-columns-footer {
     display: flex;
     align-items: center;
     gap: var(--space-2);
-    margin-top: var(--space-2);
+    flex: 0 1 auto;
+    min-width: min-content;
+    white-space: nowrap;
     color: var(--text-secondary);
     font-size: 12px;
     font-variant-numeric: tabular-nums;
 }
 
 .geneo-tour-progress-track {
-    flex: 0 0 56px;
+    flex: 0 1 56px;
+    width: clamp(16px, 6vw, 48px);
+    min-width: 14px;
     height: 3px;
     overflow: hidden;
     border-radius: 3px;
@@ -498,12 +533,17 @@ body.geneo-tour-people-popover #peopleColumnsPopover .people-columns-footer {
 
 @media (prefers-reduced-motion: no-preference) {
     [data-geneo-tour-label="Next"] .geneo-tour-arrow {
-        animation: geneo-tour-next-nudge 420ms ease-in-out 1s;
+        animation: geneo-tour-next-nudge 4.5s ease-in-out 1s infinite;
     }
 }
 
+.geneo-tour[data-geneo-tour-paused] .geneo-tour-arrow {
+    animation-play-state: paused;
+}
+
 @keyframes geneo-tour-next-nudge {
-    50% { transform: translateX(3px); }
+    5% { transform: translateX(3px); }
+    0%, 10%, 100% { transform: translateX(0); }
 }
 
 .geneo-tour.is-welcome .geneo-tour-actions {
@@ -826,35 +866,8 @@ body.geneo-tour-geneo-toolbar .geneo-editor-toolbar [data-geneo-toolbar-item] {
         font-size: 18px;
     }
 
-    .geneo-tour-close {
-        width: auto;
-        padding: 4px 0;
-        font-size: 12px;
-        text-decoration: underline;
-        white-space: nowrap;
-    }
-
-    .geneo-tour-close svg,
     .geneo-tour-actions [data-geneo-tour-action="skip"] {
         display: none;
-    }
-
-    .geneo-tour:not(.is-centered) .geneo-tour-close {
-        width: 28px;
-        padding: 4px;
-        text-decoration: none;
-    }
-
-    .geneo-tour:not(.is-centered) .geneo-tour-close svg {
-        display: block;
-    }
-
-    .geneo-tour:not(.is-centered) .geneo-tour-close::after {
-        display: none;
-    }
-
-    .geneo-tour-close::after {
-        content: attr(aria-label);
     }
 }
 
