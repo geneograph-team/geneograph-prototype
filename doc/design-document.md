@@ -31,6 +31,14 @@ The main shell exposes a top bar, project/module navigation, workspace, right in
 
 The visual identity uses the approved GeneoGraph v3 semantic palette: Soft Neutral Light and Neutral Charcoal Dark, Heritage Green for primary interaction, and category accents for content identity. `src/core/palette/geneograph-v3.css` owns UI color values; `src/core/foundation.css` owns aliases plus type, spacing, border, and motion tokens. Branded heroes use Heritage Green container/on-container in each theme. Geneograph uses compact tool surfaces and a dotted/grid-capable canvas; explicitly authored board colors remain content values. Avoid treating the old document's individual bug-fix notes as lasting design rules.
 
+### Assessing changes to connected workflows
+
+Assess the complete affected user journey before choosing an implementation. Reported symptoms and screenshots are evidence of a problem, not the full definition of success. Follow relevant shared components and data dependencies; keep the resulting edits focused on the intended outcome.
+
+For stateful interactions, review the relevant initial, selected, staged, canceled, and applied states, including missing and already-linked records and both transfer directions. Status and grouping, displayed differences, available actions, previews, and saved results must describe the same operation. An automatic connection must not make a needed action disappear when the user reviews the other person.
+
+Evaluate the whole affected section for clear hierarchy, balanced placement, readable content, and understandable actions rather than judging individual controls in isolation. Reuse shared interaction patterns and styles. Separate what code and regression checks establish from what still needs visual or interaction verification; assigning browser QA to the user does not remove the responsibility to assess the workflow and data behavior.
+
 ## 4. Architecture and state
 
 ### Runtime organization

@@ -34,6 +34,10 @@ The original monolithic `index.html` has been split: the application now lives i
 
 ## Root-Cause-First Changes
 
+- **Investigate broadly; implement proportionately.** Understand the complete affected user workflow and its data dependencies before choosing a patch. "Surgical" limits unnecessary implementation changes, not investigation or product judgment. Follow relevant behavior across files and modules when needed.
+- Treat reported defects and screenshots as evidence, not an exhaustive acceptance checklist. Address adjacent failures necessary to fulfill the same user intent within the authorized scope; surface unrelated improvements separately. Do not require the user to discover each variation of the same defect.
+- Define acceptance around the intended outcome. For stateful workflows, assess initial, selected, staged, canceled, and applied states; missing and already-linked records; and both directions of transfers where applicable. Prioritize meaningful combinations and relevant edge cases rather than a mechanical exhaustive matrix.
+- Require agreement between status/grouping, visible content, available actions, previews, and saved data. Automatic behavior must stay understandable and must not hide an action needed from another entry point. Check shared rules from each affected participant's perspective.
 - **Fix the cause, not the visible symptom.** Before editing, trace the defect to the owning implementation, shared component, state flow or CSS cascade. Confirm why the existing behavior differs from what is intended.
 - Correct or consolidate the responsible code and remove superseded declarations. Reuse existing shared rules and components; **do not stack overrides, duplicate logic/selectors, use `!important`, or add workaround scripts/guards just to conceal the underlying problem**.
 - Only use a workaround when a direct fix would violate a documented compatibility requirement. Explain that constraint and the tradeoff in the work summary; keep exceptions small and explicit.
@@ -93,10 +97,11 @@ Several extracted files are still very large. **Never read them end-to-end.**
 
 - Inspect only files relevant to the requested change. Avoid repository-wide scans unless targeted searches fail or cross-cutting behavior requires one.
 - Prefer targeted `rg` searches and bounded file ranges. Do not reread or repeat file contents already inspected.
-- Make surgical patches at the responsible layer; avoid unrelated refactors.
+- Make focused changes at the responsible layer after assessing the complete affected workflow; avoid unrelated refactors. A small edit can still have substantial interaction or data risk.
 - Keep verification proportional to risk. For small, isolated changes, run focused static checks such as JavaScript syntax and a direct whitespace review of edited files; do not start a browser or run browser tests. Add automated tests only when they meaningfully cover a regression. Codex does not run `git diff --check`.
 - For substantial changes that need visual or interaction verification, ask the user to perform or authorize a focused browser check. State the exact workflow and states to inspect, and report browser QA as pending until it is actually completed. Do not infer a pass from static checks.
-- Stop when the acceptance criteria are met. Keep explanations concise and omit large diffs from final responses.
+- Distinguish implementation checks from product verification. Syntax and focused regression tests do not establish visual clarity, usability, or complete workflow correctness. When browser QA is assigned to the user, still assess data flow, state transitions, and related cases; report the specific remaining visual or interaction checks without claiming them as passed.
+- Stop when outcome-based acceptance criteria are met and verification limits are explicit. Do not narrow acceptance to the latest reported symptom or call an unverified workflow fully verified. Keep explanations concise and omit large diffs from final responses.
 
 ## Repository Structure
 
