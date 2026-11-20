@@ -380,10 +380,11 @@ function renderPlaceEditorSuggestions({ open = true } = {})
     {
         html += '<div class="place-editor-suggestion-status">Map results will appear here.</div>';
     }
-    const manual = { kind: 'manual', id: 'manual', name: entered };
+    const manual = { kind: 'manual', id: 'manual', name: input.value };
     const manualIndex = suggestions.push(manual) - 1;
-    html += '<div class="place-editor-suggestion-group" role="presentation"><span>Use entered text</span></div>';
-    html += `<button class="place-editor-suggestion manual" id="placeEditorOption${manualIndex}" type="button" role="option" aria-selected="false" data-place-editor-option="${manualIndex}">${icon.edit}<span><strong>Use “${escapeHtml(entered)}” as entered</strong><small>Keep a historical or custom place name</small></span></button>`;
+    const manualLabel = t('Use “{name}” as entered').replace('{name}', () => manual.name);
+    html += `<div class="place-editor-suggestion-group" role="presentation"><span>${escapeHtml(t('Use entered text'))}</span></div>`;
+    html += `<button class="place-editor-suggestion manual" id="placeEditorOption${manualIndex}" type="button" role="option" aria-selected="false" data-place-editor-option="${manualIndex}">${icon.edit}<span><strong>${escapeHtml(manualLabel)}</strong><small>${escapeHtml(t('Keep a historical or custom place name'))}</small></span></button>`;
     draft.renderedSuggestions = suggestions;
     draft.activeSuggestionIndex = Math.min(draft.activeSuggestionIndex, suggestions.length - 1);
     list.innerHTML = html + geneographGeocoder.attributionHtml();

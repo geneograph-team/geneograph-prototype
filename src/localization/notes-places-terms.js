@@ -1135,6 +1135,9 @@ const RU_UI_PLACES = Object.freeze({
     'Use entered text':
         'Использовать введённый текст',
 
+    'Use “{name}” as entered':
+        'Использовать «{name}» без изменений',
+
     'Keep a historical or custom place name':
         'Сохранить историческое или пользовательское название места',
 
