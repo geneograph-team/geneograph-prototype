@@ -1153,15 +1153,6 @@
 .place-merge-fields { display: grid; gap: var(--space-3); }
 .place-merge-fields > h3 { margin: 0; font-size: 15px; }
 .place-merge-prompt { margin: 0; color: var(--text-secondary); font-size: 12px; line-height: 1.5; }
-.place-merge-column-headings {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) 40px minmax(0, 1fr);
-    gap: var(--space-3);
-    color: var(--text-secondary);
-    font-size: 12px;
-    font-weight: 700;
-}
-.place-merge-column-headings span { min-width: 0; overflow-wrap: anywhere; }
 .place-merge-field {
     display: grid;
     gap: var(--space-2);

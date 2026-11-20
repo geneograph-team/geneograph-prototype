@@ -1877,11 +1877,6 @@ function openPlaceMergeModal(leftId, rightId, { onComplete = null } = {})
         const result = placeMergeFieldResult(keep, removed, { locationChoice: 'keep', fieldChoices: fields });
         const invalid = !result;
         host.innerHTML = `<h3>${escapeHtml(t('Fields to merge'))}</h3>
-            <div class="place-merge-column-headings">
-                <span data-i18n-skip>${escapeHtml(left.name)}</span>
-                <span aria-hidden="true"></span>
-                <span data-i18n-skip>${escapeHtml(right.name)}</span>
-            </div>
             ${fieldKeys.map(key =>
             {
                 const current = keep[key];
