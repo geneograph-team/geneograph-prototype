@@ -74,7 +74,7 @@ function geneoReviewRelativeTreeCell(draft, relation, personId, plan, canTransfe
     {
         if (draft.relationChoices.get(relation.id) !== 'board')
             return `<div class="gr-empty-destination"><button type="button" class="gr-empty-record gr-empty-transfer" data-gr-stage-relative data-gr-relation="${escapeHtml(relation.id)}" data-source="board" ${canTransfer ? '' : 'disabled'}>${icon.plus}<span>${escapeHtml(t(addLabel))}</span></button>${searchButton}</div>`;
-        return `<div class="gr-projected-record">${recordHeader(geneoReviewIdentity(person, true))}<span class="gr-record-type">${escapeHtml(t('New Tree person'))}</span></div>`;
+        return `<div class="gr-projected-record">${recordHeader(geneoReviewIdentity(person, true))}</div>`;
     }
     return `${recordHeader(`<span class="gr-muted">${escapeHtml(t('Choose a Tree record or create a new person'))}</span>`)}
         <div class="gr-record-actions"><button type="button" class="gr-text" data-gr-relative-create ${attrs}>${escapeHtml(t('Create a new person'))}</button></div>

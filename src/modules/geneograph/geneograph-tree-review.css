@@ -56,7 +56,10 @@
 .gr-state.conflicts, .gr-error, .gr-errors { color: var(--red); }
 .gr-detail, .gr-final { min-width: 0; padding: 22px 24px; overflow: auto; }
 .gr-final { padding: 16px 24px; }
+.gr-detail:has(> .gr-review-empty) { display: flex; flex-direction: column; }
+.gr-review-empty { display: grid; place-items: center; flex: 1; min-height: 160px; margin: 24px 0; padding: 20px; text-align: center; color: var(--text-primary); font-size: 16px; font-weight: 600; line-height: 1.5; }
 .gr-identity-column { min-width: 0; display: grid; grid-template-rows: auto 1fr auto; row-gap: 4px; }
+.gr-identity-card, .gr-relative-cell { min-height: 104px; box-sizing: border-box; }
 .gr-identity-card { min-width: 0; display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; column-gap: 8px; padding: 10px 12px; border: 1px solid var(--border-default); border-radius: var(--radius-sm); background: var(--surface-input); }
 .gr-identity-heading { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-width: 0; }
 .gr-identity-source { display: flex; align-items: center; gap: 7px; min-width: 0; margin: 0; font-size: 16px; }
@@ -69,7 +72,7 @@
 .gr-identity-card-body > p { margin: 0; }
 .gr-card-search { display: inline-flex; align-items: center; gap: 6px; min-height: 36px; padding-inline: 8px; }
 .gr-identity-heading .button.gr-card-search { flex: none; min-height: 44px; border-color: transparent; font-size: 13px; letter-spacing: normal; font-weight: 650; }
-.gr-identity-unlink { align-self: start; display: grid; place-items: center; width: 44px; height: 44px; padding: 0; border: 0; border-radius: var(--radius-sm); background: transparent; color: var(--text-secondary); cursor: pointer; }
+.gr-identity-unlink { align-self: center; display: grid; place-items: center; width: 44px; height: 44px; padding: 0; border: 0; border-radius: var(--radius-sm); background: transparent; color: var(--text-secondary); cursor: pointer; }
 .gr-identity-unlink:hover { background: var(--surface-card-hover); color: var(--text-primary); }
 .gr-identity-unlink svg { width: 18px; height: 18px; }
 .gr-card-search svg { width: 16px; height: 16px; flex: none; }
@@ -104,7 +107,8 @@
 .gr-section > h3 + .gr-relative-group { margin-top: 0; }
 .gr-section > h3 + .gr-fact, .gr-section > h3 + .gr-relative-group > .gr-relation:first-child { padding-top: 4px; }
 .gr-section p { margin: 6px 0; font-size: 13px; }
-.gr-fact { padding: 10px 0; border-bottom: 1px solid var(--border-default); }
+.gr-fact { padding: 10px 0; }
+.gr-fact + .gr-fact { border-top: 1px solid var(--border-default); }
 .gr-fact h4, .gr-relation h4 { margin: 0 0 9px; font-size: 13px; line-height: 1.5; }
 .gr-value { display: flex; flex-direction: column; align-items: flex-start; justify-content: center; gap: 4px; min-width: 0; min-height: 44px; padding: 8px 10px; border: 1px solid var(--border-default); border-radius: 5px; color: var(--text-primary); background: var(--surface-input); text-align: left; font-size: 13px; overflow-wrap: anywhere; box-sizing: border-box; }
 .gr-value.is-destination { border-color: var(--brand-green-500); background: var(--surface-selected); }
@@ -167,7 +171,8 @@
 .gr-empty-transfer:disabled { opacity: .5; cursor: default; }
 .gr-parent-choice { display: grid; gap: 7px; margin-top: 12px; max-width: 400px; }
 .gr-value svg { width: 16px; height: 16px; flex: none; color: var(--brand-green-500); }
-.gr-relation { padding: 14px 0; border-bottom: 1px solid var(--border-default); }
+.gr-relation { padding: 14px 0; }
+.gr-relation + .gr-relation, .gr-relative-group + .gr-relative-group { border-top: 1px solid var(--border-default); }
 .gr-relation-status { font-size: 12px; color: var(--text-secondary); }
 .gr-relation .gr-label { display: grid; gap: 6px; margin: 12px 0 0; }
 .gr-relation select { min-width: 0; width: 100%; }
@@ -214,6 +219,7 @@
     .gr-relationship-compare { grid-template-columns: 1fr; }
     .gr-comparison-head > span { font-size: 14px; gap: 5px; }
     .gr-comparison-head svg { width: 15px; height: 15px; }
+    .gr-identity-card, .gr-relative-cell { min-height: 160px; }
     .gr-relative-cell { padding: 8px; }
     .gr-relative-cell .gr-identity { flex-direction: column; align-items: flex-start; gap: 6px; }
     .gr-relative-cell .gr-avatar { width: 38px; height: 46px; flex-basis: 38px; }

@@ -243,6 +243,58 @@ function geneoReviewAutomaticParentLink(draft, relation, personId)
     return missing.length === 1 && (!personId || missing[0] === personId);
 }
 
+function geneoReviewBoardSiblings(families, ids)
+{
+    if (families.some(family => ids.every(id => family.children.some(child => child.personId === id)))) return true;
+    const parents = ids.map(id => new Set(families.filter(family => family.children.some(child => child.personId === id)).flatMap(family => family.partnerIds)));
+    return parents.length === 2 && [...parents[0]].some(id => parents[1].has(id));
+}
+
+function geneoReviewCoalesceBoardParents(draft, projected, mapping, treeFamily, read)
+{
+    const treeParents = geneoReviewFamilyParents(treeFamily);
+    if (treeParents.length !== 2) return;
+    const parents = treeParents.map(id => [...mapping].find(([, treeId]) => treeId === id)?.[0]);
+    if (parents.some(id => !id)) return;
+    const families = projected['board.families'];
+    const candidates = families.filter(family => family.partnerIds.length === 1 && parents.includes(family.partnerIds[0])
+        && family.children.length && family.children.every(child => (treeFamily.childIds || []).includes(mapping.get(child.personId)))
+        && !family.events?.length && !family.marriageType && ['Unknown relationship', ''].includes(family.relationshipType || ''));
+    const first = candidates.find(family => family.partnerIds[0] === parents[0]);
+    const second = candidates.find(family => family.partnerIds[0] === parents[1] && first
+        && geneoReviewEqual(family.children.map(child => child.personId).sort(), first.children.map(child => child.personId).sort()));
+    if (!first || !second) return;
+    for (const family of [first, second]) read('board.families', family.id);
+    first.partnerIds = parents;
+    for (const child of first.children)
+    {
+        const other = second.children.find(item => item.personId === child.personId);
+        child.parentChildTypes = { ...child.parentChildTypes,
+            [parents[0]]: geneoReviewParentType(first, child, parents[0]).toLowerCase(),
+            [parents[1]]: geneoReviewParentType(second, other, parents[1]).toLowerCase() };
+    }
+    geneoReviewCopyRelationship(treeFamily, first);
+    families.splice(families.indexOf(second), 1);
+    const connections = projected['board.connections'];
+    const childNodes = new Set();
+    projected['board.connections'] = connections.filter(connection =>
+    {
+        if (![first.id, second.id].includes(connection.familyId)) return true;
+        read('board.connections', connection.id);
+        connection.familyId = first.id;
+        if (connection.kind !== 'family-child') return true;
+        connection.source = { familyId: first.id, port: 'bottom' };
+        if (childNodes.has(connection.target.nodeId)) return false;
+        childNodes.add(connection.target.nodeId);
+        return true;
+    });
+    const nodes = parents.map(id => projected['board.nodes'].find(node => node.personId === id));
+    if (nodes.some(node => !node)) return;
+    const [left, right] = nodes.sort((a, b) => a.x - b.x);
+    projected['board.connections'].push({ id: draft.treeConnectionIds.get(`tree:${treeFamily.id}:partner`), kind: 'family-partner', familyId: first.id,
+        source: { nodeId: left.id, port: 'right' }, target: { nodeId: right.id, port: 'left' }, name: '', visible: true, style: {}, route: { mode: 'auto', waypoints: [] } });
+}
+
 function geneoReviewAllRelations(draft)
 {
     const relations = [...draft.relations];
@@ -795,7 +847,7 @@ function geneoTreeImportPreview(draft)
         let ids = relation.ids.map(id => result.mapping.get(id));
         if (relation.origin === 'tree')
         {
-            const siblingExists = relation.type === 'sibling' && projected['board.families'].some(family => relation.ids.every(id => family.children.some(child => child.personId === id)));
+            const siblingExists = relation.type === 'sibling' && geneoReviewBoardSiblings(projected['board.families'], relation.ids);
             if (siblingExists && !decision) { result.statuses.set(relation.id, 'Same relationship'); continue; }
             result.statuses.set(relation.id, 'Not connected on board');
             if (!decision) continue;
@@ -986,8 +1038,9 @@ function geneoTreeImportPreview(draft)
             }
             continue;
         }
-        const matches = relation.type === 'sibling' && complete && projected.families.some(family =>
-            family.projectId === draft.projectId && (family.childIds || []).includes(ids[0]) && (family.childIds || []).includes(ids[1]));
+        const matches = relation.type === 'sibling' && complete && geneoReviewBoardSiblings(projected.families.filter(family => family.projectId === draft.projectId).map(family => ({
+            partnerIds: geneoReviewFamilyParents(family), children: (family.childIds || []).map(personId => ({ personId }))
+        })), ids);
         result.statuses.set(relation.id, matches ? 'Same relationship' : !complete ? 'Resolve identities first' : 'Not connected in Tree');
         if (!decision || matches) continue;
         if (ambiguousFamily) { fail('Choose the parent family to update.', relation.ids.at(-1), relation.id); continue; }
@@ -1100,6 +1153,13 @@ function geneoTreeImportPreview(draft)
         const end = partnerRelationshipEndEvent(family);
         if (end && !partnerRelationshipDateOrderIsValid(start?.date, end.date))
             fail('The relationship end date must be after or equal to the start date.', relation.ids.at(-1), relation.id);
+    }
+    const importedFamilies = new Set(result.relations.filter(relation => relation.origin === 'tree'
+        && relation.type === 'child' && draft.relationChoices.get(relation.id) === 'tree').map(relation => relation.treeFamilyId));
+    for (const id of importedFamilies)
+    {
+        const family = projected.families.find(item => item.id === id);
+        if (family) geneoReviewCoalesceBoardParents(draft, projected, result.mapping, family, read);
     }
     // Validate the projected ancestry, including existing links, without invoking live mutators.
     const ancestry = new Map();

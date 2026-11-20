@@ -227,6 +227,7 @@ function geneoReviewPersonDetail(draft, plan)
     const candidate = !['create', 'skip', 'unlink'].includes(choice) ? getPerson(choice) : null;
     const tree = candidate && !candidate.deleted && candidate.projectId === draft.projectId ? candidate : null;
     const staged = plan.operations.find(operation => operation.personId === person.id && operation.type === 'identity');
+    const stagedLink = staged?.label === 'Link existing';
     const original = getPerson(person.treePersonId);
     const canCreate = !original || original.deleted || original.projectId !== draft.projectId;
     const addPerson = canCreate && !tree && choice !== 'unlink';
@@ -238,14 +239,14 @@ function geneoReviewPersonDetail(draft, plan)
     const facts = tree && !move ? geneoReviewFactRows(draft, person, tree) : '';
     const relationships = !move && choice !== 'unlink' ? geneoReviewRelations(draft, person, plan) : '';
     const treeActions = `
-        ${staged && !move && choice !== 'create' ? `${choice === 'unlink' ? '' : `<span class="gr-record-type">${escapeHtml(t(staged.label))}</span>`}<button type="button" class="gr-text" data-gr-identity-reset>${escapeHtml(t('Undo'))}</button>` : ''}
+        ${staged && !move && choice !== 'create' && !stagedLink ? `${choice === 'unlink' ? '' : `<span class="gr-record-type">${escapeHtml(t(staged.label))}</span>`}<button type="button" class="gr-text" data-gr-identity-reset>${escapeHtml(t('Undo'))}</button>` : ''}
         `;
     const unlink = person.treePersonId && choice !== 'unlink' && !move
         ? `<button type="button" class="icon-button gr-identity-unlink" data-gr-unlink aria-label="${escapeHtml(t('Unlink'))}" title="${escapeHtml(t('Unlink'))}">${icon.unlink}</button>` : '';
     return `<div class="gr-detail"><button type="button" class="gr-text gr-back-list" data-gr-list>${escapeHtml(t('Back to people'))}</button>
         <div class="gr-values gr-identity-comparison">
             ${card('On board', icon.whiteboard, geneoReviewIdentity(person, true), actionButton('data-gr-change-anchor' + (tree && !move ? '' : ' disabled'), 'Change link'))}
-            <div class="gr-identity-spacer">${addPerson ? `<button type="button" class="gr-transfer ${choice === 'create' ? 'is-selected' : ''}" data-gr-identity-new aria-pressed="${choice === 'create'}" aria-label="${escapeHtml(t('Add to Family Tree'))}">${icon.arrow}</button>` : `<span aria-hidden="true">${icon.link}</span>`}</div>
+            <div class="gr-identity-spacer">${stagedLink && !move ? `<button type="button" class="gr-transfer is-selected" data-gr-identity-reset aria-pressed="true" aria-label="${escapeHtml(t('Undo'))}">${icon.arrow}</button>` : addPerson ? `<button type="button" class="gr-transfer ${choice === 'create' ? 'is-selected' : ''}" data-gr-identity-new aria-pressed="${choice === 'create'}" aria-label="${escapeHtml(t('Add to Family Tree'))}">${icon.arrow}</button>` : `<span aria-hidden="true">${icon.link}</span>`}</div>
             ${card('Family Tree', icon.tree, tree ? geneoReviewIdentity(tree) : choice === 'create' ? geneoReviewIdentity(person, true) : addPerson ? `<button type="button" class="gr-empty-record gr-empty-transfer" data-gr-identity-new>${icon.plus}<span>${escapeHtml(t('Add to Family Tree'))}</span></button>` : `<p class="gr-muted">${escapeHtml(t(treeMissing))}</p>`,
                 actionButton('data-gr-link' + (move ? ' disabled' : ''), tree ? 'Change link' : 'Link person'), treeActions, unlink)}
         </div>
@@ -255,7 +256,7 @@ function geneoReviewPersonDetail(draft, plan)
         }))} <button class="gr-text" type="button" data-gr-undo-board-link="${escapeHtml(move.from)}">${escapeHtml(t('Undo'))}</button></p>` : ''}
         ${staged?.label === 'Link existing' && !move && original && original.id !== tree?.id ? `<p class="gr-muted">${escapeHtml(geneoReviewText('Replace the link to {from} with a link to {to}.', { from: connectPersonName(original), to: connectPersonName(tree) }))}</p>` : ''}
         ${facts}${relationships}
-        ${tree && !move && !facts && !relationships ? `<p class="gr-review-empty gr-muted">${escapeHtml(t('No differences for this person.'))}</p>` : ''}</div>`;
+        ${tree && !move && !facts && !relationships ? `<p class="gr-review-empty">${escapeHtml(t('No differences for this person.'))}</p>` : ''}</div>`;
 }
 
 function geneoReviewSummary(draft, plan)
@@ -374,6 +375,13 @@ function geneoStageReviewRelation(draft, id, direction)
     if (direction === 'none' || old === direction)
     {
         geneoReviewUndoRecordRow(draft, id);
+        // Clear the row's chosen person as well as its transfer. An explicit empty
+        // destination prevents match suggestions from filling the tile again.
+        for (const personId of relation.ids)
+        {
+            const key = `${id}|${personId}`;
+            if (draft.relativeTargets.has(key)) draft.relativeTargets.set(key, 'create');
+        }
     }
     else
     {
@@ -549,7 +557,18 @@ function openGeneographTreeImport(options = {})
             const tree = getPerson(person.treePersonId);
             draft.choices.set(person.id, wasUnlink ? draft.unlinkChoices?.get(person.id) || person.treePersonId || 'skip'
                 : tree && !tree.deleted && tree.projectId === draft.projectId ? tree.id : 'skip');
-            if (!wasUnlink) draft.fields.delete(person.id);
+            if (!wasUnlink)
+            {
+                for (const relation of geneoReviewAllRelations(draft).filter(item => item.ids.includes(person.id)))
+                {
+                    geneoReviewUndoRecordRow(draft, relation.id);
+                    draft.relationshipFields.delete(relation.id);
+                    for (const id of relation.ids) draft.relativeTargets.delete(`${relation.id}|${id}`);
+                }
+                draft.rowIdentityOrigins?.delete(person.id);
+                draft.fields.delete(person.id);
+                draft.choices.set(person.id, tree && !tree.deleted && tree.projectId === draft.projectId ? tree.id : 'skip');
+            }
         }
         else if (button.hasAttribute('data-gr-fact'))
         {
