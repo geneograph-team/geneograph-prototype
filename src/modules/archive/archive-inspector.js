@@ -2245,6 +2245,7 @@ function renderArchiveFileInspector(
             editing ? '' : `<button class="panel-action" type="button" id="archiveEditFile">${renderPanelButtonLabel(icon.edit, 'Edit')}</button>`
         )}
 
+        <div data-archive-file-connections>
         ${renderArchiveFileSection(
             'people',
             'People',
@@ -2328,6 +2329,7 @@ function renderArchiveFileInspector(
             editing ? '' : `<button class="panel-action" type="button" data-archive-add-file-place="${escapeHtml(file.id)}">${renderPanelButtonLabel(icon.plus, 'Add places')}</button>`,
             `${placeCount} ${placeCount === 1 ? 'place' : 'places'}`
         )}
+        </div>
 
         ${renderArchiveFileSection(
             'metadata',

@@ -47,7 +47,6 @@ const geneoTourSteps = [
     { id: 'geneograph-card', module: 'Geneograph', title: "Open the sample board", body: "This card shows the sample board and its details. Open it to explore the editor." },
     { id: 'geneograph-editor-welcome', module: 'Geneograph', presentation: 'centered', title: "Explore the board editor", body: "Build out your board by arranging people, connections, and research materials however you need." },
     { id: 'geneograph-all-boards', module: 'Geneograph', title: "Return to all boards", body: "All Boards opens the board library. Your edits save automatically." },
-    { id: 'geneograph-current-board', module: 'Geneograph', title: "Board details", body: "The board name appears here. Use Edit board to change its name, description, or collections." },
     { id: 'geneograph-layers', module: 'Geneograph', title: "Find and manage items", body: "Search objects and connections together. Use the filter to narrow the list, or locate an item on the canvas." },
     { id: 'geneograph-objects', module: 'Geneograph', title: "See items on the canvas", body: "Here you can see a few items already placed on the canvas, including a panel and person cards." },
     { id: 'geneograph-topbar', module: 'Geneograph', title: "Board toolbar", body: "The toolbar helps you navigate the board and add the different kinds of items you need." },
@@ -59,8 +58,9 @@ const geneoTourSteps = [
     { id: 'geneograph-sockets-partners', module: 'Geneograph', title: "Connect partners", body: "Use the left and right sockets to connect partners. The sockets determine how the relationship is recorded, so using different connection points creates a different type of relationship." },
     { id: 'geneograph-sockets-children', module: 'Geneograph', title: "Connect parents and children", body: "Connect from a person’s bottom socket to another person’s top socket to create a parent-child relationship. The person at the top becomes the parent. The same rule applies when connecting from a couple’s socket." },
     { id: 'geneograph-sockets-context', module: 'Geneograph', title: "Connect research context", body: "Images, notes and other objects can connect through any of their sockets." },
+    { id: 'geneograph-current-board', module: 'Geneograph', title: "Board details", body: "The board name appears here. Use Edit board to change its name, description, or collections." },
     { id: 'geneograph-inspector', module: 'Geneograph', title: "Adjust the canvas and objects", body: "Use this panel to change canvas settings. When you select an object, the panel switches to settings for that object." },
-    { id: 'geneograph-export', module: 'Geneograph', title: "Export your board", body: "Choose Editable board file to save a .ggboard copy you can import and edit later. PNG image saves a picture only. In this demo, export again after making changes to keep them across reloads." },
+    { id: 'geneograph-export', module: 'Geneograph', title: "Export your board", body: "Save a copy you can keep editing, or save a picture to share. The demo loses changes when you reload, so save again after editing." },
     { id: 'geneograph-to-albums', module: 'Geneograph', title: "Continue to Albums", body: "Next, see how photos become part of your family research." },
     { id: 'albums-welcome', module: 'Albums', presentation: 'centered', title: "Welcome to Albums", body: "Explore project photos, organize them into albums, and add the details that make each image meaningful." },
     { id: 'albums-photos', module: 'Albums', title: "Inspect photos", body: "Select a photo to view the image and its details." },
@@ -68,7 +68,7 @@ const geneoTourSteps = [
     { id: 'albums-albums', module: 'Albums', title: "Organize with albums", body: "Open an existing album, or create a new one with the plus button." },
     { id: 'albums-filters', module: 'Albums', title: "Filter photos", body: "Use filters to narrow the photo list and find the images you need faster." },
     { id: 'albums-summary', module: 'Albums', title: "Explore photo details", body: "Use the right panel to view the selected photo and learn more about it." },
-    { id: 'albums-actions', module: 'Albums', title: "Manage the photo", body: "Use these controls to update and manage the selected photo." },
+    { id: 'albums-actions', module: 'Albums', title: "Photo details", body: "Review the information recorded for this photo. Choose Edit to update it." },
     { id: 'albums-connections', module: 'Albums', title: "People in this photo", body: "See who is tagged in the photo. Hover over a name to highlight that person in the preview." },
     { id: 'albums-tag-person-modal', module: 'Albums', title: "Tag people in a photo", body: "Choose a person to tag them immediately. You can mark their area directly in the photo preview." },
     { id: 'albums-add-to-album-action', module: 'Albums', title: "Albums for this photo", body: "See which albums include the photo, add it to another album, or remove it from one." },
@@ -80,10 +80,10 @@ const geneoTourSteps = [
     { id: 'archive-location', module: 'Archive', title: "Move between folders", body: "The path shows your current folder. Use Back, Forward, Up, or the path to navigate." },
     { id: 'archive-table', module: 'Archive', title: "Explore folder contents", body: "The main area shows folders and files in your current location. Open folders and select files to explore your archive." },
     { id: 'archive-filters', module: 'Archive', title: "Filter your files", body: "Use filters to narrow the file list and find the materials you need faster." },
-    { id: 'archive-folder-actions', module: 'Archive', title: "Create a folder", body: "Use the sidebar or top button to create a folder. Subfolder button will create a folder in current location." },
+    { id: 'archive-folder-actions', module: 'Archive', title: "Create a folder", body: "Choose New folder in the toolbar or sidebar. In the folder inspector, choose New subfolder to create a folder inside the selected one." },
     { id: 'archive-folder-modal', module: 'Archive', title: "Choose a name and location", body: "Enter a name and choose the parent folder. The folder appears after you confirm." },
     { id: 'archive-inspector', module: 'Archive', title: "File details", body: "Select a file to view its details in the right panel." },
-    { id: 'archive-file-actions', module: 'Archive', title: "File tools", body: "The toolbar helps you make changes to the selected file and manage it within the archive." },
+    { id: 'archive-file-actions', module: 'Archive', title: "Connected items", body: "Below Details, review or update the people, notes, sources, and places linked to this file." },
     { id: 'archive-to-notes', module: 'Archive', title: "Continue to Notes", body: "Next, see how you can record thoughts and questions as your research develops." },
     { id: 'notes-welcome', module: 'Notes', presentation: 'centered', title: "Welcome to Notes", body: "Use notes to develop your research, record your thoughts, and connect ideas with related records." },
     { id: 'notes-navigation', module: 'Notes', title: "Note navigation", body: "Switch between all notes, favourites, and archived notes from the navigation panel." },
@@ -160,14 +160,14 @@ const geneoTourSecondarySelectors = {
     'albums-filters': '#albumsFilterButton',
     'archive-filters': '#archiveFilterButton',
     'archive-inspector': '[data-archive-file-row="af1"]',
-    'archive-folder-actions': '.archive-page-head [data-archive-create-folder]',
+    'archive-folder-actions': '.archive-sidebar [data-archive-create-folder]',
     'people-to-profile': '.people-layout .tree-person-hero-profile',
     'notes-filters': '#notesFilterButton',
     'places-list': '.places-view-switch',
     'places-filters': '#placesFilterButton',
     'places-routes': '#placesRouteMenu',
     'places-add-coordinates': '#modalBackdrop [data-place-coordinate-details]',
-    'places-add-map': '[data-places-coordinate-bar]',
+    'places-add-map': '[data-places-coordinate-bar]:not([hidden]) #placesConfirmMapEdit',
     'places-outro': '[data-topbar-help]',
     'geneograph-export': '.geneo-editor-toolbar [data-geneo-export]',
     'geneograph-sockets-intro': geneoTourFamilySelector(geneoTourSeedTargets.couple),
@@ -246,6 +246,7 @@ function geneoTourCaptureOrigin()
 {
     if (state.activeModule === 'Family Tree') captureTreeCanvasScroll(state.currentProjectId);
     if (state.activeModule === 'Geneograph' && state.geneoView === 'board') captureGeneographViewport();
+    if (state.activeModule === 'Places') capturePlacesMapView();
     const values = structuredClone(state);
     const scroll = {};
     ['.main', '.tree-canvas', '.tree-inspector', '[data-geneo-canvas-wrap]', '.notes-browser-pane', '.notes-browser-scroll',
@@ -370,6 +371,24 @@ function geneoTourPrepare(index)
             'albumsDetailCollapsed', 'albumsDetailSections'
         ].map(key => [key, structuredClone(state[key])]));
     }
+    const placesMode = ['places-list', 'places-filters', 'places-save-filter',
+        'places-saved-filters'].includes(step.id) ? 'list' : 'map';
+    const keepPlacesMap = step.module === 'Places' && geneoTourRuntime.placesOrigin
+        && state.activeModule === 'Places' && currentProjectId() === GENEO_TOUR_PROJECT_ID
+        && placesMode === 'map' && state.placesViewMode === 'map'
+        && main.querySelector('[data-places-map-status]');
+    if (step.module === 'Places' && !geneoTourRuntime.placesOrigin)
+    {
+        if (state.activeModule === 'Places') capturePlacesMapView();
+        geneoTourRuntime.placesOrigin = Object.fromEntries([
+            ...Object.keys(state).filter(key => key.startsWith('places')),
+            'selectedPlaceId'
+        ].map(key => [key, structuredClone(state[key])]));
+        geneoTourRuntime.placesOriginScroll = Object.fromEntries(
+            ['.main', '.places-sidebar', '.places-inspector'].map(selector =>
+                [selector, document.querySelector(selector)?.scrollTop || 0]));
+    }
+    if (keepPlacesMap) return;
     activateProject(GENEO_TOUR_PROJECT_ID, { moduleName: step.module, renderNow: false });
     if (step.module === 'Archive' && !geneoTourRuntime.archiveOrigin)
     {
@@ -477,20 +496,10 @@ function geneoTourPrepare(index)
     }
     if (step.module === 'Places')
     {
-        if (!geneoTourRuntime.placesOrigin)
-        {
-            geneoTourRuntime.placesOrigin = Object.fromEntries([
-                ...Object.keys(state).filter(key => key.startsWith('places')),
-                'selectedPlaceId'
-            ].map(key => [key, structuredClone(state[key])]));
-            geneoTourRuntime.placesOriginScroll = Object.fromEntries(
-                ['.main', '.places-sidebar', '.places-inspector'].map(selector =>
-                    [selector, document.querySelector(selector)?.scrollTop || 0]));
-        }
+
         state.placesView = 'all';
-        state.placesViewMode = ['places-list', 'places-filters', 'places-save-filter',
-            'places-saved-filters'].includes(step.id)
-            ? 'list' : 'map';
+        state.placesViewMode = placesMode;
+        state.placesSearch = '';
         state.selectedPlaceId = 'place-meowbridge';
         state.placesInspectorCollapsed = false;
         state.placesFilters = { ...defaultPlaceFilters,
@@ -696,7 +705,8 @@ function geneoTourApplyTreeReveal(step)
         if (['archive-navigation', 'archive-folders'].includes(step.id)
             || (step.id === 'archive-folder-actions' && innerWidth > 1100))
             document.body.classList.add('geneo-tour-archive-sidebar');
-        if (['archive-folder-actions', 'archive-inspector', 'archive-file-actions'].includes(step.id))
+        if (['archive-inspector', 'archive-file-actions'].includes(step.id)
+            || step.id === 'archive-folder-actions' && innerWidth > 1100)
             document.body.classList.add('geneo-tour-archive-inspector');
         if (step.id === 'archive-to-notes') document.body.classList.add('geneo-tour-archive-tabs');
         return;
@@ -788,7 +798,7 @@ function geneoTourTarget(index)
         'albums-albums': '[data-albums-tour-target="albums"]',
         'albums-filters': '#albumsFilterPopover',
         'albums-summary': '.albums-detail-toolbar',
-        'albums-actions': '#albumsEditPhoto',
+        'albums-actions': '[data-albums-section-toggle="details"]',
         'albums-connections': '[data-albums-section-toggle="people"]',
         'albums-tag-person-modal': '#modalBackdrop .photo-people-modal',
         'albums-add-to-album-action': '#albumsLinkAlbum',
@@ -799,10 +809,10 @@ function geneoTourTarget(index)
         'archive-location': '.archive-location-row',
         'archive-table': '.archive-table-wrap',
         'archive-filters': '#archiveFilterPopover',
-        'archive-folder-actions': '.archive-sidebar [data-archive-create-folder]',
+        'archive-folder-actions': '.archive-file-create-actions [data-archive-create-folder]',
         'archive-folder-modal': '#modalBackdrop .archive-create-folder-modal',
         'archive-inspector': '.archive-file-preview',
-        'archive-file-actions': '#archiveEditFile',
+        'archive-file-actions': '[data-archive-file-connections]',
         'archive-to-notes': '.topnav [data-module="Notes"]',
         'notes-navigation': '[data-notes-tour-target="navigation"]',
         'notes-collections': '[data-notes-tour-target="collections"]',
@@ -863,11 +873,11 @@ function geneoTourTarget(index)
         'archive-location': '.archive-mobile-location',
         'archive-table': '.archive-mobile-items'
     }[id];
-    const target = id === 'archive-folder-actions' && innerWidth <= 1100
-        ? document.querySelector(geneoTourTertiarySelectors[id])
-        : document.querySelector(mobileGeneographTarget || mobileArchiveTarget || selectors[id]);
-    if (id === 'places-add-map' && (!placesMapReady()))
-        return document.querySelector('[data-places-map-status]:not([hidden])');
+    const target = document.querySelector(mobileGeneographTarget || mobileArchiveTarget || selectors[id]);
+    if (id === 'albums-actions') return target?.closest('.panel-section');
+    if (id === 'places-add-map')
+        return target || modalBackdrop.querySelector('[data-place-coordinate-details]')
+            || main.querySelector('[data-places-map-status]:not([hidden])');
     if (id === 'people-saved-filters') return target?.parentElement?.parentElement || null;
     if (['places-navigation', 'places-countries', 'places-saved-filters'].includes(id))
         return target?.closest('.places-sidebar-section') || target;
@@ -939,6 +949,7 @@ function geneoTourClosePreview()
     if (geneoTourRuntime.ownedPreview === 'places-map-selection')
     {
         cancelPlacesMapEditing({ reopenEditor: false });
+        if (modalBackdrop.classList.contains('open')) closeModal({ force: true });
         resetPlaceEditorDraft();
     }
     if (geneoTourRuntime.ownedPreview === 'modal' && modalBackdrop.classList.contains('open'))
@@ -1071,17 +1082,25 @@ function geneoTourOpenPreview(step)
             geneoTourRuntime.openingPreview = false;
         }
     }
-    if (step.id === 'places-add-map' && placesMapAdapter.supportedProtocol())
+    if (step.id === 'places-add-map')
     {
         geneoTourRuntime.openingPreview = true;
         try
         {
             geneoTourRuntime.placesDraftCoordinates = null;
             openPlaceModal();
+            modalBackdrop.inert = true;
+            const token = geneoTourRuntime.token;
             geneoTourRuntime.ownedPreview = 'places-map-selection';
+            if (placesMapRuntime.status === 'unavailable')
+            {
+                showPlaceEditorMapFallback();
+                return;
+            }
             startPlaceEditorMapSelection().then(() =>
             {
-                if (!placesMapReady() || geneoTourRuntime.ownedPreview !== 'places-map-selection')
+                if (token !== geneoTourRuntime.token) return;
+                if (!placesMapReady())
                 {
                     geneoTourQueuePosition();
                     return;
@@ -1089,8 +1108,12 @@ function geneoTourOpenPreview(step)
                 requestAnimationFrame(() => requestAnimationFrame(() =>
                 {
                     const map = placesMapRuntime.map;
-                    if (!placesMapReady()
-                        || geneoTourRuntime.ownedPreview !== 'places-map-selection') return;
+                    if (token !== geneoTourRuntime.token) return;
+                    if (!placesMapReady() || placesMapRuntime.mode !== 'add')
+                    {
+                        geneoTourQueuePosition();
+                        return;
+                    }
                     const mapRect = map.getContainer().getBoundingClientRect();
                     const barTop = main.querySelector('[data-places-coordinate-bar]')?.getBoundingClientRect().top;
                     const markerY = Math.max(40, Math.min(mapRect.height * .58,
@@ -1389,8 +1412,10 @@ function geneoTourCardCopy()
         : index >= geneoTourSteps.length
             ? 'The tour is complete. Now explore the demo at your own pace and try the features you’ve just seen.'
             : step.body);
-    if (step?.id === 'places-add-map' && (!placesMapReady()))
-        body = t('Interactive mapping is unavailable here. Use the place editor to enter coordinates manually.');
+    if (step?.id === 'places-add-map' && placesMapRuntime.mode !== 'add')
+        body = t(!placesMapAdapter.supportedProtocol() || placesMapRuntime.status === 'unavailable'
+            ? 'Interactive mapping is unavailable here. Use the place editor to enter coordinates manually.'
+            : 'Loading interactive map…');
     if (step?.id === 'places-add-create' && (!placesMapReady()))
         body = t('Create place saves a new record. Map placement was unavailable, so the tour will not create one; manual coordinates remain available.');
     return { title, body };
@@ -1633,11 +1658,10 @@ function geneoTourRenderOverlay(target = null)
     root.addEventListener('click', event => event.stopPropagation());
     root.addEventListener('pointerdown', event => event.stopPropagation());
     geneoTourRuntime.target = target;
-    const secondarySelector = (geneoTourSteps[index]?.id === 'archive-folder-actions'
-        || geneoTourSteps[index]?.id === 'archive-inspector') && innerWidth <= 1100
+    const secondarySelector = geneoTourSteps[index]?.id === 'archive-inspector' && innerWidth <= 1100
         ? null : geneoTourSecondarySelectors[geneoTourSteps[index]?.id];
     geneoTourRuntime.secondaryTarget = secondarySelector ? document.querySelector(secondarySelector) : null;
-    const tertiarySelector = innerWidth > 1100 || geneoTourSteps[index]?.id === 'people-connected'
+    const tertiarySelector = innerWidth > 1100 || ['people-connected', 'archive-folder-actions'].includes(geneoTourSteps[index]?.id)
         ? geneoTourTertiarySelectors[geneoTourSteps[index]?.id] : null;
     geneoTourRuntime.tertiaryTarget = tertiarySelector ? document.querySelector(tertiarySelector) : null;
     const quaternarySelector = geneoTourQuaternarySelectors[geneoTourSteps[index]?.id];
@@ -1776,8 +1800,22 @@ function geneoTourPosition()
             console.warn(`GeneoGraph tour target unavailable after render: ${geneoTourSteps[geneoTourRuntime.index].id}`);
         }
     }
+    if (stepId === 'places-add-map')
+    {
+        const currentTarget = geneoTourTarget(geneoTourRuntime.index);
+        if (currentTarget && currentTarget !== geneoTourRuntime.target)
+        {
+            if (geneoTourRuntime.target) geneoTourRuntime.resizeObserver?.unobserve(geneoTourRuntime.target);
+            geneoTourRuntime.target = currentTarget;
+            geneoTourRuntime.resizeObserver?.observe(currentTarget);
+        }
+        const body = root.querySelector('[data-geneo-tour-body]');
+        const copy = geneoTourCardCopy().body;
+        if (body.textContent !== copy) body.textContent = copy;
+    }
     const target = geneoTourRuntime.target;
-    if (geneoTourRuntime.secondaryTarget && !geneoTourRuntime.secondaryTarget.isConnected)
+    if ((stepId === 'places-add-map' || geneoTourRuntime.secondaryTarget)
+        && !geneoTourRuntime.secondaryTarget?.isConnected)
     {
         const selector = geneoTourSecondarySelectors[geneoTourSteps[geneoTourRuntime.index]?.id];
         geneoTourRuntime.secondaryTarget = selector ? document.querySelector(selector) : null;
@@ -1887,7 +1925,7 @@ function geneoTourPosition()
             popover.style.left = `${Math.max(parseFloat(popover.style.left) || 0, desiredLeft)}px`;
     }
     const rect = geneoTourTargetRect(target);
-    const padding = stepId === 'places-add-modal'
+    const padding = stepId === 'geneograph-export' ? 1 : stepId === 'places-add-modal'
         && innerWidth >= 1260 && innerWidth <= 1280
         ? 2 : ['people-columns', 'people-filters', 'albums-filters', 'archive-filters',
         'notes-filters', 'places-filters', 'places-routes', 'places-actions',
@@ -1945,8 +1983,11 @@ function geneoTourPosition()
     {
         const sheetHeight = card.offsetHeight;
         const bottomSheetTop = innerHeight - sheetHeight;
-        const topOverlap = Math.max(0, Math.min(bottom, sheetHeight) - y);
-        const bottomOverlap = Math.max(0, bottom - Math.max(y, bottomSheetTop));
+        const sheetTargets = stepId === 'geneograph-export' ? holes : [primary];
+        const topOverlap = sheetTargets.reduce((sum, hole) =>
+            sum + Math.max(0, Math.min(hole.bottom, sheetHeight) - hole.top), 0);
+        const bottomOverlap = sheetTargets.reduce((sum, hole) =>
+            sum + Math.max(0, hole.bottom - Math.max(hole.top, bottomSheetTop)), 0);
         if (topOverlap > 0 && bottomOverlap > 0 && !geneoTourRuntime.mobileScrollAdjusted)
         {
             geneoTourRuntime.mobileScrollAdjusted = true;
@@ -1969,6 +2010,10 @@ function geneoTourPosition()
     const width = card.offsetWidth;
     const height = card.offsetHeight;
     const preferred = [];
+    if (stepId === 'geneograph-export' && secondary)
+        preferred.push([Math.min(x, secondary.left) - width - 12,
+            Math.max(12, Math.min(y, innerHeight - height - 12))],
+        [Math.min(x, innerWidth - width - 12), Math.max(bottom, secondary.bottom) + 12]);
     if (desktopConnected && meaningful(primary) && meaningful(secondary))
         preferred.push([Math.max(...holes.map(hole => hole.right)) + 12,
             Math.max(12, Math.min(y, innerHeight - height - 12))]);
@@ -2224,12 +2269,13 @@ function geneoTourTargetRect(target)
                 bottom: Math.max(top + 40, Math.min(details.bottom, inspector.bottom)) };
         }
     }
-    if (stepId === 'archive-file-actions')
+    if (['archive-file-actions', 'albums-actions'].includes(stepId))
     {
-        const last = main.querySelector('.archive-inspector-toolbar [data-archive-row-actions="file"]')
-            ?.getBoundingClientRect();
-        if (last) return { left: rect.left, top: Math.min(rect.top, last.top),
-            right: last.right, bottom: Math.max(rect.bottom, last.bottom) };
+        const scroller = target.closest('.archive-inspector-scroll, .albums-detail');
+        const viewport = scroller?.getBoundingClientRect();
+        if (viewport) return { left: rect.left, right: rect.right,
+            top: Math.max(rect.top, viewport.top, scroller.querySelector('.albums-detail-toolbar')?.getBoundingClientRect().bottom || 0),
+            bottom: Math.min(rect.bottom, viewport.bottom) };
     }
     if (stepId === 'archive-table')
         return { left: rect.left, right: rect.right, top: Math.max(rect.top, 64),
@@ -2266,12 +2312,6 @@ function geneoTourTargetRect(target)
             return { left: inspector.left, right: inspector.right, top,
                 bottom: Math.max(top + 1, bottom) };
         }
-    }
-    if (stepId === 'albums-actions')
-    {
-        const last = main.querySelector('#albumsInspectorMore')?.getBoundingClientRect();
-        if (last) return { left: rect.left, top: Math.min(rect.top, last.top),
-            right: last.right, bottom: Math.max(rect.bottom, last.bottom) };
     }
     if (stepId === 'people-table')
         return { left: rect.left, right: rect.right, top: Math.max(rect.top, 72),
@@ -2544,9 +2584,9 @@ async function geneoTourMoveTo(index)
             const rect = target.getBoundingClientRect();
             geneoTourScrollTarget(target, rect.top - Math.max(80, innerHeight * .16), true, true);
         }
-        else if (geneoTourSteps[index].id === 'albums-summary' || geneoTourSteps[index].id === 'albums-actions')
+        else if (geneoTourSteps[index].id === 'albums-summary')
             main.querySelector('.albums-detail')?.scrollTo(0, 0);
-        else if (['albums-connections', 'albums-add-to-album-action'].includes(geneoTourSteps[index].id))
+        else if (['albums-actions', 'albums-connections', 'albums-add-to-album-action'].includes(geneoTourSteps[index].id))
         {
             const inspector = main.querySelector('.albums-detail');
             const section = target.closest('.panel-section');
@@ -2568,8 +2608,9 @@ async function geneoTourMoveTo(index)
         }
         else if (geneoTourSteps[index].id === 'notes-to-places' && innerWidth <= 900)
             target.scrollIntoView({ block: 'nearest', inline: 'center', behavior: 'instant' });
-        else if (geneoTourSteps[index].id === 'archive-inspector'
-            || geneoTourSteps[index].id === 'archive-file-actions')
+        else if (geneoTourSteps[index].id === 'archive-file-actions')
+            target.scrollIntoView({ block: 'start', inline: 'nearest', behavior: 'instant' });
+        else if (geneoTourSteps[index].id === 'archive-inspector')
             main.querySelector('.archive-inspector-scroll')?.scrollTo(0, 0);
         else if (geneoTourSteps[index].id === 'archive-to-notes' && innerWidth <= 900)
             target.scrollIntoView({ block: 'nearest', inline: 'center', behavior: 'instant' });

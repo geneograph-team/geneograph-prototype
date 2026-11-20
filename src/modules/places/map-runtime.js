@@ -67,7 +67,9 @@ function failPlacesMap(message)
     const previousPlaces = [...(placesMapRuntime.currentPlaces || [])];
     if (placesMapRuntime.mode !== 'browse')
     {
-        cancelPlacesMapEditing();
+        const tourPreview = typeof geneoTourRuntime !== 'undefined'
+            && geneoTourRuntime.ownedPreview === 'places-map-selection';
+        cancelPlacesMapEditing({ reopenEditor: !tourPreview });
     }
     destroyPlacesMap();
     placesMapRuntime.currentPlaces = previousPlaces;

@@ -1316,10 +1316,13 @@ async function startPlaceEditorMapSelection()
             status.textContent = t('Loading interactive map…');
         }
         if (button) button.disabled = true;
-        placesMapRuntime.status = 'loading';
-        state.placesViewMode = 'map';
-        if (draft.reviewContext) renderPlaces();
-        else renderPlacesMain();
+        if (draft.reviewContext || !placesMapRuntime.host?.isConnected)
+        {
+            placesMapRuntime.status = 'loading';
+            state.placesViewMode = 'map';
+            if (draft.reviewContext) renderPlaces();
+            else renderPlacesMain();
+        }
         const ready = await waitForPlacesMapReady();
         if (placeEditorDraft !== draft || !modalBackdrop.querySelector('[data-place-editor]'))
         {
@@ -1353,6 +1356,7 @@ async function startPlaceEditorMapSelection()
     closeModal({ force: true, preservePlaceEditor: true });
     requestAnimationFrame(() =>
     {
+        if (placeEditorDraft !== draft || state.activeModule !== 'Places') return;
         if (!placesMapReady())
         {
             restorePlaceEditorReviewContext(draft);
