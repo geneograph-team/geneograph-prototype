@@ -1,10 +1,12 @@
 let notesEditorScrollMemory = null;
 let notesBrowserScrollMemory = null;
+let notesCollectionRowsObserver = null;
 
 function renderNotes()
 {
     appNavigationObserve();
     destroyNotesRichTextEditor();
+    disconnectNotesCollectionRowsObserver();
 
     const validNotesViews =
         new Set([
@@ -113,6 +115,7 @@ function renderNotes()
       `;
 
     bindNotesControls();
+    observeNotesCollectionRows();
 
     if (editorOpen)
     {
@@ -669,45 +672,65 @@ function renderNoteBrowserCollectionChips(
         `;
     }
 
-    const visible =
-        collections.slice(0, 2);
-
-    const hiddenCount =
-        collections.length
-        - visible.length;
-
-    return [
-        ...visible.map(collection => `
-          <span
-            class="notes-row-collection-chip"
-            title="${escapeHtml(
-                collection.name
-            )}">
-            ${escapeHtml(
-                collection.name
-            )}
+    return collections.map(collection => `
+          <span class="notes-row-collection-chip" title="${escapeHtml(collection.name)}">
+            <span>${escapeHtml(collection.name)}</span>
           </span>
-        `),
+        `).join('') + '<span class="notes-row-collection-chip" data-notes-collection-overflow hidden></span>';
+}
 
-        hiddenCount > 0
-            ? `
-            <span
-              class="notes-row-collection-chip"
-              title="${escapeHtml(
-                    collections
-                        .slice(2)
-                        .map(collection =>
-                            collection.name
-                        )
-                        .join(', ')
-                )}">
-              +${hiddenCount}
-            </span>
-          `
-            : ''
-    ]
-        .filter(Boolean)
-        .join('');
+function disconnectNotesCollectionRowsObserver()
+{
+    notesCollectionRowsObserver?.disconnect();
+    notesCollectionRowsObserver = null;
+}
+
+function observeNotesCollectionRows()
+{
+    const rows = main.querySelectorAll('.notes-row-collections:has([data-notes-collection-overflow])');
+    if (!rows.length) return;
+
+    const observer = new ResizeObserver(entries =>
+    {
+        entries.forEach(({ target }) => fitNotesCollectionRow(target));
+    });
+    notesCollectionRowsObserver = observer;
+    rows.forEach(row => observer.observe(row));
+    document.fonts.ready.then(() =>
+    {
+        if (notesCollectionRowsObserver === observer) rows.forEach(fitNotesCollectionRow);
+    });
+}
+
+function fitNotesCollectionRow(row)
+{
+    const available = row.getBoundingClientRect().width;
+    if (!available) return;
+
+    const overflow = row.lastElementChild;
+    const chips = Array.from(row.children).slice(0, -1);
+    chips.forEach(chip => { chip.hidden = false; });
+
+    const gap = parseFloat(getComputedStyle(row).columnGap) || 0;
+    const widths = chips.map(chip => chip.getBoundingClientRect().width);
+    let used = widths.reduce((total, width) => total + width, 0) + gap * (chips.length - 1);
+    let visible = chips.length;
+    if (used > available)
+    {
+        overflow.hidden = false;
+        do
+        {
+            visible--;
+            used -= widths[visible] + (visible ? gap : 0);
+            overflow.textContent = '+' + (chips.length - visible);
+        }
+        while (visible && used + gap + overflow.getBoundingClientRect().width > available);
+    }
+
+    const hidden = chips.slice(visible);
+    hidden.forEach(chip => { chip.hidden = true; });
+    overflow.hidden = !hidden.length;
+    overflow.title = hidden.map(chip => chip.title).join(', ');
 }
 
 function noteBrowserMetadata(

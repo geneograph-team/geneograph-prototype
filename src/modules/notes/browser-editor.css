@@ -351,12 +351,14 @@
     min-width: 0;
     display: flex;
     align-items: center;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
+    overflow: hidden;
     gap: 6px;
 }
 
 .notes-row-collection-chip {
-    max-width: 175px;
+    flex: 0 0 auto;
+    max-width: min(175px, 100%);
     min-height: 26px;
     padding: 0 8px;
     display: inline-flex;
@@ -370,8 +372,16 @@
     font-size: 12px;
     font-weight: 700;
     line-height: 1;
-    text-overflow: ellipsis;
     white-space: nowrap;
+}
+
+.notes-row-collection-chip > span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.notes-row-collection-chip[hidden] {
+    display: none;
 }
 
 .notes-row-metadata {
@@ -3206,10 +3216,6 @@
 
         -webkit-line-clamp: 1;
         line-clamp: 1;
-    }
-
-    .notes-row-collection-chip:nth-child(n+2) {
-        display: none;
     }
 
     .notes-filter-button {

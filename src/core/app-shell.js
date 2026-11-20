@@ -580,6 +580,7 @@ function render()
     if (state.activeModule !== 'Notes')
     {
         destroyNotesRichTextEditor();
+        disconnectNotesCollectionRowsObserver();
     }
 
     if (state.activeModule !== 'People' && state.peopleSelectedIds.length)
