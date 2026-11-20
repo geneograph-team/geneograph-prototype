@@ -1435,7 +1435,7 @@
     cursor: grabbing;
 }
 
-.geneo-node-image:has(.geneo-image-crop-toolbar) :is(.geneo-port, .geneo-resize-handle, .geneo-image-layer-label) {
+.geneo-node-image:has(.geneo-image-crop-toolbar) :is(.geneo-port, .geneo-resize-handle, .geneo-resize-edge, .geneo-image-layer-label) {
     display: none;
 }
 
@@ -3026,10 +3026,11 @@
     width: 14px;
     height: 14px;
     padding: 0;
-    border: 2px solid var(--gg-accent-heritage-green-on-container);
+    border: 2px solid var(--gg-accent-heritage-green-outline);
     border-radius: 50%;
-    background: var(--gg-accent-heritage-green-container);
-    box-shadow: 0 0 0 1px color-mix(in srgb, var(--gg-text) 55%, transparent);
+    background: var(--gg-panel);
+    box-shadow: 0 0 0 1px var(--gg-panel);
+    cursor: crosshair;
     opacity: 0;
     visibility: hidden;
     pointer-events: none;
@@ -3053,9 +3054,14 @@
 .geneo-port:focus-visible,
 .geneo-port.active {
     scale: 1.22;
-    background: var(--gg-status-pending-container);
-    outline: 2px solid var(--gg-primary);
-    outline-offset: 2px;
+    background: var(--gg-hover);
+    outline: 2px solid var(--gg-accent-heritage-green-outline);
+    outline-offset: 1px;
+}
+
+.geneo-port.active,
+.geneo-port:active {
+    border-width: 3px;
 }
 
 .geneo-port[data-geneo-port="top"] {
@@ -3088,9 +3094,10 @@
     width: 12px;
     height: 12px;
     padding: 0;
-    border: 2px solid var(--gg-status-pending-on-container);
-    border-radius: 3px;
-    background: var(--gg-status-pending-container);
+    border: 2px solid var(--gg-inverse-surface);
+    border-radius: 2px;
+    background: var(--gg-panel);
+    box-shadow: 0 0 0 1px var(--gg-panel);
 }
 
 .geneo-resize-handle.nw {
@@ -3123,44 +3130,63 @@
     padding: 0;
     border: 0;
     background: transparent;
+    pointer-events: none;
 }
 
 .geneo-resize-edge.n,
 .geneo-resize-edge.s {
-    left: 14px;
-    right: 14px;
-    height: 10px;
+    left: 5px;
+    right: 5px;
+    height: 16px;
     cursor: ns-resize;
 }
 
-.geneo-resize-edge.n {
-    top: -5px;
-}
-
-.geneo-resize-edge.s {
-    bottom: -5px;
-}
+.geneo-resize-edge.n { top: -8px; }
+.geneo-resize-edge.s { bottom: -8px; }
 
 .geneo-resize-edge.e,
 .geneo-resize-edge.w {
-    top: 14px;
-    bottom: 14px;
-    width: 10px;
+    top: 5px;
+    bottom: 5px;
+    width: 16px;
     cursor: ew-resize;
 }
 
-.geneo-resize-edge.e {
-    right: -5px;
+.geneo-resize-edge.e { right: -8px; }
+.geneo-resize-edge.w { left: -8px; }
+
+/* Keep a gap around the socket at the center of each edge. */
+.geneo-resize-edge span {
+    position: absolute;
+    pointer-events: auto;
 }
 
-.geneo-resize-edge.w {
-    left: -5px;
+.geneo-resize-edge:is(.n, .s) span {
+    inset-block: 0;
+    width: max(0px, calc(50% - 12px));
 }
 
-.geneo-resize-edge:focus-visible {
-    outline: 2px solid var(--brand-green-300);
-    outline-offset: 1px;
-    background: color-mix(in srgb, var(--gg-primary) 12%, transparent);
+.geneo-resize-edge:is(.n, .s) span:first-child { left: 0; }
+.geneo-resize-edge:is(.n, .s) span:last-child { right: 0; }
+
+.geneo-resize-edge:is(.e, .w) span {
+    inset-inline: 0;
+    height: max(0px, calc(50% - 12px));
+}
+
+.geneo-resize-edge:is(.e, .w) span:first-child { top: 0; }
+.geneo-resize-edge:is(.e, .w) span:last-child { bottom: 0; }
+
+.geneo-resize-handle:is(:hover, :active) {
+    background: var(--gg-inverse-surface);
+}
+
+.geneo-resize-edge:focus-visible { outline: none; }
+
+.geneo-resize-handle:focus-visible,
+.geneo-resize-edge:focus-visible span {
+    outline: 2px solid var(--gg-inverse-surface);
+    outline-offset: 2px;
 }
 
 .geneo-connections {

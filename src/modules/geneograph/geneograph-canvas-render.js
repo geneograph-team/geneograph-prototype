@@ -865,6 +865,7 @@ function renderGeneographResizeHandles(
                     })[handle]
                 )}: ${geneoNodeTitle(node)}`
             )}">
+            ${handle.length === 1 ? '<span aria-hidden="true"></span><span aria-hidden="true"></span>' : ''}
           </button>
         `)
         .join('');

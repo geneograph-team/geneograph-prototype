@@ -2261,7 +2261,7 @@ function openGeneographBoardDetailsModal({
                     thumb:
                 'theory',
                     diagram:
-                createEmptyGeneographDiagram()
+                createEmptyGeneographDiagram({ colorPersonCardsByGender: true })
                 };
 
                 sampleData.boards.unshift(

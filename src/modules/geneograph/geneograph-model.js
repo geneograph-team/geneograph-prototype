@@ -1843,7 +1843,7 @@ function geneoDefaultCanvasColor()
     return geneoSemanticColor('--tree-canvas-surface');
 }
 
-function createEmptyGeneographDiagram()
+function createEmptyGeneographDiagram({ colorPersonCardsByGender = false } = {})
 {
     return {
         themeProvenanceVersion: 1,
@@ -1854,7 +1854,7 @@ function createEmptyGeneographDiagram()
             snapToGrid: true,
             alwaysShowSockets: false,
             shadowEnabled: true,
-            colorPersonCardsByGender: false
+            colorPersonCardsByGender
         },
         personCardDefaults:
           geneoDefaultPersonCardSettings(),
