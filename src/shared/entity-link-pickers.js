@@ -1,3 +1,65 @@
+function renderPeoplePickerIdentity(person, name, dates, notice = '')
+{
+    return `${renderPersonAvatar(person, 'photo-people-result-avatar', { element: 'span' })}
+        <span class="photo-people-result-copy"><strong>${escapeHtml(name)}</strong><span>${escapeHtml(dates)}</span>
+        ${notice ? `<span>${escapeHtml(t(notice))}</span>` : ''}</span>`;
+}
+
+function openSinglePersonPicker({ parent, anchor, subtitle, candidates, onSelect })
+{
+    const dialog = document.createElement('dialog');
+    dialog.className = 'modal photo-people-modal notes-people-modal single-person-picker';
+    dialog.setAttribute('aria-labelledby', 'singlePersonPickerTitle');
+    dialog.innerHTML = `<header class="modal-header"><div><h2 id="singlePersonPickerTitle">${escapeHtml(t('Select person'))}</h2>
+        <p>${escapeHtml(subtitle)}</p></div><button type="button" class="close-button" data-single-person-close aria-label="${escapeHtml(t('Close'))}">${icon.close}</button></header>
+        <div class="photo-people-body"><div class="notes-person-search-column">
+            <label class="field photo-people-search-field"><span class="search-input">${icon.search}
+                <input type="search" aria-label="${escapeHtml(t('Search by name, date, or place'))}" autocomplete="off" placeholder="${escapeHtml(t('Search by name, date, or place'))}" autofocus></span></label>
+            <section class="photo-people-results-panel"><div class="photo-people-results" data-single-person-results></div></section>
+        </div></div>
+        <footer class="modal-footer"><button type="button" class="button secondary" data-single-person-close>${escapeHtml(t('Cancel'))}</button>
+            <button type="button" class="button primary" data-single-person-select disabled>${escapeHtml(t('Select person'))}</button></footer>`;
+
+    const search = dialog.querySelector('input[type="search"]');
+    const results = dialog.querySelector('[data-single-person-results]');
+    const select = dialog.querySelector('[data-single-person-select]');
+    let selected = '';
+    const render = () =>
+    {
+        const query = search.value.trim().toLocaleLowerCase();
+        const matches = candidates.filter(item => !query || `${item.name} ${item.dates} ${item.searchText || ''}`.toLocaleLowerCase().includes(query));
+        matches.sort((a, b) => Number(Boolean(a.unavailable)) - Number(Boolean(b.unavailable)));
+        if (!matches.some(item => item.id === selected)) selected = '';
+        select.disabled = !selected;
+        results.innerHTML = matches.map(item => `<label class="photo-people-result" ${item.unavailable ? 'aria-disabled="true"' : ''}>
+            ${renderPeoplePickerIdentity(item.avatar, item.name, item.dates, item.unavailable)}
+            <input type="radio" name="single-person-choice" value="${escapeHtml(item.id)}" ${item.unavailable ? 'disabled' : ''} ${selected === item.id ? 'checked' : ''}
+                aria-label="${escapeHtml(item.name)}">
+        </label>`).join('') || `<p class="single-person-empty" role="status">${escapeHtml(t('No people match these filters.'))}</p>`;
+    };
+    search.addEventListener('input', event => { event.stopPropagation(); render(); });
+    results.addEventListener('change', event =>
+    {
+        event.stopPropagation();
+        selected = event.target.value;
+        select.disabled = !selected;
+    });
+    dialog.addEventListener('click', event => event.stopPropagation());
+    dialog.addEventListener('keydown', event => event.stopPropagation());
+    dialog.querySelectorAll('[data-single-person-close]').forEach(button => button.addEventListener('click', () => dialog.close()));
+    select.addEventListener('click', () => { if (selected) dialog.close('select'); });
+    dialog.addEventListener('close', () =>
+    {
+        dialog.remove();
+        if (!parent.isConnected) return;
+        anchor?.focus({ preventScroll: true });
+        if (dialog.returnValue === 'select' && selected) onSelect(selected);
+    }, { once: true });
+    render();
+    parent.append(dialog);
+    dialog.showModal();
+}
+
 function openPeopleLinkModal({
     projectId,
     title =
@@ -458,33 +520,7 @@ function openPeopleLinkModal({
                             : ''
                     }>
 
-                  ${renderPersonAvatar(
-                        person,
-                        'photo-people-result-avatar',
-                        {
-                            element:
-                        'span'
-                        }
-                    )}
-
-                  <span
-                    class="
-                      photo-people-result-copy
-                    ">
-
-                    <strong>
-                      ${escapeHtml(
-                            name
-                        )}
-                    </strong>
-
-                    <span>
-                      ${escapeHtml(
-                            dates
-                        )}
-                    </span>
-
-                  </span>
+                  ${renderPeoplePickerIdentity(person, name, dates)}
 
                   <input
                     type="checkbox"

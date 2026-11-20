@@ -2112,6 +2112,7 @@ function handleModalKeydown(
     event
 )
 {
+    if (event.target.closest?.('dialog[open]')) return;
     if (
         !modalBackdrop.classList
             .contains('open')

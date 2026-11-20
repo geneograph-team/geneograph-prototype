@@ -3624,7 +3624,8 @@ function saveGeneographPersonModalDraft(
                   placeId:
                 birthPlace.placeId || null,
                   placeText:
-                birthPlace.placeText || ''
+                birthPlace.placeId && birthPlace.placeId === existing?.birth?.placeId
+                    ? existing.birth.placeText || '' : birthPlace.placeText || ''
               },
               projectId
           ),
@@ -3638,8 +3639,8 @@ function saveGeneographPersonModalDraft(
                     deathPlace.placeId
                     || null,
                       placeText:
-                    deathPlace.placeText
-                    || ''
+                    deathPlace.placeId && deathPlace.placeId === existing?.death?.placeId
+                        ? existing.death.placeText || '' : deathPlace.placeText || ''
                   },
                   projectId
               )

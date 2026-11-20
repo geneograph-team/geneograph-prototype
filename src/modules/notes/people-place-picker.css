@@ -235,3 +235,21 @@
     }
 }
 
+
+.single-person-picker { position: fixed; inset: 0; margin: auto; width: min(560px, calc(100vw - 24px)); color: var(--text-primary); }
+.single-person-picker::backdrop { background: color-mix(in srgb, var(--gg-scrim) 66%, transparent); }
+.notes-people-modal.single-person-picker .photo-people-body { grid-template-columns: minmax(0, 1fr); }
+.single-person-picker .photo-people-result:has(:checked) { background: var(--surface-selected); }
+.single-person-picker .photo-people-result:has(:disabled) { color: var(--text-secondary); cursor: default; }
+
+.single-person-picker .notes-person-search-column { padding-bottom: 0; }
+.single-person-picker .photo-people-search-field { margin: 0; }
+.single-person-picker .photo-people-results-panel { min-height: 0; }
+.single-person-picker .photo-people-results { height: 100%; max-height: none; overflow: auto; }
+.single-person-picker .photo-people-result[aria-disabled="true"] { background: var(--surface-app); }
+.single-person-picker .photo-people-result[aria-disabled="true"] .photo-people-result-avatar { opacity: .45; }
+.single-person-picker .photo-people-result[aria-disabled="true"] .photo-people-result-copy strong { color: var(--text-tertiary); font-weight: 600; }
+.single-person-picker .photo-people-result[aria-disabled="true"]:hover { background: var(--surface-app); }
+.single-person-picker .photo-people-result-copy strong { font-size: 15px; }
+.single-person-picker .photo-people-result-copy span { font-size: 13px; }
+.single-person-empty { margin: 0; padding: var(--space-4); color: var(--text-secondary); }
