@@ -2,7 +2,7 @@ const GENEO_TOUR_STORAGE_KEY = 'geneograph.productTour';
 const GENEO_TOUR_VERSION = 2;
 const GENEO_TOUR_PROJECT_ID = 'p1';
 const geneoTourSteps = [
-    { id: 'tour-navigation-intro', module: 'Projects', projectView: 'library', presentation: 'centered', title: 'Navigate the tour', body: 'Use Back and Next to move between stops. Choose Browse modules above to jump to any section. If you close the tour, open Help and choose Take the tour to start again.' },
+    { id: 'tour-navigation-intro', module: 'Projects', projectView: 'library', presentation: 'centered', title: 'Navigate the tour', body: 'Spotlights show app controls you can try after leaving the tour. Use Back and Next to move through the tour, or choose Browse modules to jump to a section. If you close the tour, open Help and choose Take the tour to start again.' },
     { id: 'projects-welcome', module: 'Projects', projectView: 'library', presentation: 'centered', title: "Welcome to Projects", body: "Projects bring your family tree, photographs, records, and notes into one workspace. This is where each family-history research begins." },
     { id: 'projects-actions', module: 'Projects', projectView: 'library', title: "Create or open a project", body: "Create family tree starts a blank project. Import GEDCOM and Open project are not available in this demo." },
     { id: 'projects-continue', module: 'Projects', projectView: 'library', title: "Continue your work", body: "Return to the last project and section you opened." },
@@ -1477,13 +1477,23 @@ function geneoTourRefreshCopy()
             else button.removeAttribute('aria-current');
         });
     }
+    const progress = root.querySelector('[data-geneo-tour-progress]');
+    if (progress)
+    {
+        const step = geneoTourSteps[geneoTourRuntime.index];
+        const moduleSteps = geneoTourSteps.filter(candidate => candidate.module === step.module);
+        const current = moduleSteps.indexOf(step) + 1;
+        progress.textContent = t('{current} of {total}')
+            .replace('{current}', current).replace('{total}', moduleSteps.length);
+        root.querySelector('.geneo-tour-progress-fill').style.width = (current / moduleSteps.length * 100) + '%';
+    }
     root.querySelectorAll('[data-geneo-tour-label]').forEach(button =>
     {
         const nextModule = geneoTourSteps[geneoTourRuntime.index + 1]?.module;
         const currentModule = geneoTourSteps[geneoTourRuntime.index]?.module;
         const crossesModule = button.dataset.geneoTourAction === 'next'
             && nextModule && nextModule !== currentModule;
-        button.textContent = crossesModule ? t('Next') : t(button.dataset.geneoTourLabel);
+        button.querySelector('[data-geneo-tour-action-text]').textContent = t(button.dataset.geneoTourLabel);
         if (crossesModule)
         {
             const destination = t('Continue to {module}').replace('{module}', t(nextModule));
@@ -1623,6 +1633,7 @@ function geneoTourRenderOverlay(target = null)
             ? [['dismiss', 'Explore on my own'], ['start', 'Start tour']]
             : [['restart', 'Start again'], ['finish', 'Explore the demo']]
         : [['back', 'Back'], ['next', index === geneoTourSteps.length - 1 ? 'Finish tour' : 'Next']];
+    const arrow = '<span class="geneo-tour-arrow" aria-hidden="true">' + icon.arrow + '</span>';
     const root = document.createElement('div');
     root.className = `geneo-tour${centered ? ' is-centered' : ''}${index < 0 ? ' is-welcome' : ''}${index >= geneoTourSteps.length ? ' is-finish' : ''}${projectIntro ? ' is-project-intro' : ''}${geneoTourSteps[index]?.id === 'tour-navigation-intro' ? ' is-navigation-intro' : ''}${geneoTourSteps[index]?.id === 'places-routes' ? ' is-places-routes' : ''}${geneoTourSteps[index]?.id === 'places-filters' ? ' is-places-filters' : ''}${geneoTourSteps[index]?.id === 'places-add-map' ? ' is-places-add-map' : ''}${geneoTourSteps[index]?.id === 'places-add-modal' ? ' is-places-add-modal' : ''}${['tree-quick-edit-modal', 'geneograph-create-modal', 'albums-tag-person-modal', 'albums-add-to-album', 'archive-folder-modal', 'notes-add-events', 'places-add-modal', 'places-add-coordinates', 'places-add-create'].includes(geneoTourSteps[index]?.id) ? ' is-modal-stop' : ''}`;
     root.dataset.geneoTour = '';
@@ -1643,10 +1654,11 @@ function geneoTourRenderOverlay(target = null)
             </div>
             <div data-geneo-tour-step-view>
                 ${index < 0 ? `<div class="geneo-tour-welcome"><span class="geneo-tour-brand">${icon.logo}<strong>GeneoGraph</strong></span><div class="geneo-tour-cover" aria-hidden="true">${GENEO_TOUR_COVER_SVG}</div></div>` : ''}
+                ${outerScreen ? '' : '<div class="geneo-tour-progress"><span class="geneo-tour-progress-track" aria-hidden="true"><span class="geneo-tour-progress-fill"></span></span><span data-geneo-tour-progress></span></div>'}
                 <h2 id="geneoTourTitle" data-geneo-tour-title></h2>
                 <p id="geneoTourBody" data-geneo-tour-body></p>
                 <p class="geneo-tour-fallback" data-geneo-tour-fallback hidden>${escapeHtml(t('This part of the sample is unavailable. Continue to the next stop.'))}</p>
-                <div class="geneo-tour-actions">${actions.map(([action, label]) => `<button class="button ${action === 'next' || action === 'start' || action === 'finish' ? 'primary' : 'secondary'}" type="button" data-geneo-tour-action="${action}" data-geneo-tour-label="${escapeHtml(label)}"></button>`).join('')}</div>
+                <div class="geneo-tour-actions">${actions.map(([action, label]) => `<button class="geneo-tour-action${['next', 'start', 'finish'].includes(action) ? ' is-primary' : ''}" type="button" data-geneo-tour-action="${action}" data-geneo-tour-label="${escapeHtml(label)}">${action === 'back' ? arrow : ''}<span data-geneo-tour-action-text></span>${label === 'Next' ? arrow : ''}</button>`).join('')}</div>
             </div>
             ${outerScreen ? '' : `<div class="geneo-tour-map" data-geneo-tour-map-view hidden><div class="geneo-tour-map-list">${geneoTourModules.map(module => `<button type="button" data-geneo-tour-module="${escapeHtml(module)}"><span class="geneo-tour-map-icon" aria-hidden="true">${icon[geneoTourModuleIconNames[module]]}</span><span class="geneo-tour-map-name"></span><span class="geneo-tour-map-current" aria-hidden="true">${icon.check}</span></button>`).join('')}</div><button class="geneo-tour-map-return" type="button" data-geneo-tour-action="return-to-tour" data-geneo-tour-map-return></button></div>`}
         </section>`;

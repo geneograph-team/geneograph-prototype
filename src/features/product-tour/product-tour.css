@@ -13,7 +13,7 @@
 
 .geneo-tour-target-block {
     position: absolute;
-    border: 2px solid var(--brand-green-300);
+    border: 1px solid var(--gg-outline);
     border-radius: var(--radius-sm);
     box-shadow: 0 0 0 1px var(--surface-app);
     pointer-events: auto;
@@ -237,24 +237,25 @@ body.geneo-tour-people-popover #peopleColumnsPopover .people-columns-footer {
     border: 0;
     border-radius: var(--radius-sm);
     background: transparent;
-    color: var(--brand-green-300);
+    color: var(--text-primary);
     cursor: pointer;
 }
 
 .geneo-tour-browse:hover {
+    background: var(--surface-card-hover);
     color: var(--text-primary);
 }
 
 .geneo-tour.is-navigation-intro .geneo-tour-browse {
     padding: 0 var(--space-3);
-    border: 1px solid var(--brand-green-500);
-    background: var(--brand-green-900);
-    color: var(--brand-green-300);
+    border: 1px solid var(--border-strong);
+    background: var(--surface-main);
+    color: var(--text-primary);
 }
 
 .geneo-tour.is-navigation-intro .geneo-tour-browse:hover {
-    border-color: var(--brand-green-300);
-    background: var(--brand-green-800);
+    border-color: var(--text-primary);
+    background: var(--surface-card-hover);
 }
 
 .geneo-tour-browse svg {
@@ -310,7 +311,7 @@ body.geneo-tour-people-popover #peopleColumnsPopover .people-columns-footer {
 }
 
 .geneo-tour-map-list button.is-current {
-    border-color: var(--brand-green-300);
+    border-color: var(--text-primary);
 }
 
 .geneo-tour-map-icon,
@@ -322,7 +323,7 @@ body.geneo-tour-people-popover #peopleColumnsPopover .people-columns-footer {
 .geneo-tour-map-icon svg {
     width: 22px;
     height: 22px;
-    color: var(--brand-green-300);
+    color: var(--text-primary);
 }
 
 .geneo-tour-map-current {
@@ -332,7 +333,7 @@ body.geneo-tour-people-popover #peopleColumnsPopover .people-columns-footer {
 .geneo-tour-map-current svg {
     width: 18px;
     height: 18px;
-    color: var(--brand-green-300);
+    color: var(--text-primary);
 }
 
 .geneo-tour-map-list button.is-current .geneo-tour-map-current {
@@ -364,7 +365,7 @@ body.geneo-tour-people-popover #peopleColumnsPopover .people-columns-footer {
     padding: 8px 0;
     border: 0;
     background: transparent;
-    color: var(--brand-green-300);
+    color: var(--text-primary);
     cursor: pointer;
 }
 
@@ -413,6 +414,31 @@ body.geneo-tour-people-popover #peopleColumnsPopover .people-columns-footer {
     color: var(--amber);
 }
 
+.geneo-tour-progress {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    margin-top: var(--space-2);
+    color: var(--text-secondary);
+    font-size: 12px;
+    font-variant-numeric: tabular-nums;
+}
+
+.geneo-tour-progress-track {
+    flex: 0 0 56px;
+    height: 3px;
+    overflow: hidden;
+    border-radius: 3px;
+    background: var(--border-default);
+}
+
+.geneo-tour-progress-fill {
+    display: block;
+    height: 100%;
+    border-radius: inherit;
+    background: var(--text-secondary);
+}
+
 .geneo-tour-actions {
     display: flex;
     flex-wrap: wrap;
@@ -421,9 +447,63 @@ body.geneo-tour-people-popover #peopleColumnsPopover .people-columns-footer {
     margin-top: var(--space-5);
 }
 
-.geneo-tour-actions .button {
-    min-height: 38px;
-    white-space: normal;
+.geneo-tour-action {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-2);
+    min-height: 44px;
+    padding: 6px var(--space-3);
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-sm);
+    background: var(--surface-main);
+    color: var(--text-primary);
+    font: inherit;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.geneo-tour-action.is-primary {
+    border-color: var(--gg-inverse-surface);
+    background: var(--gg-inverse-surface);
+    color: var(--gg-inverse-on-surface);
+}
+
+.geneo-tour-action:not(:disabled):hover {
+    filter: brightness(.93);
+}
+
+.geneo-tour-action:not(:disabled):active {
+    filter: brightness(.85);
+}
+
+.geneo-tour-action:disabled {
+    opacity: .6;
+    cursor: default;
+}
+
+.geneo-tour-arrow {
+    display: inline-flex;
+    flex: 0 0 18px;
+}
+
+.geneo-tour-arrow svg {
+    width: 18px;
+    height: 18px;
+}
+
+[data-geneo-tour-label="Next"] .geneo-tour-arrow svg {
+    transform: scaleX(-1);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+    [data-geneo-tour-label="Next"] .geneo-tour-arrow {
+        animation: geneo-tour-next-nudge 420ms ease-in-out 1s;
+    }
+}
+
+@keyframes geneo-tour-next-nudge {
+    50% { transform: translateX(3px); }
 }
 
 .geneo-tour.is-welcome .geneo-tour-actions {
@@ -431,7 +511,7 @@ body.geneo-tour-people-popover #peopleColumnsPopover .people-columns-footer {
     grid-template-columns: minmax(0, 1.45fr) minmax(0, 1fr);
 }
 
-.geneo-tour.is-welcome .geneo-tour-actions .button {
+.geneo-tour.is-welcome .geneo-tour-actions .geneo-tour-action {
     min-width: 0;
 }
 
@@ -440,7 +520,7 @@ body.geneo-tour-people-popover #peopleColumnsPopover .people-columns-footer {
     grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
-.geneo-tour.is-finish .geneo-tour-actions .button {
+.geneo-tour.is-finish .geneo-tour-actions .geneo-tour-action {
     min-width: 0;
 }
 
@@ -450,13 +530,13 @@ body.geneo-tour-people-popover #peopleColumnsPopover .people-columns-footer {
     grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
-.geneo-tour:not(.is-centered) .geneo-tour-actions .button,
-.geneo-tour.is-project-intro .geneo-tour-actions .button {
+.geneo-tour:not(.is-centered) .geneo-tour-actions .geneo-tour-action,
+.geneo-tour.is-project-intro .geneo-tour-actions .geneo-tour-action {
     min-width: 0;
 }
 
 .geneo-tour-card button:focus-visible {
-    outline: 2px solid var(--brand-green-300);
+    outline: 2px solid var(--text-primary);
     outline-offset: 2px;
 }
 
