@@ -1565,6 +1565,8 @@ function activateGeneographPlacementTool(
 
     if (alreadyActive)
     {
+        if (type === 'sticky' || type === 'text') return;
+
         if (type === 'shape')
         {
             geneoCreationToolSettings('shape').panelOpen = true;
