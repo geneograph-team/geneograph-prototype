@@ -24,6 +24,7 @@ function geneoReviewStatus(draft, person, plan)
     const pendingRelations = choice !== 'unlink' && plan.relations.some(relation =>
     {
         if (!relation.ids.includes(person.id) || plan.statuses.get(relation.id) === 'Same relationship') return false;
+        if (geneoReviewAutomaticParentLink(draft, relation) && relation.ids.some(id => draft.choices.get(id) === 'create')) return false;
         const fields = plan.relationshipFields.get(relation.id);
         return fields ? fields.some(field => !draft.relationshipFields.get(relation.id)?.has(field.key))
             : !draft.relationChoices.has(relation.id);
@@ -309,6 +310,7 @@ function geneoTreeImportRender()
     const next = modal.querySelector('[data-gr-next]');
     next.textContent = t('Apply changes');
     next.disabled = !plan.patches.length || Boolean(plan.error);
+    localizeUI(modal, { suppressObserverReplay: true });
     for (const [selector, scroll] of scrolls) if (modal.querySelector(selector)) modal.querySelector(selector).scrollTop = scroll;
     modal.querySelectorAll('button, input, select, summary[data-gr-config-summary]').forEach(element =>
     {

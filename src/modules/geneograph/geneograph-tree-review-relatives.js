@@ -95,7 +95,7 @@ function geneoReviewRelationshipNotice(fields)
 
 function geneoReviewRelations(draft, person, plan)
 {
-    const relations = plan.relations.filter(relation => relation.ids.includes(person.id) && !geneoReviewAutomaticParentLink(draft, relation) && (plan.statuses.get(relation.id) !== 'Same relationship' || plan.errors.some(error => error.relationId === relation.id)));
+    const relations = plan.relations.filter(relation => relation.ids.includes(person.id) && !geneoReviewAutomaticParentLink(draft, relation, person.id) && (plan.statuses.get(relation.id) !== 'Same relationship' || plan.errors.some(error => error.relationId === relation.id)));
     if (!relations.length) return '';
     const groups = new Map(['Parents', 'Partners', 'Children', 'Siblings'].map(group => [group, []]));
     for (const relation of relations)
@@ -165,17 +165,13 @@ function geneoReviewRelations(draft, person, plan)
             const addLabel = relation.type === 'child'
                 ? relation.ids.at(-1) === person.id ? 'Add parent to Family Tree' : 'Add child to Family Tree'
                 : relation.type === 'partner' ? 'Add partner to Family Tree' : 'Add sibling to Family Tree';
-            const emptyTreeTile = relation.origin !== 'tree' && choice !== 'board' && subjects.some(id => geneoReviewRelativeTarget(draft, relation, id) === 'create');
-            const add = relation.origin !== 'tree' && choice !== 'board' && !emptyTreeTile ? `<button type="button" class="button secondary" data-gr-stage-relative
-                data-gr-relation="${escapeHtml(relation.id)}" data-source="board" ${canRight ? '' : 'disabled'}>
-                ${escapeHtml(t(addLabel))}</button>` : '';
             const treeCell = subjects.map(id => geneoReviewRelativeTreeCell(draft, relation, id, plan, canRight, addLabel)).join('');
             const needsConfiguration = !proposedType
                 || parentFamilies.length > 1 && !draft.treeFamilyChoices?.get(relation.id)
                 || relation.type === 'sibling' && relation.origin !== 'tree' && !draft.siblingFamilies.get(relation.id);
             const expanded = Boolean(error || needsConfiguration || draft.relationshipExpanded?.get(relation.id));
             return `<article class="gr-relation gr-record-row" data-gr-record-row="${escapeHtml(relation.id)}">
-                <div class="gr-relative-heading"><span>${escapeHtml(t(role))}</span></div><div class="gr-values"><div class="gr-relative-cell ${choice === 'tree' ? 'is-destination' : ''}">${boardCell}</div><div class="gr-transfers">${relation.origin === 'tree' ? arrow('tree', canLeft) : arrow('board', canRight || choice === 'board')}</div><div class="gr-relative-cell ${choice === 'board' ? 'is-destination' : ''}">${treeCell}${add}</div></div>
+                <div class="gr-relative-heading"><span>${escapeHtml(t(role))}</span></div><div class="gr-values"><div class="gr-relative-cell ${choice === 'tree' ? 'is-destination' : ''}">${boardCell}</div><div class="gr-transfers">${relation.origin === 'tree' ? arrow('tree', canLeft) : arrow('board', canRight || choice === 'board')}</div><div class="gr-relative-cell ${choice === 'board' ? 'is-destination' : ''}">${treeCell}</div></div>
                 ${needsConfiguration || error || draft.relationshipExpanded?.has(relation.id) ? `<details class="gr-relationship-settings" data-gr-relationship-settings="${escapeHtml(relation.id)}" ${expanded ? 'open' : ''}><summary data-gr-config-summary="${escapeHtml(relation.id)}" aria-label="${escapeHtml(`${t('Relationship type')}: ${title} · ${t(proposedType || 'Choose relationship type')}`)}">${escapeHtml(t(proposedType || 'Choose relationship type'))}${icon.chevron}</summary><div class="gr-relationship-fields">${!sourceType || draft.transferTypes.has(relation.id) ? `<label class="gr-label">${escapeHtml(t('Relationship type'))}<select class="common-select" data-gr-transfer-type="${escapeHtml(relation.id)}"><option value="">${escapeHtml(t('Choose relationship type'))}</option>${types.map(type => `<option value="${escapeHtml(type)}" ${type === proposedType ? 'selected' : ''}>${escapeHtml(t(type))}</option>`).join('')}</select></label>` : ''}
                 ${relation.type === 'sibling' && relation.origin !== 'tree' ? `<label class="gr-label gr-parent-choice">${escapeHtml(t('Shared parents'))}<select class="common-select" data-gr-sibling="${escapeHtml(relation.id)}"><option value="">${escapeHtml(t('Choose shared parents'))}</option>${sampleData.families.filter(family => family.projectId === draft.projectId && (family.childIds || []).some(id => relation.ids.map(personId => draft.choices.get(personId)).includes(id))).map(family => `<option value="${escapeHtml(family.id)}" ${draft.siblingFamilies.get(relation.id) === family.id ? 'selected' : ''}>${escapeHtml(geneoReviewFamilyParents(family).map(id => connectPersonName(getPerson(id))).join(` ${t('and')} `))}</option>`).join('')}</select></label>` : ''}
                 ${parentFamilies.length > 1 ? `<label class="gr-label gr-parent-choice">${escapeHtml(t('Parents'))}<select class="common-select" data-gr-tree-family="${escapeHtml(relation.id)}"><option value="">${escapeHtml(t('Choose parents'))}</option>${parentFamilies.map(family => `<option value="${escapeHtml(family.id)}" ${draft.treeFamilyChoices?.get(relation.id) === family.id ? 'selected' : ''}>${escapeHtml(geneoReviewFamilyParents(family).map(id => connectPersonName(getPerson(id))).join(` ${t('and')} `))}</option>`).join('')}</select></label>` : ''}

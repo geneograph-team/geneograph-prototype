@@ -228,19 +228,19 @@ function geneoReviewFamilyParents(family)
     return [familyPartnerAId(family), familyPartnerBId(family)].filter(Boolean);
 }
 
-function geneoReviewAutomaticParentLink(draft, relation)
+function geneoReviewAutomaticParentLink(draft, relation, personId)
 {
     if (relation.origin === 'tree' || relation.type !== 'child') return false;
-    const child = draft.people.find(person => person.id === relation.ids.at(-1));
-    if (!child || child.treePersonId && getPerson(child.treePersonId)?.projectId === draft.projectId
-        && !getPerson(child.treePersonId)?.deleted) return false;
-    return relation.ids.slice(0, -1).every(id =>
+    const missing = [];
+    for (const id of relation.ids)
     {
-        const parent = draft.people.find(person => person.id === id);
-        const tree = getPerson(parent?.treePersonId);
-        return tree && !tree.deleted && tree.projectId === draft.projectId
-            && draft.choices.get(id) === tree.id;
-    });
+        const person = draft.people.find(item => item.id === id);
+        if (!person) return false;
+        const tree = getPerson(person.treePersonId);
+        if (!tree || tree.deleted || tree.projectId !== draft.projectId) missing.push(id);
+        else if (draft.choices.get(id) !== tree.id) return false;
+    }
+    return missing.length === 1 && (!personId || missing[0] === personId);
 }
 
 function geneoReviewAllRelations(draft)
@@ -786,7 +786,7 @@ function geneoTreeImportPreview(draft)
     for (const originalRelation of result.relations)
     {
         let relation = originalRelation;
-        const automatic = geneoReviewAutomaticParentLink(draft, relation) && draft.choices.get(relation.ids.at(-1)) === 'create';
+        const automatic = geneoReviewAutomaticParentLink(draft, relation) && relation.ids.some(id => draft.choices.get(id) === 'create');
         const decision = automatic ? 'board' : draft.relationChoices.get(relation.id);
         const configuredType = draft.transferTypes?.get(relation.id);
         if (decision && configuredType && !(relation.type === 'partner' ? ADD_PERSON_RELATIONSHIP_TYPES : PARENT_CHILD_RELATIONSHIP_TYPES).includes(configuredType))
