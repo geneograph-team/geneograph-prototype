@@ -178,6 +178,26 @@ const addDraft = moveContext.geneoReviewDraft(board, 'a');
 const onlyFather = addDraft.relations.find(relation => relation.type === 'child' && relation.ids[0] === 'a');
 moveContext.geneoStageReviewRelativeTarget(addDraft, onlyFather.id, 'c', 'create');
 assert.equal(addDraft.relationChoices.get(onlyFather.id), 'board');
+// Replacing a staged relative automatically undoes the old identity and transfer.
+sampleData.people.push(newTree);
+const replacementDraft = moveContext.geneoReviewDraft(board, 'a');
+moveContext.geneoStageReviewRelativeTarget(replacementDraft, onlyFather.id, 'c', 'create');
+moveContext.geneoStageReviewRelativeTarget(replacementDraft, onlyFather.id, 'c', 'three');
+assert.equal(replacementDraft.error, '');
+assert.equal(replacementDraft.choices.get('c'), 'three');
+assert.equal(replacementDraft.relationChoices.get(onlyFather.id), 'board');
+assert.equal(replacementDraft.rowIdentityOrigins.get('c').before, 'skip');
+moveContext.geneoStageReviewRelation(replacementDraft, onlyFather.id, 'board');
+assert.equal(replacementDraft.relationChoices.has(onlyFather.id), false);
+assert.equal(replacementDraft.choices.get('c'), 'skip');
+assert.equal(replacementDraft.relativeTargets.get(onlyFather.id + '|c'), 'three');
+assert.equal(moveContext.geneoTreeImportPreview(replacementDraft).patches.length, 0);
+moveContext.geneoStageReviewRelation(replacementDraft, onlyFather.id, 'board');
+assert.equal(replacementDraft.choices.get('c'), 'three');
+assert.equal(replacementDraft.relationChoices.get(onlyFather.id), 'board');
+assert.equal(unlinked.treePersonId, undefined);
+sampleData.people.pop();
+
 const added = moveContext.geneoTreeImportPreview(addDraft);
 assert.equal(added.error, '');
 const addedRecord = added.patches.find(patch => patch.key === 'people' && patch.before === null);

@@ -57,8 +57,6 @@ function geneoReviewRelativeTreeCell(draft, relation, personId, plan, canTransfe
     const attrs = `data-relation="${escapeHtml(relation.id)}" data-person="${escapeHtml(personId)}"`;
     const searchButton = `<button type="button" class="gr-record-search" data-gr-relative-search ${attrs} aria-label="${escapeHtml(t('Use an existing person'))}" title="${escapeHtml(t('Use an existing person'))}">${icon.link}</button>`;
     const recordHeader = record => `<div class="gr-record-header">${record}${searchButton}</div>`;
-    const editChoice = relation.origin !== 'tree' && draft.relativeTargets.has(`${relation.id}|${personId}`)
-        ? `<div class="gr-record-actions"><button type="button" class="gr-text" data-gr-relative-reset ${attrs}>${escapeHtml(t('Reset'))}</button></div>` : '';
     const automatic = relation.origin !== 'tree' && !draft.relativeTargets.has(`${relation.id}|${personId}`)
         && ['skip', undefined, ''].includes(draft.choices.get(personId));
     const tree = !['skip', 'create', 'unlink'].includes(choice) ? getPerson(choice) : null;
@@ -71,12 +69,12 @@ function geneoReviewRelativeTreeCell(draft, relation, personId, plan, canTransfe
             <div class="gr-record-actions"><button type="button" class="gr-text" data-gr-relative-create ${attrs}>${escapeHtml(t('Create a new person'))}</button></div>`;
     }
     if (tree && !tree.deleted && tree.projectId === draft.projectId)
-        return `${relation.origin === 'tree' ? geneoReviewIdentity(tree) : recordHeader(geneoReviewIdentity(tree))}${editChoice}`;
+        return `${relation.origin === 'tree' ? geneoReviewIdentity(tree) : recordHeader(geneoReviewIdentity(tree))}`;
     if (choice === 'create')
     {
         if (draft.relationChoices.get(relation.id) !== 'board')
-            return `<div class="gr-empty-destination"><button type="button" class="gr-empty-record gr-empty-transfer" data-gr-stage-relative data-gr-relation="${escapeHtml(relation.id)}" data-source="board" ${canTransfer ? '' : 'disabled'}>${icon.plus}<span>${escapeHtml(t(addLabel))}</span></button>${searchButton}</div>${editChoice}`;
-        return `<div class="gr-projected-record">${recordHeader(geneoReviewIdentity(person, true))}<span class="gr-record-type">${escapeHtml(t('New Tree person'))}</span></div>${editChoice}`;
+            return `<div class="gr-empty-destination"><button type="button" class="gr-empty-record gr-empty-transfer" data-gr-stage-relative data-gr-relation="${escapeHtml(relation.id)}" data-source="board" ${canTransfer ? '' : 'disabled'}>${icon.plus}<span>${escapeHtml(t(addLabel))}</span></button>${searchButton}</div>`;
+        return `<div class="gr-projected-record">${recordHeader(geneoReviewIdentity(person, true))}<span class="gr-record-type">${escapeHtml(t('New Tree person'))}</span></div>`;
     }
     return `${recordHeader(`<span class="gr-muted">${escapeHtml(t('Choose a Tree record or create a new person'))}</span>`)}
         <div class="gr-record-actions"><button type="button" class="gr-text" data-gr-relative-create ${attrs}>${escapeHtml(t('Create a new person'))}</button></div>

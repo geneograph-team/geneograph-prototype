@@ -12,7 +12,6 @@ const RU_UI_GENEO = {
     'Add partner to board': 'Добавить партнёра на доску',
     'Add sibling to board': 'Добавить брата или сестру на доску',
     'Relationship recorded on the board': 'Связь записана на доске',
-    'Undo the staged relationship before choosing a different person.': 'Отмените выбранное добавление связи, прежде чем выбирать другого человека.',
     'Choose the board person to link to this Family Tree record.': 'Выберите человека на доске, которого нужно связать с этой записью в Семейном дереве.',
     'Add parent to Family Tree': 'Добавить родителя в Семейное дерево',
     'Add child to Family Tree': 'Добавить ребёнка в Семейное дерево',

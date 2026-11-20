@@ -446,16 +446,23 @@ function geneoStageReviewRelativeTarget(draft, relationId, personId, target)
 {
     const relation = geneoReviewAllRelations(draft).find(item => item.id === relationId);
     if (!relation || !relation.ids.includes(personId)) return;
-    const identity = draft.rowIdentityOrigins?.get(personId);
-    if (identity && identity.applied !== target)
-    {
-        draft.error = t('Undo the staged relationship before choosing a different person.');
-        return;
-    }
     if (target !== 'create' && geneoReviewDuplicate(draft, personId, target))
     {
         draft.error = t('This Tree person is already represented on the board. Locate the existing person instead.');
         return;
+    }
+    const previous = draft.relativeTargets.get(`${relationId}|${personId}`) || draft.choices.get(personId);
+    if (previous !== target)
+    {
+        // A row-selected identity may also be used by other staged relationships.
+        // Undo those transfers before changing its endpoint, leaving unrelated rows intact.
+        const affected = geneoReviewAllRelations(draft).filter(item => item.id === relationId
+            || draft.rowIdentityOrigins?.has(personId) && item.ids.includes(personId));
+        for (const item of affected)
+        {
+            geneoReviewUndoRecordRow(draft, item.id);
+            draft.relationshipFields.delete(item.id);
+        }
     }
     draft.relativeTargets.set(`${relationId}|${personId}`, target);
     const type = draft.transferTypes.get(relationId) || geneoReviewRelationType(draft, relation, 'board');
@@ -518,11 +525,6 @@ function openGeneographTreeImport(options = {})
         }
         else if (button.hasAttribute('data-gr-list')) draft.mobileDetail = false;
         else if (button.hasAttribute('data-gr-relative-create')) geneoStageReviewRelativeTarget(draft, button.dataset.relation, button.dataset.person, 'create');
-        else if (button.hasAttribute('data-gr-relative-reset'))
-        {
-            geneoReviewUndoRecordRow(draft, button.dataset.relation);
-            draft.relativeTargets.delete(`${button.dataset.relation}|${button.dataset.person}`);
-        }
         else if (button.hasAttribute('data-gr-identity-new'))
         {
             if (draft.choices.get(person.id) === 'create')
