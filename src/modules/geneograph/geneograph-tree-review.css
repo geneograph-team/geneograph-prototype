@@ -10,22 +10,15 @@
 .gr-family-context svg { width: 20px; height: 20px; color: var(--text-secondary); flex: none; }
 .gr-family-context small { padding-left: 30px; color: var(--text-secondary); font-size: 12px; }
 .gr-label { font-size: 12px; font-weight: 700; color: var(--text-secondary); }
-.gr-anchor-select { display: grid; gap: 6px; width: 100%; font-size: 12px; color: var(--text-secondary); }
-.gr-branch-title { margin: 0 0 14px; padding: 0 4px; font-size: 13px; line-height: 1.5; color: var(--text-secondary); overflow-wrap: anywhere; }
 .gr-identity-line { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; }
 .gr-identity-line > .gr-identity { flex: 1 1 150px; }
 .gr-identity-actions { display: flex; flex-direction: column; align-items: flex-start; gap: 3px; }
 .gr-identity-action { display: inline-flex; align-items: center; gap: 5px; white-space: nowrap; color: var(--text-secondary); }
 .gr-identity-action svg { width: 15px; height: 15px; }
-.gr-anchor-select { margin-top: 12px; }
 .gr-body { display: grid; grid-template-columns: 300px minmax(0, 1fr); flex: 1; min-height: 0; overflow: hidden; }
 .gr-rail { display: flex; flex-direction: column; min-height: 0; min-width: 0; padding: 16px 12px; overflow: auto; border-right: 1px solid var(--border-default); }
-.gr-scope { display: flex; gap: 4px; margin-bottom: 12px; }
-.gr-scope button { flex: 1; padding: 8px 6px; }
-.gr-search-row { display: flex; gap: 6px; margin-bottom: 12px; }
-.gr-search-row input { width: 0; flex: 1; min-width: 0; height: 38px; padding: 8px 10px; }
-.geneo-family-review input { box-sizing: border-box; border: 1px solid var(--border-default); border-radius: 6px; background: var(--surface-input); color: var(--text-primary); padding: 10px 12px; }
-.geneo-family-review input::placeholder { color: var(--text-secondary); }
+.gr-search-row { display: flex; align-items: center; gap: 6px; margin-bottom: 12px; }
+.gr-search-row .app-search-field { flex: 1; min-width: 0; }
 .gr-filter { position: relative; }
 .gr-filter .icon-button { width: 38px; height: 38px; display: grid; place-items: center; padding: 0; border: 1px solid var(--border-default); border-radius: 6px; background: var(--surface-input); color: var(--text-secondary); cursor: pointer; }
 .gr-filter .icon-button svg { width: 16px; height: 16px; }
@@ -42,8 +35,8 @@
 .gr-person small { font-size: 12px; color: var(--text-secondary); }
 .gr-person:hover { background: var(--surface-card-hover); }
 .gr-person.is-selected { background: var(--surface-selected); border-color: var(--border-default); box-shadow: inset 3px 0 var(--brand-green-500); }
-.gr-avatar { display: grid; place-items: center; width: 38px; height: 38px; flex: 0 0 38px; overflow: hidden; border-radius: 50%; background: var(--surface-input); font-size: 12px; }
-.gr-avatar .gr-avatar-content { --person-avatar-width: 38px; --person-avatar-height: 38px; display: grid; place-items: center; position: relative; width: 100%; height: 100%; min-width: 0; min-height: 0; flex: none; border: 0; border-radius: inherit; padding: 0; margin: 0; background: transparent; }
+.gr-avatar { display: grid; place-items: center; width: 38px; height: 46px; flex: 0 0 38px; overflow: hidden; border-radius: 5px; background: var(--surface-input); font-size: 12px; }
+.gr-avatar .gr-avatar-content { --person-avatar-width: 38px; --person-avatar-height: 46px; display: grid; place-items: center; position: relative; width: 100%; height: 100%; min-width: 0; min-height: 0; flex: none; border: 0; border-radius: inherit; padding: 0; margin: 0; background: transparent; }
 .gr-avatar .person-avatar-initials { display: grid; place-items: center; position: static; inset: auto; transform: none; width: 100%; height: 100%; margin: 0; padding: 0; line-height: 1; font-size: 13px; font-weight: 700; }
 .gr-avatar .person-avatar-viewport, .gr-avatar .person-avatar-media, .gr-avatar .person-avatar-photo { display: block; width: 100%; height: 100%; }
 .gr-avatar img { width: 100%; height: 100%; object-fit: cover; }
@@ -53,20 +46,24 @@
 .gr-state.conflicts, .gr-error, .gr-errors { color: var(--red); }
 .gr-detail, .gr-final { min-width: 0; padding: 22px 24px; overflow: auto; }
 .gr-final { padding: 16px 24px; }
-.gr-identities { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 68px; }
-.gr-identities.gr-identity-comparison { grid-template-columns: minmax(0, 1fr) 40px minmax(0, 1fr); gap: 14px; }
+.gr-identity-card { min-width: 0; display: grid; align-content: start; gap: 12px; padding: 12px; border: 1px solid var(--border-default); border-radius: var(--radius-sm); background: var(--surface-main); }
+.gr-identity-card-head { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; }
+.gr-identity-card-head h3 { margin: 0; font-size: 14px; }
+.gr-card-search { display: inline-flex; align-items: center; gap: 6px; min-height: 40px; padding-inline: 10px; }
+.gr-card-search svg { width: 16px; height: 16px; flex: none; }
+.gr-identity-card .gr-identity-actions { flex-direction: row; flex-wrap: wrap; align-items: center; gap: 6px 12px; }
+@media (max-width: 520px) {
+    .gr-values.gr-identity-comparison { grid-template-columns: minmax(0, 1fr); }
+    .gr-identity-spacer { display: none; }
+}
 .gr-values, .gr-comparison-head { display: grid; grid-template-columns: minmax(0, 1fr) 40px minmax(0, 1fr); gap: 14px; }
-.gr-identities h3, .gr-comparison-head > span { display: flex; align-items: center; gap: 8px; margin: 0 0 12px; font-size: 14px; font-weight: 700; color: var(--text-primary); }
-.gr-identities h3 svg, .gr-comparison-head svg, .gr-label svg { width: 18px; height: 18px; flex: none; color: var(--brand-green-500); }
 .gr-comparison-head { position: sticky; top: -22px; z-index: 1; background: var(--surface-card); padding: 12px 0 2px; }
-.gr-global-columns { z-index: 2; margin: -10px 0 8px; border-bottom: 1px solid var(--border-default); }
 .geneo-family-review .common-select-shell { display: block; position: relative; min-width: 0; }
 .geneo-family-review .common-select { appearance: none; box-sizing: border-box; display: block; width: 100%; min-width: 0; min-height: 38px; padding: 8px 34px 8px 10px; border: 1px solid var(--border-default); border-radius: 6px; background: var(--surface-input); color: var(--text-primary); font-size: 13px; line-height: 1.4; text-overflow: ellipsis; cursor: pointer; }
 .geneo-family-review .common-select:hover:not(:focus) { border-color: var(--text-secondary); }
 .geneo-family-review .common-select-chevron { display: grid; place-items: center; position: absolute; right: 10px; top: 50%; width: 14px; height: 14px; margin: 0; transform: translateY(-50%) rotate(90deg); pointer-events: none; color: var(--text-secondary); }
 .geneo-family-review .common-select-chevron svg { width: 14px; height: 14px; transform: none; }
 .gr-relative-config > .common-select-shell { flex: 1; max-width: 210px; }
-.gr-person-role { color: var(--text-secondary); font-size: 13px; margin: 14px 0 0; }
 .gr-identity { display: flex; align-items: center; gap: 10px; min-width: 0; }
 .gr-identity > span:last-child { min-width: 0; display: grid; gap: 4px; }
 .gr-identity strong { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; font-size: 15px; line-height: 1.45; overflow-wrap: anywhere; }
@@ -86,35 +83,26 @@
 .gr-value { display: flex; flex-direction: column; align-items: flex-start; justify-content: center; gap: 4px; min-width: 0; min-height: 44px; padding: 8px 10px; border: 1px solid var(--border-default); border-radius: 5px; color: var(--text-primary); background: var(--surface-input); text-align: left; font-size: 13px; overflow-wrap: anywhere; box-sizing: border-box; }
 .gr-value.is-destination { border-color: var(--brand-green-500); background: var(--surface-selected); }
 .gr-value del { color: var(--text-secondary); font-size: 12px; }
-.gr-transfers { display: grid; align-content: center; justify-items: center; gap: 2px; }
-.gr-transfer, .gr-reset-icon { display: grid; place-items: center; width: 34px; height: 26px; padding: 0; border: 1px solid var(--border-default); border-radius: 5px; background: var(--surface-input); color: var(--text-primary); cursor: pointer; }
-.gr-transfer svg, .gr-reset-icon svg { width: 18px; height: 18px; }
+.gr-transfers { display: grid; align-content: center; justify-items: center; gap: 7px; }
+.gr-transfer { display: grid; place-items: center; width: 34px; height: 26px; padding: 0; border: 1px solid var(--border-default); border-radius: 5px; background: var(--surface-input); color: var(--text-primary); cursor: pointer; }
+.gr-transfer svg svg { width: 18px; height: 18px; }
 .gr-transfer svg { transform: rotate(180deg); }
 .gr-transfer.is-left svg { transform: none; }
-.gr-transfer:hover, .gr-reset-icon:hover { border-color: var(--brand-green-500); color: var(--brand-green-500); }
+.gr-transfer:hover { border-color: var(--brand-green-500); color: var(--brand-green-500); }
 .gr-transfer.is-selected { background: var(--surface-selected); border-color: var(--brand-green-500); color: var(--brand-green-500); }
-.gr-reset-icon { border-color: transparent; background: transparent; }
 .gr-unlink { display: inline-flex; align-items: center; gap: 6px; color: var(--text-secondary); }
 .gr-unlink svg { width: 16px; height: 16px; }
 .gr-staged { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; color: var(--brand-green-500); }
 .gr-staged svg, .gr-relationship-same > svg { width: 17px; height: 17px; flex: none; color: var(--brand-green-500); }
-.gr-relationship-same { display: flex; align-items: center; gap: 10px; font-size: 13px; }
-.gr-relationship-same > span { display: grid; gap: 5px; }
-.gr-relationship-same small { color: var(--text-secondary); font-size: 12px; }
 .gr-relationship-compare { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
 .gr-relationship-compare .gr-label { display: flex; align-items: center; gap: 7px; }
-.gr-other-relations { margin-top: 10px; }
-.gr-other-relations summary { padding: 9px 0; font-size: 12px; color: var(--text-secondary); cursor: pointer; }
-.gr-other-relations summary:hover { color: var(--text-primary); }
-.gr-other-relations summary:focus-visible { outline: 2px solid var(--brand-green-500); outline-offset: 2px; }
 .gr-relative-group { margin-top: 18px; }
 .gr-relative-group > h4 { margin: 0 0 4px; font-size: 13px; color: var(--text-secondary); }
 .gr-relative-config { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
 .gr-relative-config > strong { font-size: 12px; color: var(--text-secondary); }
 .gr-relative-config select { max-width: 210px; min-height: 34px; height: 34px; font-size: 12px; padding: 4px 28px 4px 10px; }
 .gr-relative-cell { min-width: 0; display: flex; flex-direction: column; justify-content: center; gap: 7px; padding: 10px; border: 1px solid var(--border-default); border-radius: 5px; box-sizing: border-box; }
-.gr-relation.gr-record-row { position: relative; padding-top: 50px; }
-.gr-relationship-settings > summary { position: absolute; top: 10px; left: 0; display: inline-flex; align-items: center; gap: 7px; min-height: 30px; max-width: 100%; cursor: pointer; list-style: none; color: var(--text-secondary); font-size: 12px; font-weight: 700; }
+.gr-relationship-settings > summary { display: inline-flex; align-items: center; gap: 7px; min-height: 30px; max-width: 100%; cursor: pointer; list-style: none; color: var(--text-secondary); font-size: 12px; font-weight: 700; }
 .gr-relationship-settings > summary::-webkit-details-marker { display: none; }
 .gr-relationship-settings > summary svg { width: 14px; height: 14px; transform: rotate(90deg); flex: none; }
 .gr-relationship-settings[open] > summary svg { transform: rotate(-90deg); }
@@ -146,13 +134,11 @@
 .gr-relative-cell .gr-candidate { grid-template-columns: 1fr; }
 .gr-relative-cell .gr-candidate > button { grid-column: 1; grid-row: auto; justify-self: start; }
 .gr-value svg { width: 16px; height: 16px; flex: none; color: var(--brand-green-500); }
-.gr-result { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 28px; margin-top: 5px; color: var(--text-secondary); font-size: 12px; }
 .gr-relation { padding: 14px 0; border-bottom: 1px solid var(--border-default); }
 .gr-relation-status { font-size: 12px; color: var(--text-secondary); }
 .gr-relation .gr-label { display: grid; gap: 6px; margin: 12px 0 0; }
 .gr-relation select { min-width: 0; width: 100%; }
 .gr-candidates { margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--border-default); }
-.gr-candidates > input { width: 100%; margin-top: 6px; }
 .gr-candidate-list { max-height: 300px; overflow: auto; margin-top: 8px; }
 .gr-candidate { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px 14px; padding: 12px 0; border-bottom: 1px solid var(--border-default); }
 .gr-candidate-context { grid-column: 1; display: grid; gap: 3px; padding-left: 48px; font-size: 12px; }
@@ -181,9 +167,7 @@
     .gr-final { box-sizing: border-box; padding: 16px; }
     .gr-comparison-head { top: -16px; }
     .gr-values, .gr-comparison-head { grid-template-columns: minmax(0, 1fr) 44px minmax(0, 1fr); }
-    .gr-identities.gr-identity-comparison { grid-template-columns: minmax(0, 1fr) 44px minmax(0, 1fr); }
     .gr-transfer { width: 44px; height: 44px; }
-    .gr-relation.gr-record-row { padding-top: 62px; }
     .gr-relationship-settings > summary { min-height: 44px; }
     .gr-transfer-undo { min-height: 44px; min-width: 44px; text-align: center; }
     .gr-record-search { width: 44px; height: 44px; }
@@ -191,20 +175,14 @@
     .gr-empty-destination .gr-empty-transfer > svg { display: none; }
     .gr-record-header { position: relative; display: block; }
     .gr-record-header .gr-record-search { position: absolute; top: -10px; right: -8px; }
-    .gr-transfers { gap: 4px; }
     .gr-choice, .gr-identity-action { min-height: 44px; }
     .geneo-family-review .modal-footer { padding: 12px 16px; flex-wrap: wrap; gap: 8px; }
     .gr-footer-summary { width: 100%; }
     .gr-errors { padding: 0 16px; }
 }
 @media (max-width: 420px) {
-    .gr-identities { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 60px; }
-    .gr-identities .gr-identity-line { flex-direction: column; align-items: flex-start; }
-    .gr-identities .gr-identity-line > .gr-identity { flex: none; width: 100%; flex-direction: column; align-items: flex-start; gap: 7px; }
-    .gr-identities .gr-identity-action { white-space: normal; text-align: left; line-height: 1.4; }
     .gr-identity strong { font-size: 14px; }
     .gr-values, .gr-comparison-head { gap: 8px; }
-    .gr-identities.gr-identity-comparison { gap: 8px; }
     .gr-relationship-compare { grid-template-columns: 1fr; }
     .gr-comparison-head > span { font-size: 14px; gap: 5px; }
     .gr-comparison-head svg { width: 15px; height: 15px; }
@@ -212,8 +190,8 @@
     .gr-candidate > button { grid-column: 1; grid-row: auto; justify-self: start; margin-left: 48px; }
     .gr-relative-cell { padding: 8px; }
     .gr-relative-cell .gr-identity { flex-direction: column; align-items: flex-start; gap: 6px; }
-    .gr-relative-cell .gr-avatar { width: 30px; height: 30px; flex-basis: 30px; }
-    .gr-relative-cell .gr-avatar-content { --person-avatar-width: 30px; --person-avatar-height: 30px; }
+    .gr-relative-cell .gr-avatar { width: 30px; height: 38px; flex-basis: 30px; }
+    .gr-relative-cell .gr-avatar-content { --person-avatar-width: 30px; --person-avatar-height: 38px; }
     .gr-relative-cell .gr-identity small { font-size: 11px; }
     .gr-relative-cell .gr-record-actions { display: grid; gap: 6px; }
     .gr-relative-cell .gr-candidate-context { padding-left: 0; }

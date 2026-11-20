@@ -251,7 +251,10 @@ function geneoReviewAllRelations(draft)
         {
             const child = boardId(childId);
             if (!child || ![...parents, childId].some(id => boardByTree.has(id))) continue;
-            if (boardByTree.has(childId) && parents.some(id => !boardByTree.has(id)))
+            const representedParents = boardParents.filter(parentId => relations.some(relation =>
+                relation.type === 'child' && relation.ids.at(-1) === child && relation.ids.slice(0, -1).includes(parentId)));
+            if (representedParents.length === parents.length) continue;
+            if (representedParents.length || boardByTree.has(childId) && parents.some(id => !boardByTree.has(id)))
             {
                 for (const parent of parents)
                 {
@@ -313,6 +316,125 @@ function geneoReviewCopyRelationship(from, to)
     }
 }
 
+function geneoReviewRelationshipFields(relation, boardFamily, treeFamily, treeIds)
+{
+    const rows = [];
+    const add = (key, label, board, tree, write, options = {}) =>
+    {
+        if (geneoReviewEqual(board, tree)) return;
+        const format = options.format || (value => value ? t(value) : t('Empty'));
+        rows.push({ key: JSON.stringify([treeFamily.id, key]), label, board, tree,
+            boardText: format(board), treeText: format(tree), write, ...options });
+    };
+    if (relation.type === 'child')
+    {
+        const childId = relation.ids.at(-1);
+        const child = boardFamily.children.find(item => item.personId === childId);
+        relation.ids.slice(0, -1).forEach((boardId, index) =>
+        {
+            const parentId = treeIds[index];
+            const treeChildId = treeIds.at(-1);
+            const boardType = geneoReviewParentType(boardFamily, child, boardId);
+            const treeType = parentChildRelationshipType(treeFamily, parentId, treeChildId);
+            add(['parentage', boardId, parentId, treeChildId], 'Parentage type', boardType, treeType, (target, value, direction) =>
+            {
+                if (direction === 'tree') target.children.find(item => item.personId === childId).parentageType = value.toLowerCase();
+                else (target.parentChildTypes ||= {})[parentChildRelationshipKey(parentId, treeChildId)] = value;
+            }, { context: connectPersonName(getPerson(parentId)),
+                boardBlocked: !boardType, treeBlocked: boardFamily.partnerIds.length > 1 });
+        });
+        return rows;
+    }
+    if (relation.type !== 'partner') return rows;
+    const fields = [['relationshipType', 'Relationship type'], ['relationshipStatus', 'Relationship status'], ['marriageType', 'Marriage type']];
+    const valueOf = (family, key) => key === 'relationshipType' ? relationshipTypeFromLegacy(family)
+        : key === 'relationshipStatus' ? family.relationshipStatus || partnerRelationshipDefinition(relationshipTypeFromLegacy(family)).status
+            : family[key] || '';
+    for (const [key, label] of fields)
+        add(key, label, valueOf(boardFamily, key), valueOf(treeFamily, key), (target, value) => { target[key] = value; });
+
+    const eventsByRole = family =>
+    {
+        const type = relationshipTypeFromLegacy(family);
+        const start = partnerRelationshipStartEvent(family, type);
+        const end = partnerRelationshipEndEvent(family, type);
+        const groups = new Map();
+        const append = (key, event, index) =>
+        {
+            if (!groups.has(key)) groups.set(key, []);
+            groups.get(key).push({ event, index });
+        };
+        for (const [index, event] of (family.events || []).entries())
+        {
+            const key = event.relationshipManagedRole || (event.id && event.id === start?.id ? 'start'
+                : event.id && event.id === end?.id ? 'end' : event.gedcomTag || event.tag || event.eventType || event.typeLabel || 'event');
+            append(key, event, index);
+        }
+        for (const [key, event] of [['start', start], ['end', end]])
+        {
+            if (!groups.has(key) && event && (formatGenealogyDateLabel(event.date) || event.placeId || event.placeText || family[key + 'Address']))
+                append(key, { ...event, address: family[key + 'Address'] || '' }, -1);
+        }
+        return groups;
+    };
+    const boardEvents = eventsByRole(boardFamily);
+    const treeEvents = eventsByRole(treeFamily);
+    const place = event => ({ placeId: event.placeId || null, placeText: event.placeText || '' });
+    const eventFields = [
+        ['gedcomTag', 'Event tag', event => event.gedcomTag || event.tag || ''],
+        ['eventType', 'Event type', event => event.eventType || ''],
+        ['typeLabel', 'Event label', event => event.typeLabel || ''],
+        ['date', 'Date', event => normalizeGenealogyDateInput(event.date || event), value => formatGenealogyDateLabel(value) || t('Empty')],
+        ['place', 'Place', place, value => getPlaceDisplay(value?.placeId) || value?.placeText || t('Empty')],
+        ['address', 'Address'], ['confidence', 'Confidence'], ['description', 'Description'], ['notes', 'Notes']
+    ];
+    for (const role of new Set([...boardEvents.keys(), ...treeEvents.keys()]))
+    {
+        const left = boardEvents.get(role) || [];
+        const right = treeEvents.get(role) || [];
+        const context = t(role === 'start' ? 'Start event' : role === 'end' ? 'End event' : role);
+        if (left.length > 1 || right.length > 1)
+        {
+            const content = entries => entries.map(({ event }) => Object.fromEntries(eventFields.map(([key, , get]) => [key, get ? get(event) : event[key] || ''])));
+            add([role, 'ambiguous'], 'Events', content(left), content(right), null, { context, boardBlocked: true, treeBlocked: true, format: value => String(value.length) });
+            continue;
+        }
+        const a = left[0], b = right[0];
+        for (const [key, label, get = event => event[key] || '', format] of eventFields)
+        {
+            const aValue = get(a?.event || {});
+            const bValue = get(b?.event || {});
+            if (key === 'place' && aValue.placeId && aValue.placeId === bValue.placeId) continue;
+            const canWriteLegacy = ['start', 'end'].includes(role) && ['date', 'place', 'address'].includes(key);
+            add([role, a?.event.id || '', b?.event.id || '', key], label, aValue, bValue, (target, value, direction) =>
+            {
+                const destination = direction === 'tree' ? a : b;
+                if (direction === 'board' && canWriteLegacy)
+                {
+                    const legacy = key === 'date' ? Object.fromEntries(['date', 'dateLabel', 'dateType', 'sortDate', 'calendar', 'originalText']
+                        .map(field => [field, value[field] || ''])) : key === 'place' ? value : { address: value };
+                    for (const [field, entry] of Object.entries(legacy))
+                    {
+                        const property = role + field[0].toUpperCase() + field.slice(1);
+                        if (destination.index < 0 || Object.hasOwn(target, property)) target[property] = entry;
+                    }
+                }
+                if (destination.index < 0) return;
+                const event = target.events[destination.index];
+                if (key === 'place') Object.assign(event, structuredClone(value));
+                else if (key === 'gedcomTag' && !Object.hasOwn(event, key) && Object.hasOwn(event, 'tag')) event.tag = value;
+                else
+                {
+                    event[key] = structuredClone(value);
+                    if (key === 'date' && Object.hasOwn(event, 'sortDate')) event.sortDate = value.sortDate || '';
+                }
+            }, { context, format: format || (value => value ? t(String(value)) : t('Empty')), boardBlocked: !a || !b || b.index < 0 && !canWriteLegacy, treeBlocked: !a || !b || a.index < 0,
+                clear: value => key === 'date' ? !formatGenealogyDateLabel(value) : key === 'place' ? !value.placeId && !value.placeText : !value });
+        }
+    }
+    return rows;
+}
+
 function geneoReviewParentType(family, child, parentId = '')
 {
     const recorded = child.parentChildTypes?.[parentId] || family.parentChildTypes?.[`${parentId}|${child.personId}`] || child.parentageType;
@@ -367,13 +489,13 @@ function geneoReviewDraft(board, anchorId)
     const represented = new Set(diagram.nodes.filter(node => node.type === 'person').map(node => node.personId));
     const people = diagram.people.filter(person => represented.has(person.id));
     const draft = { boardId: board.id, projectId: board.projectId, diagram, people, anchorId, activePersonId: anchorId,
-        scope: 'branch', search: '', status: 'all', summaryOpen: false, mobileDetail: false,
+        scope: 'board', search: '', status: 'all', summaryOpen: false, mobileDetail: false,
         baseline: geneoReviewRecordSnapshot(board), choices: new Map(people.map(person =>
         {
             const tree = getPerson(person.treePersonId);
             return [person.id, tree && !tree.deleted && tree.projectId === board.projectId ? tree.id : 'skip'];
         })),
-        fields: new Map(), relations: geneoTreeImportRelations(diagram, represented), relationChoices: new Map(),
+        fields: new Map(), relationshipFields: new Map(), relations: geneoTreeImportRelations(diagram, represented), relationChoices: new Map(),
         siblingFamilies: new Map(), siblingFamilyIds: new Map(people.map(person => [person.id, createRuntimeId('family')])),
         parentTypes: new Map(), matchQueries: new Map(), matchEditorOpenId: '',
         transferTypes: new Map(), treeParentChoices: new Map(), treeFamilyChoices: new Map(), relativeTargets: new Map(),
@@ -491,7 +613,7 @@ function geneoReviewApplyTransferType(draft, relation, destination)
 function geneoTreeImportPreview(draft)
 {
     const board = getGeneographBoard(draft.boardId, { projectId: draft.projectId });
-    const result = { patches: [], operations: [], errors: [], statuses: new Map(), mapping: new Map(), relations: geneoReviewAllRelations(draft) };
+    const result = { patches: [], operations: [], errors: [], statuses: new Map(), mapping: new Map(), relationshipFields: new Map(), relations: geneoReviewAllRelations(draft) };
     const fail = (message, personId = '', relationId = '') => result.errors.push({ message: t(message), personId, relationId });
     if (!board || board.projectId !== currentProjectId())
     {
@@ -503,6 +625,8 @@ function geneoTreeImportPreview(draft)
         'board.connections': structuredClone(board.diagram.connections), 'board.nodes': structuredClone(board.diagram.nodes) };
     const touchedPeople = new Set();
     const touchedFamilies = new Set();
+    const fieldFamilies = new Map();
+    const relationshipDateChecks = new Map();
     const reads = new Set();
     const read = (key, id) =>
     {
@@ -596,7 +720,6 @@ function geneoTreeImportPreview(draft)
             if (error) fail(error, person.id);
         }
     }
-    const anchorId = result.mapping.get(draft.anchorId);
     for (const originalRelation of result.relations)
     {
         let relation = originalRelation;
@@ -659,7 +782,7 @@ function geneoTreeImportPreview(draft)
                 }
                 ids = relation.ids.map(id => result.mapping.get(id));
             }
-            if (decision !== 'tree' || !anchorId || !ids.every(Boolean))
+            if (decision !== 'tree' || !ids.every(Boolean))
             { fail('Choose a Family Tree record for each person in this relationship.', relation.ids.at(-1), relation.id); continue; }
             if (relation.ids.some(id => !projected['board.nodes'].some(node => node.type === 'person' && node.personId === id)))
             { fail('There is no clear space for this card. Make room on the board and try again.', draft.activePersonId, relation.id); continue; }
@@ -704,8 +827,11 @@ function geneoTreeImportPreview(draft)
             let source, target;
             if (relation.type === 'partner')
             {
-                geneoReviewCopyRelationship(treeFamily, family);
-                geneoReviewApplyTransferType(draft, relation, family);
+                if (!board.diagram.families.some(item => item.id === family.id))
+                {
+                    geneoReviewCopyRelationship(treeFamily, family);
+                    geneoReviewApplyTransferType(draft, relation, family);
+                }
                 const [first, second] = parents.map(nodeFor).sort((a, b) => a.x - b.x);
                 source = { nodeId: first.id, port: 'right' }; target = { nodeId: second.id, port: 'left' };
             }
@@ -740,7 +866,18 @@ function geneoTreeImportPreview(draft)
         const source = draft.diagram.families.find(family => family.id === relation.familyId);
         const parentIds = relation.type === 'child' ? ids.slice(0, -1) : ids;
         const sameParents = family => geneoReviewEqual(geneoReviewFamilyParents(family).sort(), [...parentIds].sort());
-        let target = relation.type === 'sibling' ? null : projected.families.find(family => family.projectId === draft.projectId && sameParents(family));
+        const exactFamilies = relation.type === 'sibling' || !ids.every(Boolean) ? [] : projected.families.filter(family => family.projectId === draft.projectId && sameParents(family));
+        const connectedFamilies = relation.type === 'child' ? exactFamilies.filter(family => (family.childIds || []).includes(ids.at(-1))) : exactFamilies;
+        const exactCandidates = connectedFamilies.length ? connectedFamilies : exactFamilies;
+        if (exactCandidates.length > 1)
+        {
+            const message = 'More than one Family Tree connection matches these people. Resolve the duplicate connections first.';
+            result.relationshipFields.set(relation.id, []);
+            result.statuses.set(relation.id, message);
+            if (decision || draft.relationshipFields.has(relation.id)) fail(message, relation.ids.at(-1), relation.id);
+            continue;
+        }
+        let target = exactCandidates[0] || null;
         let ambiguousFamily = false;
         if (!target && relation.type === 'child')
         {
@@ -750,39 +887,50 @@ function geneoTreeImportPreview(draft)
             ambiguousFamily = candidates.length > 1 && !target;
         }
         const complete = ids.every(Boolean);
-        let matches = complete && target && (relation.type === 'partner'
-            ? geneoReviewEqual(geneoReviewRelationshipData(source), geneoReviewRelationshipData(target))
-            : (target.childIds || []).includes(ids.at(-1)) && parentIds.every((parentId, index) =>
-                parentChildRelationshipType(target, parentId, ids.at(-1)) === geneoReviewParentType(source, source.children.find(child => child.personId === relation.ids.at(-1)), relation.ids[index])));
-        if (relation.type === 'sibling' && complete)
-            matches = projected.families.some(family => (family.childIds || []).includes(ids[0]) && (family.childIds || []).includes(ids[1]));
         const connectionExists = target && (relation.type !== 'child' || (target.childIds || []).includes(ids.at(-1)));
-        result.statuses.set(relation.id, matches ? 'Same relationship' : !complete ? 'Resolve identities first' : connectionExists ? 'Relationship differs' : 'Not connected in Tree');
-        if (!decision) continue;
+        const storedTreeFamily = target && sampleData.families.find(family => family.id === target.id);
+        if (complete && source && connectionExists && storedTreeFamily)
+        {
+            const fields = geneoReviewRelationshipFields(relation, source, storedTreeFamily, ids);
+            result.relationshipFields.set(relation.id, fields);
+            const decisions = draft.relationshipFields.get(relation.id) || new Map();
+            result.statuses.set(relation.id, fields.length ? 'Relationship differs' : 'Same relationship');
+            if (!decisions.size) continue;
+            read('board.families', source.id);
+            read('families', target.id);
+            for (const id of relation.ids) { read('board.people', id); read('people', result.mapping.get(id)); }
+            const boardFamily = projected['board.families'].find(family => family.id === source.id);
+            for (const field of fields)
+            {
+                const direction = decisions.get(field.key);
+                if (!direction) continue;
+                if (!['board', 'tree'].includes(direction) || !field.write || field[direction + 'Blocked'])
+                {
+                    fail('This relationship field cannot be copied independently.', relation.ids.at(-1), relation.id);
+                    continue;
+                }
+                const value = field[direction];
+                const destination = direction === 'board' ? target : boardFamily;
+                field.write(destination, value, direction);
+                if (direction === 'board') fieldFamilies.set(target.id, relation);
+                if (field.label === 'Date') relationshipDateChecks.set(destination, relation);
+                operation(relation.ids.at(-1), 'relationshipField', field.label, { relationId: relation.id,
+                    ids: relation.ids, source: direction, context: field.context, value: field[direction + 'Text'],
+                    clear: field.clear ? field.clear(value) : !value });
+            }
+            continue;
+        }
+        const matches = relation.type === 'sibling' && complete && projected.families.some(family =>
+            family.projectId === draft.projectId && (family.childIds || []).includes(ids[0]) && (family.childIds || []).includes(ids[1]));
+        result.statuses.set(relation.id, matches ? 'Same relationship' : !complete ? 'Resolve identities first' : 'Not connected in Tree');
+        if (!decision || matches) continue;
         if (ambiguousFamily) { fail('Choose the parent family to update.', relation.ids.at(-1), relation.id); continue; }
-        if (!anchorId || !complete) { fail('Choose a Family Tree record for each person in this relationship.', relation.ids.at(-1), relation.id); continue; }
+        if (!complete) { fail('Choose a Family Tree record for each person in this relationship.', relation.ids.at(-1), relation.id); continue; }
+        if (decision !== 'board' || connectionExists)
+        { fail('The selected relationship choice is unavailable.', relation.ids.at(-1), relation.id); continue; }
         for (const id of relation.ids) { read('board.people', id); read('people', result.mapping.get(id)); }
         if (source) read('board.families', source.id);
         if (target) read('families', target.id);
-        if (matches)
-        {
-            const unchangedType = relation.type === 'partner' ? (decision === 'board' ? source.relationshipType : target.relationshipType)
-                : decision === 'board' && relation.type === 'child' ? geneoReviewParentType(source, source.children.find(child => child.personId === relation.ids.at(-1)), relation.ids[0])
-                    : relation.type === 'child' ? parentChildRelationshipType(target, parentIds[0], ids.at(-1)) : '';
-            if (!configuredType || configuredType === unchangedType) continue;
-        }
-        if (relation.type === 'partner' && target)
-        {
-            const from = decision === 'tree' ? target : source;
-            const to = decision === 'tree' ? source : target;
-            for (const [role, getter] of [['start', partnerRelationshipStartEvent], ['end', partnerRelationshipEndEvent]])
-            {
-                const left = getter(from, from.relationshipType || 'Unknown relationship');
-                const right = getter(to, to.relationshipType || 'Unknown relationship');
-                if (formatGenealogyDateLabel(right?.date) && !formatGenealogyDateLabel(left?.date)) clears.push(role === 'start' ? 'Start date' : 'End date');
-                if ((right?.placeId || right?.placeText) && !(left?.placeId || left?.placeText)) clears.push(role === 'start' ? 'Start place' : 'End place');
-            }
-        }
         if (relation.type === 'sibling')
         {
             const [familyId, onlyParent = ''] = (draft.siblingFamilies.get(relation.id) || '').split('::');
@@ -829,21 +977,6 @@ function geneoTreeImportPreview(draft)
                 touchedFamilies.add(target.id);
             }
         }
-        else if (decision === 'tree')
-        {
-            if (!target || (relation.type === 'child' && !(target.childIds || []).includes(ids.at(-1))))
-            { fail('There is no matching Tree connection to use.', relation.ids.at(-1), relation.id); continue; }
-            const destination = projected['board.families'].find(family => family.id === source.id);
-            if (relation.type === 'partner') { geneoReviewCopyRelationship(target, destination); geneoReviewApplyTransferType(draft, relation, destination); }
-            else
-            {
-                const child = destination.children.find(item => item.personId === relation.ids.at(-1));
-                const types = parentIds.map(parent => draft.transferTypes?.get(relation.id) || parentChildRelationshipType(target, parent, ids.at(-1)));
-                if (new Set(types).size > 1)
-                    fail('Different parentage types need separate board connections.', relation.ids.at(-1), relation.id);
-                else child.parentageType = types[0].toLowerCase();
-            }
-        }
         else if (decision === 'board')
         {
             if (!target)
@@ -885,6 +1018,22 @@ function geneoTreeImportPreview(draft)
         else { fail('The selected relationship choice is unavailable.'); continue; }
         operation(relation.ids.at(-1), 'relationship', 'Family connections', { relationId: relation.id, ids: relation.ids, source: decision, clears });
     }
+    for (const [id, choices] of draft.relationshipFields)
+    {
+        const fields = result.relationshipFields.get(id) || [];
+        if ([...choices.keys()].some(key => !fields.some(field => field.key === key)))
+        {
+            const relation = result.relations.find(item => item.id === id);
+            fail('A relationship field changed. Clear its selection and review the latest values.', relation?.ids.at(-1) || draft.activePersonId, id);
+        }
+    }
+    for (const [family, relation] of relationshipDateChecks)
+    {
+        const start = partnerRelationshipStartEvent(family);
+        const end = partnerRelationshipEndEvent(family);
+        if (end && !partnerRelationshipDateOrderIsValid(start?.date, end.date))
+            fail('The relationship end date must be after or equal to the start date.', relation.ids.at(-1), relation.id);
+    }
     // Validate the projected ancestry, including existing links, without invoking live mutators.
     const ancestry = new Map();
     for (const family of projected.families.filter(item => item.projectId === draft.projectId))
@@ -925,13 +1074,13 @@ function geneoTreeImportPreview(draft)
         const [a, b] = relation.ids;
         if (hasAncestor(boardAncestors, a, b) || hasAncestor(boardAncestors, b, a)) fail(relation.type === 'partner' ? 'Direct ancestors cannot be partners.' : 'Direct ancestors cannot be siblings.');
     }
-    for (const family of projected.families.filter(item => touchedFamilies.has(item.id)))
+    for (const family of projected.families.filter(item => touchedFamilies.has(item.id) || fieldFamilies.has(item.id)))
     {
         for (const id of [...geneoReviewFamilyParents(family), ...(family.childIds || [])])
         {
             const person = projected.people.find(item => item.id === id && !item.deleted && item.projectId === draft.projectId);
             if (!person) fail('Choose an available person in this project.');
-            touchedPeople.add(id);
+            if (touchedFamilies.has(family.id)) touchedPeople.add(id);
         }
         for (const child of family.childIds || [])
         {
@@ -949,7 +1098,8 @@ function geneoTreeImportPreview(draft)
         person.familyAsSpouseIds = projected.families.filter(family => geneoReviewFamilyParents(family).includes(id)).map(family => family.id);
         person.familyAsChildIds = projected.families.filter(family => (family.childIds || []).includes(id)).map(family => family.id);
     }
-    const affectedEvent = event => touchedFamilies.has(event.familyId) || [...(event.personIds || []), ...(event.relatedPersonIds || [])].some(id => touchedPeople.has(id));
+    const affectedEvent = event => touchedFamilies.has(event.familyId) || (!fieldFamilies.has(event.familyId)
+        && [...(event.personIds || []), ...(event.relatedPersonIds || [])].some(id => touchedPeople.has(id)));
     if (touchedPeople.size || touchedFamilies.size)
     {
         const rebuilt = buildSampleEvents({ people: structuredClone(projected.people), families: structuredClone(projected.families) });
@@ -958,6 +1108,36 @@ function geneoTreeImportPreview(draft)
         projected.archiveFiles = sampleData.archiveFiles.map(file =>
             file.linkedEventIds?.some(id => removed.has(id)) ? { ...structuredClone(file), linkedEventIds: file.linkedEventIds.filter(id => !removed.has(id)) } : file);
         projected.sourceLinks = (sampleData.sourceLinks || []).filter(link => !(link.targetType === 'event' && removed.has(link.targetId)));
+    }
+    if (fieldFamilies.size)
+    {
+        const build = (people, families) => buildSampleEvents({ people: structuredClone(people), families: structuredClone(families) });
+        const before = build(sampleData.people, sampleData.families);
+        const after = build(projected.people, projected.families);
+        projected.events ||= [...sampleData.events];
+        for (const [familyId, relation] of fieldFamilies)
+        {
+            const oldEvents = before.filter(event => event.familyId === familyId);
+            const newEvents = after.filter(event => event.familyId === familyId);
+            if (oldEvents.some(event => !newEvents.some(item => item.id === event.id)))
+            {
+                fail('This relationship field cannot be copied independently.', relation.ids.at(-1), relation.id);
+                continue;
+            }
+            for (const event of newEvents)
+                if (!oldEvents.some(item => item.id === event.id) && !projected.events.some(item => item.id === event.id)) projected.events.push(event);
+            projected.events = projected.events.map(event =>
+            {
+                if (event.familyId !== familyId) return event;
+                const oldEvent = oldEvents.find(item => item.id === event.id);
+                const newEvent = newEvents.find(item => item.id === event.id);
+                if (!oldEvent || !newEvent) return event;
+                const updated = { ...event };
+                for (const key of new Set([...Object.keys(oldEvent), ...Object.keys(newEvent)]))
+                    if (!geneoReviewEqual(oldEvent[key], newEvent[key])) updated[key] = newEvent[key];
+                return updated;
+            });
+        }
     }
     for (const [key, after] of Object.entries(projected))
     {
