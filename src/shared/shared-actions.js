@@ -213,7 +213,7 @@ function projectCoverImageSource(project)
     const photo = project.coverPhotoId
         ? getPhoto(project.coverPhotoId, { projectId: project.id })
         : null;
-    return photo?.src || project.coverImageSrc || '';
+    return project.coverImageSrc || photo?.src || '';
 }
 
 function resolvedProjectCoverStyle(project)
@@ -225,6 +225,73 @@ function resolvedProjectCoverStyle(project)
 function projectCoverCssUrl(source)
 {
     return new URL(String(source).replace(/['"\\\r\n]/g, ''), document.baseURI).href;
+}
+
+// Covers use bounded derivatives instead of repeatedly decoding full-size photos.
+// Albums retains the untouched original when the user chooses Add to Albums.
+const PROJECT_COVER_MAX_SOURCE_PIXELS = 40_000_000;
+const PROJECT_COVER_MAX_SOURCE_EDGE = 12000;
+const PROJECT_COVER_MAX_RENDER_EDGE = 2560;
+let projectCoverPreviewRatio = 3;
+
+async function prepareProjectCoverImage(source)
+{
+    if (!source) throw new Error('cover-unavailable');
+    const image = new Image();
+    await new Promise((resolve, reject) =>
+    {
+        image.onload = resolve;
+        image.onerror = () => reject(new Error('cover-unavailable'));
+        image.src = source;
+    });
+    const width = image.naturalWidth;
+    const height = image.naturalHeight;
+    if (!width || !height) throw new Error('cover-unavailable');
+    if (Math.max(width, height) > PROJECT_COVER_MAX_SOURCE_EDGE
+        || width * height > PROJECT_COVER_MAX_SOURCE_PIXELS)
+        throw new Error('cover-too-large');
+    const scale = Math.min(1, PROJECT_COVER_MAX_RENDER_EDGE / Math.max(width, height));
+    // File-backed images can be canvas-tainted under file://. A small source
+    // that already loaded can still be used directly without repainting.
+    if (scale === 1 && !source.startsWith('data:')) return source;
+    const canvas = document.createElement('canvas');
+    canvas.width = Math.max(1, Math.round(width * scale));
+    canvas.height = Math.max(1, Math.round(height * scale));
+    const context = canvas.getContext('2d');
+    if (!context) throw new Error('cover-unavailable');
+    try
+    {
+        context.drawImage(image, 0, 0, canvas.width, canvas.height);
+        const format = source.startsWith('data:image/png') ? 'image/png' : 'image/webp';
+        const output = canvas.toDataURL(format, 0.88);
+        if (!output.startsWith('data:image/')) throw new Error('cover-unavailable');
+        await loadPersonPhotoDimensions(output);
+        return output;
+    }
+    catch
+    {
+        throw new Error('cover-unavailable');
+    }
+    finally
+    {
+        canvas.width = 0;
+        canvas.height = 0;
+    }
+}
+
+function projectCoverValidationMessage(error)
+{
+    return t(error?.message === 'cover-too-large'
+        ? 'This image is too large for a project cover (maximum 40 megapixels or 12,000 pixels per side).'
+        : 'This image could not be displayed as a cover. Choose another photo.');
+}
+
+function projectHeroPreviewStyleAttribute(coverStyle, source, position)
+{
+    const style = normalizeProjectCoverStyle(coverStyle);
+    const imageSource = projectCoverPresetImageSource(style) || (style === 'photo' ? source : '');
+    const point = normalizeProjectCoverPosition(position);
+    return `--cover-preview-aspect:${projectCoverPreviewRatio};--cover-position:${point.x}% ${point.y}%;${imageSource ? `--project-hero-cover:url('${projectCoverCssUrl(imageSource)}');` : ''}`;
 }
 
 function projectHeroCoverStyleAttribute(project)
@@ -276,17 +343,12 @@ function updateProjectCoverPreview(
             coverStyle
         );
 
-    preview.classList.toggle(
-        'tree',
-        normalizedCover === 'tree'
+    preview.classList.toggle('tree', normalizedCover === 'tree');
+    preview.classList.toggle('has-image-cover', normalizedCover !== 'tree'
+        && Boolean(projectCoverPresetImageSource(normalizedCover) || photoSource));
+    preview.style.cssText = projectHeroPreviewStyleAttribute(
+        normalizedCover, photoSource, position
     );
-
-    preview.style.cssText =
-        projectCoverStyleAttribute(
-            normalizedCover,
-            photoSource,
-            position
-        );
 
     preview.dataset.coverStyle =
         normalizedCover;
@@ -409,10 +471,11 @@ function setProjectCover(
         const photo = selection.photoId
             ? getPhoto(selection.photoId, { projectId })
             : null;
-        const src = photo?.src || selection.imageSrc || '';
+        if (selection.photoId && !photo) return false;
+        const src = selection.coverImageSrc || selection.imageSrc || photo?.src || '';
         if (!src) return false;
         project.coverPhotoId = photo?.id || '';
-        project.coverImageSrc = photo ? '' : src;
+        project.coverImageSrc = src;
     }
     else
     {
@@ -435,15 +498,16 @@ function commitProjectCoverSelection(projectId, selection)
 {
     if (selection.uploadDraft)
     {
-        if (!photoUploadDraftIsValid(selection.uploadDraft)) return false;
+        if (!photoUploadDraftIsValid(selection.uploadDraft) || !selection.coverImageSrc
+            || !sampleData.projects.some(project => project.id === projectId)) return false;
         if (selection.addToAlbums)
         {
             const photo = createMediaFromPhotoUpload({
                 projectId, draft: selection.uploadDraft, idPrefix: 'project-cover-photo'
             });
-            return Boolean(photo && setProjectCover(projectId, 'photo', { photoId: photo.id, position: selection.position }));
+            return Boolean(photo && setProjectCover(projectId, 'photo', { photoId: photo.id, coverImageSrc: selection.coverImageSrc, position: selection.position }));
         }
-        return setProjectCover(projectId, 'photo', { imageSrc: selection.uploadDraft.src, position: selection.position });
+        return setProjectCover(projectId, 'photo', { coverImageSrc: selection.coverImageSrc, position: selection.position });
     }
     return setProjectCover(projectId, 'photo', selection);
 }
