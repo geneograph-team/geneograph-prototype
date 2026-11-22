@@ -1305,7 +1305,7 @@ function openProjectCoverModal(
     };
 
     const initialPreviewStyle =
-        projectCoverStyleAttribute(
+        projectHeroPreviewStyleAttribute(
             selectedCover,
             projectCoverImageSource(project),
             selectedPosition
@@ -1342,11 +1342,7 @@ function openProjectCoverModal(
           <div
             class="modal-body project-cover-modal-body">
 
-            <div class="project-cover-preview project-cover-modal-preview
-                ${selectedCover === 'tree'
-                        ? 'tree'
-                        : ''
-                }"
+            <div class="project-cover-preview project-cover-modal-preview ${selectedCover === 'tree' ? 'tree' : 'has-image-cover'}"
               data-project-cover-preview
               data-cover-style="${
                     escapeHtml(
@@ -1362,6 +1358,7 @@ function openProjectCoverModal(
                         'Drag to position cover; use arrow keys to adjust'
                     )
                 }">
+              <div class="project-cover-preview-label" aria-hidden="true"><strong>${escapeHtml(project.name)}</strong><span>${escapeHtml(project.status || 'Local project')}</span></div>
             </div>
 
 
@@ -1455,7 +1452,8 @@ function openProjectCoverModal(
         modalBackdrop.querySelector(
             '[data-project-cover-preview]'
         );
-    const currentPhotoSource = () => selectedPhoto.uploadDraft?.src
+    const currentPhotoSource = () => selectedPhoto.coverImageSrc
+        || selectedPhoto.uploadDraft?.src
         || (selectedPhoto.photoId ? getPhoto(selectedPhoto.photoId, { projectId: project.id })?.src : '')
         || selectedPhoto.imageSrc || '';
     const activeSource = () => projectCoverPresetImageSource(selectedCover)
