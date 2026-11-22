@@ -691,13 +691,20 @@
 }
 
 .profile-connected-preview .profile-connected-note,
-.profile-connected-preview .profile-connected-note .ql-editor {
-    font-size: 15px;
-    line-height: 1.65;
+.profile-connected-viewer .profile-connected-note,
+.profile-connected-preview .profile-connected-note .ql-editor,
+.profile-connected-viewer .profile-connected-note .ql-editor {
+    font-size: 16px;
+    line-height: 1.75;
 }
 
-.profile-connected-preview .profile-connected-note .ql-editor p + p {
-    margin-top: .7em;
+.profile-connected-viewer .profile-connected-note {
+    max-width: 80ch;
+}
+
+.profile-connected-preview .profile-connected-note .ql-editor p + p,
+.profile-connected-viewer .profile-connected-note .ql-editor p + p {
+    margin-top: .8em;
 }
 
 .profile-connected-media-details {
@@ -728,6 +735,7 @@
     flex-wrap: wrap;
     align-items: center;
     gap: var(--space-2);
+    white-space: pre-wrap;
 }
 
 .profile-connected-media-details .profile-connected-file-meta {

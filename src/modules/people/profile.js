@@ -855,6 +855,7 @@ function renderProfileConnectedContent(person)
                     ${view.kind === 'places'
                         ? `<button type="button" class="panel-action" data-profile-view-place>${renderPanelButtonLabel(icon.mapPin, 'Show on map')}</button>`
                         : `<button type="button" class="control-icon-button" data-profile-view-record aria-label="${escapeHtml(t('Open full view'))}" title="${escapeHtml(t('Open full view'))}">${icon.expand}</button>`}
+                    <button type="button" class="control-icon-button" data-profile-edit-record aria-label="${escapeHtml(t('Edit'))}" title="${escapeHtml(t('Edit'))}">${icon.edit}</button>
                     ${view.kind !== 'places' ? `<button type="button" class="control-icon-button" data-profile-unlink-record aria-label="${escapeHtml(t('Unlink from person'))}" title="${escapeHtml(t('Unlink from person'))}">${icon.unlink}</button>` : ''}
                 </div>
             </div>
@@ -863,6 +864,56 @@ function renderProfileConnectedContent(person)
             </div>
         </section>
     </div>`;
+}
+
+function openProfileConnectedRecordEditor(person, kind, recordId)
+{
+    const item = profileConnectedRecords(person)[kind]?.find(record => record.id === recordId);
+    if (!item?.record || item.record.projectId !== person.projectId)
+    {
+        showToast(t('The connected record is no longer available.'));
+        return;
+    }
+
+    if (kind === 'photos')
+    {
+        openAlbumsForPhoto(recordId);
+        if (state.activeModule === 'Albums' && state.selectedPhotoId === recordId)
+            beginAlbumsPhotoEdit();
+        return;
+    }
+
+    if (kind === 'archive')
+    {
+        openFamilyArchiveItem(recordId);
+        if (state.activeModule === 'Archive' && state.archiveSelectedFileId === recordId)
+            beginArchiveFileEdit();
+        return;
+    }
+
+    if (kind === 'notes')
+    {
+        openCentralNoteFromContext(recordId, { type: 'person', id: person.id });
+        return;
+    }
+
+    if (kind === 'sources')
+    {
+        openConnectedSource(recordId, person.projectId);
+        if (state.activeModule === 'Archive' && state.archiveSelectedSourceId === recordId)
+            openArchiveSourceModal(recordId);
+        return;
+    }
+
+    if (kind === 'places')
+    {
+        state.activeModule = 'Places';
+        state.placesView = 'all';
+        state.selectedPlaceId = recordId;
+        state.placesInspectorCollapsed = false;
+        render();
+        openPlaceModal(recordId);
+    }
 }
 
 function renderProfileConnectedIcon(kind, record, glyph)
@@ -882,9 +933,9 @@ function renderProfileConnectedRecord(kind, item, full = false)
     {
         return `${renderPhotoThumbnail(record, { className: 'profile-connected-media', label: item.title })}
             <div class="profile-connected-media-details">
-                ${paragraph(record.caption)}
-                ${item.date || item.albumNames.length ? `
+                ${record.caption || item.date || item.albumNames.length ? `
                 <dl class="archive-file-read-list archive-source-read-list profile-connected-photo-details">
+                    ${record.caption ? `<div class="archive-file-read-row"><dt>${escapeHtml(t('Description'))}</dt><dd data-user-content>${escapeHtml(record.caption)}</dd></div>` : ''}
                     ${item.date ? `<div class="archive-file-read-row"><dt>${escapeHtml(t('Date'))}</dt><dd>${escapeHtml(item.date)}</dd></div>` : ''}
                     ${item.albumNames.length ? `<div class="archive-file-read-row"><dt>${escapeHtml(t('Albums'))}</dt><dd>${item.albumNames.map(name => `<span class="profile-connected-album" data-user-content>${escapeHtml(name)}</span>`).join('')}</dd></div>` : ''}
                 </dl>` : ''}
@@ -1130,6 +1181,11 @@ function bindProfileConnectedExplorer(person)
         if (button.hasAttribute('data-profile-view-record'))
         {
             openProfileConnectedViewer(person, explorer);
+            return;
+        }
+        if (button.hasAttribute('data-profile-edit-record'))
+        {
+            openProfileConnectedRecordEditor(person, view.kind, view.id);
             return;
         }
         if (button.hasAttribute('data-profile-unlink-record'))
