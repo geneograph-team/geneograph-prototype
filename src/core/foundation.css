@@ -4544,7 +4544,7 @@ body.mobile-details-open .geneo-inspector [data-geneo-inspector-toggle] {
 .project-settings-section-two {
     display: grid;
     grid-template-columns: minmax(0, 1.25fr) minmax(300px, .75fr);
-    align-items: start;
+    align-items: stretch;
     gap: var(--space-5);
     width: 100%;
 }
@@ -4632,6 +4632,11 @@ body.mobile-details-open .geneo-inspector [data-geneo-inspector-toggle] {
     flex-wrap: wrap;
 }
 
+.project-location-summary .project-settings-explainer {
+    flex: 1 1 270px;
+    min-width: 0;
+}
+
 .project-location-status {
     min-height: 28px;
     display: inline-flex;
@@ -4664,9 +4669,9 @@ body.mobile-details-open .geneo-inspector [data-geneo-inspector-toggle] {
     gap: var(--space-2);
 }
 
-.project-location-actions .button,
-.project-cloud-actions .button {
+.project-location-actions .button {
     width: 100%;
+    min-width: 0;
     min-height: 42px;
     justify-content: flex-start;
     text-align: left;
@@ -4674,13 +4679,32 @@ body.mobile-details-open .geneo-inspector [data-geneo-inspector-toggle] {
     padding: 0 var(--space-3);
 }
 
-.project-cloud-body {
-    align-content: start;
+.project-location-actions .button > svg {
+    flex: 0 0 auto;
 }
 
-.project-cloud-actions {
-    width: 100%;
-    max-width: 280px;
+.project-location-action-label {
+    display: block;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.project-settings-cloud-card {
+    display: flex;
+    flex-direction: column;
+}
+
+.project-cloud-body {
+    flex: 1 1 auto;
+    align-content: center;
+    min-width: 0;
+}
+
+.project-cloud-body .offline-card-main {
+    min-width: 0;
+    grid-template-columns: 46px minmax(0, 1fr);
 }
 
 .project-settings-explainer {
@@ -4691,14 +4715,21 @@ body.mobile-details-open .geneo-inspector [data-geneo-inspector-toggle] {
 }
 
 .project-location-actions .project-settings-unavailable,
-.project-location-actions .project-settings-unavailable:hover,
-.project-cloud-actions .project-settings-unavailable,
-.project-cloud-actions .project-settings-unavailable:hover {
+.project-location-actions .project-settings-unavailable:hover {
     opacity: 1;
     background: var(--gg-disabled-surface);
     color: var(--gg-disabled-text);
     border-color: var(--gg-border);
     cursor: help;
+}
+
+.project-location-actions .project-settings-unavailable:disabled,
+.project-location-actions .project-settings-unavailable:disabled:hover {
+    opacity: .55;
+    color: var(--gg-disabled-text);
+    background: var(--gg-disabled-surface);
+    border-color: var(--gg-border);
+    cursor: not-allowed;
 }
 
 .project-location-actions .project-settings-demo {

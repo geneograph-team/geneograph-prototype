@@ -784,8 +784,10 @@ function renderProjectSettings(project)
           <section class="project-settings-section project-settings-local-card">
             <h3>Project location</h3>
             <div class="project-settings-section-body project-location-body">
-              ${project.id === 'p1' ? '<div class="project-location-summary"><span class="project-location-status">Sample project</span></div>' : ''}
-              <p class="project-settings-explainer">Example path only. Projects are not saved to folders in this demo.</p>
+              <div class="project-location-summary">
+                ${project.id === 'p1' ? '<span class="project-location-status">Sample project</span>' : ''}
+                <span class="project-settings-explainer">Example path only. Projects are not saved to folders in this demo.</span>
+              </div>
               <div
                 class="project-location-path"
                 data-i18n-skip
@@ -796,20 +798,16 @@ function renderProjectSettings(project)
                 <div class="project-settings-kv"><span>Last local backup</span><span>${escapeHtml(lastBackup)}</span></div>
               </div>
               <div class="project-location-actions">
-                <button class="button secondary project-settings-unavailable" type="button" id="viewProjectFolder" title="${escapeHtml(t('Opening a project folder is not available yet.'))}">${icon.folder} View in folder</button>
-                <button class="button secondary project-settings-demo" type="button" id="moveProjectLocation" title="${escapeHtml(t('Project files cannot be moved in this demo. The path below is an example only.'))}">${icon.movefolder} Move project (demo)</button>
-                <button class="button secondary project-settings-unavailable" type="button" id="createProjectBackup" title="${escapeHtml(t('Creating a local backup is not available yet.'))}">${icon.file} Create local backup</button>
+                <button class="button secondary project-settings-unavailable" type="button" id="viewProjectFolder" disabled title="${escapeHtml(t('Opening a project folder is not available yet.'))}">${icon.folder}<span class="project-location-action-label">View in folder</span></button>
+                <button class="button secondary project-settings-demo" type="button" id="moveProjectLocation" title="${escapeHtml(t('Move project (demo)'))}: ${escapeHtml(t('Project files cannot be moved in this demo. The path below is an example only.'))}">${icon.movefolder}<span class="project-location-action-label">Move project (demo)</span></button>
+                <button class="button secondary project-settings-unavailable" type="button" id="createProjectBackup" title="${escapeHtml(t('Create local backup'))}: ${escapeHtml(t('Creating a local backup is not available yet.'))}">${icon.file}<span class="project-location-action-label">Create local backup</span></button>
               </div>
             </div>
           </section>
           <section class="project-settings-section project-settings-cloud-card">
             <div class="project-settings-section-heading"><h3>Cloud sync</h3><span class="project-settings-coming-later">Coming later</span></div>
             <div class="project-settings-section-body project-cloud-body">
-              <div class="project-settings-kv"><span>Cloud backup</span><span>Disabled</span></div>
-              <p class="project-settings-explainer">Cloud storage is not connected in this prototype.</p>
-              <div class="project-cloud-actions">
-                <button class="button secondary project-settings-unavailable" type="button" id="enableProjectSync" title="${escapeHtml(t('Cloud sync is not available yet.'))}">${icon.sync} Sync now</button>
-              </div>
+              ${renderProjectCloudSyncStatus()}
             </div>
           </section>
         </div>
@@ -876,10 +874,8 @@ function bindProjectSettingsControls()
     main.querySelectorAll('#settingsProjectName, #settingsProjectDescription').forEach(control =>
         control.addEventListener('input', updateProjectSettingsDirtyState));
     updateProjectSettingsDirtyState();
-    main.querySelector('#viewProjectFolder')?.addEventListener('click', () => showToast('Opening a project folder is not available yet.'));
     main.querySelector('#moveProjectLocation')?.addEventListener('click', openMoveProjectModal);
     main.querySelector('#createProjectBackup')?.addEventListener('click', () => showToast('Creating a local backup is not available yet.'));
-    main.querySelector('#enableProjectSync')?.addEventListener('click', () => showToast('Cloud sync is not available yet.'));
     const coverPreview = main.querySelector('#projectCoverPreview');
     bindProjectCoverPositioner(coverPreview, {
         getSource: () => projectSettingsCoverSource(projectSettingsDraft),
@@ -1343,12 +1339,17 @@ function renderOpenProjectInsightsCard(project)
       </div></div>`;
 }
 
+function renderProjectCloudSyncStatus()
+{
+    return `<div class="offline-card-main"><div class="sync-icon offline-icon">${icon.syncoffline}</div><div><strong>Offline project</strong><span>Cloud sync is not available yet. This project has no cloud backup.</span></div></div>`;
+}
+
 function renderOpenProjectOfflineCard(project)
 {
     return `<div class="right-card offline-project-card">
         <div class="offline-card-titlebar"><h2>Sync status</h2><button class="text-action is-inactive" type="button" disabled>Sync now</button></div>
         <div class="offline-card-body">
-          <div class="offline-card-main"><div class="sync-icon offline-icon">${icon.syncoffline}</div><div><strong>Offline project</strong><span>Cloud backup is disabled. Project files, photos, archive files, notes, and boards stay on this device.</span></div></div>
+          ${renderProjectCloudSyncStatus()}
         <button class="offline-card-learn text-action project-overview-link" type="button" data-toast="Cloud backup help is a placeholder for a later flow.">
           <span class="project-overview-link-text">Learn more about cloud backup</span>
           <span class="project-overview-link-icon" aria-hidden="true">${icon.openlink}</span>
