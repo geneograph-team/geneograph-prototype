@@ -564,7 +564,7 @@ function openProjectCoverPhotoPicker(projectId, { onSelect, nested = false, sele
                 <label class="project-cover-photo-albums" data-cover-photo-albums hidden><input type="checkbox" data-cover-photo-add-albums> Add to Albums</label>
                 <p class="project-cover-photo-error" data-cover-photo-error role="alert" hidden></p>
             </div>
-            <div class="project-cover-photo-preview-pane"><h3>Cover preview</h3><div class="project-cover-preview project-cover-photo-preview" data-cover-photo-preview role="group" aria-label="Drag to position cover; use arrow keys to adjust"><div class="project-cover-preview-label" aria-hidden="true"><strong>${escapeHtml(project.name)}</strong><span>${escapeHtml(project.status || 'Local project')}</span></div></div><button class="project-cover-reset" type="button" data-cover-photo-reset hidden>Reset position</button></div>
+            <div class="project-cover-photo-preview-pane"><h3>Cover preview</h3><div class="project-cover-preview project-cover-photo-preview" data-cover-photo-preview role="group" aria-label="Drag to position cover; use arrow keys to adjust"></div><button class="project-cover-reset" type="button" data-cover-photo-reset hidden>Reset position</button></div>
         </div>
         <div class="modal-footer"><button class="button secondary" type="button" data-close>Cancel</button>
             <button class="button primary" type="button" data-cover-photo-confirm>Use photo</button></div>
@@ -1373,7 +1373,7 @@ function openProjectCoverModal(
                         'Drag to position cover; use arrow keys to adjust'
                     )
                 }">
-              <div class="project-cover-preview-label" aria-hidden="true"><strong>${escapeHtml(project.name)}</strong><span>${escapeHtml(project.status || 'Local project')}</span></div>
+              
             </div>
 
 
