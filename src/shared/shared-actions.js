@@ -289,7 +289,9 @@ function projectCoverValidationMessage(error)
 function projectHeroPreviewStyleAttribute(coverStyle, source, position)
 {
     const style = normalizeProjectCoverStyle(coverStyle);
-    const imageSource = projectCoverPresetImageSource(style) || (style === 'photo' ? source : '');
+    const imageSource = projectCoverPresetImageSource(style)
+        || (style === 'tree' ? 'assets/covers/full-tree-project-cover.png'
+            : style === 'photo' ? source : '');
     const point = normalizeProjectCoverPosition(position);
     return `--cover-preview-aspect:${projectCoverPreviewRatio};--cover-position:${point.x}% ${point.y}%;${imageSource ? `--project-hero-cover:url('${projectCoverCssUrl(imageSource)}');` : ''}`;
 }
@@ -553,6 +555,7 @@ function openProjectCoverPhotoPicker(projectId, { onSelect, nested = false, sele
         <div class="modal-header"><div><h2 id="coverPhotoPickerTitle">Choose cover photo</h2><p>Select a project photo or upload a new image.</p></div>
             <button class="close-button" type="button" data-close aria-label="Close">${icon.close}</button></div>
         <div class="project-cover-photo-body">
+            <div class="project-cover-photo-preview-pane"><h3>Cover preview</h3><div class="project-cover-preview project-cover-photo-preview" data-cover-photo-preview role="group" aria-label="Drag to position cover; use arrow keys to adjust"></div><button class="project-cover-reset" type="button" data-cover-photo-reset hidden>Reset position</button></div>
             <div class="project-cover-photo-library">
                 <label class="project-cover-photo-search-label" for="coverPhotoSearch">Search photos</label>
                 <div class="project-cover-photo-toolbar">
@@ -564,7 +567,6 @@ function openProjectCoverPhotoPicker(projectId, { onSelect, nested = false, sele
                 <label class="project-cover-photo-albums" data-cover-photo-albums hidden><input type="checkbox" data-cover-photo-add-albums> Add to Albums</label>
                 <p class="project-cover-photo-error" data-cover-photo-error role="alert" hidden></p>
             </div>
-            <div class="project-cover-photo-preview-pane"><h3>Cover preview</h3><div class="project-cover-preview project-cover-photo-preview" data-cover-photo-preview role="group" aria-label="Drag to position cover; use arrow keys to adjust"></div><button class="project-cover-reset" type="button" data-cover-photo-reset hidden>Reset position</button></div>
         </div>
         <div class="modal-footer"><button class="button secondary" type="button" data-close>Cancel</button>
             <button class="button primary" type="button" data-cover-photo-confirm>Use photo</button></div>
