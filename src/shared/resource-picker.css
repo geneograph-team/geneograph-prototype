@@ -1612,6 +1612,14 @@
     object-fit: cover;
 }
 .rp-upload-tile-preview svg { width: 30px; height: 30px; }
+.rp-upload-tile-preview .archive-file-icon {
+    width: 60px;
+    height: 60px;
+    flex: none;
+    border-radius: 11px;
+    font-size: 13px;
+    letter-spacing: .02em;
+}
 .rp-upload-tile strong,
 .rp-upload-tile small {
     overflow: hidden;

@@ -1425,11 +1425,11 @@ function archiveFileTypeLabel(file)
     })[kind];
 }
 
-function archiveFileIcon(file)
+function archiveFileIcon(file, formatLabel = '')
 {
     const kind = archiveFileKind(file);
     if (kind === 'folder') return `<span class="archive-file-icon folder" aria-hidden="true">${icon.folderyellow}</span>`;
-    const label = ({ pdf: 'PDF', img: 'IMG', audio: 'AUD', sheet: 'XLS', doc: 'DOC', archive: 'ZIP', file: 'FILE' })[kind];
+    const label = formatLabel || ({ pdf: 'PDF', img: 'IMG', audio: 'AUD', sheet: 'XLS', doc: 'DOC', archive: 'ZIP', file: 'FILE' })[kind];
     return `<span class="archive-file-icon ${kind}" aria-hidden="true">${escapeHtml(label)}</span>`;
 }
 

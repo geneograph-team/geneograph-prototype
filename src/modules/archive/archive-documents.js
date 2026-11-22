@@ -39,6 +39,12 @@ function archiveDocumentLabel(english, russian) {
     return state.language === 'ru' ? russian : english;
 }
 
+function archiveStagedDocumentIcon(file) {
+    const extension = archiveDocumentExtension(file?.name);
+    const kind = { pdf: 'pdf', docx: 'document', txt: 'document', csv: 'spreadsheet' }[extension];
+    return kind ? archiveFileIcon({ kind }, extension.toUpperCase()) : icon.file;
+}
+
 async function archiveDocumentBlob(file) {
     if (archiveDocumentBytes.has(file.id)) return archiveDocumentBytes.get(file.id);
     const source = archiveImageExtensions.has(archiveDocumentExtension(file.name)) ? archiveImageSource(file) : file.assetUrl;
@@ -343,7 +349,7 @@ function archiveBindStagedImport({ modal, input, drop, result, rows, chooseButto
         modal.classList.toggle('has-items', queue.length > 0);
         tiles.hidden = !queue.length;
         tiles.innerHTML = queue.map(item => `<article class="rp-upload-tile">
-            <span class="rp-upload-tile-preview">${item.previewUrl ? `<img src="${escapeHtml(item.previewUrl)}" alt="">` : archiveImageExtensions.has(archiveDocumentExtension(item.file.name)) ? icon.photo : icon.file}</span>
+            <span class="rp-upload-tile-preview">${item.previewUrl ? `<img src="${escapeHtml(item.previewUrl)}" alt="">` : archiveImageExtensions.has(archiveDocumentExtension(item.file.name)) ? icon.photo : archiveStagedDocumentIcon(item.file)}</span>
             <strong title="${escapeHtml(item.file.name)}">${escapeHtml(item.file.name)}</strong>
             <small>${Math.max(1, Math.ceil(item.file.size / 1024))} KB${item.error ? ` · ${escapeHtml(item.error)}` : ''}</small>
             <button type="button" class="rp-upload-remove" data-document-remove="${item.id}" aria-label="${escapeHtml(archiveDocumentLabel('Remove', 'Убрать'))}: ${escapeHtml(item.file.name)}" ${importing ? 'disabled' : ''}>${icon.close}</button>
