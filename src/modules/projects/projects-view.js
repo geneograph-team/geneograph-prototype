@@ -691,9 +691,9 @@ function runAfterProjectSettingsGuard(commit)
         <div class="modal-header"><h2 id="projectSettingsDiscardTitle">${escapeHtml(t('Unsaved project settings'))}</h2></div>
         <div class="modal-body"><p>${escapeHtml(t('Save your project settings before leaving?'))}</p></div>
         <div class="modal-footer">
-          <button class="button secondary" type="button" data-close>${escapeHtml(t('Keep editing'))}</button>
-          <button class="button danger" type="button" data-project-settings-discard>${escapeHtml(t('Discard and leave'))}</button>
-          <button class="button primary" type="button" data-project-settings-save-leave>${escapeHtml(t('Save and leave'))}</button>
+          <button class="button secondary" type="button" data-close title="${escapeHtml(t('Keep editing'))}"><span class="project-settings-action-label">${escapeHtml(t('Keep editing'))}</span></button>
+          <button class="button danger" type="button" data-project-settings-discard title="${escapeHtml(t('Discard and leave'))}"><span class="project-settings-action-label">${escapeHtml(t('Discard and leave'))}</span></button>
+          <button class="button primary" type="button" data-project-settings-save-leave title="${escapeHtml(t('Save and leave'))}"><span class="project-settings-action-label">${escapeHtml(t('Save and leave'))}</span></button>
         </div></div>`);
     modalBackdrop.querySelector('[data-project-settings-discard]')?.addEventListener('click', () =>
     {

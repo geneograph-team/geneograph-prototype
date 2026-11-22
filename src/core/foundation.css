@@ -4577,7 +4577,7 @@ body.mobile-details-open .geneo-inspector [data-geneo-inspector-toggle] {
     margin: 0;
     display: grid;
     gap: var(--space-5);
-    padding-bottom: var(--space-8);
+    padding-bottom: 0;
 }
 
 .project-settings-section-one {
@@ -4814,27 +4814,31 @@ body.mobile-details-open .geneo-inspector [data-geneo-inspector-toggle] {
     display: none;
 }
 
-.project-settings-discard-modal {
-    width: min(940px, 100%);
-}
-
 .project-settings-discard-modal .modal-footer {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    flex-wrap: nowrap;
 }
 
 .project-settings-discard-modal .modal-footer .button {
+    flex: 0 1 auto;
     min-width: 0;
-    width: 100%;
-    padding-block: var(--space-2);
-    white-space: normal;
-    overflow-wrap: break-word;
-    text-align: center;
+}
+
+.project-settings-discard-modal .modal-footer .project-settings-action-label {
+    display: block;
+    min-width: 0;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
 }
 
 @media (max-width: 620px) {
     .project-settings-discard-modal .modal-footer {
-        grid-template-columns: minmax(0, 1fr);
+        gap: var(--space-2);
+        padding-inline: var(--space-3);
+    }
+
+    .project-settings-discard-modal .modal-footer .button {
+        padding-inline: var(--space-2);
     }
 }
 
