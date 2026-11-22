@@ -1394,6 +1394,7 @@ body.mobile-person-details-open .relative-popover-body {
     grid-template-columns: 1fr 310px;
     column-gap: var(--space-5);
     row-gap: var(--space-6);
+    isolation: isolate;
 }
 
 .add-person-footer {

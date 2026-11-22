@@ -237,7 +237,10 @@ function openAddPersonModal(title, subtitle, options = {})
     bindAddPersonSideCards(options, editPerson);
     bindManageRelativeReturn(options.managerReturn);
     bindRepeatableFacts(modalBackdrop.querySelector('.add-person-modal'));
-    focusPersonFactTarget(options.factTarget);
+    if (options.factTarget)
+        focusPersonFactTarget(options.factTarget);
+    else
+        modalBackdrop.querySelector('#addPersonFirstName')?.focus({ preventScroll: true });
     updateAddPersonConditionalFields();
     const addPersonModal = modalBackdrop.querySelector('.add-person-modal');
     const initialSnapshot = addPersonModalSnapshot(addPersonModal);
