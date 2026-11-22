@@ -591,7 +591,7 @@
 .profile-connected-preview {
     width: 100%;
     grid-column: auto;
-    border: 1px solid var(--border-default);
+    border: 0px solid var(--border-default);
     border-radius: var(--radius-sm);
     background: var(--surface-card);
 }
@@ -614,7 +614,6 @@
     padding: var(--space-3);
     border-bottom: 1px solid var(--border-default);
     border-radius: var(--radius-sm) var(--radius-sm) 0 0;
-    background: var(--surface-card-hover);
 }
 
 .profile-connected-preview-head h4 {
