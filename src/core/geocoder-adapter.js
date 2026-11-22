@@ -17,6 +17,10 @@ const geneographGeocoder = (function ()
     const cooldownUntil = { geoapify: 0, locationiq: 0 };
     const timeoutMs = 6500;
     const maxQueryLength = 200;
+    // Named, inhabited OSM places; administrative areas and localities are excluded.
+    const settlementTypes = Object.freeze([
+        'city', 'town', 'village', 'hamlet', 'isolated_dwelling', 'farm'
+    ]);
 
     function abortError()
     {
@@ -32,8 +36,58 @@ const geneographGeocoder = (function ()
             .slice(0, 240);
     }
 
+    function settlementType(item, source)
+    {
+        if (!item || typeof item !== 'object') return '';
+        if (source === 'geoapify')
+        {
+            const resultType = cleanText(item.result_type).toLowerCase();
+            const rawPlace = cleanText(item.datasource?.raw?.place).toLowerCase();
+            // Geoapify groups populated places under result_type=city.
+            // Explicit OSM metadata must not contradict that classification.
+            if (rawPlace && !settlementTypes.includes(rawPlace)) return '';
+            if (resultType === 'city') return rawPlace || 'city';
+            return (!resultType || resultType === 'unknown')
+                && settlementTypes.includes(rawPlace) ? rawPlace : '';
+        }
+        if (source === 'locationiq'
+            && cleanText(item.class).toLowerCase() === 'place')
+        {
+            const type = cleanText(item.type).toLowerCase();
+            return settlementTypes.includes(type) ? type : '';
+        }
+        return '';
+    }
+
+    function settlementIdentities(item, source)
+    {
+        const ids = [];
+        if (source === 'geoapify' && item.place_id)
+            ids.push('geoapify:' + cleanText(item.place_id));
+
+        const osm = source === 'geoapify' ? item.datasource?.raw : item;
+        const osmType = cleanText(osm?.osm_type).toLowerCase();
+        const osmId = cleanText(osm?.osm_id);
+        if (osmType && osmId) ids.push('osm:' + osmType + ':' + osmId);
+        return ids;
+    }
+
+    function sameSettlement(a, b)
+    {
+        if (a.identities.some(id => b.identities.includes(id))) return true;
+        // A shared name alone is not proof of identity. The fallback requires
+        // identical localized text, settlement type, context and nearby points.
+        const key = value => cleanText(value).normalize('NFKC').toLowerCase();
+        return a.type === b.type
+            && key(a.result.primary) === key(b.result.primary)
+            && key(a.result.context) === key(b.result.context)
+            && Math.abs(a.result.coordinates.lat - b.result.coordinates.lat) < 0.0015
+            && Math.abs(a.result.coordinates.lng - b.result.coordinates.lng) < 0.0015;
+    }
+
     function normalizeResult(item, index, source)
     {
+        if (!settlementType(item, source)) return null;
         const lat = Number(item?.lat);
         const lng = Number(item?.lon);
         if (!Number.isFinite(lat) || lat < -90 || lat > 90
@@ -78,9 +132,24 @@ const geneographGeocoder = (function ()
     {
         const items = source === 'geoapify' ? json?.results : json;
         if (!Array.isArray(items)) throw new Error('Invalid geocoding response');
-        return items.slice(0, limit)
-            .map((item, index) => normalizeResult(item, index, source))
-            .filter(Boolean);
+        const results = [];
+        const accepted = [];
+        for (const item of items)
+        {
+            const type = settlementType(item, source);
+            if (!type) continue;
+            const result = normalizeResult(item, results.length, source);
+            if (!result) continue;
+            const candidate = {
+                type, result, identities: settlementIdentities(item, source)
+            };
+            if (accepted.some(previous => sameSettlement(previous, candidate)))
+                continue;
+            accepted.push(candidate);
+            results.push(result);
+            if (results.length >= limit) break;
+        }
+        return results;
     }
 
     function providerKey(source)
@@ -119,12 +188,15 @@ const geneographGeocoder = (function ()
             url.searchParams.set('format', 'json');
             url.searchParams.set('apiKey', key);
             url.searchParams.set('lang', language);
+            url.searchParams.set('type', 'city');
         }
         else
         {
             url.searchParams.set('key', key);
             url.searchParams.set('q', query);
             url.searchParams.set('accept-language', language);
+            url.searchParams.set('tag', settlementTypes
+                .map(type => 'place:' + type).join(','));
         }
         url.searchParams.set('limit', String(limit));
         return url;
@@ -176,7 +248,10 @@ const geneographGeocoder = (function ()
         }
         try
         {
-            const response = await fetch(urlFor(source, query, key, limit, language), {
+            // Request a bounded candidate pool once; filter and deduplicate
+            // before applying the requested display limit.
+            const candidateLimit = Math.min(20, Math.max(10, limit * 3));
+            const response = await fetch(urlFor(source, query, key, candidateLimit, language), {
                 signal: requestSignal,
                 cache: 'no-store'
             });
