@@ -9,6 +9,8 @@ GeneoGraph is a static genealogy research prototype in `src/`: HTML, CSS and van
 Consult the relevant current sources before work:
 
 - `README.md`: setup, deployment overview and license.
+- `doc/documentation-architecture.md`: authoritative document ownership, status and maintenance rules.
+- `doc/Product_Vision.md`: product purpose and long-term direction, **not** current prototype functionality.
 - `src/index.html`: **authoritative stylesheet and script load order**.
 - `doc/source-map.md`: source ownership and dependency edges.
 - `doc/design-document.md`: prototype behavior, design and verification map; check claims against code.
@@ -17,6 +19,8 @@ Consult the relevant current sources before work:
 - `doc/git-branching-model.md` and `doc/git-commit-style.md`: **ChatGPT GitHub PR workflow only**, not local Codex.
 
 Read the related issue, PR and OpenSpec change before working on an existing task. Current implementation and approved product decisions take precedence over stale descriptions; surface contradictions instead of silently choosing an interpretation.
+
+When adding, moving or revising documentation, follow `doc/documentation-architecture.md`; keep requirements in their authoritative home instead of duplicating them here.
 
 ## 2. Agent workflows and permissions
 
