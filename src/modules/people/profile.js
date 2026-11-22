@@ -883,10 +883,11 @@ function renderProfileConnectedRecord(kind, item, full = false)
         return `${renderPhotoThumbnail(record, { className: 'profile-connected-media', label: item.title })}
             <div class="profile-connected-media-details">
                 ${paragraph(record.caption)}
-                <dl class="profile-connected-photo-details">
-                    <div><dt>${escapeHtml(t('Date'))}</dt><dd>${escapeHtml(item.date)}</dd></div>
-                    ${item.albumNames.length ? `<div><dt>${escapeHtml(t('Albums'))}</dt><dd>${item.albumNames.map(name => `<span class="profile-connected-album" data-user-content>${escapeHtml(name)}</span>`).join('')}</dd></div>` : ''}
-                </dl>
+                ${item.date || item.albumNames.length ? `
+                <dl class="archive-file-read-list archive-source-read-list profile-connected-photo-details">
+                    ${item.date ? `<div class="archive-file-read-row"><dt>${escapeHtml(t('Date'))}</dt><dd>${escapeHtml(item.date)}</dd></div>` : ''}
+                    ${item.albumNames.length ? `<div class="archive-file-read-row"><dt>${escapeHtml(t('Albums'))}</dt><dd>${item.albumNames.map(name => `<span class="profile-connected-album" data-user-content>${escapeHtml(name)}</span>`).join('')}</dd></div>` : ''}
+                </dl>` : ''}
             </div>`;
     }
     if (kind === 'archive')
@@ -925,10 +926,12 @@ function renderProfileConnectedRecord(kind, item, full = false)
             </div>
             ${canLoadMap ? '<div class="profile-connected-map" data-profile-place-map></div>' : ''}
         </div>
+        <div class="profile-connected-media-details">
             ${paragraph(point?.join(', '))}
             ${paragraph([...new Set(details)].join(' · '))}
             ${paragraph(record.description || record.notes)}
-            ${full && item.events.length ? `<ul>${item.events.map(event => `<li>${escapeHtml([profileConnectedPlaceEventLabel(event), formatGenealogyDateLabel(event.date)].filter(Boolean).join(' · '))}</li>`).join('')}</ul>` : meta}`;
+            ${full && item.events.length ? `<ul>${item.events.map(event => `<li>${escapeHtml([profileConnectedPlaceEventLabel(event), formatGenealogyDateLabel(event.date)].filter(Boolean).join(' · '))}</li>`).join('')}</ul>` : ''}
+        </div>`;
     }
     const references = [
         ...archiveFilesForSource(record.id).map(file => file.name),

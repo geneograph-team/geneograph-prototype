@@ -711,34 +711,28 @@
 }
 
 .profile-connected-media-details > p {
-    line-height: 1.5;
     color: var(--text-secondary);
+    font-size: 14px;
+    line-height: 1.5;
 }
 
+/* Match Source metadata rows for Photo dates and albums. */
 .profile-connected-photo-details {
-    display: flex;
-    flex-wrap: wrap;
-    gap: var(--space-3) var(--space-5);
     margin: var(--space-4) 0 0;
     padding-top: var(--space-3);
     border-top: 1px solid var(--border-default);
 }
 
-.profile-connected-photo-details dt,
-.profile-connected-media-details .profile-connected-file-meta {
-    color: var(--text-secondary);
-    font-size: 12px;
+.profile-connected-photo-details .archive-file-read-row dd {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-2);
 }
 
 .profile-connected-media-details .profile-connected-file-meta {
     margin: 0 0 4px;
-}
-
-.profile-connected-photo-details dd {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 4px;
-    margin: 4px 0 0;
+    font-size: 14px;
 }
 
 .profile-connected-album {
