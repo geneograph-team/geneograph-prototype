@@ -729,8 +729,8 @@
 
 /* Keep Photo spacing above the later shared Source list reset. */
 .profile-connected-media-details .profile-connected-photo-details {
-    margin: var(--space-4) 0 0;
-    padding-top: var(--space-5);
+    margin: 0 0;
+    padding-top: var(--space-3);
     border-top: 1px solid var(--border-default);
 }
 
