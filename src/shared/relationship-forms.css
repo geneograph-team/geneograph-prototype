@@ -1574,13 +1574,7 @@ body.mobile-person-details-open .relative-popover-body {
 .connect-person-results-panel {
     min-height: 0;
     display: grid;
-    grid-template-rows: auto minmax(0, 1fr);
-    gap: var(--space-2);
-}
-
-.connect-person-results-title {
-    color: var(--text-secondary);
-    font-weight: 800;
+    grid-template-rows: minmax(0, 1fr);
 }
 
 .connect-person-results {

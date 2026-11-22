@@ -727,6 +727,12 @@ function connectPersonSelectedValidation()
 {
     if (!connectPersonModalState.relationshipType) return { ok: false };
     if (!connectPersonModalState.selectedPersonId) return { ok: true };
+    if (connectPersonModalState.relationshipType === 'parent'
+        && !connectPersonModalState.parentFamilySelection)
+    {
+        return { ok: false, title: 'Select a parent family',
+            message: t('Choose whether to connect this parent alone or with a partner.') };
+    }
 
     return validateRelationshipConnection({
         anchorPersonId: connectPersonModalState.anchorPersonId,
@@ -770,10 +776,11 @@ function connectPersonDetailType()
         connectPersonModalState.selectedPersonId, type);
     if (pair.parentId && pair.childId)
     {
-        const otherParent = type === 'child'
+        const otherParent = ['parent', 'child'].includes(type)
             ? familyPartnerId(parentFamilyChoices(pair.parentId, 'child')
                 .find(choice => choice.value === connectPersonModalState.parentFamilySelection)?.family,
             pair.parentId) : '';
+        if (type === 'parent' && otherParent) return 'Unknown parentage';
         return biologicalParentConflict(pair.parentId, pair.childId, otherParent ? [otherParent] : [])
             || (otherParent && biologicalParentConflict(otherParent, pair.childId, [pair.parentId]))
             ? 'Adoptive' : 'Biological';
@@ -946,8 +953,9 @@ function renderConnectPersonModalHtml()
             }) : ''}
 
 
-            ${relationshipType && (relationshipType !== 'sibling' || selectedPerson
-                || parentIdsForPerson(anchor?.id || '').length)
+            ${relationshipType && (relationshipType !== 'parent' || selectedPerson)
+                && (relationshipType !== 'sibling' || selectedPerson
+                    || parentIdsForPerson(anchor?.id || '').length)
                 ? renderParentFamilySelector({
                 anchorPersonId: anchor?.id || '',
                 relationshipType,
@@ -966,7 +974,7 @@ function renderConnectPersonModalHtml()
 
           <section class="connect-person-main">
             <div class="field">
-              <label for="connectPersonSearch">Find person</label>
+              <label for="connectPersonSearch">${escapeHtml(t(resultTitle))}</label>
               <div class="connect-person-search-shell">
                 ${icon.search}
                 <input id="connectPersonSearch" data-connect-search value="${escapeHtml(connectPersonModalState.query)}" placeholder="Search people..." autocomplete="off">
@@ -974,7 +982,6 @@ function renderConnectPersonModalHtml()
             </div>
 
             <div class="connect-person-results-panel">
-              <div class="connect-person-results-title">${escapeHtml(resultTitle)}</div>
               ${renderConnectPersonResults()}
             </div>
 

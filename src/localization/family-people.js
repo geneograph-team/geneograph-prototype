@@ -247,6 +247,12 @@ const RU_UI_PEOPLE = {
     'The person could not be added. No changes were saved.': 'Не удалось добавить человека. Изменения не сохранены.',
     'These people have different recorded parents. Review their parents before connecting them as siblings.': 'У этих людей указаны разные родители. Проверьте родителей, прежде чем связывать их как братьев или сестёр.',
     'Choose a non-biological relationship type for this parent connection.': 'Для этой связи с родителем выберите небиологический тип родства.',
+    'Choose whether to connect this parent alone or with a partner.':
+        'Выберите, связать только этого родителя или обоих родителей из его семьи.',
+    'Only the selected person will be recorded as a parent.':
+        'Родителем ребёнка будет указан только выбранный человек.',
+    'Both people in the selected family will be recorded as parents of this child.':
+        'Оба человека из выбранной семьи будут указаны как родители этого ребёнка.',
     'Create unknown father': 'Создать неизвестного отца',
     'Create unknown mother': 'Создать неизвестную мать',
     'Create unknown parents': 'Создать неизвестных родителей',
