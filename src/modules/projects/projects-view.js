@@ -556,6 +556,9 @@ function renderOpenProject()
           </aside>
         </div>
       `;
+    const hero = main.querySelector('.project-hero');
+    if (hero?.clientWidth && hero?.clientHeight)
+        projectCoverPreviewRatio = hero.clientWidth / hero.clientHeight;
     document.getElementById('heroImportGedcom')?.addEventListener('click', openImportModal);
     document.getElementById('openDropzone')?.addEventListener('click', openImportModal);
     document.getElementById('deleteProject')?.addEventListener('click', () => openDeleteProjectConfirm(project.id));
@@ -633,11 +636,12 @@ function projectSettingsCoverSource(draft)
     const presetSource = projectCoverPresetImageSource(draft.cover);
     if (presetSource) return presetSource;
     if (draft.cover !== 'photo') return '';
-    return draft.coverSelection.uploadDraft?.src
+    return draft.coverSelection.coverImageSrc
+        || draft.coverSelection.uploadDraft?.src
+        || draft.coverSelection.imageSrc
         || (draft.coverSelection.photoId
             ? getPhoto(draft.coverSelection.photoId, { projectId: draft.projectId })?.src
-            : '')
-        || draft.coverSelection.imageSrc || '';
+            : '') || '';
 }
 
 function captureProjectSettingsFields()
@@ -660,7 +664,7 @@ function projectSettingsHasUnsavedChanges()
         || draft.description !== localizedDataFieldValue(project.desc)
         || draft.cover !== resolvedProjectCoverStyle(project)
         || (draft.cover === 'photo' && (draft.coverSelection.photoId || '') !== (project.coverPhotoId || ''))
-        || (draft.cover === 'photo' && (draft.coverSelection.imageSrc || '') !== (project.coverImageSrc || ''))
+        || (draft.cover === 'photo' && (draft.coverSelection.coverImageSrc || draft.coverSelection.imageSrc || '') !== (project.coverImageSrc || ''))
         || (draft.cover === 'photo' && Boolean(draft.coverSelection.uploadDraft))
         || draftPosition.x !== savedPosition.x
         || draftPosition.y !== savedPosition.y;
@@ -742,7 +746,7 @@ function renderProjectSettings(project)
             : t('Not created yet');
 
     const coverStyleAttr =
-        projectCoverStyleAttribute(
+        projectHeroPreviewStyleAttribute(
             coverStyle,
             projectSettingsCoverSource(draft),
             draft.coverSelection.position
@@ -772,7 +776,7 @@ function renderProjectSettings(project)
           <section class="project-settings-section project-settings-card project-settings-cover-card">
             <div class="project-settings-cover-heading"><h3>Cover image</h3><button class="project-cover-reset" type="button" id="projectCoverReset" hidden>Reset position</button></div>
             <div class="project-settings-section-body">
-              <div class="project-cover-preview ${coverStyle === 'tree' ? 'tree' : ''}" id="projectCoverPreview" style="${coverStyleAttr}" role="group" aria-label="Drag to position cover; use arrow keys to adjust"></div>
+              <div class="project-cover-preview ${coverStyle === 'tree' ? 'tree' : 'has-image-cover'}" id="projectCoverPreview" style="${coverStyleAttr}" role="group" aria-label="Drag to position cover; use arrow keys to adjust"><div class="project-cover-preview-label" aria-hidden="true"><strong>${escapeHtml(draft.name)}</strong><span>${escapeHtml(project.status || 'Local project')}</span></div></div>
               <div class="project-cover-options" role="group" aria-label="Cover style">
                 <button class="project-cover-option ${coverStyle === 'paper' ? 'active' : ''}" type="button" data-cover-style="paper">Archival paper</button>
                 <button class="project-cover-option ${coverStyle === 'tree' ? 'active' : ''}" type="button" data-cover-style="tree">Family tree</button>
