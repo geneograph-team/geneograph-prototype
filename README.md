@@ -16,7 +16,7 @@ Static browser prototype for genealogy research. Open `src/index.html` directly 
 [Documentation architecture](doc/documentation-architecture.md) defines which documents are authoritative and when to update them.
 
 - [AGENTS.md](AGENTS.md): agent permissions, coding and verification workflow.
-- [Product vision](doc/Product_Vision.md): product purpose and long-term direction, not the prototype's implemented feature list.
+- [Product vision](doc/product-vision.md): product purpose and long-term direction, not the prototype's implemented feature list.
 - [Design guide](doc/design-document.md): prototype interaction and UX principles; [source map](doc/source-map.md): code ownership and load-order dependencies.
 - [Project data contract](doc/project-data-contract.md): evolving canonical record model; check active issues for unfinished validation.
 - [OpenSpec](openspec/README.md): verified feature requirements, active changes and history.

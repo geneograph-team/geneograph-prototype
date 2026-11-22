@@ -2,5 +2,5 @@ schema: spec-driven
 
 context: |
   GeneoGraph is a static browser genealogy prototype in src/, with seeded in-memory project data, English/Russian localization, no build step or backend, and direct file:// compatibility.
-  Product direction: doc/Product_Vision.md (not necessarily current functionality). Agent workflow and risk-based QA: AGENTS.md. Document ownership: doc/documentation-architecture.md. UX context: doc/design-document.md. Code owners: doc/source-map.md.
+  Product direction: doc/product-vision.md (not necessarily current functionality). Agent workflow and risk-based QA: AGENTS.md. Document ownership: doc/documentation-architecture.md. UX context: doc/design-document.md. Code owners: doc/source-map.md.
   openspec/specs/ holds verified current behavior; openspec/changes/ holds focused active work. Follow openspec/README.md for completion and archiving. Verify behavioral claims against code and agreed issues; report unperformed QA accurately.

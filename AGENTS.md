@@ -10,7 +10,7 @@ Consult the relevant current sources before work:
 
 - `README.md`: setup, deployment overview and license.
 - `doc/documentation-architecture.md`: authoritative document ownership, status and maintenance rules.
-- `doc/Product_Vision.md`: product purpose and long-term direction, **not** current prototype functionality.
+- `doc/product-vision.md`: product purpose and long-term direction, **not** current prototype functionality.
 - `src/index.html`: **authoritative stylesheet and script load order**.
 - `doc/source-map.md`: source ownership and dependency edges.
 - `doc/design-document.md`: prototype behavior, design and verification map; check claims against code.

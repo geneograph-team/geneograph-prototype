@@ -16,7 +16,7 @@
 | --- | --- | --- |
 | `README.md` | Repository introduction, basic run instructions and navigation to documentation | Detailed requirements or implementation history |
 | `AGENTS.md` | Agent permissions, investigation, implementation, verification and protected operations | Product roadmap, exhaustive feature descriptions or duplicated specifications |
-| `doc/Product_Vision.md` | Product purpose, audience, principles and long-term possibilities | Claims that the prototype already ships every described capability |
+| `doc/product-vision.md` | Product purpose, audience, principles and long-term possibilities | Claims that the prototype already ships every described capability |
 | `doc/design-document.md` | Current prototype overview, shared UX conventions, interaction principles and high-level capability boundaries | Authoritative field-level data schema, repeated agent policies or issue-by-issue implementation history |
 | `doc/source-map.md` | Code ownership, dependency boundaries and non-obvious load-order constraints | Historical QA snapshots or feature acceptance checklists |
 | `doc/project-data-contract.md` | Canonical project-owned records, IDs, references, derived data and serialization boundaries | UI layout requirements; unverified schema completeness |
@@ -33,7 +33,7 @@ Component-local documentation, such as `src/core/palette/README.md`, may explain
 
 ## Status and source-of-truth rules
 
-- **Product direction:** `doc/Product_Vision.md` describes desired future experiences and principles. It does not establish a feature as currently implemented.
+- **Product direction:** `doc/product-vision.md` describes desired future experiences and principles. It does not establish a feature as currently implemented.
 - **Approved work in progress:** GitHub issues capture scope, decisions and acceptance criteria; focused active OpenSpec changes capture proposed behavioral deltas. They do not become current specs until verified.
 - **Implemented behavior:** Source code is evidence of what actually runs; `openspec/specs/` records verified current capability requirements. When the two disagree, investigate and report the discrepancy rather than silently declaring either correct.
 - **Domain contracts:** `doc/project-data-contract.md` defines intended data invariants. Clearly label incomplete or provisional validation (notably ongoing project-data cleanup) until verified.
@@ -50,7 +50,7 @@ If two current documents conflict, find the authoritative owner in the table, ch
 | Canonical record fields, IDs, relationships, import/export boundaries change | `doc/project-data-contract.md` and affected specs; mark any incomplete validation |
 | Source locations, module owners or essential load order change | `doc/source-map.md`; `README.md` only when its orientation becomes incorrect |
 | Agent permissions, QA policy or protected workflow changes | `AGENTS.md`; repair directly conflicting references elsewhere |
-| A long-term product decision is approved | `doc/Product_Vision.md` if it changes durable direction; track near-term implementation separately in issues |
+| A long-term product decision is approved | `doc/product-vision.md` if it changes durable direction; track near-term implementation separately in issues |
 | External provider setup, restrictions or release checks change | Relevant operational guide; verify volatile external claims against current provider material |
 | Files are moved or renamed | Update links and path mentions in affected maintained docs, including `README.md` and `openspec/config.yaml` |
 | Work is finished and requirements are verified | Follow `openspec/README.md` closeout; do not claim unperformed browser QA passed or archive unresolved material work |
