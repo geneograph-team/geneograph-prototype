@@ -1130,9 +1130,11 @@ function defaultParentFamilySelection(
         choice.value !== SINGLE_PARENT_FAMILY_CHOICE
     );
 
-    // Do not attach a recorded partner without an explicit family choice.
-    if (type === 'parent') return partnerChoices.length
-        ? '' : choices[0]?.value || '';
+    // Default to both parents only when the eligible partner family is unique.
+    // With multiple families, require the researcher to choose explicitly.
+    if (type === 'parent') return partnerChoices.length === 1
+        ? partnerChoices[0].value
+        : partnerChoices.length ? '' : choices[0]?.value || '';
 
     if (partnerChoices.length === 1)
     {

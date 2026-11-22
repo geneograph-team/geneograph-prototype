@@ -3,7 +3,11 @@
 ## Requirements
 
 ### Requirement: Reciprocal explicit family choice
-When connecting an existing Parent to a child, the UI SHALL present that parent's eligible partner families and a separate connect-parent-only choice. A selected family SHALL plainly identify that both people will become recorded parents. Multiple eligible families SHALL require deliberate selection.
+When connecting an existing Parent to a child, the UI SHALL present that parent's eligible partner families and a separate connect-parent-only choice. A selected family SHALL plainly identify that both people will become recorded parents. Exactly one eligible partner family SHALL default to “Both parents” and remain editable; multiple eligible families SHALL require deliberate selection.
+
+#### Scenario: Parent with one partner family
+- **WHEN** a researcher selects a parent who has one eligible partner family
+- **THEN** that family is selected as “Both parents” by default, with the parent-only alternative still available
 
 #### Scenario: Parent with two partner families
 - **WHEN** a researcher selects a parent who has two eligible partner families
