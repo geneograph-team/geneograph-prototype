@@ -1476,6 +1476,8 @@ function connectionPairForRelationship(anchorPersonId, relativePersonId, relatio
 
     return {
         type,
+        personAId: anchorId,
+        personBId: relativeId
     };
 }
 
