@@ -131,6 +131,7 @@ const RU_UI_GENEO = {
     'Change Tree match': 'Изменить совпадение в древе',
     'fact difference': 'различие в фактах',
     'fact differences': 'различий в фактах',
+    'Unknown parentage': 'Тип родства неизвестен',
     'Facts': 'Факты',
     'family connection': 'родственная связь',
     'family connections': 'родственных связей',

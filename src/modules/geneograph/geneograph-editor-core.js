@@ -3863,7 +3863,7 @@ function normalizeGeneographBoardRecord(board, projectPeople)
             (Array.isArray(family.children) ? family.children : []).forEach(child =>
             {
                 if (!child || !personIds.has(child.personId) || children.some(item => item.personId === child.personId)) return;
-                children.push({ personId: child.personId, parentageType: String(child.parentageType || 'biological') });
+                children.push({ personId: child.personId, parentageType: String(child.parentageType || 'unknown') });
             });
             if (!partnerIds.length && !children.length) return;
             familyIds.add(family.id);

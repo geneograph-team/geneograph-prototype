@@ -1327,60 +1327,6 @@ function placeInputDisplayValue(placeId, fallbackText = '')
     return cleanEditFieldValue(getPlaceDisplay(placeId)) || cleanEditFieldValue(fallbackText);
 }
 
-function syncPeopleRecordToSampleData(record)
-{
-    const person = getPerson(record?.id);
-    const birthPlace = resolvePlaceInputValue(record.birthPlace, person.birth?.placeId);
-    const deathPlace = resolvePlaceInputValue(record.deathPlace, person.death?.placeId);
-    if (!person) return;
-    person.names.first = record.first || person.names.first;
-    person.names.last = record.surname || person.names.last;
-    rebuildPersonDisplayName(person);
-    person.gender = record.gender || person.gender;
-    person.livingStatus = record.living || person.livingStatus;
-    person.birth = {
-        ...normalizeGenealogyDateInput({
-            date: record.birth,
-            dateLabel: record.birth,
-            dateType: peopleProfileDetailsFor(record).birthDateType || person.birth?.dateType || 'Unknown',
-            calendar: person.birth?.calendar,
-            originalText: record.birth
-        }, 'Unknown'),
-        placeId: birthPlace.placeId || cleanDatePlaceId(person.birth?.placeId),
-        placeText: birthPlace.placeText || person.birth?.placeText || '',
-        address: person.birth?.address || ''
-    };
-    if (person.livingStatus === 'Deceased')
-    {
-        person.death = {
-            ...normalizeGenealogyDateInput({
-                date: record.death,
-                dateLabel: record.death,
-                dateType: peopleProfileDetailsFor(record).deathDateType || person.death?.dateType || 'Unknown',
-                calendar: person.death?.calendar,
-                originalText: record.death
-            }, 'Unknown'),
-            placeId: deathPlace.placeId,
-            placeText: deathPlace.placeText,
-            reason: person.death?.reason || '',
-            burialPlaceId: cleanDatePlaceId(person.death?.burialPlaceId),
-            burialPlaceText: person.death?.burialPlaceText || ''
-        };
-    }
-    else
-    {
-        person.death = {
-            ...emptyGenealogyDate('Exact date'),
-            placeId: null,
-            reason: '',
-            burialPlaceId: null
-        };
-    }
-    person.meta.updated = record.updated || person.meta.updated;
-    rebuildSampleEventsAndPruneSourceLinks();
-}
-
-
 const topbar = document.getElementById('topbar');
 const sidebar = document.getElementById('sidebar');
 const main = document.getElementById('main');

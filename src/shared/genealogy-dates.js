@@ -412,32 +412,3 @@ function genealogyAgeRange(birth, occurrence = undefined)
     const low = Math.max(0, age(a.max, b.min)), high = age(a.min, b.max);
     return low === high ? low : `${low}–${high}`;
 }
-
-function normalizeAllGenealogyDateRecords()
-{
-    const personDates = person =>
-    {
-        for (const key of ['birth', 'death']) person[key] = normalizeGenealogyDateInput(person[key]);
-        for (const event of person.events || []) if (event.date) event.date = normalizeGenealogyDateInput(event.date);
-        for (const attribute of person.attributes || [])
-            for (const key of ['date', 'fromDate', 'toDate']) if (attribute[key]) attribute[key] = normalizeGenealogyDateInput(attribute[key]);
-    };
-    (sampleData.people || []).forEach(personDates);
-    for (const family of sampleData.families || [])
-        for (const event of family.events || []) if (event.date) event.date = normalizeGenealogyDateInput(event.date);
-    for (const photo of sampleData.media || []) photo.date = normalizeGenealogyDateInput(photo.date);
-    for (const file of sampleData.archiveFiles || [])
-        if (file.documentDate) file.documentDate = normalizeGenealogyDateInput(file.documentDate.value
-            ? { date: file.documentDate.value, dateType: file.documentDate.type } : file.documentDate);
-    for (const source of sampleData.sources || [])
-    {
-        const value = normalizeGenealogyDateInput(source.accessedDate);
-        source.accessedDate = value.state === 'empty' ? '' : value;
-    }
-    for (const board of sampleData.boards || [])
-    {
-        (board.diagram?.people || []).forEach(personDates);
-        for (const family of board.diagram?.families || [])
-            for (const event of family.events || []) if (event.date) event.date = normalizeGenealogyDateInput(event.date);
-    }
-}

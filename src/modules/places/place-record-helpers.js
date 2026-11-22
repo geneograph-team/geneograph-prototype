@@ -218,13 +218,13 @@ function recordHasPlaceReference(record, placeId)
 function clearStructuredPlaceReferences(record, placeId)
 {
     if (!record || !placeId) return;
-    ['placeId', 'birthPlaceId', 'deathPlaceId', 'burialPlaceId'].forEach(key =>
+    ['placeId', 'birthPlaceId', 'deathPlaceId', 'burialPlaceId', 'documentPlaceId'].forEach(key =>
     {
         if (record[key] === placeId) record[key] = null;
     });
-    if (Array.isArray(record.placeIds))
+    for (const key of ['placeIds', 'linkedPlaceIds'])
     {
-        record.placeIds = record.placeIds.filter(id => id !== placeId);
+        if (Array.isArray(record[key])) record[key] = record[key].filter(id => id !== placeId);
     }
 }
 
@@ -354,7 +354,7 @@ function mergeSavedPlaces(keepId, removeId, { aliases = true, locationChoice, fi
     (sampleData.media || []).forEach(record => retargetStructuredPlaceReferences(record, removeId, keepId));
     (sampleData.archiveFiles || []).forEach(file =>
     {
-        if (![file.documentPlaceId, file.placeId, ...(file.linkedPlaceIds || []), ...(file.placeIds || [])].includes(removeId)) return;
+        if (!archiveFilePlaceIds(file).includes(removeId)) return;
         const documentPlace = archiveDocumentPlace(file);
         const related = archiveFilePlaceIds(file);
         retargetStructuredPlaceReferences(file, removeId, keepId);
@@ -475,7 +475,7 @@ function getArchiveFilesForPlace(placeId, { projectId = currentProjectId(), incl
     return (sampleData.archiveFiles || []).filter(file =>
         file.projectId === projectId
         && (includeDeleted || !file.deleted)
-        && (recordHasPlaceReference(file, placeId) || linkedFileIds.has(file.id))
+        && (archiveFilePlaceIds(file).includes(placeId) || linkedFileIds.has(file.id))
     );
 }
 

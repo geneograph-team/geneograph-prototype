@@ -1,17 +1,16 @@
 function centralFamilyRecords()
 {
-    sampleData.families = Array.isArray(sampleData.families) ? sampleData.families : [];
     return sampleData.families;
 }
 
 function familyPartnerAId(family)
 {
-    return family?.partnerAId || family?.partner1Id || family?.personAId || '';
+    return family?.partnerAId || '';
 }
 
 function familyPartnerBId(family)
 {
-    return family?.partnerBId || family?.partner2Id || family?.personBId || '';
+    return family?.partnerBId || '';
 }
 
 function familyPartnerRole(family, personId)
@@ -20,9 +19,9 @@ function familyPartnerRole(family, personId)
     const partnerA = familyPartnerAId(family);
     const partnerB = familyPartnerBId(family);
     const hint = partnerA === personId
-        ? family.partnerARoleHint || family.partner1RoleHint || family.personARoleHint || family.husbandRoleHint || ''
+        ? family.partnerARoleHint || ''
         : partnerB === personId
-            ? family.partnerBRoleHint || family.partner2RoleHint || family.personBRoleHint || family.wifeRoleHint || ''
+            ? family.partnerBRoleHint || ''
             : '';
     const text = String(hint || '').trim().toLowerCase();
     if (['husb', 'husband', 'father', 'male', 'dad'].includes(text)) return 'father';
@@ -49,8 +48,8 @@ function normalizedFamilyPair(family)
 {
     const rawA = familyPartnerAId(family);
     const rawB = familyPartnerBId(family);
-    let fatherId = family.fatherId || family.husbandId || familyFatherId(family);
-    let motherId = family.motherId || family.wifeId || familyMotherId(family);
+    let fatherId = familyFatherId(family);
+    let motherId = familyMotherId(family);
     const ids = [rawA, rawB].filter(Boolean);
 
     if (!fatherId && !motherId && ids.length === 2)
@@ -68,11 +67,6 @@ function normalizedFamilyPair(family)
     return { fatherId: fatherId || '', motherId: motherId || '' };
 }
 
-function familyPairKey(fatherId = '', motherId = '')
-{
-    return `${fatherId || ''}|${motherId || ''}`;
-}
-
 function familyIncludesPerson(family, personId)
 {
     return familyPartnerAId(family) === personId || familyPartnerBId(family) === personId;
@@ -88,7 +82,8 @@ const PARENT_CHILD_RELATIONSHIP_TYPES = Object.freeze([
     'Adoptive',
     'Step',
     'Foster',
-    'Guardian'
+    'Guardian',
+    'Unknown parentage'
 ]);
 
 function normalizeParentChildRelationshipType(
@@ -101,7 +96,7 @@ function normalizeParentChildRelationshipType(
         normalized
     )
         ? normalized
-        : 'Biological';
+        : 'Unknown parentage';
 }
 
 function sanitizeParentChildTypes(types)
@@ -123,154 +118,6 @@ function sanitizeParentChildTypes(types)
                 normalizeParentChildRelationshipType(value)
             ])
     );
-}
-
-function buildFamiliesFromRelationshipRecords(records = [])
-{
-    const source = Array.isArray(records) ? records : [];
-    const familyMap = new Map();
-    const pairToFamilyId = new Map();
-    const parentChildRecords = source.filter(record => record?.type === 'parentChild');
-
-    const rememberFamily = family =>
-    {
-        const pair = normalizedFamilyPair(family);
-        const normalized = {
-            ...family,
-            type: 'family',
-            fatherId: pair.fatherId,
-            motherId: pair.motherId,
-            partnerAId: pair.fatherId || '',
-            partnerBId: pair.motherId || '',
-            partner1Id: pair.fatherId || '',
-            partner2Id: pair.motherId || '',
-            personAId: pair.fatherId || '',
-            personBId: pair.motherId || '',
-            partnerARoleHint: pair.fatherId ? 'HUSB' : '',
-            partnerBRoleHint: pair.motherId ? 'WIFE' : '',
-            childIds: [...new Set([...(family.childIds || []), ...(family.childrenIds || [])].filter(Boolean))],
-            events: Array.isArray(family.events) ? family.events : [],
-            attributes: Array.isArray(family.attributes) ? family.attributes : [],
-            notes: Array.isArray(family.notes) ? family.notes : [],
-            citations: Array.isArray(family.citations) ? family.citations : [],
-            mediaIds: Array.isArray(family.mediaIds) ? family.mediaIds : [],
-            parentChildTypes: sanitizeParentChildTypes(
-                family.parentChildTypes
-            ),
-        };
-        normalized.relationshipType = relationshipTypeFromLegacy(normalized);
-        normalized.relationshipStatus = normalized.relationshipStatus || 'active';
-        normalized.gedcomXref = normalized.gedcomXref || `@F${normalized.id.replace(/[^a-z0-9]/gi, '').toUpperCase()}@`;
-        const key = familyPairKey(normalized.fatherId, normalized.motherId);
-        const existingId = (normalized.fatherId || normalized.motherId) ? pairToFamilyId.get(key) : '';
-        if (existingId && existingId !== normalized.id && familyMap.has(existingId))
-        {
-            const existing = familyMap.get(existingId);
-            existing.childIds = [...new Set([...(existing.childIds || []), ...(normalized.childIds || [])])];
-            existing.events = [...(existing.events || []), ...(normalized.events || [])];
-            existing.attributes = [...(existing.attributes || []), ...(normalized.attributes || [])];
-            existing.notes = [...(existing.notes || []), ...(normalized.notes || [])];
-            existing.citations = [...(existing.citations || []), ...(normalized.citations || [])];
-            existing.mediaIds = [...new Set([...(existing.mediaIds || []), ...(normalized.mediaIds || [])])];
-            existing.parentChildTypes = {
-                ...sanitizeParentChildTypes(
-                    existing.parentChildTypes
-                ),
-                ...sanitizeParentChildTypes(
-                    normalized.parentChildTypes
-                )
-            };
-            return existing;
-        }
-        familyMap.set(normalized.id, normalized);
-        if ((normalized.fatherId || normalized.motherId) && !pairToFamilyId.has(key)) pairToFamilyId.set(key, normalized.id);
-        return normalized;
-    };
-
-    source.filter(record => isFamilyRelationship(record)).forEach(record =>
-    {
-        const partnerAId = relationshipPartnerAId(record);
-        const partnerBId = relationshipPartnerBId(record);
-        const id = record.id || relationshipIdForPartners(partnerAId, partnerBId);
-        rememberFamily({ ...record, id, partnerAId, partnerBId, partner1Id: partnerAId, partner2Id: partnerBId, personAId: partnerAId, personBId: partnerBId });
-    });
-
-    const parentLinksByChild = new Map();
-    parentChildRecords.forEach(link =>
-    {
-        if (!link.parentId || !link.childId) return;
-        if (!parentLinksByChild.has(link.childId)) parentLinksByChild.set(link.childId, { childId: link.childId, projectId: link.projectId, fatherId: '', motherId: '' });
-        const group = parentLinksByChild.get(link.childId);
-        const role = String(link.parentRole || getPerson(link.parentId)?.gender || '').toLowerCase();
-        if (role === 'mother' || role === 'female') group.motherId = link.parentId;
-        else group.fatherId = link.parentId;
-    });
-
-    const ensureParentFamily = group =>
-    {
-        const key = familyPairKey(group.fatherId, group.motherId);
-        let familyId = pairToFamilyId.get(key);
-        if (!familyId)
-        {
-            const idBits = [group.fatherId || 'unknown-father', group.motherId || 'unknown-mother', group.childId].join('-');
-            familyId = `fam-${idBits}`;
-            const family = rememberFamily({
-                id: familyId,
-                projectId: group.projectId,
-                type: 'family',
-                fatherId: group.fatherId,
-                motherId: group.motherId,
-                partnerAId: group.fatherId || '',
-                partnerBId: group.motherId || '',
-                relationshipType: 'Unknown relationship',
-                relationshipStatus: 'active',
-                childIds: []
-            });
-            pairToFamilyId.set(key, family.id);
-        }
-        const family = familyMap.get(familyId);
-        if (family && !family.childIds.includes(group.childId)) family.childIds.push(group.childId);
-    };
-
-    parentLinksByChild.forEach(ensureParentFamily);
-
-    const preferredChildFamily = new Map();
-    Array.from(familyMap.values()).forEach(family =>
-    {
-        family.childIds = (family.childIds || []).filter(childId =>
-        {
-            if (!preferredChildFamily.has(childId))
-            {
-                preferredChildFamily.set(childId, family.id);
-                return true;
-            }
-            return preferredChildFamily.get(childId) === family.id;
-        });
-    });
-
-    return Array.from(familyMap.values());
-}
-
-function syncFamilyReciprocalLinks()
-{
-    sampleData.people.forEach(person =>
-    {
-        person.familyAsSpouseIds = [];
-        person.familyAsChildIds = [];
-    });
-    centralFamilyRecords().forEach(family =>
-    {
-        [familyPartnerAId(family), familyPartnerBId(family)].filter(Boolean).forEach(personId =>
-        {
-            const person = getPerson(personId);
-            if (person && !person.familyAsSpouseIds.includes(family.id)) person.familyAsSpouseIds.push(family.id);
-        });
-        (family.childIds || []).forEach(personId =>
-        {
-            const person = getPerson(personId);
-            if (person && !person.familyAsChildIds.includes(family.id)) person.familyAsChildIds.push(family.id);
-        });
-    });
 }
 
 function uniquePeopleById(people)
@@ -342,12 +189,12 @@ function isFamilyRelationship(rel)
 
 function relationshipPartnerAId(rel)
 {
-    return rel?.partnerAId || rel?.partner1Id || rel?.personAId || '';
+    return rel?.partnerAId || '';
 }
 
 function relationshipPartnerBId(rel)
 {
-    return rel?.partnerBId || rel?.partner2Id || rel?.personBId || '';
+    return rel?.partnerBId || '';
 }
 
 function relationshipIncludesPerson(rel, personId)
@@ -535,8 +382,7 @@ function buildPersonRelationshipGraph(
             const childIds =
                 [
                     ...new Set([
-                        ...(family.childIds || []),
-                        ...(family.childrenIds || [])
+                        ...(family.childIds || [])
                     ])
                 ].filter(Boolean);
 
@@ -603,7 +449,7 @@ function partnerRelationshipLabel(
         edge?.family;
 
     const relationshipType =
-        relationshipTypeFromLegacy(
+        familyRelationshipType(
             family
         );
 
@@ -1278,13 +1124,9 @@ function relationshipTypeLabel(type)
     return value || 'Partner';
 }
 
-function relationshipTypeFromLegacy(rel)
+function familyRelationshipType(family)
 {
-    if (rel?.relationshipType) return rel.relationshipType;
-    const label = String(rel?.label || '').toLowerCase();
-    if (label.includes('spouse') || label.includes('married')) return 'Married';
-    if (label.includes('former')) return 'Former partner';
-    return 'Partner';
+    return family?.relationshipType || 'Unknown relationship';
 }
 
 function relationshipEventByTag(rel, tag)

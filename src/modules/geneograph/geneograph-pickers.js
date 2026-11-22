@@ -1967,19 +1967,19 @@ function connectGeneographCreatedRelative(
         {
             const alreadyLinked = family.children.some(child => child.personId === anchorPersonId);
             addGeneographChildToFamily(family.id, anchorPersonId, { nodeId: anchorNode.id, port: 'top' });
-            if (!alreadyLinked) family.children.find(child => child.personId === anchorPersonId).parentageType = configuration.detailType.toLowerCase();
+            if (!alreadyLinked) family.children.find(child => child.personId === anchorPersonId).parentageType = geneoBoardParentageValue(configuration.detailType);
             return;
         }
         const already = family.children.some(child => child.personId === relativePersonId);
         addGeneographChildToFamily(family.id, relativePersonId, { nodeId: relativeNode.id, port: 'top' });
-        if (!already) family.children.find(child => child.personId === relativePersonId).parentageType = configuration.detailType.toLowerCase();
+        if (!already) family.children.find(child => child.personId === relativePersonId).parentageType = geneoBoardParentageValue(configuration.detailType);
         return;
     }
 
     if (category === 'parent')
     {
         const candidateParent = geneoFirstParentForAddedParent(anchorNode, relativePersonId);
-        const firstParent = candidateParent && (!configuration || candidateParent.family.children.find(child => child.personId === anchorPersonId)?.parentageType === configuration.detailType.toLowerCase()) ? candidateParent : null;
+        const firstParent = candidateParent && (!configuration || candidateParent.family.children.find(child => child.personId === anchorPersonId)?.parentageType === geneoBoardParentageValue(configuration.detailType)) ? candidateParent : null;
         if (firstParent)
         {
             const firstNode = firstParent.parentNode;
@@ -1991,8 +1991,8 @@ function connectGeneographCreatedRelative(
             );
             const child = firstParent.family.children.find(item => item.personId === anchorPersonId);
             if (!family.children.some(item => item.personId === anchorPersonId))
-                family.children.push(child ? { ...child } : { personId: anchorPersonId, parentageType: 'biological' });
-            if (configuration) family.children.find(item => item.personId === anchorPersonId).parentageType = configuration.detailType.toLowerCase();
+                family.children.push(child ? { ...child } : { personId: anchorPersonId, parentageType: 'unknown' });
+            if (configuration) family.children.find(item => item.personId === anchorPersonId).parentageType = geneoBoardParentageValue(configuration.detailType);
             firstParent.connection.familyId = family.id;
             firstParent.connection.source = { familyId: family.id, port: 'bottom' };
             firstParent.connection.route = { mode: 'auto', waypoints: [] };
@@ -2013,7 +2013,7 @@ function connectGeneographCreatedRelative(
                 port: 'top'
             }
         );
-        if (configuration) family.children.find(item => item.personId === anchorPersonId).parentageType = configuration.detailType.toLowerCase();
+        if (configuration) family.children.find(item => item.personId === anchorPersonId).parentageType = geneoBoardParentageValue(configuration.detailType);
 
         return;
     }

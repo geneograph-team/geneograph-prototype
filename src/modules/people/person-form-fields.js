@@ -163,7 +163,7 @@ function editPersonFormValues(person)
 
         deathDate: editDateValue(person?.death),
         deathPlace: editPlaceValue(person?.death?.placeId, person?.death?.placeText),
-        deathReason: cleanEditFieldValue(person?.death?.reason),
+        deathReason: cleanEditFieldValue(person?.death?.cause),
         burialPlace: editPlaceValue(person?.death?.burialPlaceId, person?.death?.burialPlaceText)
     };
 }
@@ -457,7 +457,7 @@ function addPersonAddedFactsFromPerson(person)
     const facts = [];
     if (cleanEditFieldValue(person.names?.prefix || details.prefix)) facts.push('prefix');
     if (cleanEditFieldValue(person.names?.suffix || details.suffix)) facts.push('suffix');
-    if (cleanEditFieldValue(person.death?.cause || person.death?.reason)) facts.push('causeOfDeath');
+    if (cleanEditFieldValue(person.death?.cause)) facts.push('causeOfDeath');
     if (editPlaceValue(person.death?.burialPlaceId) || cleanEditFieldValue(person.death?.burialPlaceText) || hasGenealogyDateValue(personEventByTag(person, 'BURI')?.date)) facts.push('burialPlace');
     if (cleanEditFieldValue(person.profile?.alternativeNames || details.alternativeNames)) facts.push('alternativeNames');
     if (person.attributes.some(record => record.tag === 'EDUC')) facts.push('education');
@@ -504,7 +504,7 @@ function addPersonFactCardHtml(factId, person = null)
     }
     if (factId === 'causeOfDeath')
     {
-        return fieldWrap(`<div class="field full"><label for="addPersonFactCauseOfDeath">Cause of death</label><input id="addPersonFactCauseOfDeath" value="${escapeHtml(cleanEditFieldValue(death.reason || death.cause))}" placeholder="Cause or reason"></div>`);
+        return fieldWrap(`<div class="field full"><label for="addPersonFactCauseOfDeath">Cause of death</label><input id="addPersonFactCauseOfDeath" value="${escapeHtml(cleanEditFieldValue(death.cause))}" placeholder="Cause or reason"></div>`);
     }
     if (factId === 'burialPlace')
     {

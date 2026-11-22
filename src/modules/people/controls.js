@@ -41,10 +41,10 @@ function deletePeopleRecords(personIds)
         'person',
         [...deletedIds]
     );
-    const partnerAFields = ['fatherId', 'husbandId', 'partnerAId', 'partner1Id', 'personAId'];
-    const partnerBFields = ['motherId', 'wifeId', 'partnerBId', 'partner2Id', 'personBId'];
-    const partnerAHints = ['partnerARoleHint', 'partner1RoleHint', 'personARoleHint', 'husbandRoleHint'];
-    const partnerBHints = ['partnerBRoleHint', 'partner2RoleHint', 'personBRoleHint', 'wifeRoleHint'];
+    const partnerAFields = ['partnerAId'];
+    const partnerBFields = ['partnerBId'];
+    const partnerAHints = ['partnerARoleHint'];
+    const partnerBHints = ['partnerBRoleHint'];
 
     const now = new Date().toISOString();
     sampleData.media.forEach(photo =>
@@ -108,7 +108,7 @@ function deletePeopleRecords(personIds)
                 .filter(([key]) => !key.split('|').some(personId => deletedIds.has(personId)))
         );
 
-        return syncFamilyPartnerAliases(family);
+        return family;
     }).filter(family =>
     {
         const memberIds = new Set([
@@ -145,7 +145,6 @@ function deletePeopleRecords(personIds)
     if (!getPerson(state.selectedPersonId)) state.selectedPersonId = fallbackId;
     if (deletedIds.has(state.treeCenterTargetId)) state.treeCenterTargetId = fallbackId;
 
-    syncFamilyReciprocalLinks();
     rebuildSampleEventsAndPruneSourceLinks();
     markPrototypeSessionEdited();
     closeModal();

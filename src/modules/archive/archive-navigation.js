@@ -32,28 +32,9 @@ function archiveFilePersonIds(
     );
 }
 
-function archiveFilePlaceIds(
-    file
-)
+function archiveFilePlaceIds(file)
 {
-    const documentPlace =
-        archiveDocumentPlace(
-            file
-        );
-
-    return archiveUniqueIds([
-        documentPlace.placeId,
-
-        ...(
-            file?.linkedPlaceIds
-          || []
-        ),
-
-        ...(
-            file?.placeIds
-          || []
-        )
-    ]);
+    return archiveUniqueIds([file?.documentPlaceId, ...(file?.linkedPlaceIds || [])].filter(Boolean));
 }
 
 function archiveSetFilePlaces(file, placeIds, { resolveLegacy = false } = {})
@@ -65,10 +46,10 @@ function archiveSetFilePlaces(file, placeIds, { resolveLegacy = false } = {})
         : '';
     const matchedLegacy = ids.some(id => normalizePlaceLookupText(getPlace(id)?.name || '')
         === normalizePlaceLookupText(legacyText));
-    file.linkedPlaceIds = [...ids];
-    file.placeIds = [...ids];
-    file.documentPlaceId = null;
-    file.documentPlaceText = ((resolveLegacy && ids.length) || matchedLegacy) ? '' : legacyText;
+    const documentPlaceId = ids.includes(file.documentPlaceId) ? file.documentPlaceId : null;
+    const documentPlaceText = documentPlaceId ? file.documentPlaceText
+        : ((resolveLegacy && ids.length) || matchedLegacy) ? '' : legacyText;
+    archiveApplyDocumentPlace(file, documentPlaceId, documentPlaceText, ids);
     file.updatedAt = new Date().toISOString();
     file.updated = 'Just now';
     return true;

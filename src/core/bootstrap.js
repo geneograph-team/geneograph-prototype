@@ -67,10 +67,8 @@ main.addEventListener('click', e =>
         return;
     }
 
-    normalizeCentralNoteRelationships();
 });
 
-normalizeAllGenealogyDateRecords();
 rebuildSampleEventsAndPruneSourceLinks();
 render();
 maybeOfferGeneoProductTour();

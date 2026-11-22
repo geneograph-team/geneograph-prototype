@@ -56,7 +56,7 @@ function activeTreeMarriages(
         {
             const relationshipType =
                 cleanTreeNamePart(
-                    relationshipTypeFromLegacy(
+                    familyRelationshipType(
                         family
                     )
                 );
@@ -354,7 +354,6 @@ function getPeopleRecordsFromSampleData(
 
 function getTreeFamiliesFromSampleData(projectId)
 {
-    const childOwner = new Map();
     return centralFamilyRecords()
         .filter(family => Boolean(projectId) && family.projectId === projectId)
         .map(family =>
@@ -377,13 +376,7 @@ function getTreeFamiliesFromSampleData(projectId)
                 rightId = partnerIds.find(id => id !== leftId) || null;
             }
 
-            const children = [...new Set([...(family.childIds || []), ...(family.childrenIds || [])].filter(Boolean))]
-                .filter(childId =>
-                {
-                    if (childOwner.has(childId)) return false;
-                    childOwner.set(childId, family.id);
-                    return true;
-                });
+            const children = [...family.childIds];
             return {
                 id: family.id,
                 sourceFamilyId: family.id,
@@ -398,150 +391,6 @@ function getTreeFamiliesFromSampleData(projectId)
             };
         })
         .filter(family => family.left || family.right || family.children.length);
-}
-
-function normalizeSampleGenealogyDates()
-{
-    sampleData.people.forEach(person =>
-    {
-        person.birth = {
-            ...normalizeGenealogyDateInput(person.birth, 'Unknown'),
-            placeId: cleanDatePlaceId(person.birth?.placeId),
-            placeText: person.birth?.placeText || '',
-            address: person.birth?.address || ''
-        };
-
-        if (person.livingStatus === 'Living')
-        {
-            person.death = normalizeGenealogyDateInput(person.death);
-        }
-        else
-        {
-            person.death = {
-                ...normalizeGenealogyDateInput(person.death, 'Unknown'),
-                placeId: cleanDatePlaceId(person.death?.placeId),
-                placeText: person.death?.placeText || '',
-                address: person.death?.address || '',
-                reason: person.death?.reason || '',
-                burialPlaceId: cleanDatePlaceId(person.death?.burialPlaceId),
-                burialPlaceText: person.death?.burialPlaceText || '',
-                burialAddress: person.death?.burialAddress || ''
-            };
-        }
-    });
-
-    (sampleData.educationSeed || []).forEach(fact =>
-    {
-        const person = getPerson(fact.personId);
-        if (!person || personAttributeByTag(person, 'EDUC')) return;
-        upsertPersonAttribute(person, 'EDUC', {
-            id: fact.id || `education-${person.id}`,
-            value: fact.value || fact.title || 'Education',
-            type: fact.type || fact.institutionType || '',
-            institutionName: fact.institutionName || fact.agency || '',
-            institutionType: fact.institutionType || fact.type || '',
-            placeId: cleanDatePlaceId(fact.placeId),
-            placeText: fact.placeText || getPlaceDisplay(fact.placeId),
-            address: fact.address || '',
-            notes: fact.description || '',
-            fromDate: genealogyDateOrNull({ date: fact.date, dateLabel: fact.dateLabel, dateType: fact.dateType || 'Exact date' }, 'Exact date'),
-            toDate: null
-        });
-    });
-    delete sampleData.educationSeed;
-
-    const barnaby = getPerson('barnaby');
-    if (barnaby && !personAttributeByTag(barnaby, 'OCCU'))
-    {
-        upsertPersonAttribute(barnaby, 'OCCU', {
-            value: 'Archive clerk',
-            company: 'Pawford records room',
-            notes: 'Sample occupation fact kept on the centralized person record.',
-            fromDate: genealogyDateOrNull({ date: '1976', dateLabel: '1976', dateType: 'Exact date' }, 'Exact date'),
-            toDate: genealogyDateOrNull({ date: '1995', dateLabel: '1995', dateType: 'Exact date' }, 'Exact date')
-        });
-    }
-
-    const pearl = getPerson('pearl');
-    if (pearl && !personEventByTag(pearl, 'BAPM'))
-    {
-        upsertPersonEvent(pearl, 'BAPM', {
-            date: genealogyDateOrNull({ date: '1928', dateLabel: '1928', dateType: 'Exact date' }, 'Exact date'),
-            placeId: 'place-old-cattery',
-            placeText: getPlaceDisplay('place-old-cattery')
-        });
-    }
-
-    const legacyRelationships = Array.isArray(sampleData.relationshipSeed) ? sampleData.relationshipSeed : [];
-    const gedcomRelationships = Array.isArray(sampleData.relationships) ? sampleData.relationships : [];
-    const existingFamilies = Array.isArray(sampleData.families) && sampleData.families.length ? sampleData.families : [];
-    sampleData.families = buildFamiliesFromRelationshipRecords([...existingFamilies, ...gedcomRelationships, ...legacyRelationships]);
-    sampleData.families.forEach(family =>
-    {
-        const partnerAId = familyPartnerAId(family);
-        const partnerBId = familyPartnerBId(family);
-        const relationshipType = relationshipTypeFromLegacy(family);
-        const startDate = normalizeGenealogyDateInput({
-            date: family.startDate,
-            dateLabel: family.startDateLabel,
-            dateType: family.startDateType || (cleanGenealogyDateText(family.startDate || family.startDateLabel) ? 'Exact date' : 'Exact date'),
-            sortDate: family.startSortDate,
-            calendar: family.startCalendar,
-            originalText: family.startOriginalText
-        }, 'Exact date');
-
-        family.type = 'family';
-        family.relationshipType = relationshipType;
-        family.relationshipStatus = family.relationshipStatus || 'active';
-        family.partnerAId = partnerAId;
-        family.partnerBId = partnerBId;
-        family.partner1Id = partnerAId;
-        family.partner2Id = partnerBId;
-        family.personAId = partnerAId;
-        family.personBId = partnerBId;
-        family.partnerARoleHint = family.partnerARoleHint || (getPerson(partnerAId)?.gender === 'male' ? 'HUSB' : getPerson(partnerAId)?.gender === 'female' ? 'WIFE' : '');
-        family.partnerBRoleHint = family.partnerBRoleHint || (getPerson(partnerBId)?.gender === 'male' ? 'HUSB' : getPerson(partnerBId)?.gender === 'female' ? 'WIFE' : '');
-        family.gedcomXref = family.gedcomXref || `@F${family.id.replace(/[^a-z0-9]/gi, '').toUpperCase()}@`;
-        family.childIds = [...new Set(family.childIds || [])];
-        family.events = Array.isArray(family.events) ? family.events : [];
-        family.attributes = Array.isArray(family.attributes) ? family.attributes : [];
-        family.notes = Array.isArray(family.notes) ? family.notes : [];
-        family.citations = Array.isArray(family.citations) ? family.citations : [];
-        family.mediaIds = Array.isArray(family.mediaIds) ? family.mediaIds : [];
-
-        family.startDate = startDate.date;
-        family.startDateLabel = startDate.dateLabel;
-        family.startDateType = startDate.dateType;
-        family.startSortDate = startDate.sortDate;
-        family.startCalendar = startDate.calendar;
-        family.startOriginalText = startDate.originalText;
-        family.startPlaceId = cleanDatePlaceId(family.startPlaceId);
-
-        let marriage = relationshipEventByTag(family, 'MARR');
-        if (!marriage)
-        {
-            marriage = createRelationshipEvent('MARR', 'Marriage', {
-                id: `${family.id}-marriage`,
-                typeLabel: family.marriageType || 'Civil',
-                date: startDate,
-                placeId: family.startPlaceId,
-                placeText: family.startPlaceText || getPlaceDisplay(family.startPlaceId),
-                address: family.startAddress || ''
-            });
-            if (relationshipType === 'Married' || formatGenealogyDateLabel(startDate) || family.startPlaceId) family.events.push(marriage);
-        }
-        else
-        {
-            marriage.date = normalizeGenealogyDateInput(marriage.date || startDate, 'Exact date');
-            marriage.placeId = cleanDatePlaceId(marriage.placeId || family.startPlaceId);
-            marriage.placeText = marriage.placeText || getPlaceDisplay(marriage.placeId);
-            marriage.address = marriage.address || family.startAddress || '';
-            marriage.typeLabel = marriage.typeLabel || family.marriageType || 'Civil';
-            marriage.sortDate = marriage.date.sortDate || '';
-        }
-    });
-    delete sampleData.relationshipSeed;
-    syncFamilyReciprocalLinks();
 }
 
 function eventDateFields(dateInput)
@@ -581,33 +430,6 @@ function timelineDatePayload(dateInput, fallbackType = 'Exact date')
     return eventDateFields(dateInput || timelineUnknownGenealogyDate(fallbackType));
 }
 
-function familyStartDateForTimeline(family)
-{
-    return normalizeGenealogyDateInput({
-        date: family?.startDate || '',
-        dateLabel: family?.startDateLabel || '',
-        dateType: family?.startDateType || 'Exact date',
-        sortDate: family?.startSortDate || '',
-        calendar: family?.startCalendar || 'Gregorian',
-        originalText: family?.startOriginalText || ''
-    }, 'Exact date');
-}
-
-function familyLooksMarriedForTimeline(family)
-{
-    const relationshipType = cleanEditFieldValue(family?.relationshipType).toLowerCase();
-    const marriageType = cleanEditFieldValue(family?.marriageType);
-    const startDate = familyStartDateForTimeline(family);
-
-    return Boolean(
-        relationshipType === 'married'
-          || relationshipType.includes('marriage')
-          || marriageType
-          || hasGenealogyDateValue(startDate, 'Exact date')
-          || family?.startPlaceId
-    );
-}
-
 function relationshipEventTag(event)
 {
     return event?.gedcomTag || event?.tag || '';
@@ -615,30 +437,7 @@ function relationshipEventTag(event)
 
 function familyMarriageEventsForTimeline(family)
 {
-    const storedMarriageEvents = (family?.events || [])
-        .filter(event => relationshipEventTag(event) === 'MARR');
-
-    if (storedMarriageEvents.length)
-    {
-        return storedMarriageEvents;
-    }
-
-    if (!familyLooksMarriedForTimeline(family))
-    {
-        return [];
-    }
-
-    const startDate = familyStartDateForTimeline(family);
-
-    return [{
-        id: `${family.id}-marriage-derived`,
-        gedcomTag: 'MARR',
-        typeLabel: family.marriageType || '',
-        date: startDate,
-        placeId: family.startPlaceId || null,
-        placeText: getPlaceDisplay(family.startPlaceId),
-        derived: true
-    }];
+    return family.events.filter(event => relationshipEventTag(event) === 'MARR');
 }
 
 function timelineAttributeHasContent(attribute, fields = [])
@@ -670,10 +469,10 @@ function buildSampleEvents(context = null)
     const eventPeople = context?.people || sampleData.people;
     const eventFamilies = context?.families || centralFamilyRecords();
     const eventPerson = id => context ? eventPeople.find(person => person.id === id) : getPerson(id);
+    const eventPlaceName = id => context ? context.places?.find(place => place.id === id)?.name || '' : getPlaceDisplay(id);
 
     eventPeople.forEach(person =>
     {
-        ensurePersonCentralStructures(person);
         const birthDate = eventDateFields(person.birth);
         events.push({
             id: `event-${person.id}-birth`,
@@ -702,7 +501,7 @@ function buildSampleEvents(context = null)
                 const eventDate = timelineDatePayload(event.date, 'Exact date');
                 const partnerAId = familyPartnerAId(family);
                 const partnerBId = familyPartnerBId(family);
-                const placeId = cleanDatePlaceId(event.placeId || family.startPlaceId) || null;
+                const placeId = cleanDatePlaceId(event.placeId) || null;
 
                 events.push({
                     id: `event-${family.id}-${event.id || 'marriage'}`,
@@ -715,8 +514,8 @@ function buildSampleEvents(context = null)
                     relatedPersonIds: [partnerAId, partnerBId],
                     ...eventDate,
                     placeId,
-                    placeText: event.placeText || getPlaceDisplay(placeId),
-                    address: event.address || family.startAddress || '',
+                    placeText: event.placeText || eventPlaceName(placeId),
+                    address: event.address || '',
                     title: 'Marriage',
                     description: `Marriage of ${personA.names.display} and ${personB.names.display}`,
                     marriageType: event.typeLabel || family.marriageType || ''
@@ -809,7 +608,6 @@ function buildSampleEvents(context = null)
 
     eventPeople.forEach(person =>
     {
-        ensurePersonCentralStructures(person);
         if (person.livingStatus === 'Deceased')
         {
             const deathDate = eventDateFields(person.death);
@@ -1023,20 +821,24 @@ function buildSampleEvents(context = null)
     return events;
 }
 
+function projectEventReferences(records, eventProjects)
+{
+    return records.map(record =>
+    {
+        if (!record.linkedEventIds?.length) return record;
+        const linkedEventIds = record.linkedEventIds.filter(id => eventProjects.get(id) === record.projectId);
+        return linkedEventIds.length === record.linkedEventIds.length ? record : { ...record, linkedEventIds };
+    });
+}
+
 function rebuildSampleEventsAndPruneSourceLinks()
 {
     sampleData.events =
         buildSampleEvents();
 
-    const eventProjects = new Map(
-        sampleData.events.map(event => [event.id, event.projectId])
-    );
-
-    (sampleData.archiveFiles || []).forEach(file =>
-    {
-        file.linkedEventIds = (file.linkedEventIds || [])
-            .filter(eventId => eventProjects.get(eventId) === file.projectId);
-    });
+    const eventProjects = new Map(sampleData.events.map(event => [event.id, event.projectId]));
+    for (const key of ['archiveFiles', 'notes'])
+        sampleData[key] = projectEventReferences(sampleData[key], eventProjects);
 
     /*
         Source links are populated later than the

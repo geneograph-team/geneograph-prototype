@@ -164,7 +164,7 @@ function relationMeta(
 
 function partnerRelationshipDateSummary(family)
 {
-    const type = relationshipTypeFromLegacy(family);
+    const type = familyRelationshipType(family);
     const definition = partnerRelationshipDefinition(type);
     const startEvent = partnerRelationshipStartEvent(family, type);
     const endEvent = partnerRelationshipEndEvent(family, type);
@@ -188,7 +188,7 @@ function partnerRelationshipDateSummary(family)
 
 function partnerRelationshipMeta(family)
 {
-    const type = relationshipTypeFromLegacy(family);
+    const type = familyRelationshipType(family);
     const displayType = type === 'Unknown relationship' ? 'Partner' : type;
     const date = partnerRelationshipDateSummary(family).rangeLabel;
     return [displayType, date].filter(Boolean).join(' · ');

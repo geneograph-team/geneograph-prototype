@@ -705,7 +705,6 @@ function archiveSetConnectionsAtomically(
           && write.entityType === 'place'
                 ? {
                     linkedPlaceIds: [...(archiveFileById(write.ownerId)?.linkedPlaceIds || [])],
-                    placeIds: [...(archiveFileById(write.ownerId)?.placeIds || [])],
                     documentPlaceId: archiveFileById(write.ownerId)?.documentPlaceId,
                     documentPlaceText: archiveFileById(write.ownerId)?.documentPlaceText,
                     updatedAt: archiveFileById(write.ownerId)?.updatedAt,
@@ -757,7 +756,6 @@ function archiveSetConnectionsAtomically(
                         if (file)
                         {
                             file.linkedPlaceIds = [...(previous.previousPlace?.linkedPlaceIds || [])];
-                            file.placeIds = [...(previous.previousPlace?.placeIds || [])];
                             file.documentPlaceId = previous.previousPlace?.documentPlaceId || null;
                             file.documentPlaceText = previous.previousPlace?.documentPlaceText || '';
                             file.updatedAt = previous.previousPlace?.updatedAt;
@@ -811,132 +809,16 @@ function archiveFileEditIsActive(
     );
 }
 
-function archiveDocumentDateModel(
-    file
-)
+function archiveDocumentDateModel(file)
 {
-    const stored =
-        file?.documentDate
-        || {};
-
-    /*
-        Canonical records already use the shared
-        genealogy-date model.
-      */
-    if (
-        stored.dateType
-        || stored.date
-        || stored.dateLabel
-        || stored.originalText
-    )
-    {
-        return normalizeGenealogyDateInput(
-            stored,
-            stored.dateType
-          || 'Exact date'
-        );
-    }
-
-    /*
-        Convert the existing Archive prototype's
-        { type, value } format.
-      */
-    const legacyType =
-        String(
-            stored.type || ''
-        ).trim();
-
-    const legacyValue =
-        String(
-            stored.value || ''
-        ).trim();
-
-    if (
-        !legacyValue
-        || legacyType === 'Unknown'
-    )
-    {
-        return emptyGenealogyDate(
-            'Exact date'
-        );
-    }
-
-    let dateType =
-        legacyType
-        || 'Exact date';
-
-    if (
-        dateType === 'Between'
-    )
-    {
-        const parts =
-            legacyValue
-                .split(
-                    /\s+(?:-|to)\s+|[–—]/i
-                )
-                .map(value =>
-                    value.trim()
-                )
-                .filter(Boolean);
-
-        if (
-            parts.length >= 2
-        )
-        {
-            const parsed =
-                parseGenealogyDateTextAsType(
-                    parts[0],
-                    'Between',
-                    {
-                        date2:
-                  parts[1],
-
-                        date2Label:
-                  parts[1]
-                    }
-                );
-
-            if (parsed.valid)
-            {
-                return parsed.value;
-            }
-        }
-    }
-
-    const parsed =
-        parseGenealogyDateTextAsType(
-            legacyValue,
-            dateType
-        );
-
-    return parsed.valid
-        ? parsed.value
-        : {
-            ...emptyGenealogyDate(
-                dateType
-            ),
-
-            originalText:
-              legacyValue
-        };
+    return file?.documentDate || emptyGenealogyDate();
 }
 
 function archiveDocumentPlace(
     file
 )
 {
-    const placeId =
-        Object.prototype.hasOwnProperty.call(file || {}, 'documentPlaceId')
-            ? (file.documentPlaceId || '')
-            : ((
-            file?.linkedPlaceIds
-          || []
-        )[0]
-        || (
-            file?.placeIds
-          || []
-        )[0]
-        || '');
+    const placeId = file?.documentPlaceId || '';
 
     return {
         placeId,
@@ -971,20 +853,7 @@ function archiveApplyDocumentPlace(
             placeText || ''
         ).trim();
 
-    /*
-        Preserve compatibility with Places and
-        Archive search while making document place
-        the single inspector concept.
-      */
-    file.linkedPlaceIds = archiveUniqueIds([
-        normalizedPlaceId,
-        ...relatedPlaceIds
-    ].filter(Boolean));
-
-    file.placeIds =
-        [
-            ...file.linkedPlaceIds
-        ];
+    file.linkedPlaceIds = archiveUniqueIds(relatedPlaceIds.filter(id => id && id !== normalizedPlaceId));
 }
 
 function archiveFileEditDraftFromFile(

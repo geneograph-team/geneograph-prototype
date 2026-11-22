@@ -2088,7 +2088,7 @@ function peopleTableColumnValue(key, row, person)
         case 'baptismPlace': return getPlaceEventDisplay(personEventByTag(person, 'BAPM'));
         case 'burialPlace': return editPlaceValue(person?.death?.burialPlaceId, person?.death?.burialPlaceText)
             || getPlaceEventDisplay(personEventByTag(person, 'BURI'));
-        case 'causeOfDeath': return person?.death?.cause || person?.death?.reason;
+        case 'causeOfDeath': return person?.death?.cause;
         case 'relationship': return row.relation;
         case 'children': return getChildren(row.id).length;
         case 'created': return formatProjectDate(row.createdAt, '');

@@ -1549,34 +1549,7 @@ function deleteProject(projectId)
             .filter(board => board.projectId === project.id)
             .map(board => board.id)
     );
-    const projectCollections = [
-        'people',
-        'families',
-        'relationships',
-        'relationshipSeed',
-        'educationSeed',
-        'places',
-        'placeSavedFilters',
-        'placeIssues',
-        'events',
-        'media',
-        'albums',
-        'archiveFolders',
-        'archiveFiles',
-        'sources',
-        'sourceLinks',
-        'archiveImports',
-        'archiveIssues',
-        'noteCollections',
-        'notes',
-        'boardCollections',
-        'boards',
-        'links',
-        'publishDrafts',
-        'activity',
-        'notifications'
-    ];
-    projectCollections.forEach(collectionName =>
+    PROJECT_OWNED_COLLECTIONS.forEach(collectionName =>
     {
         if (!Array.isArray(sampleData[collectionName])) return;
         sampleData[collectionName] = sampleData[collectionName].filter(record => record?.projectId !== project.id);
@@ -2908,156 +2881,6 @@ function capitalize(value)
     return value.charAt(0).toUpperCase() + value.slice(1);
 }
 
-function normalizePlaceSavedFilters()
-{
-    const source =
-        Array.isArray(
-            sampleData.placeSavedFilters
-        )
-            ? sampleData.placeSavedFilters
-            : [];
-
-    const usedIds =
-        new Set();
-
-    let nextId =
-        Date.now();
-
-    const now =
-        new Date().toISOString();
-
-    sampleData.placeSavedFilters =
-        source
-            .filter(savedFilter =>
-                savedFilter
-            && typeof savedFilter === 'object'
-            && !Array.isArray(savedFilter)
-            )
-            .map(savedFilter =>
-            {
-                let id =
-                    String(
-                        savedFilter.id || ''
-                    ).trim();
-
-                while (
-                    !id
-              || usedIds.has(id)
-                )
-                {
-                    id =
-                        `place-saved-filter-${nextId}`;
-
-                    nextId += 1;
-                }
-
-                usedIds.add(id);
-
-                const createdAt =
-                    Number.isFinite(
-                        Date.parse(
-                            savedFilter.createdAt || ''
-                        )
-                    )
-                        ? savedFilter.createdAt
-                        : now;
-
-                const updatedAt =
-                    Number.isFinite(
-                        Date.parse(
-                            savedFilter.updatedAt || ''
-                        )
-                    )
-                        ? savedFilter.updatedAt
-                        : createdAt;
-
-                return {
-                    ...savedFilter,
-
-                    id,
-
-                    projectId:
-                String(
-                    savedFilter.projectId
-                  || ''
-                ),
-
-                    name:
-                String(
-                    savedFilter.name || ''
-                ).trim()
-                || 'Unnamed filter',
-
-                    description:
-                String(
-                    savedFilter.description
-                  || ''
-                ),
-
-                    filters:
-                placeFiltersWithDefaults(
-                    savedFilter.filters
-                ),
-
-                    createdAt,
-                    updatedAt
-                };
-            });
-}
-
-function normalizePlaceIssueDismissals()
-{
-    const seen = new Set();
-    sampleData.placeIssues = (sampleData.placeIssues || []).filter(issue =>
-    {
-        if (!issue || issue.status !== 'dismissed') return false;
-        const pairIssue = issue.type === 'possible_duplicate';
-        if (!pairIssue && !PLACE_REVIEW_COORDINATE_ISSUE_TYPES.includes(issue.type)) return false;
-        const place = getPlace(issue.placeId);
-        if (!place || place.projectId !== issue.projectId) return false;
-        if (pairIssue)
-        {
-            const other = getPlace(issue.otherPlaceId);
-            if (!other || other.projectId !== issue.projectId
-                || issue.pairKey !== placeDuplicatePairKey(place.id, other.id)
-                || !issue.fingerprints?.[place.id] || !issue.fingerprints?.[other.id]) return false;
-        }
-        const key = pairIssue ? `${issue.projectId}:${issue.pairKey}:possible_duplicate`
-            : `${issue.projectId}:${issue.placeId}:${issue.type}`;
-        if (seen.has(key)) return false;
-        seen.add(key);
-        issue.id = String(issue.id || `place-issue-dismissal-${Date.now()}-${seen.size}`);
-        issue.dismissedAt = Number.isFinite(Date.parse(issue.dismissedAt || ''))
-            ? issue.dismissedAt
-            : new Date().toISOString();
-        return true;
-    });
-}
-
-function normalizeEventPlaceAddresses()
-{
-    const normalizeRecord = record =>
-    {
-        if (record && typeof record === 'object' && ('placeId' in record || 'placeText' in record))
-        {
-            record.address = typeof record.address === 'string' ? record.address : '';
-        }
-    };
-    sampleData.people.forEach(person =>
-    {
-        normalizeRecord(person.birth);
-        normalizeRecord(person.death);
-        if (person.death && ('burialPlaceId' in person.death || 'burialPlaceText' in person.death))
-        {
-            person.death.burialAddress = typeof person.death.burialAddress === 'string' ? person.death.burialAddress : '';
-        }
-        (person.attributes || []).forEach(normalizeRecord);
-        (person.events || []).forEach(normalizeRecord);
-    });
-    sampleData.families.forEach(family => (family.events || []).forEach(normalizeRecord));
-    (sampleData.educationSeed || []).forEach(normalizeRecord);
-}
-
 function normalizeCentralNoteIdArray(
     value
 )
@@ -4028,18 +3851,7 @@ function normalizeCentralNoteChecklist(
     note
 )
 {
-    const source =
-        Array.isArray(
-            note.checklist
-        )
-            ? note.checklist
-            : (
-                Array.isArray(
-                    note.tasks
-                )
-                    ? note.tasks
-                    : []
-            );
+    const source = Array.isArray(note.checklist) ? note.checklist : [];
 
     return source
         .map((item, index) => ({
@@ -4118,24 +3930,9 @@ function normalizeCentralNoteRecord(
             '';
     }
 
-    note.collectionIds =
-        normalizeCentralNoteIdArray([
-            ...(
-                Array.isArray(
-                    note.collectionIds
-                )
-                    ? note.collectionIds
-                    : []
-            ),
+    note.collectionIds = normalizeCentralNoteIdArray(note.collectionIds);
 
-            note.collectionId
-        ]);
-
-    note.favorite =
-        Boolean(
-            note.favorite
-          ?? note.pinned
-        );
+    note.favorite = Boolean(note.favorite);
 
     note.archived =
         Boolean(
@@ -4147,24 +3944,7 @@ function normalizeCentralNoteRecord(
             note
         );
 
-    note.linkedPersonIds =
-        normalizeCentralNoteIdArray([
-            ...(
-                Array.isArray(
-                    note.linkedPersonIds
-                )
-                    ? note.linkedPersonIds
-                    : []
-            ),
-
-            ...(
-                Array.isArray(
-                    note.personIds
-                )
-                    ? note.personIds
-                    : []
-            )
-        ]);
+    note.linkedPersonIds = normalizeCentralNoteIdArray(note.linkedPersonIds);
 
     note.linkedPlaceIds =
         normalizeCentralNoteIdArray(
@@ -4196,24 +3976,7 @@ function normalizeCentralNoteRecord(
             note.linkedArchiveFileIds
         );
 
-    note.relatedNoteIds =
-        normalizeCentralNoteIdArray([
-            ...(
-                Array.isArray(
-                    note.relatedNoteIds
-                )
-                    ? note.relatedNoteIds
-                    : []
-            ),
-
-            ...(
-                Array.isArray(
-                    note.relatedNotes
-                )
-                    ? note.relatedNotes
-                    : []
-            )
-        ]);
+    note.relatedNoteIds = normalizeCentralNoteIdArray(note.relatedNoteIds);
 
     note.createdAt =
         normalizeCentralNoteTimestamp(
@@ -4227,144 +3990,9 @@ function normalizeCentralNoteRecord(
             note.createdAt
         );
 
-    [
-        'type',
-        'status',
-        'collectionId',
-        'caseId',
-        'confidence',
-        'question',
-        'conclusion',
-        'evidence',
-        'tasks',
-        'deleted',
-        'linkedPeople',
-        'linkedPlaces',
-        'linkedSources',
-        'linkedSourceIds',
-        'created',
-        'updated',
-        'sortRank',
-        'excerpt',
-        'pinned',
-        'personIds',
-        'relatedNotes',
-        'tags'
-    ].forEach(field =>
-    {
-        delete note[field];
-    });
-
     return note;
 }
 
-
-function normalizeCentralNoteRelationships()
-{
-    const notesById =
-        new Map(
-            sampleData.notes.map(
-                note => [note.id, note]
-            )
-        );
-
-    sampleData.notes.forEach(note =>
-    {
-        note.relatedNoteIds =
-            normalizeCentralNoteIdArray(
-                note.relatedNoteIds
-            ).filter(relatedId =>
-            {
-                const related =
-                    notesById.get(relatedId);
-
-                return Boolean(
-                    related
-              && related.id !== note.id
-              && related.projectId
-                === note.projectId
-                );
-            });
-    });
-
-    sampleData.notes.forEach(note =>
-    {
-        note.relatedNoteIds.forEach(
-            relatedId =>
-            {
-                const related =
-                    notesById.get(relatedId);
-
-                if (
-                    related
-              && !related.relatedNoteIds
-                  .includes(note.id)
-                )
-                {
-                    related.relatedNoteIds.push(
-                        note.id
-                    );
-                }
-            }
-        );
-    });
-
-    sampleData.notes.forEach(note =>
-    {
-        note.relatedNoteIds =
-            normalizeCentralNoteIdArray(
-                note.relatedNoteIds
-            );
-    });
-}
-
-function normalizeCentralNotes()
-{
-    sampleData.noteCollections =
-        sampleData.noteCollections
-            .filter(collection =>
-                collection
-            && typeof collection
-              === 'object'
-            )
-            .map(collection =>
-            {
-                collection.id =
-                    String(
-                        collection.id || ''
-                    ).trim();
-
-                collection.projectId =
-                    String(
-                        collection.projectId || ''
-                    ).trim();
-
-                collection.name =
-                    String(
-                        collection.name || ''
-                    ).trim();
-
-                collection.description =
-                    typeof collection.description
-                === 'string'
-                        ? collection.description
-                            .trim()
-                        : '';
-
-                return collection;
-            });
-
-    sampleData.notes =
-        sampleData.notes
-            .filter(note =>
-                note
-            && typeof note
-              === 'object'
-            )
-            .map(
-                normalizeCentralNoteRecord
-            );
-}
 
 function normalizeCentralRuntimeData()
 {
@@ -4400,7 +4028,6 @@ function normalizeCentralRuntimeData()
             ? sampleData.noteCollections
             : [];
 
-    normalizeCentralNotes();
     sampleData.boardCollections =
         Array.isArray(
             sampleData.boardCollections
@@ -4419,11 +4046,6 @@ function normalizeCentralRuntimeData()
     sampleData.publishDrafts = Array.isArray(sampleData.publishDrafts) ? sampleData.publishDrafts : [];
     sampleData.notifications = Array.isArray(sampleData.notifications) ? sampleData.notifications : [];
     sampleData.activity = Array.isArray(sampleData.activity) ? sampleData.activity : [];
-    normalizePlaceSavedFilters();
-    normalizePlaceIssueDismissals();
-    normalizeEventPlaceAddresses();
-    normalizeSampleGenealogyDates();
-    normalizeAllGenealogyDateRecords();
     rebuildSampleEventsAndPruneSourceLinks();
     validateSampleData();
 }

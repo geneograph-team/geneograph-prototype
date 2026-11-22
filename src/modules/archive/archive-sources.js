@@ -575,46 +575,6 @@ function archiveEventEvidencePeople(event, projectId)
         : null;
 }
 
-function backfillEventEvidencePeople()
-{
-    (sampleData.archiveFiles || []).forEach(file =>
-    {
-        (file.linkedEventIds || []).forEach(eventId =>
-        {
-            const event = archiveConnectionRecord('event', eventId);
-            const people = archiveEventEvidencePeople(event, file.projectId);
-            if (people)
-            {
-                file.linkedPersonIds = [...new Set([
-                    ...(file.linkedPersonIds || []),
-                    ...people.map(person => person.id)
-                ])];
-            }
-        });
-    });
-
-    (sampleData.sourceLinks || []).filter(link => link.targetType === 'event').forEach(link =>
-    {
-        const source = archiveSourceById(link.sourceId, link.projectId);
-        const event = archiveConnectionRecord('event', link.targetId);
-        const people = source && archiveEventEvidencePeople(event, link.projectId);
-        if (!people) return;
-        people.forEach(person =>
-        {
-            if (!sourceIdsForTarget('person', person.id, link.projectId).includes(link.sourceId))
-            {
-                sampleData.sourceLinks.push({
-                    id: createRuntimeId('source-link'),
-                    projectId: link.projectId,
-                    sourceId: link.sourceId,
-                    targetType: 'person',
-                    targetId: person.id
-                });
-            }
-        });
-    });
-}
-
 function setSourceIdsForTarget(
     targetType,
     targetId,

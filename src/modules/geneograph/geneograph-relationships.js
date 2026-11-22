@@ -166,10 +166,15 @@ function createGeneographPartnerRelationship(firstPersonId, secondPersonId, sour
     return family;
 }
 
+function geneoBoardParentageValue(type)
+{
+    return !type || type === 'Unknown parentage' ? 'unknown' : type.toLowerCase();
+}
+
 function addGeneographChildToFamily(familyId, childPersonId, target)
 {
     const diagram = selectedGeneographDiagram(); const family = getGeneographFamily(familyId); if (!family) return null;
-    if (!family.children.some(child => child.personId === childPersonId)) family.children.push({ personId: childPersonId, parentageType: 'biological' });
+    if (!family.children.some(child => child.personId === childPersonId)) family.children.push({ personId: childPersonId, parentageType: 'unknown' });
     if (!diagram.connections.some(item => item.kind === 'family-child' && item.familyId === familyId && item.target.nodeId === target.nodeId)) diagram.connections.push(geneoCreateConnection('family-child', { familyId, port: 'bottom' }, target, familyId));
     return family;
 }

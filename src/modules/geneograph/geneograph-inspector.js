@@ -2472,7 +2472,7 @@ function renderGeneographConnectionInspector(
 
     const relationshipType =
         relationship
-            ? relationshipTypeFromLegacy(
+            ? familyRelationshipType(
                 relationship
             )
             : 'Married';

@@ -905,12 +905,10 @@ function applyAddPersonAdditionalFacts(person, facts = {})
 
     if (person.livingStatus === 'Deceased' && active.has('causeOfDeath'))
     {
-        person.death.reason = valueOrNull(facts.deathReason) || '';
-        person.death.cause = person.death.reason;
+        person.death.cause = valueOrNull(facts.deathReason) || '';
     }
     else if (person.livingStatus === 'Deceased')
     {
-        person.death.reason = '';
         person.death.cause = '';
     }
 
@@ -1048,8 +1046,7 @@ function saveEditPersonModalValues(personId)
             placeId: deathPlace.placeId,
             placeText: deathPlace.placeText,
             address: deathPlace.address,
-            reason: person.death?.reason || '',
-            cause: person.death?.cause || person.death?.reason || '',
+            cause: person.death?.cause || '',
             burialPlaceId: cleanDatePlaceId(person.death?.burialPlaceId),
             burialPlaceText: person.death?.burialPlaceText || ''
         };
@@ -1064,7 +1061,6 @@ function saveEditPersonModalValues(personId)
     applyAddPersonAttachmentDrafts(
         personId
     );
-    syncFamilyReciprocalLinks();
 
     markPersonUpdated(person);
     markPrototypeSessionEdited();
@@ -1264,15 +1260,13 @@ function ensurePersonCentralStructures(person)
     person.citations = Array.isArray(person.citations) ? person.citations : [];
     person.names = person.names || {};
     person.birth = person.birth || emptyGenealogyDate('Exact date');
-    person.death = person.death || { ...emptyGenealogyDate('Exact date'), placeId: null, reason: '', cause: '', burialPlaceId: null };
+    person.death = person.death || { ...emptyGenealogyDate('Exact date'), placeId: null, cause: '', burialPlaceId: null };
     if (typeof person.birth.placeText === 'undefined') person.birth.placeText = '';
     if (typeof person.birth.address === 'undefined') person.birth.address = '';
     if (typeof person.death.placeText === 'undefined') person.death.placeText = '';
     if (typeof person.death.address === 'undefined') person.death.address = '';
     if (typeof person.death.burialPlaceText === 'undefined') person.death.burialPlaceText = '';
     if (typeof person.death.burialAddress === 'undefined') person.death.burialAddress = '';
-    if (typeof person.death.cause === 'undefined') person.death.cause = person.death.reason || '';
-    if (typeof person.death.reason === 'undefined') person.death.reason = person.death.cause || '';
     return person;
 }
 
@@ -1414,7 +1408,7 @@ function peopleProfileDetailsFor(person)
             if (prop === 'alternativeNames') return centralPerson.profile.alternativeNames || '';
             if (prop === 'birthDateType') return centralPerson.birth?.dateType || 'Exact date';
             if (prop === 'deathDateType') return centralPerson.death?.dateType || 'Exact date';
-            if (prop === 'deathReason') return centralPerson.death?.cause || centralPerson.death?.reason || '';
+            if (prop === 'deathReason') return centralPerson.death?.cause || '';
             if (prop === 'burialPlace') return editPlaceValue(centralPerson.death?.burialPlaceId, centralPerson.death?.burialPlaceText);
             if (prop === 'educationInstitutionName') return educationInstitutionLabel(education);
             if (prop === 'educationInstitutionType') return educationInstitutionTypeLabel(education) || 'Unknown';
@@ -1462,7 +1456,7 @@ function peopleProfileDetailsFor(person)
             }
             if (prop === 'deathReason')
             {
-                centralPerson.death.reason = valueOrNull(value) || ''; centralPerson.death.cause = centralPerson.death.reason; return true;
+                centralPerson.death.cause = valueOrNull(value) || ''; return true;
             }
             if (prop === 'burialPlace')
             {

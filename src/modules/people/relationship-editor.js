@@ -56,7 +56,7 @@ function legacyRelationshipDate(family, prefix = 'start')
     }, 'Exact date');
 }
 
-function partnerRelationshipStartEvent(family, type = relationshipTypeFromLegacy(family))
+function partnerRelationshipStartEvent(family, type = familyRelationshipType(family))
 {
     const definition = partnerRelationshipDefinition(type);
     const exact = partnerRelationshipManagedEvent(family, definition.startTag, definition.startTypeLabel);
@@ -72,7 +72,7 @@ function partnerRelationshipStartEvent(family, type = relationshipTypeFromLegacy
     });
 }
 
-function partnerRelationshipEndEvent(family, type = relationshipTypeFromLegacy(family))
+function partnerRelationshipEndEvent(family, type = familyRelationshipType(family))
 {
     const definition = partnerRelationshipDefinition(type);
     if (!definition.hasEnd) return null;
@@ -129,7 +129,7 @@ function renderAddPersonRelationshipCard({
 } = {})
 {
     const relationshipType = relationship
-        ? relationshipTypeFromLegacy(relationship)
+        ? familyRelationshipType(relationship)
         : mode === 'addPartner'
             ? initialType
             : 'Partner';
@@ -815,34 +815,6 @@ function uniqueFamilyId(baseId)
     return id;
 }
 
-function syncFamilyPartnerAliases(family)
-{
-    const partnerA = family.partnerAId || family.partner1Id || family.personAId || '';
-    const partnerB = family.partnerBId || family.partner2Id || family.personBId || '';
-
-    family.partnerAId = partnerA;
-    family.partner1Id = partnerA;
-    family.personAId = partnerA;
-
-    family.partnerBId = partnerB;
-    family.partner2Id = partnerB;
-    family.personBId = partnerB;
-
-    family.childIds = [...new Set([...(family.childIds || []), ...(family.childrenIds || [])].filter(Boolean))];
-    family.childrenIds = [...family.childIds];
-
-    family.events = Array.isArray(family.events) ? family.events : [];
-    family.attributes = Array.isArray(family.attributes) ? family.attributes : [];
-    family.notes = Array.isArray(family.notes) ? family.notes : [];
-    family.citations = Array.isArray(family.citations) ? family.citations : [];
-    family.mediaIds = Array.isArray(family.mediaIds) ? family.mediaIds : [];
-
-    family.relationshipStatus = family.relationshipStatus || 'active';
-    family.gedcomXref = family.gedcomXref || `@F${family.id.replace(/[^a-z0-9]/gi, '').toUpperCase()}@`;
-
-    return family;
-}
-
 function personDisplayName(personId)
 {
     return connectPersonName(getPerson(personId));
@@ -889,7 +861,7 @@ function collectDescendantIds(personId, visited = new Set())
 function hasParentChildRelationship(parentId, childId)
 {
     return centralFamilyRecords().some(family =>
-        (family.childIds || family.childrenIds || []).includes(childId)
+        (family.childIds || []).includes(childId)
           && familyIncludesPerson(family, parentId)
     );
 }
@@ -1484,8 +1456,6 @@ function connectionPairForRelationship(anchorPersonId, relativePersonId, relatio
 
     return {
         type,
-        personAId: anchorId,
-        personBId: relativeId
     };
 }
 
@@ -1581,9 +1551,8 @@ function assignParentToFamily(family, parentId)
     if (preferredSlot === 'mother' && !familyPartnerBId(family))
     {
         family.partnerBId = parentId;
-        family.partner2Id = parentId;
-        family.personBId = parentId;
-        family.motherId = parentId;
+
+
         family.partnerBRoleHint = roleHint || 'WIFE';
         family.partner2RoleHint = family.partnerBRoleHint;
         family.personBRoleHint = family.partnerBRoleHint;
@@ -1593,9 +1562,8 @@ function assignParentToFamily(family, parentId)
     if (preferredSlot === 'father' && !familyPartnerAId(family))
     {
         family.partnerAId = parentId;
-        family.partner1Id = parentId;
-        family.personAId = parentId;
-        family.fatherId = parentId;
+
+
         family.partnerARoleHint = roleHint || 'HUSB';
         family.partner1RoleHint = family.partnerARoleHint;
         family.personARoleHint = family.partnerARoleHint;
@@ -1605,9 +1573,8 @@ function assignParentToFamily(family, parentId)
     if (!familyPartnerAId(family))
     {
         family.partnerAId = parentId;
-        family.partner1Id = parentId;
-        family.personAId = parentId;
-        family.fatherId = parentSlotPreference(parentId) === 'father' ? parentId : family.fatherId || '';
+
+
         family.partnerARoleHint = roleHint;
         family.partner1RoleHint = roleHint;
         family.personARoleHint = roleHint;
@@ -1617,9 +1584,8 @@ function assignParentToFamily(family, parentId)
     if (!familyPartnerBId(family))
     {
         family.partnerBId = parentId;
-        family.partner2Id = parentId;
-        family.personBId = parentId;
-        family.motherId = parentSlotPreference(parentId) === 'mother' ? parentId : family.motherId || '';
+
+
         family.partnerBRoleHint = roleHint;
         family.partner2RoleHint = roleHint;
         family.personBRoleHint = roleHint;
@@ -1639,20 +1605,13 @@ function createParentChildFamily(parentId, childId)
         id: uniqueFamilyId(`fam-${parentId}-${childId}-parent`),
         projectId,
         type: 'family',
-        fatherId: '',
-        motherId: '',
         partnerAId: '',
         partnerBId: '',
-        partner1Id: '',
-        partner2Id: '',
-        personAId: '',
-        personBId: '',
         partnerARoleHint: '',
         partnerBRoleHint: '',
         relationshipType: 'Unknown relationship',
         relationshipStatus: 'active',
         childIds: [childId],
-        childrenIds: [childId],
         events: [],
         attributes: [],
         notes: [],
@@ -1663,7 +1622,6 @@ function createParentChildFamily(parentId, childId)
     };
 
     assignParentToFamily(family, parentId);
-    syncFamilyPartnerAliases(family);
     centralFamilyRecords().push(family);
 
     return family;
@@ -1677,7 +1635,6 @@ function findOrCreateSingleParentFamily(parentId)
 
     if (existing)
     {
-        syncFamilyPartnerAliases(existing);
         return existing;
     }
 
@@ -1686,20 +1643,13 @@ function findOrCreateSingleParentFamily(parentId)
         id: uniqueFamilyId(`fam-${parentId}-single-parent`),
         projectId: parent?.projectId || currentProjectId(),
         type: 'family',
-        fatherId: '',
-        motherId: '',
         partnerAId: '',
         partnerBId: '',
-        partner1Id: '',
-        partner2Id: '',
-        personAId: '',
-        personBId: '',
         partnerARoleHint: '',
         partnerBRoleHint: '',
         relationshipType: 'Unknown relationship',
         relationshipStatus: 'active',
         childIds: [],
-        childrenIds: [],
         events: [],
         attributes: [],
         notes: [],
@@ -1710,7 +1660,6 @@ function findOrCreateSingleParentFamily(parentId)
     };
 
     assignParentToFamily(family, parentId);
-    syncFamilyPartnerAliases(family);
     centralFamilyRecords().push(family);
     return family;
 }
@@ -1743,7 +1692,6 @@ function addChildToFamily(family, parentId, childId)
     if (!validation.ok) return validation;
 
     unlinkSetFamilyChildren(family, [...existingChildren, childId]);
-    syncFamilyPartnerAliases(family);
     family.updatedAt = 'Just now';
 
     return {
@@ -1870,7 +1818,6 @@ function connectSiblingsThroughFamily(anchorPersonId, siblingPersonId, familyId,
         unlinkSetFamilyChildren(family, [anchorPersonId, siblingPersonId]);
         setParentChildRelationshipType(family, father.id, anchorPersonId, 'Biological');
         setParentChildRelationshipType(family, father.id, siblingPersonId, 'Biological');
-        syncFamilyPartnerAliases(family);
         return { ok: true, family, relationshipType: 'sibling', warning: null };
     }
 
@@ -1898,7 +1845,6 @@ function connectSiblingsThroughFamily(anchorPersonId, siblingPersonId, familyId,
         setParentChildRelationshipType(family, parentId, targetPersonId,
             existing ? parentChildRelationshipType(existing, parentId, targetPersonId) : detailType);
     });
-    syncFamilyPartnerAliases(family);
     family.updatedAt = 'Just now';
 
     return {
@@ -1921,7 +1867,7 @@ function connectParentToChild(parentId, childId)
     const warning = parentWarningForConnection(parentId, childId);
 
     let family = centralFamilyRecords().find(candidate =>
-        (candidate.childIds || candidate.childrenIds || []).includes(childId)
+        (candidate.childIds || []).includes(childId)
           && familyCanAcceptParent(candidate, parentId)
     );
 
@@ -1932,15 +1878,8 @@ function connectParentToChild(parentId, childId)
     else
     {
         family.childIds = [...new Set([...(family.childIds || []), childId])];
-        family.childrenIds = [...family.childIds];
+
         assignParentToFamily(family, parentId);
-        if (familyHasSecondPartner(family, parentId)
-            && family.relationshipType === 'Unknown relationship')
-        {
-            family.relationshipType = 'Married';
-            family.relationshipStatus = 'active';
-        }
-        syncFamilyPartnerAliases(family);
         family.updatedAt = 'Just now';
     }
 
@@ -2002,14 +1941,8 @@ function connectPartners(personAId, personBId, options = {})
             };
         }
 
-        if (existingChildrenFamily.relationshipType === 'Unknown relationship')
-        {
-            existingChildrenFamily.relationshipType = 'Married';
-            existingChildrenFamily.relationshipStatus = 'active';
-        }
         existingChildrenFamily.updatedAt = 'Just now';
 
-        syncFamilyPartnerAliases(existingChildrenFamily);
 
         return {
             ok: true,
@@ -2037,12 +1970,6 @@ function connectPartners(personAId, personBId, options = {})
           `@F${id.replace(/[^a-z0-9]/gi, '').toUpperCase()}@`,
         partnerAId: personAId,
         partnerBId: personBId,
-        partner1Id: personAId,
-        partner2Id: personBId,
-        personAId,
-        personBId,
-        fatherId: '',
-        motherId: '',
         partnerARoleHint:
           relationshipRoleHintForPerson(personAId),
         partnerBRoleHint:
@@ -2050,7 +1977,6 @@ function connectPartners(personAId, personBId, options = {})
         relationshipType: 'Married',
         relationshipStatus: 'active',
         childIds: [],
-        childrenIds: [],
         events: [],
         nonEvents: [],
         attributes: [],
@@ -2061,7 +1987,6 @@ function connectPartners(personAId, personBId, options = {})
         updatedAt: 'Just now'
     };
 
-    syncFamilyPartnerAliases(family);
     centralFamilyRecords().push(family);
 
     return {
@@ -2177,12 +2102,11 @@ function connectPeopleByRelationship({
                 const key = parentChildRelationshipKey(relativeId, childId);
                 if (!Object.hasOwn(result.family.parentChildTypes || {}, key))
                     setParentChildRelationshipType(result.family, relativeId, childId,
-                        biologicalParentConflict(relativeId, childId) ? 'Adoptive' : 'Biological');
+                        'Unknown parentage');
             });
         }
     }
 
-    syncFamilyReciprocalLinks();
     rebuildSampleEventsAndPruneSourceLinks();
     markPrototypeSessionEdited();
 
@@ -2318,12 +2242,6 @@ function applyPartnerDetailsToCreatedConnection(connectionResult, relationshipVa
 
     upsertPartnerRelationshipEvents(connectionResult.family, values);
 
-    if (typeof syncFamilyPartnerAliases === 'function')
-    {
-        syncFamilyPartnerAliases(connectionResult.family);
-    }
-
-    syncFamilyReciprocalLinks();
     rebuildSampleEventsAndPruneSourceLinks();
 }
 
@@ -3393,12 +3311,12 @@ function unlinkPersonName(personOrId)
 
 function unlinkFamilyPartnerAId(family)
 {
-    return familyPartnerAId(family) || family?.fatherId || family?.husbandId || '';
+    return familyPartnerAId(family) || '';
 }
 
 function unlinkFamilyPartnerBId(family)
 {
-    return familyPartnerBId(family) || family?.motherId || family?.wifeId || '';
+    return familyPartnerBId(family) || '';
 }
 
 function unlinkFamilyIncludesPerson(family, personId)
@@ -3418,14 +3336,14 @@ function unlinkFamilyPartnerId(family, personId)
 
 function unlinkFamilyChildrenIds(family)
 {
-    return [...new Set([...(family?.childIds || []), ...(family?.childrenIds || [])].filter(Boolean))];
+    return [...new Set([...(family?.childIds || [])].filter(Boolean))];
 }
 
 function unlinkSetFamilyChildren(family, childIds = [])
 {
     const ids = [...new Set(childIds.filter(Boolean))];
     family.childIds = ids;
-    family.childrenIds = [...ids];
+
     return ids;
 }
 
@@ -3449,7 +3367,6 @@ function unlinkMaterializeFamily(family)
     const copy = {
         ...family,
         childIds: unlinkFamilyChildrenIds(family),
-        childrenIds: unlinkFamilyChildrenIds(family),
         events: Array.isArray(family.events) ? [...family.events] : [],
         attributes: Array.isArray(family.attributes) ? [...family.attributes] : [],
         notes: Array.isArray(family.notes) ? [...family.notes] : [],
@@ -3466,23 +3383,11 @@ function unlinkMaterializeFamily(family)
 
 function unlinkFindCentralFamilyForParentChild(parentId, childId, preferredFamilyId = '')
 {
-    const families = centralFamilyRecords();
-
-    if (preferredFamilyId)
-    {
-        const family = families.find(item =>
-            item.id === preferredFamilyId
-            && unlinkFamilyIncludesPerson(item, parentId)
-            && unlinkFamilyChildrenIds(item).includes(childId)
-        );
-
-        if (family) return family;
-    }
-
-    return families.find(family =>
-        unlinkFamilyIncludesPerson(family, parentId)
-          && unlinkFamilyChildrenIds(family).includes(childId)
-    ) || null;
+    const matches = centralFamilyRecords().filter(family =>
+        (!preferredFamilyId || family.id === preferredFamilyId)
+        && unlinkFamilyIncludesPerson(family, parentId) && unlinkFamilyChildrenIds(family).includes(childId)
+    );
+    return matches.length === 1 ? matches[0] : null;
 }
 
 function unlinkFindStoredFamilyForParentChild(parentId, childId, preferredFamilyId = '')
@@ -3494,23 +3399,11 @@ function unlinkFindStoredFamilyForParentChild(parentId, childId, preferredFamily
 
 function unlinkFindCentralPartnerFamily(personAId, personBId, preferredFamilyId = '')
 {
-    const families = centralFamilyRecords();
-
-    if (preferredFamilyId)
-    {
-        const family = families.find(item =>
-            item.id === preferredFamilyId
-            && unlinkFamilyIncludesPerson(item, personAId)
-            && unlinkFamilyIncludesPerson(item, personBId)
-        );
-
-        if (family) return family;
-    }
-
-    return families.find(family =>
-        unlinkFamilyIncludesPerson(family, personAId)
-          && unlinkFamilyIncludesPerson(family, personBId)
-    ) || null;
+    const matches = centralFamilyRecords().filter(family =>
+        (!preferredFamilyId || family.id === preferredFamilyId)
+        && unlinkFamilyIncludesPerson(family, personAId) && unlinkFamilyIncludesPerson(family, personBId)
+    );
+    return matches.length === 1 ? matches[0] : null;
 }
 
 function unlinkFindStoredPartnerFamily(personAId, personBId, preferredFamilyId = '')
@@ -3558,7 +3451,6 @@ function unlinkParentSlotForPerson(parentId)
         partnerAId: parentId,
         partnerBId: '',
         fatherId: parentId,
-        motherId: '',
         partnerARoleHint: 'HUSB',
         partnerBRoleHint: ''
     };
@@ -3570,12 +3462,12 @@ function unlinkApplyFamilyAliases(family)
     const partnerB = unlinkFamilyPartnerBId(family);
 
     family.partnerAId = partnerA;
-    family.partner1Id = partnerA;
-    family.personAId = partnerA;
+
+
 
     family.partnerBId = partnerB;
-    family.partner2Id = partnerB;
-    family.personBId = partnerB;
+
+
 
     unlinkSetFamilyChildren(family, unlinkFamilyChildrenIds(family));
 
@@ -3611,23 +3503,16 @@ function unlinkCreateSingleParentFamily(parentId, childIds = [], projectId = '')
         projectId: projectId || currentProjectId(),
         type: 'family',
 
-        fatherId: slot.fatherId,
-        motherId: slot.motherId,
 
         partnerAId: slot.partnerAId,
-        partner1Id: slot.partnerAId,
-        personAId: slot.partnerAId,
         partnerARoleHint: slot.partnerARoleHint,
 
         partnerBId: slot.partnerBId,
-        partner2Id: slot.partnerBId,
-        personBId: slot.partnerBId,
         partnerBRoleHint: slot.partnerBRoleHint,
 
         relationshipType: 'Single parent',
         relationshipStatus: 'active',
         childIds: [],
-        childrenIds: [],
         events: [],
         attributes: [],
         notes: [],
@@ -3842,7 +3727,6 @@ function refreshAfterRelationshipChange(
     context = 'tree'
 )
 {
-    syncFamilyReciprocalLinks();
     rebuildSampleEventsAndPruneSourceLinks();
 
     if (focusPersonId)
@@ -3951,8 +3835,6 @@ function buildUnlinkRelationshipContext(raw = {})
             sidebarContext,
             personId,
             relatedPersonId,
-            personAId: personId,
-            personBId: relatedPersonId,
             familyId: family?.id || familyId,
             childrenIds
         };
@@ -4330,8 +4212,6 @@ function bindUnlinkRelationshipModal(context)
             const keepChildrenWithParentId = modalBackdrop.querySelector('input[name="unlinkKeepChildrenWith"]:checked')?.value || '';
 
             result = unlinkPartnerRelationship({
-                personAId: context.personAId,
-                personBId: context.personBId,
                 familyId: context.familyId,
                 keepChildrenWithParentId
             });
@@ -4533,7 +4413,7 @@ function renderPartnerRelationshipEditFields(
     const family = context.family;
 
     const relationshipType =
-        relationshipTypeFromLegacy(family);
+        familyRelationshipType(family);
 
     const startEvent =
         partnerRelationshipStartEvent(
@@ -4742,7 +4622,6 @@ function saveRelationshipEdit(context)
             endDate: definition.hasEnd ? collectGenealogyDateField('relationshipEditEndDate') : emptyGenealogyDate('Exact date'),
             endPlace: definition.hasEnd ? readPlaceInputValue('#relationshipEditEndPlace', modalBackdrop) : { text: '', selectedPlaceId: '' }
         });
-        syncFamilyPartnerAliases(family);
     }
     else
     {

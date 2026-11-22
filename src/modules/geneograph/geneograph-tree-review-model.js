@@ -97,7 +97,7 @@ function geneoTreeImportNewPerson(person, id, projectId)
         birth: structuredClone(person.birth || emptyGenealogyDate('Exact date')),
         death: structuredClone(person.death || emptyGenealogyDate('Exact date')),
         profile: { alternativeNames: null }, attributes: [], events: [], notes: [], citations: [],
-        familyAsSpouseIds: [], familyAsChildIds: [], counts: { files: 0, notes: 0 },
+        counts: { files: 0, notes: 0 },
         meta: { updated: 'Just now', sourceStatus: 'Unsourced' } };
 }
 
@@ -179,7 +179,7 @@ function geneoTreeImportGroup(diagram, anchorId)
 
 function geneoReviewParents(families, childId)
 {
-    return new Set(families.filter(family => (family.childIds || family.childrenIds || []).includes(childId))
+    return new Set(families.filter(family => (family.childIds || []).includes(childId))
         .flatMap(family => [familyPartnerAId(family), familyPartnerBId(family)]).filter(Boolean));
 }
 
@@ -270,8 +270,8 @@ function geneoReviewCoalesceBoardParents(draft, projected, mapping, treeFamily, 
     {
         const other = second.children.find(item => item.personId === child.personId);
         child.parentChildTypes = { ...child.parentChildTypes,
-            [parents[0]]: geneoReviewParentType(first, child, parents[0]).toLowerCase(),
-            [parents[1]]: geneoReviewParentType(second, other, parents[1]).toLowerCase() };
+            [parents[0]]: geneoBoardParentageValue(geneoReviewParentType(first, child, parents[0])),
+            [parents[1]]: geneoBoardParentageValue(geneoReviewParentType(second, other, parents[1])) };
     }
     geneoReviewCopyRelationship(treeFamily, first);
     families.splice(families.indexOf(second), 1);
@@ -341,7 +341,7 @@ function geneoReviewAllRelations(draft)
 
 function geneoReviewMarriageType(family)
 {
-    const start = partnerRelationshipStartEvent(family, relationshipTypeFromLegacy(family));
+    const start = partnerRelationshipStartEvent(family, familyRelationshipType(family));
     const recorded = String(start?.typeLabel || '').trim();
     const eventType = (start?.gedcomTag || start?.tag) === 'MARR'
         && ADD_PERSON_MARRIAGE_TYPES.find(type => type.toLowerCase() === recorded.toLowerCase());
@@ -413,7 +413,7 @@ function geneoReviewRelationshipFields(relation, boardFamily, treeFamily, treeId
             const treeType = parentChildRelationshipType(treeFamily, parentId, treeChildId);
             add(['parentage', boardId, parentId, treeChildId], 'Parentage type', boardType, treeType, (target, value, direction) =>
             {
-                if (direction === 'tree') target.children.find(item => item.personId === childId).parentageType = value.toLowerCase();
+                if (direction === 'tree') target.children.find(item => item.personId === childId).parentageType = geneoBoardParentageValue(value);
                 else (target.parentChildTypes ||= {})[parentChildRelationshipKey(parentId, treeChildId)] = value;
             }, { context: connectPersonName(getPerson(parentId)),
                 boardBlocked: !boardType, treeBlocked: boardFamily.partnerIds.length > 1 });
@@ -422,22 +422,22 @@ function geneoReviewRelationshipFields(relation, boardFamily, treeFamily, treeId
     }
     if (relation.type !== 'partner') return rows;
     const fields = [['relationshipType', 'Relationship type'], ['relationshipStatus', 'Relationship status'], ['marriageType', 'Marriage type']];
-    const valueOf = (family, key) => key === 'relationshipType' ? relationshipTypeFromLegacy(family)
-        : key === 'relationshipStatus' ? family.relationshipStatus || partnerRelationshipDefinition(relationshipTypeFromLegacy(family)).status
+    const valueOf = (family, key) => key === 'relationshipType' ? familyRelationshipType(family)
+        : key === 'relationshipStatus' ? family.relationshipStatus || partnerRelationshipDefinition(familyRelationshipType(family)).status
             : geneoReviewMarriageType(family);
     for (const [key, label] of fields)
         add(key, label, valueOf(boardFamily, key), valueOf(treeFamily, key), (target, value) =>
         {
             target[key] = value;
             if (key !== 'marriageType') return;
-            const start = partnerRelationshipStartEvent(target, relationshipTypeFromLegacy(target));
+            const start = partnerRelationshipStartEvent(target, familyRelationshipType(target));
             if ((start?.gedcomTag || start?.tag) === 'MARR' && target.events?.includes(start))
                 start.typeLabel = value;
         });
 
     const eventsByRole = family =>
     {
-        const type = relationshipTypeFromLegacy(family);
+        const type = familyRelationshipType(family);
         const start = partnerRelationshipStartEvent(family, type);
         const end = partnerRelationshipEndEvent(family, type);
         const groups = new Map();
@@ -554,14 +554,13 @@ function geneoReviewParentType(family, child, parentId = '')
 {
     const recorded = child.parentChildTypes?.[parentId] || family.parentChildTypes?.[`${parentId}|${child.personId}`] || child.parentageType;
     const type = PARENT_CHILD_RELATIONSHIP_TYPES.find(value => value.toLowerCase() === String(recorded || '').toLowerCase());
-    return type || (recorded ? null : 'Biological');
+    return type || (!recorded || recorded === 'unknown' ? 'Unknown parentage' : null);
 }
 
 function geneoReviewNewFamily(id, projectId, parents)
 {
     const [a = '', b = ''] = parents;
-    return { id, projectId, type: 'family', partnerAId: a, partnerBId: b, partner1Id: a, partner2Id: b,
-        personAId: a, personBId: b, fatherId: '', motherId: '', childIds: [], childrenIds: [],
+    return { id, projectId, type: 'family', partnerAId: a, partnerBId: b,
         relationshipType: 'Unknown relationship', relationshipStatus: 'unknown', marriageType: '',
         parentChildTypes: {}, events: [], nonEvents: [], attributes: [], notes: [], citations: [], mediaIds: [] };
 }
@@ -593,7 +592,7 @@ function geneoReviewCollection(key, board)
 function geneoReviewRecordSnapshot(board)
 {
     const records = new Map();
-    for (const key of ['people', 'families', 'events', 'archiveFiles', 'sourceLinks', 'board.people', 'board.families', 'board.connections', 'board.nodes'])
+    for (const key of ['people', 'families', 'events', 'archiveFiles', 'notes', 'sourceLinks', 'board.people', 'board.families', 'board.connections', 'board.nodes'])
         for (const record of geneoReviewCollection(key, board) || []) records.set(`${key}:${record.id}`, structuredClone(record));
     return records;
 }
@@ -921,7 +920,7 @@ function geneoTreeImportPreview(draft)
                     const types = geneoReviewFamilyParents(treeFamily).map(parent => parentChildRelationshipType(treeFamily, parent, ids[index]));
                     const type = draft.transferTypes.get(relation.id) || (new Set(types).size === 1 ? types[0] : '');
                     if (!type) fail('Choose relationship type', draft.activePersonId, relation.id);
-                    else family.children.push({ personId: relation.ids[index], parentageType: type.toLowerCase() });
+                    else family.children.push({ personId: relation.ids[index], parentageType: geneoBoardParentageValue(type) });
                 }
                 const [first, second] = relation.ids.map(id => projected['board.nodes'].find(node => node.personId === id));
                 projected['board.connections'].push({ id: draft.treeConnectionIds.get(relation.id), kind: 'family-sibling', familyId: family.id,
@@ -968,7 +967,7 @@ function geneoTreeImportPreview(draft)
                 if (projected['board.families'].some(other => other.id !== family.id && other.children.some(child => child.personId === relation.ids.at(-1))
                     && other.partnerIds.some(parent => parents.includes(parent))))
                 { fail('A parent link already exists on the board. Review it separately instead of replacing its family.', relation.ids.at(-1), relation.id); continue; }
-                if (!family.children.some(child => child.personId === relation.ids.at(-1))) family.children.push({ personId: relation.ids.at(-1), parentageType: types[0].toLowerCase() });
+                if (!family.children.some(child => child.personId === relation.ids.at(-1))) family.children.push({ personId: relation.ids.at(-1), parentageType: geneoBoardParentageValue(types[0]) });
                 source = parents.length === 2 ? { familyId: family.id, port: 'bottom' } : { nodeId: nodeFor(parents[0]).id, port: 'bottom' };
                 target = { nodeId: nodeFor(relation.ids.at(-1)).id, port: 'top' };
             }
@@ -1075,7 +1074,7 @@ function geneoTreeImportPreview(draft)
                 {
                     if ((target.childIds || []).includes(childId)) continue;
                     target.childIds.push(childId);
-                    target.childrenIds = [...target.childIds];
+
                     target.parentChildTypes = target.parentChildTypes || {};
                     target.parentChildTypes[`${onlyParent}|${childId}`] = parentChildRelationshipType(parentFamily, onlyParent, childId);
                 }
@@ -1087,7 +1086,7 @@ function geneoTreeImportPreview(draft)
                 const selectedParents = geneoReviewFamilyParents(target);
                 if (!selectedParents.length) { fail('The selected family has no recorded parents.', relation.ids.at(-1), relation.id); continue; }
                 target.childIds = [...new Set([...(target.childIds || []), other])];
-                target.childrenIds = [...target.childIds];
+
                 target.parentChildTypes = target.parentChildTypes || {};
                 const connection = draft.diagram.connections.find(item => item.id === relation.id);
                 const type = draft.transferTypes?.get(relation.id) || draft.parentTypes.get(relation.id) || PARENT_CHILD_RELATIONSHIP_TYPES.find(item => item.toLowerCase() === String(connection?.parentageType || '').toLowerCase());
@@ -1123,7 +1122,7 @@ function geneoTreeImportPreview(draft)
             {
                 const childId = ids.at(-1);
                 target.childIds = [...new Set([...(target.childIds || []), childId])];
-                target.childrenIds = [...target.childIds];
+
                 target.parentChildTypes = target.parentChildTypes || {};
                 const child = source.children.find(item => item.personId === relation.ids.at(-1));
                 parentIds.forEach((parentId, index) =>
@@ -1218,27 +1217,21 @@ function geneoTreeImportPreview(draft)
                 fail('The biological parents conflict with an existing parent family. Review the parentage type.');
         }
     }
-    for (const id of touchedPeople)
-    {
-        const person = projected.people.find(item => item.id === id);
-        if (!person) continue;
-        person.familyAsSpouseIds = projected.families.filter(family => geneoReviewFamilyParents(family).includes(id)).map(family => family.id);
-        person.familyAsChildIds = projected.families.filter(family => (family.childIds || []).includes(id)).map(family => family.id);
-    }
     const affectedEvent = event => touchedFamilies.has(event.familyId) || (!fieldFamilies.has(event.familyId)
         && [...(event.personIds || []), ...(event.relatedPersonIds || [])].some(id => touchedPeople.has(id)));
     if (touchedPeople.size || touchedFamilies.size)
     {
-        const rebuilt = buildSampleEvents({ people: structuredClone(projected.people), families: structuredClone(projected.families) });
+        const rebuilt = buildSampleEvents({ people: structuredClone(projected.people), families: structuredClone(projected.families), places: sampleData.places });
         projected.events = [...sampleData.events.filter(event => !affectedEvent(event)), ...rebuilt.filter(affectedEvent)];
         const removed = new Set(sampleData.events.filter(event => affectedEvent(event) && !projected.events.some(item => item.id === event.id)).map(event => event.id));
-        projected.archiveFiles = sampleData.archiveFiles.map(file =>
-            file.linkedEventIds?.some(id => removed.has(id)) ? { ...structuredClone(file), linkedEventIds: file.linkedEventIds.filter(id => !removed.has(id)) } : file);
+        const eventProjects = new Map(projected.events.map(event => [event.id, event.projectId]));
+        projected.archiveFiles = projectEventReferences(sampleData.archiveFiles, eventProjects);
+        projected.notes = projectEventReferences(sampleData.notes, eventProjects);
         projected.sourceLinks = (sampleData.sourceLinks || []).filter(link => !(link.targetType === 'event' && removed.has(link.targetId)));
     }
     if (fieldFamilies.size)
     {
-        const build = (people, families) => buildSampleEvents({ people: structuredClone(people), families: structuredClone(families) });
+        const build = (people, families) => buildSampleEvents({ people: structuredClone(people), families: structuredClone(families), places: sampleData.places });
         const before = build(sampleData.people, sampleData.families);
         const after = build(projected.people, projected.families);
         projected.events ||= [...sampleData.events];

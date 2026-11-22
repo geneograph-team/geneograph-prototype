@@ -1,3 +1,361 @@
+const PROJECT_OWNED_COLLECTIONS = Object.freeze([
+    'people',
+    'families',
+    'places',
+    'placeSavedFilters',
+    'placeIssues',
+    'events',
+    'media',
+    'albums',
+    'archiveFolders',
+    'archiveFiles',
+    'sources',
+    'sourceLinks',
+    'archiveImports',
+    'archiveIssues',
+    'noteCollections',
+    'notes',
+    'boardCollections',
+    'boards',
+    'links',
+    'publishDrafts',
+    'activity',
+    'notifications'
+]);
+
+// Reconstruct derived events on a detached copy before checking evidence links.
+function prepareProjectDraft(project, records)
+{
+    if (!records || typeof records !== 'object' || Array.isArray(records))
+        return { errors: ['Project collections must be an object.'] };
+    if (Object.hasOwn(records, 'events'))
+        return { errors: ['Timeline events are derived and must not be included in project input.'] };
+
+    try
+    {
+        const draftProject = structuredClone(project);
+        const draft = structuredClone(records);
+        draft.events = buildSampleEvents({
+            people: draft.people ?? [],
+            families: draft.families ?? [],
+            places: draft.places ?? []
+        });
+        const errors = validateProjectDraft(draftProject, draft);
+        return errors.length ? { errors } : { errors, project: draftProject, records: draft };
+    }
+    catch
+    {
+        return { errors: ['Invalid project records prevented timeline reconstruction.'] };
+    }
+}
+
+function validateProjectDraft(project, records)
+{
+    if (typeof project?.id !== 'string' || !project.id.trim()
+        || typeof project?.name !== 'string' || !project.name.trim()
+        || !records || typeof records !== 'object' || Array.isArray(records))
+        return ['Expected a project with an ID, name, and record collections.'];
+    const errors = [];
+    const indexes = new Map();
+    for (const key of Object.keys(records))
+        if (!PROJECT_OWNED_COLLECTIONS.includes(key)) errors.push('Unknown collection: ' + key);
+    for (const key of PROJECT_OWNED_COLLECTIONS)
+    {
+        const index = new Map();
+        indexes.set(key, index);
+        const rows = Object.hasOwn(records, key) ? records[key] : [];
+        if (!Array.isArray(rows))
+        {
+            errors.push(key + ' must be an array.');
+            continue;
+        }
+        for (const record of rows)
+        {
+            if (!record || typeof record.id !== 'string' || !record.id.trim())
+            {
+                errors.push(key + ' contains a record without a valid ID.');
+                continue;
+            }
+            if (index.has(record.id)) errors.push('Duplicate ' + key + ' ID: ' + record.id);
+            if (record.projectId !== project.id) errors.push(key + '/' + record.id + ' belongs to a different project.');
+            index.set(record.id, record);
+        }
+    }
+    const people = indexes.get('people');
+    if (project.defaultPersonId && !people.has(project.defaultPersonId))
+        errors.push('Project default person is missing: ' + project.defaultPersonId);
+    for (const family of indexes.get('families').values())
+    {
+        const partners = [family.partnerAId, family.partnerBId].filter(Boolean);
+        if (!partners.length || new Set(partners).size !== partners.length || !Array.isArray(family.childIds))
+        {
+            errors.push('Invalid family membership in ' + family.id);
+            continue;
+        }
+        if (new Set(family.childIds).size !== family.childIds.length)
+            errors.push('Duplicate child in ' + family.id);
+        for (const id of [...partners, ...family.childIds])
+            if (!people.has(id)) errors.push('Family ' + family.id + ' references missing person ' + id);
+        if (family.childIds.some(id => partners.includes(id)))
+            errors.push('Family ' + family.id + ' lists a person as their own parent.');
+        const memberships = new Set(partners.flatMap(parentId =>
+            family.childIds.map(childId => parentChildRelationshipKey(parentId, childId))));
+        const types = family.parentChildTypes;
+        if (types != null && (typeof types !== 'object' || Array.isArray(types)))
+            errors.push('Family ' + family.id + '.parentChildTypes must be an object.');
+        else for (const [key, type] of Object.entries(types || {}))
+        {
+            if (!memberships.has(key))
+                errors.push('Family ' + family.id + ' has a parentage type for a missing membership: ' + key);
+            if (!PARENT_CHILD_RELATIONSHIP_TYPES.includes(type))
+                errors.push('Family ' + family.id + ' has an unsupported parentage type: ' + type);
+        }
+    }
+    const childrenByParent = new Map();
+    const parentCounts = new Map();
+    for (const family of indexes.get('families').values())
+    {
+        if (!Array.isArray(family.childIds)) continue;
+        for (const parentId of [family.partnerAId, family.partnerBId].filter(id => people.has(id)))
+        {
+            if (!childrenByParent.has(parentId)) childrenByParent.set(parentId, new Set());
+            const children = childrenByParent.get(parentId);
+            for (const childId of family.childIds)
+            {
+                if (!people.has(childId) || children.has(childId) || parentId === childId) continue;
+                children.add(childId);
+                parentCounts.set(childId, (parentCounts.get(childId) || 0) + 1);
+            }
+        }
+    }
+    const roots = [...people.keys()].filter(id => !parentCounts.has(id));
+    for (let i = 0; i < roots.length; i++)
+    {
+        for (const childId of childrenByParent.get(roots[i]) || [])
+        {
+            const count = parentCounts.get(childId) - 1;
+            if (count) parentCounts.set(childId, count);
+            else
+            {
+                parentCounts.delete(childId);
+                roots.push(childId);
+            }
+        }
+    }
+    if (parentCounts.size)
+        errors.push('Family memberships contain a parent cycle. Check the ancestry of ' + parentCounts.keys().next().value + '.');
+    const references = {
+        places: { parentId: 'places' },
+        placeIssues: { placeId: 'places' },
+        media: { placeId: 'places', personIds: ['people'], albumIds: ['albums'] },
+        archiveFolders: { parentId: 'archiveFolders' },
+        archiveFiles: { folderId: 'archiveFolders', documentPlaceId: 'places', linkedPersonIds: ['people'],
+            linkedEventIds: ['events'], linkedNoteIds: ['notes'], linkedPlaceIds: ['places'] },
+        notes: { collectionIds: ['noteCollections'], relatedNoteIds: ['notes'], linkedPersonIds: ['people'],
+            linkedEventIds: ['events'], linkedPlaceIds: ['places'], linkedPhotoIds: ['media'], linkedArchiveFileIds: ['archiveFiles'] },
+        events: { familyId: 'families', placeId: 'places', personIds: ['people'], relatedPersonIds: ['people'] },
+        boards: { collectionIds: ['boardCollections'] }
+    };
+    function requireReference(owner, field, target, id)
+    {
+        if (typeof id !== 'string' || !indexes.get(target).has(id))
+            errors.push(owner + '.' + field + ' references missing ' + target + '/' + id);
+    }
+    for (const [collection, fields] of Object.entries(references))
+    {
+        for (const record of indexes.get(collection).values())
+        {
+            const owner = collection + '/' + record.id;
+            for (const [field, target] of Object.entries(fields))
+            {
+                const value = record[field];
+                if (value == null || value === '') continue;
+                if (!Array.isArray(target))
+                {
+                    requireReference(owner, field, target, value);
+                    continue;
+                }
+                if (!Array.isArray(value) || new Set(value).size !== value.length)
+                {
+                    errors.push(owner + '.' + field + ' must contain unique record IDs.');
+                    continue;
+                }
+                for (const id of value) requireReference(owner, field, target[0], id);
+            }
+        }
+    }
+    function validateDate(owner, date)
+    {
+        if (!date || !GENEALOGY_DATE_TYPES.includes(date.dateType) || !GENEALOGY_CALENDARS.includes(date.calendar)
+            || !['empty', 'unknown', 'known', 'unparsed'].includes(date.state)
+            || typeof date.originalText !== 'string' || !date.first
+            || (date.state === 'known' && normalizeGenealogyDateInput(date).state !== 'known'))
+            errors.push(owner + ' must contain a structured genealogy date.');
+    }
+    for (const photo of indexes.get('media').values())
+        if (photo.date != null) validateDate('media/' + photo.id + '.date', photo.date);
+    for (const file of indexes.get('archiveFiles').values())
+        if (file.documentDate != null) validateDate('archiveFiles/' + file.id + '.documentDate', file.documentDate);
+    for (const source of indexes.get('sources').values())
+        if (source.accessedDate) validateDate('sources/' + source.id + '.accessedDate', source.accessedDate);
+
+    function validateFactReferences(owner, fact, isVitalDate = false)
+    {
+        if (!fact || typeof fact !== 'object' || Array.isArray(fact))
+        {
+            errors.push(owner + ' must be a record.');
+            return;
+        }
+        if (isVitalDate) validateDate(owner, fact);
+        else for (const field of ['date', 'fromDate', 'toDate'])
+            if (fact[field] != null) validateDate(owner + '.' + field, fact[field]);
+        for (const field of ['placeId', 'burialPlaceId'])
+            if (fact[field]) requireReference(owner, field, 'places', fact[field]);
+        if (fact.mediaIds != null)
+        {
+            if (!Array.isArray(fact.mediaIds) || new Set(fact.mediaIds).size !== fact.mediaIds.length)
+                errors.push(owner + '.mediaIds must contain unique record IDs.');
+            else for (const id of fact.mediaIds) requireReference(owner, 'mediaIds', 'media', id);
+        }
+    }
+    for (const collection of ['people', 'families'])
+    {
+        for (const record of indexes.get(collection).values())
+        {
+            const owner = collection + '/' + record.id;
+            validateFactReferences(owner, record);
+            if (collection === 'people')
+            {
+                if (record.primaryPhotoId) requireReference(owner, 'primaryPhotoId', 'media', record.primaryPhotoId);
+                for (const field of ['birth', 'death'])
+                    if (record[field] != null) validateFactReferences(owner + '.' + field, record[field], true);
+            }
+            for (const field of ['events', 'attributes'])
+            {
+                const facts = record[field];
+                if (facts == null) continue;
+                if (!Array.isArray(facts))
+                {
+                    errors.push(owner + '.' + field + ' must be an array.');
+                    continue;
+                }
+                for (const [index, fact] of facts.entries())
+                    validateFactReferences(owner + '.' + field + '[' + index + ']', fact);
+            }
+        }
+    }
+    const folders = indexes.get('archiveFolders');
+    const checkedFolders = new Set();
+    for (const folder of folders.values())
+    {
+        const path = new Set();
+        let current = folder;
+        while (current && !checkedFolders.has(current.id))
+        {
+            if (path.has(current.id))
+            {
+                errors.push('Archive folder hierarchy contains a cycle at ' + current.id);
+                break;
+            }
+            path.add(current.id);
+            current = folders.get(current.parentId);
+        }
+        for (const id of path) checkedFolders.add(id);
+    }
+    const notes = indexes.get('notes');
+    for (const note of notes.values())
+    {
+        if (!Array.isArray(note.relatedNoteIds)) continue;
+        for (const id of note.relatedNoteIds)
+        {
+            const related = notes.get(id);
+            if (id === note.id || (related && (!Array.isArray(related.relatedNoteIds) || !related.relatedNoteIds.includes(note.id))))
+                errors.push('Note ' + note.id + ' has an invalid reciprocal link to ' + id);
+        }
+    }
+    const citationTargets = new Map(Object.entries({
+        file: 'archiveFiles', photo: 'media', person: 'people', event: 'events', note: 'notes', place: 'places'
+    }));
+    for (const link of indexes.get('sourceLinks').values())
+    {
+        const owner = 'sourceLinks/' + link.id;
+        requireReference(owner, 'sourceId', 'sources', link.sourceId);
+        const target = citationTargets.get(link.targetType);
+        if (target) requireReference(owner, 'targetId', target, link.targetId);
+        else errors.push(owner + ' has an invalid target type.');
+    }
+    for (const board of indexes.get('boards').values()) validateProjectBoard(board, indexes, errors);
+    return errors;
+}
+
+function validateProjectBoard(board, indexes, errors)
+{
+    const owner = 'boards/' + board.id;
+    const diagram = board.diagram;
+    const local = new Map();
+    for (const key of ['assets', 'people', 'families', 'nodes', 'connections'])
+    {
+        if (!Array.isArray(diagram?.[key]))
+        {
+            errors.push(owner + '.diagram.' + key + ' must be an array.');
+            return;
+        }
+        const records = new Map();
+        for (const item of diagram[key])
+        {
+            if (typeof item?.id !== 'string' || !item.id.trim() || records.has(item.id))
+                errors.push(owner + '.diagram.' + key + ' contains a missing or duplicate record ID.');
+            else records.set(item.id, item);
+        }
+        local.set(key, records);
+    }
+    function check(record, field, target, id)
+    {
+        if (id && !target?.has(id)) errors.push(owner + '/' + record.id + '.' + field + ' references missing ID ' + id);
+    }
+    for (const person of local.get('people').values())
+    {
+        check(person, 'treePersonId', indexes.get('people'), person.treePersonId);
+        check(person, 'photoId', indexes.get('media'), person.photoId);
+        check(person, 'photoAssetId', local.get('assets'), person.photoAssetId);
+    }
+    for (const family of local.get('families').values())
+    {
+        if (!Array.isArray(family.partnerIds) || !Array.isArray(family.children))
+        {
+            errors.push(owner + '/' + family.id + ' requires partnerIds and children arrays.');
+            continue;
+        }
+        for (const id of family.partnerIds) check(family, 'partnerIds', local.get('people'), id);
+        for (const child of family.children)
+        {
+            if (!child?.personId) errors.push(owner + '/' + family.id + ' contains a child without a person ID.');
+            else check(family, 'children', local.get('people'), child.personId);
+        }
+    }
+    for (const node of local.get('nodes').values())
+    {
+        if (node.type === 'person' && !node.personId) errors.push(owner + '/' + node.id + ' requires a person ID.');
+        check(node, 'personId', local.get('people'), node.personId);
+        check(node, 'parentPanelId', local.get('nodes'), node.parentPanelId);
+        if (node.imageRef?.scope === 'board') check(node, 'imageRef', local.get('assets'), node.imageRef.id);
+        if (node.imageRef?.scope === 'project') check(node, 'imageRef', indexes.get('media'), node.imageRef.id);
+        if (node.placeRef?.scope === 'project') check(node, 'placeRef', indexes.get('places'), node.placeRef.id);
+    }
+    for (const connection of local.get('connections').values())
+    {
+        check(connection, 'familyId', local.get('families'), connection.familyId);
+        for (const field of ['source', 'target'])
+        {
+            const endpoint = connection[field];
+            if (Boolean(endpoint?.nodeId) === Boolean(endpoint?.familyId))
+                errors.push(owner + '/' + connection.id + '.' + field + ' requires one node or family ID.');
+            check(connection, field, local.get('nodes'), endpoint?.nodeId);
+            check(connection, field, local.get('families'), endpoint?.familyId);
+        }
+    }
+}
+
 function validateSampleData()
 {
     const warn = message => console.warn('[sampleData]', message);
@@ -8,35 +366,7 @@ function validateSampleData()
         warn('Projects contain duplicate IDs');
     }
 
-    const projectOwnedCollections = [
-        'people',
-        'families',
-        'relationships',
-        'relationshipSeed',
-        'educationSeed',
-        'places',
-        'placeSavedFilters',
-        'placeIssues',
-        'events',
-        'media',
-        'albums',
-        'archiveFolders',
-        'archiveFiles',
-        'sources',
-        'sourceLinks',
-        'archiveImports',
-        'archiveIssues',
-        'noteCollections',
-        'notes',
-        'boardCollections',
-        'boards',
-        'links',
-        'publishDrafts',
-        'activity',
-        'notifications'
-    ];
-
-    projectOwnedCollections.forEach(collectionName =>
+    PROJECT_OWNED_COLLECTIONS.forEach(collectionName =>
     {
         const records = Array.isArray(sampleData[collectionName])
             ? sampleData[collectionName]
@@ -60,7 +390,7 @@ function validateSampleData()
     );
     (sampleData.archiveFolders || []).forEach(folder =>
     {
-        const parentId = folder.parentId === 'null' ? null : folder.parentId;
+        const parentId = folder.parentId;
         if (!parentId) return;
         const parent = archiveFolderMap.get(parentId);
         if (!parent)
@@ -1142,84 +1472,10 @@ function validateSampleData()
             });
         });
 
-        const linkedPlaceIds =
-            archiveUniqueIds(
-                file.linkedPlaceIds
-            );
-
-        const compatibilityPlaceIds =
-            archiveUniqueIds(
-                file.placeIds
-            );
-
-        const documentPlaceId =
-            String(
-                file.documentPlaceId || ''
-            ).trim();
-
-        if (
-            linkedPlaceIds.length > 1
-          || compatibilityPlaceIds.length > 1
-        )
-        {
-            warn(
-                `Archive file ${file.id} has more than one linked place`
-            );
-        }
-
-        if (documentPlaceId)
-        {
-            const place =
-                placeById.get(
-                    documentPlaceId
-                );
-
-            if (!place)
-            {
-                warn(
-                    `Archive file ${file.id} points to missing place ${documentPlaceId}`
-                );
-            }
-            else if (
-                place.projectId
-            && file.projectId
-            && place.projectId !== file.projectId
-            )
-            {
-                warn(
-                    `Archive file ${file.id} and place ${documentPlaceId} are in different projects`
-                );
-            }
-        }
-
-        const documentPlaceIds =
-            documentPlaceId
-                ? [documentPlaceId]
-                : [];
-
-        const samePlaceIds =
-            (first, second) =>
-                first.length === second.length
-            && first.every(
-                (placeId, index) =>
-                    placeId === second[index]
-            );
-
-        if (
-            !samePlaceIds(
-                documentPlaceIds,
-                linkedPlaceIds
-            )
-          || !samePlaceIds(
-              documentPlaceIds,
-              compatibilityPlaceIds
-          )
-        )
-        {
-            warn(
-                `Archive file ${file.id} has inconsistent documentPlaceId, linkedPlaceIds, and placeIds`
-            );
-        }
+        if (file.documentPlaceId && placeById.get(file.documentPlaceId)?.projectId !== file.projectId)
+            warn('Archive file ' + file.id + ' has an invalid document place ' + file.documentPlaceId);
+        if (file.documentPlaceId && file.linkedPlaceIds.includes(file.documentPlaceId))
+            warn('Archive file ' + file.id + ' repeats its document place in its linked places.');
     });
 
     (sampleData.places || []).forEach(place =>
@@ -1348,14 +1604,6 @@ function validateSampleData()
         [person.birth?.placeId, person.death?.placeId, person.death?.burialPlaceId].filter(Boolean).forEach(placeId =>
         {
             if (!placeIds.has(placeId)) warn(`Missing place ID ${placeId} on person ${person.id}`);
-        });
-        (person.familyAsSpouseIds || []).forEach(familyId =>
-        {
-            if (!familyIds.has(familyId)) warn(`Person ${person.id} points to missing spouse family ${familyId}`);
-        });
-        (person.familyAsChildIds || []).forEach(familyId =>
-        {
-            if (!familyIds.has(familyId)) warn(`Person ${person.id} points to missing child family ${familyId}`);
         });
         (person.attributes || []).forEach(attribute =>
         {

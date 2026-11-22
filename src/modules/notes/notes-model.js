@@ -24,8 +24,6 @@ function createRuntimeId(
     }`;
 }
 
-backfillEventEvidencePeople();
-
 function noteTimestamp(
     note,
     field = 'updatedAt'
