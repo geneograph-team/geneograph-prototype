@@ -4814,8 +4814,28 @@ body.mobile-details-open .geneo-inspector [data-geneo-inspector-toggle] {
     display: none;
 }
 
+.project-settings-discard-modal {
+    width: min(940px, 100%);
+}
+
 .project-settings-discard-modal .modal-footer {
-    flex-wrap: wrap;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.project-settings-discard-modal .modal-footer .button {
+    min-width: 0;
+    width: 100%;
+    padding-block: var(--space-2);
+    white-space: normal;
+    overflow-wrap: break-word;
+    text-align: center;
+}
+
+@media (max-width: 620px) {
+    .project-settings-discard-modal .modal-footer {
+        grid-template-columns: minmax(0, 1fr);
+    }
 }
 
 @media (max-width: 1180px) {
