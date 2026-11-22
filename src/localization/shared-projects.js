@@ -249,6 +249,8 @@ const RU_UI_SHARED = Object.freeze({
     'Add to Albums': 'Добавить в альбомы',
     'Cover preview': 'Предпросмотр обложки',
     'Choose a JPEG, PNG, or WebP image under 20 MB.': 'Выберите изображение JPEG, PNG или WebP размером до 20 МБ.',
+    'This image is too large for a project cover (maximum 40 megapixels or 12,000 pixels per side).': 'Изображение слишком большое для обложки проекта (не более 40 мегапикселей и 12 000 пикселей по стороне).',
+    'This image could not be displayed as a cover. Choose another photo.': 'Это изображение не удалось использовать для обложки. Выберите другое фото.',
     'Select face area': 'Выберите область лица',
     'Select face': 'Выбрать лицо',
     'Select face area for': 'Выберите область лица для',
