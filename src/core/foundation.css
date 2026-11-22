@@ -4796,7 +4796,7 @@ body.mobile-details-open .geneo-inspector [data-geneo-inspector-toggle] {
 
 .project-settings-page-actions {
     position: sticky;
-    bottom: var(--space-3);
+    bottom: 0;
     z-index: 5;
     width: max-content;
     max-width: 100%;
