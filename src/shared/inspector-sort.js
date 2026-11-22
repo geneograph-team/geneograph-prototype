@@ -1,3 +1,12 @@
+// Shared right-sidebar record previews (Family Tree, People, Places,
+// Albums, Archive and Notes). Full-page views retain independent limits.
+const RIGHT_SIDEBAR_LIMITS = Object.freeze({
+    photos: 9,
+    files: 10,
+    notes: 10,
+    sources: 10
+});
+
 function sectionIsOpen(id)
 {
     return state.inspectorSections[id] !== false;
@@ -176,17 +185,7 @@ function renderPersonPanelViewAll({
         notes:
             count === 1
                 ? 'note'
-                : 'notes',
-
-        timeline:
-            count === 1
-                ? 'event'
-                : 'events',
-
-        relationships:
-            count === 1
-                ? 'relationship'
-                : 'relationships'
+                : 'notes'
     };
 
     const noun =

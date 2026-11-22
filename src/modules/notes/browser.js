@@ -2903,6 +2903,8 @@ function renderNoteLinkedRecordRows(
             files:
             records,
 
+            limit: RIGHT_SIDEBAR_LIMITS.files,
+
             contextType:
             'note',
 
@@ -2942,12 +2944,8 @@ function renderNoteLinkedRecordRows(
             sources:
             records,
 
-            /*
-            Notes should display every connected
-            source, not a shortened preview.
-          */
             limit:
-            Number.POSITIVE_INFINITY,
+            RIGHT_SIDEBAR_LIMITS.sources,
 
             emptyText:
             'No sources linked to this note.'
@@ -3126,6 +3124,8 @@ function renderNoteLinkedEntitySection(
 
                 sources:
                 records,
+
+                limit: RIGHT_SIDEBAR_LIMITS.sources,
 
                 emptyText:
                 'No sources linked to this note.'
@@ -3462,7 +3462,7 @@ function renderNoteRelatedSection(
                 notes-related-list
               ">
               ${related
-                    .slice(0, CONNECTED_NOTES_PREVIEW_LIMIT)
+                    .slice(0, RIGHT_SIDEBAR_LIMITS.notes)
                     .map(item =>
                         renderRelatedNoteRelationItem({
                             note:

@@ -84,6 +84,12 @@ When removing or replacing a record, inspect all references to its ID and the ef
 
 **Modals and feedback.** Creation/editing dialogs stage input, expose a clear primary action and cancel path, and return actionable errors. Long lists scroll inside the modal while footer actions remain reachable. Tooltips and toasts support feedback but should not be the sole carrier of essential state.
 
+### Right-sidebar record previews
+
+Across Family Tree, People, Places, Albums, Archive and Notes, right-side inspectors display **all** Timeline, Relationships, People, Events, Places, Collections/Albums, Checklist items and historical/alternative names. The Places inspector keeps its existing grouped People/Events preview (five person groups, three events per person and three other events, with a Show all control).
+
+For connected records, show up to **9 photos** (three columns in thumbnail grids) and **10 files, 10 notes and 10 sources** per section. Related notes use the 10-note limit. The Notes editor is an exception for linked photos: it shows **all** photos. Preserve true totals and access to full record sets via the established navigation/actions; truncation never deletes data. These rules apply to **right-side inspectors** only, not People Profile's connected-record explorer, left navigation, Geneograph, Projects or Publish.
+
 ## 6. People, Profile, and Family Tree
 
 ### People and Profile

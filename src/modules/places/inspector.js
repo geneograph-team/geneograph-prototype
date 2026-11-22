@@ -1,10 +1,7 @@
 const PLACE_INSPECTOR_LIMITS =
     Object.freeze({
         personGroups: 5,
-        eventsPerPerson: 3,
-        photos: 3,
-        files: 3,
-        notes: CONNECTED_NOTES_PREVIEW_LIMIT
+        eventsPerPerson: 3
     });
 
 function placesInspectorSectionState()
@@ -821,7 +818,7 @@ function renderPlaceInspectorPhotos(
     const visible =
         photos.slice(
             0,
-            PLACE_INSPECTOR_LIMITS.photos
+            RIGHT_SIDEBAR_LIMITS.photos
         );
 
     return `
@@ -894,7 +891,7 @@ function renderPlaceInspectorFiles(
     const visible =
         files.slice(
             0,
-            PLACE_INSPECTOR_LIMITS
+            RIGHT_SIDEBAR_LIMITS
                 .files
         );
 
@@ -967,7 +964,7 @@ function renderPlaceInspectorNotes(
             placeId,
 
             limit:
-            PLACE_INSPECTOR_LIMITS
+            RIGHT_SIDEBAR_LIMITS
                 .notes,
 
             emptyText:
@@ -1723,6 +1720,8 @@ function renderPlacesInspector(
                   place.projectId,
 
                   sources,
+
+                  limit: RIGHT_SIDEBAR_LIMITS.sources,
 
                   emptyText:
                   'No sources linked to this place.'

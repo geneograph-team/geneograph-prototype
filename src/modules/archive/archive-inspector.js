@@ -1141,7 +1141,7 @@ function renderArchiveFileNotes(file, readOnly)
         );
     }
 
-    const items = notes.slice(0, CONNECTED_NOTES_PREVIEW_LIMIT).map(note =>
+    const items = notes.slice(0, RIGHT_SIDEBAR_LIMITS.notes).map(note =>
         renderRelatedNoteRelationItem({
             note,
 
@@ -1190,13 +1190,8 @@ function renderArchiveFileSources(
         projectId:
           file.projectId,
 
-        /*
-          The Archive inspector must show every
-          connected source rather than the four-item
-          preview used in some other panels.
-        */
         limit:
-          Number.POSITIVE_INFINITY,
+          RIGHT_SIDEBAR_LIMITS.sources,
 
         emptyText:
           'No sources linked to this file.',
@@ -1418,9 +1413,9 @@ function renderArchiveSourceConnectionContent(
     }
 
     const previewLimits = {
-        photo: PERSON_PANEL_PREVIEW_LIMITS.photos,
-        file: PERSON_PANEL_PREVIEW_LIMITS.archive,
-        note: CONNECTED_NOTES_PREVIEW_LIMIT
+        photo: RIGHT_SIDEBAR_LIMITS.photos,
+        file: RIGHT_SIDEBAR_LIMITS.files,
+        note: RIGHT_SIDEBAR_LIMITS.notes
     };
 
     // Only sections with a View all action need preview limits.

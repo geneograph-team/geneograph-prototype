@@ -974,6 +974,7 @@ function renderAlbumsPhotoNotes(
         notes,
         contextType: 'photo',
         contextId: photo.id,
+        limit: RIGHT_SIDEBAR_LIMITS.notes,
         emptyText: 'No notes linked to this photo.',
         allowUnlink: true
     });
@@ -1152,6 +1153,8 @@ function renderAlbumsPhotoSources(
 
         projectId:
           photo.projectId,
+
+        limit: RIGHT_SIDEBAR_LIMITS.sources,
 
         emptyText:
           'No sources linked to this photo.'

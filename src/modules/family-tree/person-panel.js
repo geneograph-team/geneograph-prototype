@@ -5,20 +5,6 @@ function treePersonToPeopleRecordId(person)
 
 const CONNECTED_NOTES_PREVIEW_LIMIT = 3;
 
-const PERSON_PANEL_PREVIEW_LIMITS =
-    Object.freeze({
-        photos: 3,
-        archive: 3,
-        notes: CONNECTED_NOTES_PREVIEW_LIMIT
-    });
-
-// Scoped to Family Tree/People; the original 3-item limits are also used in Archive.
-const PERSON_SIDEBAR_PREVIEW_LIMITS =
-    Object.freeze({
-        items: 10,
-        photos: 9
-    });
-
 function personResourceDisplayName(person)
 {
     return (
@@ -251,7 +237,7 @@ function renderFamilyPhotos(person)
             person?.id
         ).slice(
             0,
-            PERSON_SIDEBAR_PREVIEW_LIMITS
+            RIGHT_SIDEBAR_LIMITS
                 .photos
         );
 
@@ -321,8 +307,8 @@ function renderFamilyArchiveItems(
             person?.id
         ).slice(
             0,
-            PERSON_SIDEBAR_PREVIEW_LIMITS
-                .items
+            RIGHT_SIDEBAR_LIMITS
+                .files
         );
 
     if (!files.length)
@@ -377,8 +363,8 @@ function renderFamilyNotes(
           person?.id || '',
 
         limit:
-          PERSON_SIDEBAR_PREVIEW_LIMITS
-              .items,
+          RIGHT_SIDEBAR_LIMITS
+              .notes,
 
         emptyText:
           'No notes linked to this person.'
@@ -980,10 +966,9 @@ function renderPersonSidebar(
         </button>
       </div>`;
 
-    const timelineContent = renderFamilyTreeTimeline(person.id, PERSON_SIDEBAR_PREVIEW_LIMITS.items);
-    const timelineCount = getFamilyTreeTimelineEvents(person.id).length;
+    const timelineContent = renderFamilyTreeTimeline(person.id);
     const relationshipsContent =
-        renderRelationships(person.id, PERSON_SIDEBAR_PREVIEW_LIMITS.items);
+        renderRelationships(person.id);
 
     const relationshipsCount =
         relationshipCount(person.id);
@@ -1028,7 +1013,7 @@ function renderPersonSidebar(
                 sources:
                 personSources,
 
-                limit: PERSON_SIDEBAR_PREVIEW_LIMITS.items,
+                limit: RIGHT_SIDEBAR_LIMITS.sources,
                 showAllWhenEmpty: true,
 
                 emptyText:
@@ -1061,16 +1046,7 @@ function renderPersonSidebar(
                 'Add fact'
             )}
           </button>`,
-            {
-                inlineAction: true,
-                footerHtml: timelineCount > PERSON_SIDEBAR_PREVIEW_LIMITS.items
-                    ? renderPersonPanelViewAll({
-                        resource: 'timeline',
-                        count: timelineCount,
-                        personId: person.id
-                    })
-                    : ''
-            }
+            { inlineAction: true }
         )}
         ${renderInspectorSection(
             'relationships',
@@ -1078,16 +1054,7 @@ function renderPersonSidebar(
             translateCountPhrase(`${relationshipsCount} ${relationshipsCount === 1 ? 'connection' : 'connections'}`),
             relationshipsContent,
             `<button class="panel-action" type="button" data-manage-relationships="${escapeHtml(person.id)}" aria-label="${escapeHtml(t('Edit'))}" title="${escapeHtml(t('Edit'))}">${renderPanelButtonLabel(icon.edit, 'Edit')}</button>`,
-            {
-                inlineAction: true,
-                footerHtml: relationshipsCount > PERSON_SIDEBAR_PREVIEW_LIMITS.items
-                    ? renderPersonPanelViewAll({
-                        resource: 'relationships',
-                        count: relationshipsCount,
-                        personId: person.id
-                    })
-                    : ''
-            }
+            { inlineAction: true }
         )}
         ${renderInspectorSection(
             'photos',
@@ -1248,9 +1215,9 @@ function getFamilyTreeTimelineEvents(personId)
         .sort(compareTimelineEvents);
 }
 
-function renderFamilyTreeTimeline(personId, limit = Infinity)
+function renderFamilyTreeTimeline(personId)
 {
-    const events = getFamilyTreeTimelineEvents(personId).slice(0, limit);
+    const events = getFamilyTreeTimelineEvents(personId);
 
     if (!events.length)
     {

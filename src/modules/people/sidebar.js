@@ -865,11 +865,6 @@ function bindPersonSidebar(root, context = 'tree')
 
                         return;
                     }
-
-                    if (resource === 'timeline' || resource === 'relationships')
-                    {
-                        openPeopleProfileFromRow(personId);
-                    }
                 }
             );
         });
