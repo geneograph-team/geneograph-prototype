@@ -2276,6 +2276,11 @@ button {
     --text-primary: var(--gg-text);
     --text-secondary: var(--gg-text-secondary);
     --text-tertiary: var(--gg-text-muted);
+}
+
+/* Hero and all cover-editing previews share one crop and contrast overlay. */
+.project-hero.has-image-cover,
+.project-cover-preview.has-image-cover {
     background-image:
         linear-gradient(90deg, color-mix(in srgb, var(--gg-topbar) 96%, transparent), color-mix(in srgb, var(--gg-topbar) 82%, transparent) 55%, color-mix(in srgb, var(--gg-topbar) 38%, transparent)),
         var(--project-hero-cover);
@@ -2284,7 +2289,8 @@ button {
 }
 .project-hero.has-image-cover::after { display: none; }
 
-.project-hero::after {
+.project-hero::after,
+.project-cover-preview.tree::after {
     content: "";
     position: absolute;
     right: 120px;
@@ -4324,19 +4330,50 @@ body.mobile-details-open .geneo-inspector [data-geneo-inspector-toggle] {
 
 .project-cover-preview {
     width: 100%;
-    aspect-ratio: 7 / 2;
+    aspect-ratio: var(--cover-preview-aspect, 3);
     border: 1px solid var(--border-default);
     border-radius: var(--radius-sm);
-    background: var(--cover, linear-gradient(145deg, color-mix(in srgb, var(--gg-selected) 90%, transparent), color-mix(in srgb, var(--gg-panel) 82%, transparent)));
-    background-size: contain;
+    background:
+        radial-gradient(circle at 86% 24%, color-mix(in srgb, var(--gg-accent-heritage-green-container) 18%, transparent), transparent 30%),
+        linear-gradient(120deg, color-mix(in srgb, var(--gg-accent-heritage-green-container) 92%, transparent), color-mix(in srgb, var(--gg-accent-heritage-green-container) 75%, var(--gg-background)) 48%, color-mix(in srgb, var(--gg-accent-heritage-green-container) 60%, var(--gg-background)));
+    background-size: cover;
     background-position: center;
     background-repeat: no-repeat;
     position: relative;
     overflow: hidden;
 }
 
-.project-cover-preview.tree::after {
-    content: none;
+.project-cover-preview-label {
+    position: absolute;
+    z-index: 1;
+    top: var(--space-3);
+    left: var(--space-3);
+    right: var(--space-3);
+    display: grid;
+    gap: 4px;
+    min-width: 0;
+    color: var(--gg-accent-heritage-green-on-container);
+    text-shadow: 0 1px 3px color-mix(in srgb, var(--gg-scrim) 40%, transparent);
+    pointer-events: none;
+}
+
+.project-cover-preview.has-image-cover .project-cover-preview-label {
+    color: var(--gg-text);
+}
+
+.project-cover-preview-label strong {
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 16px;
+}
+
+.project-cover-preview-label span {
+    font-size: 12px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .project-cover-preview.cover-positionable {
@@ -4427,7 +4464,6 @@ body.mobile-details-open .geneo-inspector [data-geneo-inspector-toggle] {
 .project-cover-photo-error { margin: 0; color: var(--red); }
 .project-cover-photo-preview-pane { min-width: 0; padding: var(--space-4); border-left: 1px solid var(--border-default); background: var(--surface-main); }
 .project-cover-photo-preview-pane h3 { margin: 0 0 var(--space-3); font-size: 16px; }
-.project-cover-photo-preview { background-size: cover; }
 .project-cover-photo-modal [data-cover-photo-confirm]:disabled { opacity: .45; cursor: not-allowed; }
 
 @media (max-width: 700px) {
