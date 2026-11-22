@@ -48,6 +48,18 @@ Codex working in this local checkout must not run Git commands, create or switch
 
 The Git process in `doc/git-branching-model.md` and `doc/git-commit-style.md` applies to the ChatGPT chat GitHub PR workflow below, not to Codex local workspace work.
 
+## GitHub Issue Progress Updates from Codex
+
+When working on an issue explicitly assigned by the user, Codex **may use connected GitHub Issues tools** to update that issue's description, task checklist, and progress comments. This permission applies to **issue tracking only**; it does not permit any Git commands, branching, commits, pushes, pull requests, or changes to CI/deployment.
+
+- **Read the current issue first.** Confirm the issue number and latest requirements before changing its content. Preserve the founder's decisions, original goals, acceptance criteria, and relevant evidence; do not silently shrink or replace the agreed scope.
+- **Keep progress accurate.** Check off a task only when the corresponding work and required verification are actually complete. Document partial work, remaining tasks, known risks, blockers, and tests performed or pending. Update task wording when findings clarify the remaining work, but get approval before materially changing product scope or priorities.
+- **Avoid noisy updates.** Prefer an updated checklist and one concise comment at a useful checkpoint or at the end of a work session. If the issue already has an accurate progress section, update that rather than duplicating it.
+- **Respect issue ownership.** Do not close/reopen an issue, change labels, assignees or milestones, create additional issues, or change unrelated issues without explicit user authorization.
+- **If GitHub Issues access is unavailable**, do not improvise with Git or credentials. Provide a concise, issue-ready progress update in the final response for the user to apply.
+
+These permissions are independent of the local-workspace Git prohibition above.
+
 ## ChatGPT GitHub Pull Request Workflow
 
 These rules apply only when the ChatGPT chat version works through the connected GitHub repository to make a PR. They do not instruct Codex in this local checkout to use Git. For that separate PR workflow, branch naming, commit messages, and merging follow `doc/git-branching-model.md` and `doc/git-commit-style.md`.
