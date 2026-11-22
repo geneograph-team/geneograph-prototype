@@ -1,1 +1,1 @@
-rebuildSampleEventsAndPruneSourceLinks();
+sampleData.events = buildSampleEvents();

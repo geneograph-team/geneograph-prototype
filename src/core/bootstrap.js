@@ -69,6 +69,5 @@ main.addEventListener('click', e =>
 
 });
 
-rebuildSampleEventsAndPruneSourceLinks();
 render();
 maybeOfferGeneoProductTour();

@@ -492,14 +492,10 @@ function normalizeGeneographPersonCardSettings(
                 && !saved && cardStyle !== style
                 && ['compact', 'portrait'].includes(style)
                 ? cardDefaults.alignment : preset[key];
-            const legacyNameAlignment = key === 'nameAlignment'
-                && !Object.hasOwn(preset, 'nameAlignment')
-                ? geneoPersonCardEnumValue('alignment', preset.alignment, cardDefaults.alignment)
-                : legacyAlignment;
             styleSettings[cardStyle][key] = key === 'alignment'
                 && ['compact', 'portrait'].includes(cardStyle)
                     ? 'center'
-                    : geneoPersonCardEnumValue(key, legacyNameAlignment, cardDefaults[key]);
+                    : geneoPersonCardEnumValue(key, legacyAlignment, cardDefaults[key]);
         });
         Object.keys(GENEO_PERSON_CARD_FONT_RANGES).forEach(key =>
         {
@@ -669,19 +665,14 @@ function normalizeGeneographPersonCardOverrides(
         styleSettings[style] = { fields: cardFields };
         GENEO_PERSON_CARD_FORMAT_KEYS.forEach(key =>
         {
-            const legacyNameAlignment = key === 'nameAlignment'
-                && saved && !Object.hasOwn(saved, 'nameAlignment')
-                ? saved.alignment
-                : key === 'nameAlignment' && !saved && style === legacyStyle
-                  ? source.alignment : preset[key];
             styleSettings[style][key] = key === 'alignment'
                 && ['compact', 'portrait'].includes(style)
                     ? null
                     : key === 'alignment' && !saved && style !== legacyStyle
                       && ['compact', 'portrait'].includes(legacyStyle)
                         ? null
-                    : geneoPersonCardSettingValueIsValid(key, legacyNameAlignment)
-                        ? legacyNameAlignment : null;
+                    : geneoPersonCardSettingValueIsValid(key, preset[key])
+                        ? preset[key] : null;
         });
         Object.keys(GENEO_PERSON_CARD_FONT_RANGES).forEach(key =>
         {
@@ -1380,10 +1371,6 @@ function ensureGeneographPersonCardSize(
             geometry.minHeight,
             geometry.maxHeight
         );
-    if (geneoPersonCardEffectiveSettings(node, diagram).style === 'chart')
-        node.chartCardLayoutVersion = 1;
-    if (geneoPersonCardEffectiveSettings(node, diagram).style === 'portrait')
-        node.portraitCardLayoutVersion = 1;
 }
 
 function geneoPersonCardUsesAutoHeight(
@@ -1891,18 +1878,12 @@ function getGeneographPerson(personId)
 function normalizeGeneographPersonNames(person = {})
 {
     const source = person.names && typeof person.names === 'object' ? person.names : {};
-    let first = String(source.first || '').trim();
-    let middle = String(source.middle || '').trim();
-    let last = String(source.last || '').trim();
-    const maiden = String(source.maiden || '').trim();
-    if (!first && !middle && !last && person.displayName)
-    {
-        const parts = String(person.displayName).trim().split(/\s+/).filter(Boolean);
-        first = parts.shift() || '';
-        last = parts.length ? parts.pop() : '';
-        middle = parts.join(' ');
-    }
-    return { first, middle, last, maiden };
+    return {
+        first: String(source.first || '').trim(),
+        middle: String(source.middle || '').trim(),
+        last: String(source.last || '').trim(),
+        maiden: String(source.maiden || '').trim()
+    };
 }
 
 function normalizeGeneographPersonVital(value, projectId)
@@ -2533,28 +2514,9 @@ function geneographBoardSearchText(
         .toLowerCase();
 }
 
-function geneographBoardModifiedTime(
-    board
-)
+function geneographBoardModifiedTime(board)
 {
-    if (
-        board.modified
-          === 'Just now'
-    )
-    {
-        return Number
-            .POSITIVE_INFINITY;
-    }
-
-    const timestamp =
-        Date.parse(
-            board.modified || ''
-        );
-
-    return Number.isFinite(
-        timestamp
-    )
-        ? timestamp
-        : 0;
+    const timestamp = Date.parse(board.modifiedAt || '');
+    return Number.isFinite(timestamp) ? timestamp : 0;
 }
 

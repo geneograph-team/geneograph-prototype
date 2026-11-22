@@ -294,12 +294,12 @@ function educationValueLabel(attribute)
 
 function educationInstitutionLabel(attribute)
 {
-    return cleanEditFieldValue(attribute?.institutionName || attribute?.agency);
+    return cleanEditFieldValue(attribute?.institutionName);
 }
 
 function educationInstitutionTypeLabel(attribute)
 {
-    return cleanEditFieldValue(attribute?.institutionType || attribute?.type);
+    return cleanEditFieldValue(attribute?.institutionType);
 }
 
 function educationPrimaryLabel(attribute)
@@ -452,7 +452,6 @@ function addPersonFactDefinitions()
 function addPersonAddedFactsFromPerson(person)
 {
     if (!person) return [];
-    ensurePersonCentralStructures(person);
     const details = peopleProfileDetailsFor({ id: person.id });
     const facts = [];
     if (cleanEditFieldValue(person.names?.prefix || details.prefix)) facts.push('prefix');
@@ -486,7 +485,7 @@ function addPersonFactCardHtml(factId, person = null)
         label: 'Additional fact',
         icon: icon.info
     };
-    const centralPerson = person ? ensurePersonCentralStructures(person) : null;
+    const centralPerson = person;
     const details = centralPerson ? peopleProfileDetailsFor({ id: centralPerson.id }) : defaultPeopleProfileDetails();
     const death = centralPerson?.death || {};
     const baptism = centralPerson ? personEventByTag(centralPerson, 'BAPM') : null;

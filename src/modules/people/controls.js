@@ -55,6 +55,11 @@ function deletePeopleRecords(personIds)
             photo.personIds = nextPersonIds;
             photo.updatedAt = now;
         }
+        if (photo.personRegions && Object.keys(photo.personRegions).some(id => deletedIds.has(id)))
+        {
+            photo.personRegions = Object.fromEntries(Object.entries(photo.personRegions).filter(([id]) => !deletedIds.has(id)));
+            photo.updatedAt = now;
+        }
     });
 
     for (const records of [sampleData.archiveFiles, sampleData.notes])

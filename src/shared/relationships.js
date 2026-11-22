@@ -23,9 +23,8 @@ function familyPartnerRole(family, personId)
         : partnerB === personId
             ? family.partnerBRoleHint || ''
             : '';
-    const text = String(hint || '').trim().toLowerCase();
-    if (['husb', 'husband', 'father', 'male', 'dad'].includes(text)) return 'father';
-    if (['wife', 'mother', 'female', 'mom', 'mum'].includes(text)) return 'mother';
+    if (hint === 'HUSB') return 'father';
+    if (hint === 'WIFE') return 'mother';
     const gender = String(getPerson(personId)?.gender || '').toLowerCase();
     if (gender === 'male') return 'father';
     if (gender === 'female') return 'mother';

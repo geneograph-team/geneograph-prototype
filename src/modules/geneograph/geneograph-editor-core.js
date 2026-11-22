@@ -2250,8 +2250,6 @@ function openGeneographBoardDetailsModal({
                         ...selectedCollectionIds
                     ],
 
-                    modified:
-                'Just now',
                     modifiedAt: now,
                     createdAt: now,
                     favorite:
@@ -2579,7 +2577,7 @@ function geneoNormalizeConnectionDefaults(value)
 {
     const fallback = geneoDefaultConnectionStyle();
     return {
-        line: geneoPaintFromLegacy(value?.line, value?.color, fallback.line),
+        line: normalizeGeneoPaint(value?.line, fallback.line),
         lineOverride: value?.lineOverride === true,
         width: Math.round(geneoNumber(value?.width, fallback.width, GENEO_STROKE_WIDTH_MIN, GENEO_STROKE_WIDTH_MAX)),
         pattern: GENEO_CONNECTION_PATTERNS.includes(value?.pattern) ? value.pattern : fallback.pattern,
@@ -2593,7 +2591,7 @@ function geneoNormalizeConnectionDefaults(value)
 function geneoNormalizeConnectionOverrides(value, kind = 'visual')
 {
     const result = {};
-    if (value?.line) result.line = geneoPaintFromLegacy(value.line, value.line?.color, geneoDefaultConnectionStyle().line);
+    if (value?.line) result.line = normalizeGeneoPaint(value.line, geneoDefaultConnectionStyle().line);
     if (Number.isInteger(value?.width) && value.width >= GENEO_STROKE_WIDTH_MIN && value.width <= GENEO_STROKE_WIDTH_MAX) result.width = value.width;
     if (GENEO_CONNECTION_PATTERNS.includes(value?.pattern)) result.pattern = value.pattern;
     if (kind === 'visual' && GENEO_CONNECTION_ARROWS.includes(value?.arrows)) result.arrows = value.arrows;
@@ -2873,19 +2871,6 @@ function normalizeGeneoPaint(value, fallback = {}, {
     };
 }
 
-function geneoPaintFromLegacy(sourcePaint, legacyColor, fallback, options = {})
-{
-    if (sourcePaint && typeof sourcePaint === 'object')
-    {
-        return normalizeGeneoPaint(sourcePaint, fallback, options);
-    }
-    return normalizeGeneoPaint({
-        color: legacyColor,
-        opacity: options.legacyOpacity ?? fallback.opacity,
-        enabled: options.legacyEnabled ?? fallback.enabled
-    }, fallback, options);
-}
-
 function geneoHexToRgb(color)
 {
     const normalized = normalizeGeneoHexColor(color);
@@ -2928,35 +2913,17 @@ function isCanonicalGeneoPaint(paint, { mustBeEnabled = false, fixedOpacity = nu
 function geneoAppearance(value, defaults = {}, nodeType = '')
 {
     const source = value && typeof value === 'object' ? value : {};
-    const legacyStrokeType = ['dashed', 'solid', 'none'].includes(source.strokeType)
-        ? source.strokeType
-        : null;
     const defaultPattern = defaults.strokePattern === 'dashed' ? 'dashed' : 'solid';
     const result = { ...defaults, ...source };
     result.shadowEnabled = geneoShadowOverride(source.shadowEnabled);
     if (nodeType === 'image') delete result.fill;
-    else result.fill = geneoPaintFromLegacy(
-        source.fill,
-        source.backgroundColor,
-        defaults.fill,
-        { legacyOpacity: nodeType === 'panel' ? 68 : 100 }
-    );
+    else result.fill = normalizeGeneoPaint(source.fill ?? defaults.fill, defaults.fill);
     if (nodeType === 'image')
     {
         result.imageOpacity = Math.round(geneoNumber(source.imageOpacity, 100, 0, 100));
     }
-    result.stroke = geneoPaintFromLegacy(
-        source.stroke,
-        source.strokeColor,
-        defaults.stroke,
-        { legacyEnabled: legacyStrokeType !== 'none' }
-    );
-    result.text = geneoPaintFromLegacy(
-        source.text,
-        source.textColor,
-        defaults.text,
-        { forceEnabled: true }
-    );
+    result.stroke = normalizeGeneoPaint(source.stroke ?? defaults.stroke, defaults.stroke);
+    result.text = normalizeGeneoPaint(source.text, defaults.text, { forceEnabled: true });
     if (nodeType === 'person')
     {
         const sourceOverrides =
@@ -2980,10 +2947,8 @@ function geneoAppearance(value, defaults = {}, nodeType = '')
             === true
         };
         result.styleOverrides = {
-            strokeWidth: source.styleOverrides?.strokeWidth === true
-                || (!source.styleOverrides && source.strokeWidth != null && source.strokeWidth !== 2),
+            strokeWidth: source.styleOverrides?.strokeWidth === true,
             strokePattern: source.styleOverrides?.strokePattern === true
-                || (!source.styleOverrides && source.strokePattern === 'dashed')
         };
     }
     else
@@ -2994,11 +2959,7 @@ function geneoAppearance(value, defaults = {}, nodeType = '')
             text: source.paintOverrides?.text === true
         };
     }
-    result.strokePattern = legacyStrokeType && legacyStrokeType !== 'none'
-        ? legacyStrokeType
-        : ['solid', 'dashed'].includes(source.strokePattern)
-            ? source.strokePattern
-            : defaultPattern;
+    result.strokePattern = ['solid', 'dashed'].includes(source.strokePattern) ? source.strokePattern : defaultPattern;
     result.strokeWidth = Math.round(geneoNumber(
         source.strokeWidth,
         defaults.strokeWidth || GENEO_STROKE_WIDTH_MIN,
@@ -3082,7 +3043,6 @@ function normalizeGeneographImageRef(node)
 function normalizeGeneographShapeKind(value)
 {
     const kind = String(value || '').trim().toLowerCase();
-    if (kind === 'rounded-rectangle') return 'rectangle';
     return GENEO_SHAPE_KINDS.some(shape => shape.id === kind)
         ? kind
         : 'rectangle';
@@ -3128,7 +3088,7 @@ function normalizeGeneographPlaceRef(node, projectId = selectedGeneographBoard()
                 fallbackName: String(placePrimaryName(place) || place.name || source.fallbackName || 'Place').trim().slice(0, 160)
             };
         }
-        const fallbackName = String(source.fallbackName || node?.placeName || '').trim().slice(0, 160);
+        const fallbackName = String(source.fallbackName || '').trim().slice(0, 160);
         return fallbackName ? { scope: 'board', name: fallbackName } : null;
     }
     if (source?.scope === 'board')
@@ -3136,18 +3096,7 @@ function normalizeGeneographPlaceRef(node, projectId = selectedGeneographBoard()
         const name = String(source.name || '').replace(/\s+/g, ' ').trim().slice(0, 160);
         return name ? { scope: 'board', name } : null;
     }
-    const legacyPlaceId = String(node?.placeId || '').trim();
-    const legacyPlace = legacyPlaceId ? getPlace(legacyPlaceId) : null;
-    if (legacyPlace && legacyPlace.projectId === projectId)
-    {
-        return {
-            scope: 'project',
-            id: legacyPlace.id,
-            fallbackName: String(placePrimaryName(legacyPlace) || legacyPlace.name || 'Place').trim().slice(0, 160)
-        };
-    }
-    const legacyName = String(node?.placeName || node?.title || '').replace(/\s+/g, ' ').trim().slice(0, 160);
-    return legacyName ? { scope: 'board', name: legacyName } : null;
+    return null;
 }
 
 function resolveGeneographPlace(node, board = selectedGeneographBoard())
@@ -3483,18 +3432,16 @@ function normalizeGeneographBoardRecord(board, projectPeople)
         board.favorite = Boolean(board.favorite);
         board.archived = Boolean(board.archived);
         board.modifiedAt = Number.isFinite(Date.parse(board.modifiedAt)) ? board.modifiedAt : new Date().toISOString();
-        board.modified = String(board.modified || formatProjectModified?.(board) || 'Just now');
         const source = board.diagram && typeof board.diagram === 'object' ? board.diagram : createEmptyGeneographDiagram();
         const canvas = source.canvas && typeof source.canvas === 'object' ? source.canvas : {};
         const backgroundPattern = ['dots', 'grid', 'clear'].includes(canvas.backgroundPattern)
             ? canvas.backgroundPattern
-            : canvas.gridVisible === false ? 'clear' : 'dots';
+            : 'dots';
         const diagram = {
             themeProvenanceVersion: source.themeProvenanceVersion === 1 ? 1 : 0,
             canvas: {
-                backgroundPaint: geneoPaintFromLegacy(
+                backgroundPaint: normalizeGeneoPaint(
                     canvas.backgroundPaint,
-                    canvas.backgroundColor,
                     { color: geneoDefaultCanvasColor(), opacity: 100, enabled: true },
                     { forceEnabled: true, forceOpacity: 100 }
                 ),
@@ -3540,16 +3487,15 @@ function normalizeGeneographBoardRecord(board, projectPeople)
             personIds.add(person.id);
             const treePersonId = person.treePersonId ? String(person.treePersonId) : null;
             const names = normalizeGeneographPersonNames(person);
-            const legacyDeath = formatGenealogyDateLabel(person.death);
             const livingStatus = ['Living', 'Deceased', 'Unknown'].includes(person.livingStatus)
                 ? person.livingStatus
-                : legacyDeath ? 'Deceased' : 'Living';
+                : 'Unknown';
             diagram.people.push({
                 id: String(person.id), treePersonId,
                 syncState: ['local', 'linked', 'modified'].includes(person.syncState) ? person.syncState : (treePersonId ? 'linked' : 'local'),
                 names,
-                gender: ['male', 'female', 'unknown'].includes(String(person.gender || person.sex || '').toLowerCase())
-                    ? String(person.gender || person.sex).toLowerCase()
+                gender: ['male', 'female', 'unknown'].includes(person.gender)
+                    ? person.gender
                     : 'unknown',
                 livingStatus,
                 birth: normalizeGeneographPersonVital(person.birth, board.projectId),
@@ -3591,11 +3537,6 @@ function normalizeGeneographBoardRecord(board, projectPeople)
                 nodeIds.add(node.id);
 
                 const defaults = geneoNodeDefaults(node.type);
-                const legacyRoundedShape = node.type === 'shape'
-              && String(node.shapeKind || '').trim().toLowerCase() === 'rounded-rectangle';
-                const appearanceDefaults = legacyRoundedShape
-                    ? { ...defaults.appearance, cornerRadius: 12 }
-                    : defaults.appearance;
 
                 const normalizedNode = {
                     ...node,
@@ -3636,7 +3577,7 @@ function normalizeGeneographBoardRecord(board, projectPeople)
                     locked: Boolean(node.locked),
                     appearance: geneoAppearance(
                         node.appearance,
-                        appearanceDefaults,
+                        defaults.appearance,
                         node.type
                     )
                 };
@@ -3648,87 +3589,12 @@ function normalizeGeneographBoardRecord(board, projectPeople)
                             ? node.personCard
                             : {};
 
-                    const legacyStyle =
-                        geneoPersonCardSettingValueIsValid(
-                            'style',
-                            sourcePersonCard.style
-                        )
-                            ? sourcePersonCard.style
-                            : diagram.personCardDefaults.style;
-                    if (!source.cardAppearanceDefaults && !diagram.canvas.colorPersonCardsByGender)
-                    {
-                        const neutral = diagram.cardAppearanceDefaults.neutral;
-                        for (const property of ['fill', 'stroke', 'text'])
-                        {
-                            if (node.appearance?.paintOverrides?.[property] === true) continue;
-                            const expected = property === 'stroke' && legacyStyle !== 'standard'
-                                ? { ...neutral.stroke, enabled: true } : neutral[property];
-                            normalizedNode.appearance.paintOverrides[property] =
-                                JSON.stringify(normalizedNode.appearance[property]) !== JSON.stringify(expected);
-                        }
-                    }
-
-                    const legacyDefaultHeight =
-                        legacyStyle === 'standard'
-                && Math.abs(
-                    Number(node.height) - 220
-                ) < .5;
-
-                    const legacyPhotoOverride =
-                        sourcePersonCard.custom === true
-                && typeof sourcePersonCard
-                    .fields?.photo === 'boolean'
-                && !Object.hasOwn(
-                    sourcePersonCard.photoByStyle
-                    || {},
-                    legacyStyle
-                );
-
-                    const personCardSource =
-                        legacyPhotoOverride
-                            ? {
-                                ...sourcePersonCard,
-                                fields: {
-                                    ...sourcePersonCard.fields,
-                                    photo: undefined
-                                },
-                                photoByStyle: {
-                                    ...sourcePersonCard.photoByStyle,
-                                    [legacyStyle]:
-                          sourcePersonCard
-                              .fields.photo
-                                }
-                            }
-                            : sourcePersonCard;
-
                     normalizedNode.personCard =
                         normalizeGeneographPersonCardOverrides(
-                            personCardSource,
-                            legacyDefaultHeight
-                                ? 'auto'
-                                : 'manual',
+                            sourcePersonCard,
+                            'manual',
                             diagram.personCardDefaults.style
                         );
-
-                    if (legacyStyle === 'chart' && node.chartCardLayoutVersion !== 1)
-                    {
-                        const width = Math.max(normalizedNode.width, 420);
-                        const height = Math.max(normalizedNode.height, GENEO_PERSON_CARD_GEOMETRY.chart.height);
-                        normalizedNode.x -= (width - normalizedNode.width) / 2;
-                        normalizedNode.y -= (height - normalizedNode.height) / 2;
-                        normalizedNode.width = width;
-                        normalizedNode.height = height;
-                    }
-
-                    if (legacyStyle === 'portrait' && node.portraitCardLayoutVersion !== 1)
-                    {
-                        const width = Math.max(normalizedNode.width, 235);
-                        const height = Math.max(normalizedNode.height, 360);
-                        normalizedNode.x -= (width - normalizedNode.width) / 2;
-                        normalizedNode.y -= (height - normalizedNode.height) / 2;
-                        normalizedNode.width = width;
-                        normalizedNode.height = height;
-                    }
 
                     ensureGeneographPersonCardSize(
                         normalizedNode,
@@ -3877,7 +3743,7 @@ function normalizeGeneographBoardRecord(board, projectPeople)
                 relationshipType: String(family.relationshipType || 'Married'),
                 relationshipStatus: String(family.relationshipStatus || 'active'),
                 marriageType: String(family.marriageType || ''),
-                events: Array.isArray(family.events) ? family.events.map(event => ({ ...event, date: normalizeGenealogyDateInput(event.date || event) })) : []
+                events: Array.isArray(family.events) ? family.events.map(event => ({ ...event, date: normalizeGenealogyDateInput(event.date) })) : []
             });
         });
         const connectionIds = new Set();
@@ -4193,7 +4059,6 @@ function touchGeneographBoard(board = selectedGeneographBoard())
 {
     if (!board) return;
     board.modifiedAt = new Date().toISOString();
-    board.modified = 'Just now';
     markPrototypeSessionEdited();
     invalidateGeneographBoardPreview(board.id);
 }

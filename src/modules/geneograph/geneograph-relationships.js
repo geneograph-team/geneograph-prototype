@@ -257,16 +257,16 @@ function openGeneoMakeVisualConfirmation(connection)
             family.partnerIds.filter(() => family.children.length).forEach(parentId =>
             {
                 const parentNode = diagram.nodes.find(node => node.type === 'person' && node.personId === parentId);
-                let single = diagram.families.find(item => item.partnerIds.length === 1 && item.partnerIds[0] === parentId);
-                if (!single)
-                {
-                    single = { id: createRuntimeId('geneo-family'), partnerIds: [parentId], children: [], relationshipType: 'Unknown relationship', relationshipStatus: 'active', marriageType: '', events: [] };
-                    diagram.families.push(single);
-                }
+                const single = { id: createRuntimeId('geneo-family'), partnerIds: [parentId], children: [],
+                    relationshipType: 'Unknown relationship', relationshipStatus: 'active', marriageType: '', events: [] };
+                diagram.families.push(single);
                 family.children.forEach(child =>
                 {
                     const childNode = diagram.nodes.find(node => node.type === 'person' && node.personId === child.personId);
-                    if (!single.children.some(item => item.personId === child.personId)) single.children.push({ ...child });
+                    single.children.push({
+                        personId: child.personId,
+                        parentageType: child.parentChildTypes?.[parentId] || child.parentageType
+                    });
                     if (!childNode || !parentNode) return;
                     const original = diagram.connections.find(item => item.kind === 'family-child' && item.familyId === family.id && item.target.nodeId === childNode.id);
                     if (!diagram.connections.some(item => item.kind === 'family-child' && item.familyId === single.id && item.target.nodeId === childNode.id))
@@ -369,6 +369,17 @@ function geneoDetachCutPeople(personIds)
     {
         family.partnerIds = family.partnerIds.filter(id => !personIds.has(id));
         family.children = family.children.filter(child => !personIds.has(child.personId));
+        for (const child of family.children)
+        {
+            if (!child.parentChildTypes) continue;
+            for (const parentId of personIds) delete child.parentChildTypes[parentId];
+            if (family.partnerIds.length === 1)
+            {
+                child.parentageType = child.parentChildTypes[family.partnerIds[0]] || child.parentageType;
+                delete child.parentChildTypes;
+            }
+            else if (!Object.keys(child.parentChildTypes).length) delete child.parentChildTypes;
+        }
         return family.partnerIds.length || family.relationshipType === 'Sibling relationship' && family.children.length;
     });
     const familyIds = new Set(diagram.families.map(family => family.id));

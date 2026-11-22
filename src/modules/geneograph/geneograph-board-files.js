@@ -377,7 +377,7 @@ function importGeneographBoardPayload(payload, projectId = currentProjectId())
         id: createRuntimeId('board'), projectId,
         title: payload.board.title, description: payload.board.description,
         collectionIds: [], favorite: false, archived: false,
-        modified: 'Just now', modifiedAt: now, createdAt: now,
+        modifiedAt: now, createdAt: now,
         thumb: 'theory', diagram
     }, projectPeople);
     // Commit only after normalization has succeeded.

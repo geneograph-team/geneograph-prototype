@@ -10,15 +10,16 @@ A Family Tree family is identified by its own ID. partnerAId and partnerBId iden
 
 | Record | Contract |
 | --- | --- |
-| Project | Nonempty text ID and name. Optional default person and cover photo IDs resolve to people and media in the same project. |
+| Project | Nonempty text ID and name. Optional default person and cover photo IDs resolve to people and media in the same project. Creation and modification use createdAt and modifiedAt timestamps. |
+| Person | Explicit gender and living status, structured birth and death dates, a profile object, and arrays for events, attributes, notes and citations. |
 | Person name | A names object with first and last strings. Middle, maiden, prefix and suffix are optional strings. An empty string represents an unrecorded part. The draft limit is 1,024 UTF-16 code units per part. Display names and initials are computed from the recorded parts and the placeholder role. |
-| Person and family events | Each event has an ID unique within its owner's event array and a nonempty gedcomTag. Dates are structured genealogy dates. Evidence references resolve within the project. Attributes use their own tag field. |
-| Family membership | Both partner slots are strings. An empty string means the slot is unoccupied. A child ID is a nonempty string and occurs at most once per family. Parentage keys combine the parent ID and child ID with a vertical bar and apply only within that family. Missing parentage is read as Unknown parentage. |
+| Person and family events | Each event has an ID unique within its owner's event array and a nonempty gedcomTag. Dates are structured genealogy dates. Evidence references resolve within the project. Attributes use their own tag field. Education records use institutionName and institutionType. Occupation records use company. Custom facts may have a type. |
+| Family membership | Both partner slots are strings. An empty string means the slot is unoccupied. A child ID is a nonempty string and occurs at most once per family. Parentage keys combine the parent ID and child ID with a vertical bar and apply only within that family. Missing parentage is read as Unknown parentage. Optional partner role hints are HUSB, WIFE or empty. The role hints are display metadata. |
 | Place | A nonempty name, an array of nonempty alternative names unique after lookup normalization, and coordinates. A null coordinate means no known map location. A point contains numeric latitude and longitude in range. An optional approximate radius of 1 to 1,000,000 meters requires a valid center. |
 | Source link | A source ID, target type and target ID. The source and target must exist in the same project. The same source-to-target triple can occur only once. |
-| Media and albums | Person and album references belong to the media record. Its optional place points to a project Place. A person's primary photo references project media. |
-| Archive and Notes | An Archive file references its folder, document place and related project records. A note references its collections and related records. Both can point to derived event IDs, which are resolved after reconstruction. |
-| Geneograph | Board collections are project references. A board diagram owns its assets, people, families, nodes and connections. Board-local IDs resolve within the diagram. References explicitly scoped to the project resolve against project collections. |
+| Media and albums | Person and album references belong to the media record. Its optional place points to a project Place. A person's primary photo references project media. Album names and photo filenames are nonempty text. Image regions use normalized coordinates and a key for the referenced person. |
+| Archive and Notes | An Archive file references its folder, document place and related project records. A note references its collections and related records. Both can point to derived event IDs, which are resolved after reconstruction. Note text has a title and body. Rich-text notes pair the quill-delta-v1 format with a delta containing an ops array. |
+| Geneograph | Board collections are project references. A board diagram owns its assets, people, families, nodes and connections. Board-local IDs resolve within the diagram. References explicitly scoped to the project resolve against project collections. Board vital and family events use structured dates. Partner and child edges must agree with the family membership and the parent graph must be acyclic. |
 
 Display names, initials, timeline rows and UI counters are derived presentation. A link to a derived event ID is an authored relationship. Preserve that link and regenerate its target from the underlying person, family or fact identity.
 
@@ -32,7 +33,7 @@ The matrix is the intended candidate boundary for #332, subject to #330's comple
 | Album and archive metadata, citations, notes, board records and their content | Media binaries. Keep metadata and valid record IDs so references still resolve, and represent unavailable content explicitly. |
 | References to records owned by the exported project | Activity, notifications and other session history |
 
-The detached input collections are people, families, places, placeSavedFilters, placeIssues, media, albums, archiveFolders, archiveFiles, sources, sourceLinks, noteCollections, notes, boardCollections, boards, links and publishDrafts. Project metadata is passed separately. Missing collections are empty. Input containing events, activity or notifications is rejected. Saved filters are project records. Active filter controls and viewport state are session data.
+The detached input collections are people, families, places, placeSavedFilters, placeIssues, media, albums, archiveFolders, archiveFiles, sources, sourceLinks, noteCollections, notes, boardCollections, boards, links and publishDrafts. Project metadata is passed separately. Missing collections are empty. Draft input must be JSON-compatible and is limited to 1,000,000 values across metadata and collections, with at most 64 nested levels. Input containing events, activity or notifications is rejected. Saved filters are project records. Active filter controls and viewport state are session data.
 
 ### Media references without binaries
 
@@ -40,8 +41,18 @@ Keep project media, Archive file, and board asset metadata under their original 
 
 Exclude the bytes and session-specific locators that contain or expose them, including inline data URLs, object URLs, and preview URLs. A metadata record with unavailable content has no usable source locator. The restore flow must show an unavailable-media placeholder and must not fabricate a filename, reuse a destination project's file, or drop a valid relationship just because its bytes are absent. A missing metadata record is a dangling reference and fails validation.
 
+For a project cover chosen from its photo library, preserve coverPhotoId and coverPosition with the related media metadata. Exclude coverImageSrc, including when it is a cropped copy. A cover uploaded solely for the cover has no media record to reference. Preserve the cover style and position, and display the unavailable-cover state until the user chooses another image. Preset covers retain their preset key and use the application asset for that key.
+
 The project backup contract is separate from the Geneograph board file contract. A standalone board export may embed its own images. A project backup retains board image objects and asset metadata while applying the project-wide binary exclusion.
 
 An external parser must reject an unsupported format or version before constructing a draft. Allocate a new project ID, remap record IDs where required, and rewrite references with collection-scoped maps. Rebuild derived timeline entries before resolving references to them. Validate the complete draft before committing any of it. Cancel and validation errors leave the live project untouched.
 
-The detached validator checks collection ownership, ID uniqueness, ancestry cycles, parentage, and references across research records, nested facts, and board-local records. Rebuild the timeline with the detached people, families, and places before validating references to derived events. Complete validation of record shapes and verify a full sample-project round trip before using this boundary for GEDCOM or backup restore.
+### Restore identity and reference rewriting
+
+Allocate the destination project ID first and assign it to the project record and each owned record. Allocate collision-free IDs for collections whose runtime lookups use global IDs. Preserve board-local IDs unless the destination board itself already contains those IDs. Use a separate map for each board and each local record kind.
+
+Rewrite all structured references. This includes project defaults and covers, family partner and child IDs, parentage keys, fact Place and media IDs, collection memberships, person-region keys, reciprocal note links, Archive evidence and folder references, and typed Source targets. Board nodes and edges use board-local maps for people, assets, family links, panel IDs and endpoints. Links from a board to the Family Tree, project Places and project media use the project collection maps. Never rewrite a plain-text mention as though it were an ID.
+
+Regenerate derived events from the remapped records. Map each old derived event ID to the new ID by its originating person, family or fact, then rewrite Source, Archive and Notes event references before validating the complete draft. If any structured reference is unresolved, report its owning record and field and leave the current project untouched.
+
+The detached validator checks collection ownership, ID uniqueness, ancestry cycles, parentage, and references across research records, nested facts, and board-local records. The contract check exercises the authored Whiskerfield draft, a blank project, metadata without image bytes, and links to regenerated timeline events. Full schema review and end-to-end verification remain part of #330.

@@ -850,7 +850,9 @@ function validateParentChildConnection(parentId, childId)
         };
     }
 
-    if (!getPerson(parentId) || !getPerson(childId))
+    const parent = getPerson(parentId);
+    const child = getPerson(childId);
+    if (!parent || !child || parent.projectId !== child.projectId || parent.projectId !== currentProjectId())
     {
         return {
             ok: false,
@@ -909,7 +911,9 @@ function validatePartnerConnection(personAId, personBId)
         };
     }
 
-    if (!getPerson(personAId) || !getPerson(personBId))
+    const personA = getPerson(personAId);
+    const personB = getPerson(personBId);
+    if (!personA || !personB || personA.projectId !== personB.projectId || personA.projectId !== currentProjectId())
     {
         return {
             ok: false,
@@ -1339,10 +1343,11 @@ function normalizePartnerChildrenMode(value)
 
 function singleParentFamilyWithChildrenForPerson(personId)
 {
-    return partnerFamiliesForPerson(personId).find(family =>
+    const matches = partnerFamiliesForPerson(personId).filter(family =>
         !familyHasSecondPartner(family, personId)
-          && unlinkFamilyChildrenIds(family).length > 0
-    ) || null;
+        && unlinkFamilyChildrenIds(family).length > 0
+    );
+    return matches.length === 1 ? matches[0] : null;
 }
 
 function partnerChildrenParentRole(personId)
@@ -1591,8 +1596,6 @@ function assignParentToFamily(family, parentId)
 
 
         family.partnerBRoleHint = roleHint || 'WIFE';
-        family.partner2RoleHint = family.partnerBRoleHint;
-        family.personBRoleHint = family.partnerBRoleHint;
         return true;
     }
 
@@ -1602,8 +1605,6 @@ function assignParentToFamily(family, parentId)
 
 
         family.partnerARoleHint = roleHint || 'HUSB';
-        family.partner1RoleHint = family.partnerARoleHint;
-        family.personARoleHint = family.partnerARoleHint;
         return true;
     }
 
@@ -1613,8 +1614,6 @@ function assignParentToFamily(family, parentId)
 
 
         family.partnerARoleHint = roleHint;
-        family.partner1RoleHint = roleHint;
-        family.personARoleHint = roleHint;
         return true;
     }
 
@@ -1624,8 +1623,6 @@ function assignParentToFamily(family, parentId)
 
 
         family.partnerBRoleHint = roleHint;
-        family.partner2RoleHint = roleHint;
-        family.personBRoleHint = roleHint;
         return true;
     }
 
@@ -1666,14 +1663,10 @@ function createParentChildFamily(parentId, childId)
 
 function findOrCreateSingleParentFamily(parentId)
 {
-    const existing = partnerFamiliesForPerson(parentId).find(family =>
+    const matches = partnerFamiliesForPerson(parentId).filter(family =>
         !familyHasSecondPartner(family, parentId)
     );
-
-    if (existing)
-    {
-        return existing;
-    }
+    if (matches.length === 1) return matches[0];
 
     const parent = getPerson(parentId);
     const family = {
@@ -1866,8 +1859,11 @@ function connectSiblingsThroughFamily(anchorPersonId, siblingPersonId, familyId,
     }
 
     const { sourcePersonId, targetPersonId } = validation;
-    const family = validation.choice.parentIds.length === 1
-        ? findOrCreateSingleParentFamily(validation.choice.parentIds[0])
+    const [selectedParentId] = validation.choice.parentIds;
+    const isolateParent = validation.choice.parentIds.length === 1
+        && familyHasSecondPartner(validation.family, selectedParentId);
+    const family = isolateParent
+        ? createParentChildFamily(selectedParentId, sourcePersonId)
         : validation.family;
     if (validation.choice.parentIds.length === 1)
     {
@@ -1883,11 +1879,7 @@ function connectSiblingsThroughFamily(anchorPersonId, siblingPersonId, familyId,
     ]);
     validation.choice.parentIds.forEach(parentId =>
     {
-        const existing = centralFamilyRecords().find(candidate => candidate.id !== family.id
-            && unlinkFamilyChildrenIds(candidate).includes(targetPersonId)
-            && familyIncludesPerson(candidate, parentId));
-        setParentChildRelationshipType(family, parentId, targetPersonId,
-            existing ? parentChildRelationshipType(existing, parentId, targetPersonId) : detailType);
+        setParentChildRelationshipType(family, parentId, targetPersonId, detailType);
     });
     family.updatedAt = 'Just now';
 
@@ -1910,10 +1902,10 @@ function connectParentToChild(parentId, childId)
 
     const warning = parentWarningForConnection(parentId, childId);
 
-    let family = centralFamilyRecords().find(candidate =>
-        (candidate.childIds || []).includes(childId)
-          && familyCanAcceptParent(candidate, parentId)
+    const matches = centralFamilyRecords().filter(candidate =>
+        candidate.projectId === currentProjectId() && candidate.childIds.includes(childId) && familyCanAcceptParent(candidate, parentId)
     );
+    let family = matches.length === 1 ? matches[0] : null;
 
     if (!family)
     {
@@ -1964,12 +1956,15 @@ function connectPartners(personAId, personBId, options = {})
 
     const existingChildrenFamily = existingChildrenFamilyId
         ? centralFamilyRecords().find(family =>
-            family.id === existingChildrenFamilyId
+            family.id === existingChildrenFamilyId && family.projectId === personA.projectId
               && familyIncludesPerson(family, personAId)
               && !familyHasSecondPartner(family, personAId)
               && unlinkFamilyChildrenIds(family).length > 0
         )
         : null;
+
+    if (existingChildrenFamilyId && !existingChildrenFamily)
+        return { ok: false, title: 'Family not found', message: 'The selected family is no longer available.' };
 
     if (existingChildrenFamily)
     {
@@ -2128,11 +2123,8 @@ function connectPeopleByRelationship({
                 const key = parentChildRelationshipKey(id, childId);
                 if (!Object.hasOwn(result.family.parentChildTypes || {}, key))
                 {
-                    const existing = centralFamilyRecords().find(candidate => candidate.id !== result.family.id
-                        && unlinkFamilyChildrenIds(candidate).includes(childId)
-                        && familyIncludesPerson(candidate, id));
                     setParentChildRelationshipType(result.family, id, childId,
-                        existing ? parentChildRelationshipType(existing, id, childId) : effectiveDetailType);
+                        id === parentId ? effectiveDetailType : 'Unknown parentage');
                 }
             });
     }

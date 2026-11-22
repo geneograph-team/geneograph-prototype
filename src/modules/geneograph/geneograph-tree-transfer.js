@@ -93,7 +93,7 @@ function openGeneographBoardChooser(personIds)
             return !person || person.deleted || person.projectId !== projectId;
         })) { showToast('The selected people are no longer available.'); return; }
         const now = new Date().toISOString();
-        const board = { id: createRuntimeId('board'), projectId, title, description: '', collectionIds: [], modified: 'Just now', modifiedAt: now, createdAt: now, favorite: false, archived: false, diagram: createEmptyGeneographDiagram({ colorPersonCardsByGender: true }) };
+        const board = { id: createRuntimeId('board'), projectId, title, description: '', collectionIds: [], modifiedAt: now, createdAt: now, favorite: false, archived: false, diagram: createEmptyGeneographDiagram({ colorPersonCardsByGender: true }) };
         sampleData.boards.unshift(board);
         markPrototypeSessionEdited();
         geneoAddPeopleToBoard(board.id);

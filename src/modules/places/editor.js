@@ -1747,7 +1747,7 @@ function openDeletePlaceModal(placeId, { returnToEditor = false } = {})
         resetPlaceEditorDraft();
         (sampleData.boards || []).forEach(board =>
         {
-            let repairedBoardPlace = false;
+            let repairedBoardPlace = updateBoardFactPlaceReferences(board, place);
             (board.diagram?.nodes || []).forEach(node =>
             {
                 if (node.type !== 'place' || node.placeRef?.scope !== 'project' || node.placeRef.id !== place.id) return;

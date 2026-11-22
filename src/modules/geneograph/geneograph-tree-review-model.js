@@ -353,15 +353,14 @@ function geneoReviewRelationshipData(family)
     const type = family.relationshipType || 'Unknown relationship';
     const start = partnerRelationshipStartEvent(family, type);
     const end = partnerRelationshipEndEvent(family, type);
-    const events = [...(family.events || []).filter(event => event.relationshipManagedRole || ['MARR', 'DIV', 'ANUL'].includes(event.gedcomTag))];
-    for (const [event, role] of [[start, 'start'], [end, 'end']])
-        if (event && !events.some(item => item.id === event.id)) events.push({ ...event, relationshipManagedRole: role });
+    const events = (family.events || []).filter(event => event === start || event === end
+        || event.relationshipManagedRole || ['MARR', 'ENGA', 'DIV', 'ANUL'].includes(event.gedcomTag));
     return { relationshipType: type, relationshipStatus: family.relationshipStatus || partnerRelationshipDefinition(type).status,
         marriageType: geneoReviewMarriageType(family), events: events.map(event => ({
             gedcomTag: event.gedcomTag, eventType: event.eventType || '', typeLabel: event.typeLabel || '',
-            date: normalizeGenealogyDateInput(structuredClone(event.date || event)),
+            date: normalizeGenealogyDateInput(structuredClone(event.date)),
             placeId: event.placeId || null, placeText: event.placeText || '', address: event.address || '',
-            relationshipManagedRole: event.relationshipManagedRole || (event.id === start?.id ? 'start' : event.id === end?.id ? 'end' : '')
+            relationshipManagedRole: event.relationshipManagedRole || (event === start ? 'start' : event === end ? 'end' : '')
         })) };
 }
 
@@ -371,23 +370,27 @@ function geneoReviewCopyRelationship(from, to)
     const events = data.events;
     delete data.events;
     Object.assign(to, structuredClone(data));
-    const unmanaged = (to.events || []).filter(event => !event.relationshipManagedRole && !['MARR', 'DIV', 'ANUL'].includes(event.gedcomTag));
     const previous = to.events || [];
-    to.events = [...unmanaged, ...events.map((event, index) =>
+    const available = new Set(previous);
+    const usedIds = new Set(previous.map(event => event.id));
+    const copied = events.map((event, index) =>
     {
-        const existing = previous.find(item => event.relationshipManagedRole
-            ? item.relationshipManagedRole === event.relationshipManagedRole || item.gedcomTag === event.gedcomTag
-            : item.gedcomTag === event.gedcomTag && item.typeLabel === event.typeLabel);
-        return { ...structuredClone(existing || {}), ...structuredClone(event), id: existing?.id || `${to.id}-review-${event.relationshipManagedRole || index}` };
-    })];
-    for (const event of to.events.filter(item => item.relationshipManagedRole && !Array.isArray(to.partnerIds)))
-    {
-        const prefix = event.relationshipManagedRole;
-        for (const [field, value] of Object.entries(event.date || {}))
-            if (['date', 'dateLabel', 'dateType', 'sortDate', 'calendar', 'originalText'].includes(field))
-                to[prefix + field[0].toUpperCase() + field.slice(1)] = value;
-        for (const field of ['placeId', 'placeText', 'address']) to[prefix + field[0].toUpperCase() + field.slice(1)] = event[field] || (field === 'placeId' ? null : '');
-    }
+        const candidates = [...available].filter(item => item.gedcomTag === event.gedcomTag);
+        const existing = candidates.find(item => event.relationshipManagedRole
+            && item.relationshipManagedRole === event.relationshipManagedRole)
+            || candidates.find(item => item.typeLabel === event.typeLabel);
+        if (existing)
+        {
+            available.delete(existing);
+            return { ...structuredClone(existing), ...structuredClone(event), id: existing.id };
+        }
+        const base = to.id + '-review-' + (event.relationshipManagedRole || index);
+        let id = base;
+        for (let suffix = 2; usedIds.has(id); suffix++) id = base + '-' + suffix;
+        usedIds.add(id);
+        return { ...structuredClone(event), id };
+    });
+    to.events = [...available, ...copied];
 }
 
 function geneoReviewRelationshipFields(relation, boardFamily, treeFamily, treeIds)
@@ -461,7 +464,7 @@ function geneoReviewRelationshipFields(relation, boardFamily, treeFamily, treeId
     const treeEvents = eventsByRole(treeFamily);
     const place = event => ({ placeId: event.placeId || null, placeText: event.placeText || '' });
     const eventFields = [
-        ['date', 'Date', event => normalizeGenealogyDateInput(event.date || event), value => formatGenealogyDateLabel(value) || t('Empty')],
+        ['date', 'Date', event => normalizeGenealogyDateInput(event.date ?? emptyGenealogyDate('Exact date')), value => formatGenealogyDateLabel(value) || t('Empty')],
         ['place', 'Place', place, value => getPlaceDisplay(value?.placeId) || value?.placeText || t('Empty')],
         ['address', 'Address'], ['confidence', 'Confidence'], ['description', 'Description'], ['notes', 'Notes']
     ];
@@ -515,7 +518,7 @@ function geneoReviewRelationshipFields(relation, boardFamily, treeFamily, treeId
                 let event = destination ? target.events[destination.index] : target.events?.find(item => item.id === eventId);
                 if (!event)
                 {
-                    event = { id: eventId, gedcomTag: tag, eventType: name,
+                    event = { id: eventId, gedcomTag: tag, eventType: name, date: emptyGenealogyDate('Exact date'),
                         relationshipManagedRole: ['start', 'end'].includes(role) ? role : '' };
                     (target.events ||= []).push(event);
                 }
@@ -686,8 +689,7 @@ function geneoReviewPlaceTreeCard(draft, diagram, person, relation, treeId)
     const node = { id: draft.treeNodeIds.get(treeId), type: 'person', personId: person.id, x, y,
         width: size.width, height: size.height, parentPanelId: null, order: Math.max(0, ...diagram.nodes.map(item => item.order || 0)) + 1,
         visible: true, locked: false, personCard: { heightMode: 'auto' }, appearance: { ...structuredClone(defaults.appearance),
-            strokeWidth: palette.strokeWidth, strokePattern: palette.strokePattern, cornerRadius: palette.cornerRadius },
-        chartCardLayoutVersion: 1, portraitCardLayoutVersion: 1 };
+            strokeWidth: palette.strokeWidth, strokePattern: palette.strokePattern, cornerRadius: palette.cornerRadius } };
     const detached = { ...getGeneographBoard(draft.boardId), diagram: { ...structuredClone(diagram), nodes: [...structuredClone(diagram.nodes), node] } };
     const projectPeople = new Map([[draft.projectId, new Set(sampleData.people.filter(item => item.projectId === draft.projectId).map(item => item.id))]]);
     normalizeGeneographBoardRecord(detached, projectPeople);
@@ -1166,19 +1168,18 @@ function geneoTreeImportPreview(draft)
             for (const parent of geneoReviewFamilyParents(family)) ancestry.get(child).add(parent);
         }
     }
-    const hasCycle = (id, path = new Set()) =>
-    {
-        if (path.has(id)) return true;
-        const next = new Set([...path, id]);
-        return [...(ancestry.get(id) || [])].some(parent => hasCycle(parent, next));
-    };
-    if (touchedFamilies.size && [...ancestry.keys()].some(id => hasCycle(id))) fail('This connection would create a relationship loop.');
+    if (touchedFamilies.size && projectParentCycle(
+        new Map(projected.people.filter(person => person.projectId === draft.projectId).map(person => [person.id, person])),
+        projected.families.filter(family => family.projectId === draft.projectId),
+        geneoReviewFamilyParents, family => family.childIds
+    )) fail('This connection would create a relationship loop.');
     const boardAncestors = new Map(projected['board.people'].map(person => [person.id, new Set()]));
     for (const family of projected['board.families'])
         for (const child of family.children)
             for (const parent of family.partnerIds) boardAncestors.get(child.personId)?.add(parent);
-    const boardCycle = (id, path = new Set()) => path.has(id) || [...(boardAncestors.get(id) || [])].some(parent => boardCycle(parent, new Set([...path, id])));
-    if (result.operations.some(item => item.type === 'relationship' && item.source === 'tree') && [...boardAncestors.keys()].some(id => boardCycle(id)))
+    if (result.operations.some(item => item.type === 'relationship' && item.source === 'tree')
+        && projectParentCycle(boardAncestors, projected['board.families'],
+            family => family.partnerIds, family => family.children.map(child => child.personId)))
         fail('This connection would create a relationship loop.');
     const hasAncestor = (graph, id, ancestor, seen = new Set()) =>
     {

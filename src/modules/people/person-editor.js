@@ -892,7 +892,6 @@ function collectAddPersonAdditionalFacts(personId = '')
 
 function applyAddPersonAdditionalFacts(person, facts = {})
 {
-    ensurePersonCentralStructures(person);
     const active = new Set(facts.activeFactIds || []);
     const targetEvent = person.events.find(event => event.id === facts.targetEventId);
     const writeEvent = (tag, values) => targetEvent && targetEvent.gedcomTag === tag
@@ -1242,36 +1241,13 @@ function dateForForm(value, fallbackType = 'Exact date')
     return normalizeGenealogyDateInput(value || emptyGenealogyDate(fallbackType), fallbackType);
 }
 
-function ensurePersonCentralStructures(person)
-{
-    if (!person) return null;
-    person.profile = person.profile && typeof person.profile === 'object' ? person.profile : {};
-    person.attributes = Array.isArray(person.attributes) ? person.attributes : [];
-    person.attributes.forEach(attribute => { if (!attribute.id) attribute.id = createRuntimeId('person-fact'); });
-    person.events = Array.isArray(person.events) ? person.events : [];
-    person.notes = Array.isArray(person.notes) ? person.notes : [];
-    person.citations = Array.isArray(person.citations) ? person.citations : [];
-    person.names = person.names || {};
-    person.birth = person.birth || emptyGenealogyDate('Exact date');
-    person.death = person.death || { ...emptyGenealogyDate('Exact date'), placeId: null, cause: '', burialPlaceId: null };
-    if (typeof person.birth.placeText === 'undefined') person.birth.placeText = '';
-    if (typeof person.birth.address === 'undefined') person.birth.address = '';
-    if (typeof person.death.placeText === 'undefined') person.death.placeText = '';
-    if (typeof person.death.address === 'undefined') person.death.address = '';
-    if (typeof person.death.burialPlaceText === 'undefined') person.death.burialPlaceText = '';
-    if (typeof person.death.burialAddress === 'undefined') person.death.burialAddress = '';
-    return person;
-}
-
 function personAttributeByTag(person, tag)
 {
-    ensurePersonCentralStructures(person);
     return person?.attributes?.find(attribute => attribute.tag === tag) || null;
 }
 
 function upsertPersonAttribute(person, tag, values = {})
 {
-    ensurePersonCentralStructures(person);
     let attribute = person.attributes.find(item => item.tag === tag);
     if (!attribute)
     {
@@ -1299,26 +1275,22 @@ function upsertPersonAttribute(person, tag, values = {})
 
 function removePersonAttribute(person, tag)
 {
-    ensurePersonCentralStructures(person);
     person.attributes = person.attributes.filter(attribute => attribute.tag !== tag);
 }
 
 function personEventByTag(person, tag)
 {
-    ensurePersonCentralStructures(person);
     return person?.events?.find(event => event.gedcomTag === tag) || null;
 }
 
 function upsertPersonEvent(person, tag, values = {})
 {
-    ensurePersonCentralStructures(person);
     let event = person.events.find(item => item.gedcomTag === tag);
     if (!event)
     {
         event = {
             id: `${tag.toLowerCase()}-${person.id}`,
             gedcomTag: tag,
-            type: tag,
             date: null,
             placeId: null,
             placeText: '',
@@ -1334,7 +1306,6 @@ function upsertPersonEvent(person, tag, values = {})
 
 function removePersonEvent(person, tag)
 {
-    ensurePersonCentralStructures(person);
     person.events = person.events.filter(event => event.gedcomTag !== tag);
 }
 
@@ -1384,7 +1355,7 @@ function personHasBaptismFact(person)
 
 function peopleProfileDetailsFor(person)
 {
-    const centralPerson = ensurePersonCentralStructures(getPerson(person?.id) || person);
+    const centralPerson = getPerson(person?.id) || person;
     if (!centralPerson) return defaultPeopleProfileDetails();
 
     return new Proxy({}, {

@@ -24,11 +24,47 @@ const PROJECT_OWNED_COLLECTIONS = Object.freeze([
 const PROJECT_DRAFT_COLLECTIONS = Object.freeze(PROJECT_OWNED_COLLECTIONS.filter(key =>
     !['events', 'activity', 'notifications'].includes(key)));
 
+function isProjectDataRecord(value)
+{
+    if (!value || Object.prototype.toString.call(value) !== '[object Object]') return false;
+    const prototype = Object.getPrototypeOf(value);
+    return prototype === null || Object.getPrototypeOf(prototype) === null;
+}
+
+function projectDraftValueError(project, records)
+{
+    const ancestors = new Set();
+    let visited = 0;
+    function visit(value, path, depth)
+    {
+        if (++visited > 1000000) return path + ' exceeds the project draft limit of 1,000,000 values.';
+        if (depth > 64) return path + ' exceeds the project draft limit of 64 nested levels.';
+        if (value === null || typeof value === 'string' || typeof value === 'boolean' || Number.isFinite(value)) return '';
+        const array = Array.isArray(value);
+        if (!array && !isProjectDataRecord(value)) return path + ' must contain JSON-compatible data.';
+        if (ancestors.has(value)) return path + ' contains a circular reference.';
+        if (array && value.length > 1000000 - visited) return path + ' exceeds the project draft value limit.';
+        const keys = Object.keys(value);
+        if (array && (keys.length !== value.length || keys.some((key, index) => key !== String(index))))
+            return path + ' must be a dense array without named properties.';
+        ancestors.add(value);
+        for (const key of keys)
+        {
+            const error = visit(value[key], path + (array ? '[' + key + ']' : '.' + key), depth + 1);
+            if (error) return error;
+        }
+        ancestors.delete(value);
+        return '';
+    }
+    return visit(project, 'project', 0) || visit(records, 'records', 0);
+}
+
 // Reconstruct derived events on a detached copy before checking evidence links.
 function prepareProjectDraft(project, records)
 {
-    if (!records || typeof records !== 'object' || Array.isArray(records))
+    if (!isProjectDataRecord(records))
         return { errors: ['Project collections must be an object.'] };
+    if (!isProjectDataRecord(project)) return { errors: ['Project metadata must be an object.'] };
     if (Object.hasOwn(records, 'events'))
         return { errors: ['Timeline events are derived and must not be included in project input.'] };
     const excluded = Object.keys(records).filter(key => PROJECT_OWNED_COLLECTIONS.includes(key)
@@ -37,6 +73,8 @@ function prepareProjectDraft(project, records)
 
     try
     {
+        const valueError = projectDraftValueError(project, records);
+        if (valueError) return { errors: [valueError] };
         const draftProject = structuredClone(project);
         const draft = structuredClone(records);
         const inputErrors = validateProjectDraft(draftProject, draft, { deferEventReferences: true });
@@ -55,11 +93,47 @@ function prepareProjectDraft(project, records)
     }
 }
 
+function projectParentCycle(people, families, parentsFor, childrenFor)
+{
+    const childrenByParent = new Map();
+    const parentCounts = new Map();
+    for (const family of families)
+    {
+        const childIds = childrenFor(family);
+        for (const parentId of parentsFor(family).filter(id => people.has(id)))
+        {
+            if (!childrenByParent.has(parentId)) childrenByParent.set(parentId, new Set());
+            const children = childrenByParent.get(parentId);
+            for (const childId of childIds)
+            {
+                if (!people.has(childId) || children.has(childId)) continue;
+                children.add(childId);
+                parentCounts.set(childId, (parentCounts.get(childId) || 0) + 1);
+            }
+        }
+    }
+    const roots = [...people.keys()].filter(id => !parentCounts.has(id));
+    for (let i = 0; i < roots.length; i++)
+    {
+        for (const childId of childrenByParent.get(roots[i]) || [])
+        {
+            const count = parentCounts.get(childId) - 1;
+            if (count) parentCounts.set(childId, count);
+            else
+            {
+                parentCounts.delete(childId);
+                roots.push(childId);
+            }
+        }
+    }
+    return parentCounts.keys().next().value;
+}
+
 function validateProjectDraft(project, records, { deferEventReferences = false } = {})
 {
-    if (typeof project?.id !== 'string' || !project.id.trim()
+    if (!isProjectDataRecord(project) || typeof project.id !== 'string' || !project.id.trim()
         || typeof project?.name !== 'string' || !project.name.trim()
-        || !records || typeof records !== 'object' || Array.isArray(records))
+        || !isProjectDataRecord(records))
         return ['Expected a project with an ID, name, and record collections.'];
     const errors = [];
     const indexes = new Map();
@@ -77,7 +151,7 @@ function validateProjectDraft(project, records, { deferEventReferences = false }
         }
         for (const record of rows)
         {
-            if (!record || typeof record.id !== 'string' || !record.id.trim())
+            if (!isProjectDataRecord(record) || typeof record.id !== 'string' || !record.id.trim())
             {
                 errors.push(key + ' contains a record without a valid ID.');
                 continue;
@@ -87,6 +161,19 @@ function validateProjectDraft(project, records, { deferEventReferences = false }
             index.set(record.id, record);
         }
     }
+    for (const field of ['defaultPersonId', 'coverPhotoId'])
+        if (project[field] != null && typeof project[field] !== 'string')
+            errors.push('Project ' + field + ' must be a record ID or empty.');
+    for (const field of ['desc', 'cover', 'status'])
+        if (Object.hasOwn(project, field) && typeof project[field] !== 'string')
+            errors.push('Project ' + field + ' must be text.');
+    for (const field of ['createdAt', 'modifiedAt'])
+        if (Object.hasOwn(project, field) && (typeof project[field] !== 'string' || !Number.isFinite(Date.parse(project[field]))))
+            errors.push('Project ' + field + ' must be a valid timestamp.');
+    for (const field of ['created', 'modified'])
+        if (Object.hasOwn(project, field)) errors.push('Project contains retired display date ' + field + '.');
+    for (const field of ['files', 'notes'])
+        if (Object.hasOwn(project, field)) errors.push('Project contains retired counter ' + field + '.');
     const people = indexes.get('people');
     if (project.defaultPersonId && !people.has(project.defaultPersonId))
         errors.push('Project default person is missing: ' + project.defaultPersonId);
@@ -94,12 +181,15 @@ function validateProjectDraft(project, records, { deferEventReferences = false }
         errors.push('Project cover photo is missing: ' + project.coverPhotoId);
     for (const family of indexes.get('families').values())
     {
-        for (const field of ['partner1Id', 'partner2Id', 'personAId', 'personBId', 'fatherId', 'motherId', 'husbandId', 'wifeId', 'childrenIds', 'nonEvents'])
+        for (const field of ['partner1Id', 'partner2Id', 'personAId', 'personBId', 'fatherId', 'motherId', 'husbandId', 'wifeId', 'childrenIds', 'nonEvents', 'partner1RoleHint', 'partner2RoleHint', 'personARoleHint', 'personBRoleHint'])
             if (Object.hasOwn(family, field)) errors.push('Family ' + family.id + ' contains retired field ' + field);
         for (const role of ['start', 'end'])
             for (const suffix of ['Date', 'DateLabel', 'DateType', 'SortDate', 'Calendar', 'OriginalText', 'PlaceId', 'PlaceText', 'Address'])
                 if (Object.hasOwn(family, role + suffix))
                     errors.push('Family ' + family.id + ' contains retired field ' + role + suffix);
+        for (const field of ['partnerARoleHint', 'partnerBRoleHint'])
+            if (Object.hasOwn(family, field) && !['', 'HUSB', 'WIFE'].includes(family[field]))
+                errors.push('Family ' + family.id + '.' + field + ' must be HUSB, WIFE, or empty.');
         if (family.type !== 'family')
             errors.push('Family ' + family.id + '.type must be family.');
         if (!Array.isArray(family.events))
@@ -140,42 +230,16 @@ function validateProjectDraft(project, records, { deferEventReferences = false }
                 errors.push('Family ' + family.id + ' has an unsupported parentage type: ' + type);
         }
     }
-    const childrenByParent = new Map();
-    const parentCounts = new Map();
-    for (const family of indexes.get('families').values())
-    {
-        if (!Array.isArray(family.childIds)) continue;
-        for (const parentId of [family.partnerAId, family.partnerBId].filter(id => people.has(id)))
-        {
-            if (!childrenByParent.has(parentId)) childrenByParent.set(parentId, new Set());
-            const children = childrenByParent.get(parentId);
-            for (const childId of family.childIds)
-            {
-                if (!people.has(childId) || children.has(childId) || parentId === childId) continue;
-                children.add(childId);
-                parentCounts.set(childId, (parentCounts.get(childId) || 0) + 1);
-            }
-        }
-    }
-    const roots = [...people.keys()].filter(id => !parentCounts.has(id));
-    for (let i = 0; i < roots.length; i++)
-    {
-        for (const childId of childrenByParent.get(roots[i]) || [])
-        {
-            const count = parentCounts.get(childId) - 1;
-            if (count) parentCounts.set(childId, count);
-            else
-            {
-                parentCounts.delete(childId);
-                roots.push(childId);
-            }
-        }
-    }
-    if (parentCounts.size)
-        errors.push('Family memberships contain a parent cycle. Check the ancestry of ' + parentCounts.keys().next().value + '.');
+    const cyclePerson = projectParentCycle(people, indexes.get('families').values(),
+        family => [family.partnerAId, family.partnerBId],
+        family => Array.isArray(family.childIds) ? family.childIds : []);
+    if (cyclePerson)
+        errors.push('Family memberships contain a parent cycle. Check the ancestry of ' + cyclePerson + '.');
     for (const place of indexes.get('places').values())
     {
         const owner = 'places/' + place.id;
+        if (Object.hasOwn(place, 'parentId'))
+            errors.push(owner + ' contains unsupported field parentId.');
         if (typeof place.name !== 'string' || !place.name.trim())
             errors.push(owner + '.name must be nonempty text.');
         const aliases = place.alternativeNames;
@@ -194,7 +258,6 @@ function validateProjectDraft(project, records, { deferEventReferences = false }
     }
 
     const references = {
-        places: { parentId: 'places' },
         placeIssues: { placeId: 'places', otherPlaceId: 'places' },
         media: { placeId: 'places', personIds: ['people'], albumIds: ['albums'] },
         archiveFolders: { parentId: 'archiveFolders' },
@@ -246,12 +309,47 @@ function validateProjectDraft(project, records, { deferEventReferences = false }
             || (date.state === 'known' && normalizeGenealogyDateInput(date).state !== 'known'))
             errors.push(owner + ' must contain a structured genealogy date.');
     }
+    function validatePersonRegions(path, regions, surface)
+    {
+        if (regions == null) return;
+        if (!isProjectDataRecord(regions))
+            errors.push(path + '.personRegions must be keyed by person ID.');
+        else for (const [personId, region] of Object.entries(regions))
+        {
+            requireReference(path, 'personRegions', 'people', personId);
+            if (!isProjectDataRecord(region) || !['x', 'y', 'width', 'height'].every(key => Number.isFinite(region[key]))
+                || region.x < 0 || region.y < 0 || region.width <= 0 || region.height <= 0
+                || region.x + region.width > 1.000001 || region.y + region.height > 1.000001)
+                errors.push(path + '.personRegions.' + personId + ' must be within the ' + surface + '.');
+        }
+    }
+    for (const collection of ['albums', 'archiveFolders', 'noteCollections', 'boardCollections'])
+        for (const record of indexes.get(collection).values())
+            if (typeof record.name !== 'string' || !record.name.trim())
+                errors.push(collection + '/' + record.id + '.name must be nonempty text.');
     for (const photo of indexes.get('media').values())
-        if (photo.date != null) validateDate('media/' + photo.id + '.date', photo.date);
+    {
+        const path = 'media/' + photo.id;
+        if (photo.kind !== 'photo') errors.push(path + '.kind must be photo.');
+        if (typeof photo.filename !== 'string' || !photo.filename.trim())
+            errors.push(path + '.filename must be nonempty text.');
+        for (const field of ['width', 'height', 'sizeBytes'])
+            if (photo[field] != null && (!Number.isSafeInteger(photo[field]) || photo[field] < (field === 'sizeBytes' ? 0 : 1)))
+                errors.push(path + '.' + field + ' has an invalid numeric value.');
+        if (photo.date != null) validateDate(path + '.date', photo.date);
+        validatePersonRegions(path, photo.personRegions, 'photo');
+    }
     for (const file of indexes.get('archiveFiles').values())
         if (file.documentDate != null) validateDate('archiveFiles/' + file.id + '.documentDate', file.documentDate);
     for (const source of indexes.get('sources').values())
-        if (source.accessedDate) validateDate('sources/' + source.id + '.accessedDate', source.accessedDate);
+    {
+        const path = 'sources/' + source.id;
+        if (typeof source.title !== 'string' || !source.title.trim()) errors.push(path + '.title must be nonempty text.');
+        if (source.category !== '' && !SOURCE_CATEGORY_BY_VALUE.has(source.category))
+            errors.push(path + '.category must be a supported Source category or empty.');
+        if (source.accessedDate) validateDate(path + '.accessedDate', source.accessedDate);
+        if (source.placeId != null && source.placeId !== '') requireReference(path, 'placeId', 'places', source.placeId);
+    }
 
     function validateFactReferences(owner, fact, isVitalDate = false)
     {
@@ -280,6 +378,12 @@ function validateProjectDraft(project, records, { deferEventReferences = false }
             validateFactReferences(owner, record);
             if (collection === 'people')
             {
+                if (!isProjectDataRecord(record.profile))
+                    errors.push(owner + '.profile must be a record.');
+                for (const field of ['events', 'attributes', 'notes', 'citations'])
+                    if (!Object.hasOwn(record, field) || (['notes', 'citations'].includes(field) && !Array.isArray(record[field])))
+                        errors.push(owner + '.' + field + ' must be an array.');
+                validateProjectPersonIdentity(record, owner, errors);
                 const names = record.names;
                 if (!names || typeof names !== 'object' || Array.isArray(names))
                     errors.push(owner + '.names must be a record.');
@@ -298,7 +402,7 @@ function validateProjectDraft(project, records, { deferEventReferences = false }
 
                 if (record.primaryPhotoId) requireReference(owner, 'primaryPhotoId', 'media', record.primaryPhotoId);
                 for (const field of ['birth', 'death'])
-                    if (record[field] != null) validateFactReferences(owner + '.' + field, record[field], true);
+                    validateFactReferences(owner + '.' + field, record[field], true);
             }
             for (const field of ['events', 'attributes'])
             {
@@ -319,8 +423,20 @@ function validateProjectDraft(project, records, { deferEventReferences = false }
                     if (field === 'events'
                         && (typeof fact?.gedcomTag !== 'string' || !fact.gedcomTag.trim() || Object.hasOwn(fact, 'tag')))
                         errors.push(factPath + ' requires a canonical gedcomTag and cannot contain tag.');
+                    if (collection === 'people' && field === 'events' && fact && Object.hasOwn(fact, 'type'))
+                        errors.push(factPath + ' contains retired person event field type.');
                     if (field === 'attributes' && (typeof fact?.tag !== 'string' || !fact.tag.trim()))
                         errors.push(factPath + ' requires a nonempty attribute tag.');
+                    if (field === 'attributes' && ['EDUC', 'OCCU'].includes(fact?.tag))
+                    {
+                        if (Object.hasOwn(fact, 'agency'))
+                            errors.push(factPath + ' contains retired attribute field agency.');
+                        if (fact.tag === 'EDUC' && Object.hasOwn(fact, 'type'))
+                            errors.push(factPath + ' contains retired education field type.');
+                        for (const key of fact.tag === 'EDUC' ? ['institutionName', 'institutionType'] : ['company'])
+                            if (Object.hasOwn(fact, key) && typeof fact[key] !== 'string')
+                                errors.push(factPath + '.' + key + ' must be text.');
+                    }
                     validateFactReferences(factPath, fact);
                 }
             }
@@ -349,6 +465,12 @@ function validateProjectDraft(project, records, { deferEventReferences = false }
     const notes = indexes.get('notes');
     for (const note of notes.values())
     {
+        const path = 'notes/' + note.id;
+        for (const field of ['title', 'body'])
+            if (typeof note[field] !== 'string') errors.push(path + '.' + field + ' must be text.');
+        if ((note.bodyFormat !== '' && note.bodyFormat !== 'quill-delta-v1')
+            || (note.bodyFormat === '' ? note.bodyDelta !== null : !Array.isArray(note.bodyDelta?.ops)))
+            errors.push(path + ' requires a matching note body format and delta.');
         if (!Array.isArray(note.relatedNoteIds)) continue;
         for (const id of note.relatedNoteIds)
         {
@@ -360,15 +482,15 @@ function validateProjectDraft(project, records, { deferEventReferences = false }
     for (const file of indexes.get('archiveFiles').values())
     {
         const owner = 'archiveFiles/' + file.id;
+        if (typeof file.name !== 'string' || !file.name.trim())
+            errors.push(owner + '.name must be nonempty text.');
+        if (Object.hasOwn(file, 'linkedSourceIds'))
+            errors.push(owner + ' contains retired field linkedSourceIds.');
+        if (file.sizeBytes != null && (!Number.isSafeInteger(file.sizeBytes) || file.sizeBytes < 0))
+            errors.push(owner + '.sizeBytes must be a nonnegative integer.');
         if (file.documentPlaceId && Array.isArray(file.linkedPlaceIds) && file.linkedPlaceIds.includes(file.documentPlaceId))
             errors.push(owner + ' repeats its document place in related places.');
-        if (file.personRegions == null) continue;
-        if (typeof file.personRegions !== 'object' || Array.isArray(file.personRegions))
-        {
-            errors.push(owner + '.personRegions must be keyed by person ID.');
-            continue;
-        }
-        for (const id of Object.keys(file.personRegions)) requireReference(owner, 'personRegions', 'people', id);
+        validatePersonRegions(owner, file.personRegions, 'Archive image');
     }
     const citationKeys = new Set();
     const citationTargets = new Map(Object.entries({
@@ -385,14 +507,35 @@ function validateProjectDraft(project, records, { deferEventReferences = false }
         if (citationKeys.has(key)) errors.push(owner + ' duplicates an existing source link.');
         citationKeys.add(key);
     }
-    for (const board of indexes.get('boards').values()) validateProjectBoard(board, indexes, errors);
+    for (const board of indexes.get('boards').values()) validateProjectBoard(board, indexes, errors, validateDate);
     return errors;
 }
 
-function validateProjectBoard(board, indexes, errors)
+function validateProjectPersonIdentity(person, path, errors)
+{
+    if (!['Living', 'Deceased', 'Unknown'].includes(person.livingStatus))
+        errors.push(path + '.livingStatus must be Living, Deceased, or Unknown.');
+    if (!['male', 'female', 'unknown'].includes(person.gender) || Object.hasOwn(person, 'sex'))
+        errors.push(path + ' requires a canonical gender and cannot contain sex.');
+}
+
+function validateProjectBoard(board, indexes, errors, validateDate)
 {
     const owner = 'boards/' + board.id;
+    if (typeof board.title !== 'string' || !board.title.trim())
+        errors.push(owner + '.title must be nonempty text.');
+    for (const field of ['createdAt', 'modifiedAt'])
+        if (typeof board[field] !== 'string' || !Number.isFinite(Date.parse(board[field])))
+            errors.push(owner + '.' + field + ' must be a valid timestamp.');
+    if (Object.hasOwn(board, 'modified'))
+        errors.push(owner + ' contains retired display date modified.');
     const diagram = board.diagram;
+    if (!isProjectDataRecord(diagram?.canvas) || !['clear', 'dots', 'grid'].includes(diagram.canvas.backgroundPattern)
+        || !isProjectDataRecord(diagram.canvas.backgroundPaint))
+        errors.push(owner + '.diagram.canvas requires a background pattern and paint.');
+    else for (const field of ['gridVisible', 'backgroundColor'])
+        if (Object.hasOwn(diagram.canvas, field))
+            errors.push(owner + '.diagram.canvas contains retired field ' + field + '.');
     const local = new Map();
     for (const key of ['assets', 'people', 'families', 'nodes', 'connections'])
     {
@@ -416,9 +559,23 @@ function validateProjectBoard(board, indexes, errors)
     }
     for (const person of local.get('people').values())
     {
+        const personPath = owner + '/' + person.id;
+        const names = person.names;
+        if (!names || typeof names !== 'object' || Array.isArray(names)
+            || typeof names.first !== 'string' || typeof names.last !== 'string'
+            || Object.hasOwn(person, 'displayName'))
+            errors.push(personPath + ' requires recorded name parts and cannot contain displayName.');
+        validateProjectPersonIdentity(person, personPath, errors);
         check(person, 'treePersonId', indexes.get('people'), person.treePersonId);
         check(person, 'photoId', indexes.get('media'), person.photoId);
         check(person, 'photoAssetId', local.get('assets'), person.photoAssetId);
+        for (const field of ['birth', 'death'])
+        {
+            const vital = person[field];
+            validateDate(personPath + '.' + field, vital);
+            for (const placeField of ['placeId', 'burialPlaceId'])
+                check(person, field + '.' + placeField, indexes.get('places'), vital?.[placeField]);
+        }
     }
     for (const family of local.get('families').values())
     {
@@ -428,6 +585,27 @@ function validateProjectBoard(board, indexes, errors)
             continue;
         }
         const familyPath = owner + '/' + family.id;
+        if (!Array.isArray(family.events))
+            errors.push(familyPath + '.events must be an array.');
+        else
+        {
+            const ids = new Set();
+            for (const [index, event] of family.events.entries())
+            {
+                const path = familyPath + '.events[' + index + ']';
+                if (!isProjectDataRecord(event) || typeof event.id !== 'string' || !event.id.trim() || ids.has(event.id))
+                {
+                    errors.push(path + ' requires a unique nonempty event ID.');
+                    continue;
+                }
+                ids.add(event.id);
+                if (typeof event.gedcomTag !== 'string' || !event.gedcomTag.trim() || Object.hasOwn(event, 'tag'))
+                    errors.push(path + ' requires a canonical gedcomTag.');
+                validateDate(path + '.date', event.date);
+                if (event.placeId && !indexes.get('places').has(event.placeId))
+                    errors.push(path + '.placeId references missing Place ' + event.placeId);
+            }
+        }
         if (family.partnerIds.length > 2 || new Set(family.partnerIds).size !== family.partnerIds.length
             || family.partnerIds.some(id => typeof id !== 'string' || !id.trim()))
             errors.push(familyPath + '.partnerIds must contain at most two distinct person IDs.');
@@ -442,11 +620,41 @@ function validateProjectBoard(board, indexes, errors)
                 if (children.has(child.personId) || family.partnerIds.includes(child.personId))
                     errors.push(familyPath + ' has a duplicate child or self-parent membership: ' + child.personId);
                 children.add(child.personId);
+                if (Object.hasOwn(child, 'parentChildTypes'))
+                {
+                    const types = child.parentChildTypes;
+                    const validTypes = ['unknown', ...PARENT_CHILD_RELATIONSHIP_TYPES.map(type => type.toLowerCase())];
+                    if (!types || typeof types !== 'object' || Array.isArray(types)
+                        || Object.entries(types).some(([parentId, type]) =>
+                            !family.partnerIds.includes(parentId) || !validTypes.includes(type)))
+                        errors.push(familyPath + '.children parentChildTypes must map member parent IDs to supported types.');
+                }
             }
         }
     }
+    const cyclePerson = projectParentCycle(local.get('people'), local.get('families').values(),
+        family => Array.isArray(family.partnerIds) ? family.partnerIds : [],
+        family => Array.isArray(family.children) ? family.children.map(child => child?.personId) : []);
+    if (cyclePerson) errors.push(owner + ' has a parent cycle involving ' + cyclePerson + '.');
+    function rejectFlatPaint(path, appearance, fields)
+    {
+        if (!isProjectDataRecord(appearance)) return;
+        for (const field of fields)
+            if (Object.hasOwn(appearance, field))
+                errors.push(path + ' contains retired paint field ' + field + '.');
+    }
+    const appearanceFields = ['backgroundColor', 'strokeColor', 'textColor', 'strokeType'];
+    for (const [key, appearance] of Object.entries(diagram.cardAppearanceDefaults || {}))
+        rejectFlatPaint(owner + '.diagram.cardAppearanceDefaults.' + key, appearance, appearanceFields);
+    rejectFlatPaint(owner + '.diagram.connectionDefaults', diagram.connectionDefaults, ['color']);
     for (const node of local.get('nodes').values())
     {
+        rejectFlatPaint(owner + '/' + node.id + '.appearance', node.appearance, appearanceFields);
+        if (node.type === 'shape' && node.shapeKind === 'rounded-rectangle')
+            errors.push(owner + '/' + node.id + ' contains retired rounded-rectangle shape kind.');
+        for (const field of ['chartCardLayoutVersion', 'portraitCardLayoutVersion'])
+            if (Object.hasOwn(node, field))
+                errors.push(owner + '/' + node.id + ' contains retired layout field ' + field + '.');
         if (node.type === 'person' && !node.personId) errors.push(owner + '/' + node.id + ' requires a person ID.');
         check(node, 'personId', local.get('people'), node.personId);
         check(node, 'parentPanelId', local.get('nodes'), node.parentPanelId);
@@ -456,6 +664,9 @@ function validateProjectBoard(board, indexes, errors)
         if (node.type === 'image' && (!['board', 'project'].includes(node.imageRef?.scope)
             || typeof node.imageRef.id !== 'string' || !node.imageRef.id.trim()))
             errors.push(owner + '/' + node.id + '.imageRef requires a project photo or board asset ID.');
+        if (node.type === 'place')
+            for (const field of ['placeId', 'placeName'])
+                if (Object.hasOwn(node, field)) errors.push(owner + '/' + node.id + ' contains retired place field ' + field);
         if (node.type === 'place' && !(node.placeRef?.scope === 'board'
             ? typeof node.placeRef.name === 'string' && node.placeRef.name.trim()
             : node.placeRef?.scope === 'project' && typeof node.placeRef.id === 'string' && node.placeRef.id.trim()
@@ -490,6 +701,7 @@ function validateProjectBoard(board, indexes, errors)
     }
     for (const connection of local.get('connections').values())
     {
+        rejectFlatPaint(owner + '/' + connection.id + '.style', connection.style, ['color']);
         check(connection, 'familyId', local.get('families'), connection.familyId);
         for (const field of ['source', 'target'])
         {
@@ -499,6 +711,26 @@ function validateProjectBoard(board, indexes, errors)
             check(connection, field, local.get('nodes'), endpoint?.nodeId);
             check(connection, field, local.get('families'), endpoint?.familyId);
         }
+        if (!['family-partner', 'family-child'].includes(connection.kind)) continue;
+        const family = local.get('families').get(connection.familyId);
+        const path = owner + '/' + connection.id;
+        if (!family)
+        {
+            errors.push(path + ' requires a local family ID.');
+            continue;
+        }
+        if (!Array.isArray(family.partnerIds) || !Array.isArray(family.children)) continue;
+        const personAt = endpoint => nodes.get(endpoint?.nodeId)?.personId;
+        const sourcePerson = personAt(connection.source);
+        const targetPerson = personAt(connection.target);
+        const parentAt = (endpoint, personId) => endpoint?.familyId === family.id
+            || family.partnerIds.includes(personId);
+        const childAt = personId => personId && family.children.some(child => child?.personId === personId);
+        const matches = connection.kind === 'family-partner'
+            ? sourcePerson !== targetPerson && family.partnerIds.includes(sourcePerson) && family.partnerIds.includes(targetPerson)
+            : (parentAt(connection.source, sourcePerson) && childAt(targetPerson))
+                || (parentAt(connection.target, targetPerson) && childAt(sourcePerson));
+        if (!matches) errors.push(path + ' endpoints must match the recorded family members.');
     }
 }
 

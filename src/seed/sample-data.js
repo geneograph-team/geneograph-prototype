@@ -1,6 +1,6 @@
 const sampleData = {
     projects: [
-        { id: 'p1', name: 'Whiskerfield Family Tree', defaultPersonId: 'silver', created: '01 May 2026', modified: '24 May 2026', modifiedAt: '2026-05-24T10:42:00Z', status: 'Local project', cover: 'golden-tree', files: 5, notes: 7, desc: 'Research into the Whiskerfield and Purrington family lines from Pawford, Meowbridge, Fishmarket Row, and Old Cattery.' }
+        { id: 'p1', name: 'Whiskerfield Family Tree', defaultPersonId: 'silver', createdAt: '2026-05-01T00:00:00Z', modifiedAt: '2026-05-24T10:42:00Z', status: 'Local project', cover: 'golden-tree', desc: 'Research into the Whiskerfield and Purrington family lines from Pawford, Meowbridge, Fishmarket Row, and Old Cattery.' }
     ],
     projectContinuation: {
         projectId: 'p1',
@@ -22,7 +22,7 @@ const sampleData = {
             death: {"date":"","dateLabel":"","dateType":"Exact date","placeId":null,"burialPlaceId":null,"state":"empty","calendar":"Gregorian","first":{"year":null,"month":null,"day":null},"second":null,"originalText":"","sortDate":"","date2":"","date2Label":"","sortDate2":"","placeText":"","address":"","burialPlaceText":"","burialAddress":"","cause":""},
             meta: {"updated":"10 May 2026","sourceStatus":"Partly sourced"},
             profile: {},
-            attributes: [{"id":"education-silver-pawford-tutoring","tag":"EDUC","value":"Private tutoring","type":"Private tutoring","institutionName":"Pawford tutoring circle","institutionType":"Private tutoring","date":null,"fromDate":{"date":"2004","dateLabel":"2004","dateType":"Exact date","state":"known","calendar":"Gregorian","first":{"year":2004,"month":null,"day":null},"second":null,"originalText":"2004","sortDate":"20040000","date2":"","date2Label":"","sortDate2":"","placeId":null,"reason":"","burialPlaceId":null},"toDate":null,"placeId":"place-pawford","placeText":"Pawford, North Yorkshire, England","notes":"Started at Pawford tutoring circle","citations":[],"mediaIds":[],"address":""}],
+            attributes: [{"id":"education-silver-pawford-tutoring","tag":"EDUC","value":"Private tutoring","institutionName":"Pawford tutoring circle","institutionType":"Private tutoring","date":null,"fromDate":{"date":"2004","dateLabel":"2004","dateType":"Exact date","state":"known","calendar":"Gregorian","first":{"year":2004,"month":null,"day":null},"second":null,"originalText":"2004","sortDate":"20040000","date2":"","date2Label":"","sortDate2":"","placeId":null,"reason":"","burialPlaceId":null},"toDate":null,"placeId":"place-pawford","placeText":"Pawford, North Yorkshire, England","notes":"Started at Pawford tutoring circle","citations":[],"mediaIds":[],"address":""}],
             events: [],
             notes: [],
             citations: []
@@ -41,7 +41,7 @@ const sampleData = {
             death: {"date":"","dateLabel":"","dateType":"Exact date","placeId":null,"burialPlaceId":null,"state":"empty","calendar":"Gregorian","first":{"year":null,"month":null,"day":null},"second":null,"originalText":"","sortDate":"","date2":"","date2Label":"","sortDate2":"","placeText":"","address":"","burialPlaceText":"","burialAddress":"","cause":""},
             meta: {"updated":"10 May 2026","sourceStatus":"Partly sourced"},
             profile: {},
-            attributes: [{"id":"education-luna-meowbridge-school","tag":"EDUC","value":"School education","type":"School","institutionName":"Meowbridge School","institutionType":"School","date":null,"fromDate":{"date":"2005","dateLabel":"2005","dateType":"Exact date","state":"known","calendar":"Gregorian","first":{"year":2005,"month":null,"day":null},"second":null,"originalText":"2005","sortDate":"20050000","date2":"","date2Label":"","sortDate2":"","placeId":null,"reason":"","burialPlaceId":null},"toDate":null,"placeId":"place-meowbridge","placeText":"Meowbridge, North Yorkshire, England","notes":"Studied in Meowbridge","citations":[],"mediaIds":[],"address":""}],
+            attributes: [{"id":"education-luna-meowbridge-school","tag":"EDUC","value":"School education","institutionName":"Meowbridge School","institutionType":"School","date":null,"fromDate":{"date":"2005","dateLabel":"2005","dateType":"Exact date","state":"known","calendar":"Gregorian","first":{"year":2005,"month":null,"day":null},"second":null,"originalText":"2005","sortDate":"20050000","date2":"","date2Label":"","sortDate2":"","placeId":null,"reason":"","burialPlaceId":null},"toDate":null,"placeId":"place-meowbridge","placeText":"Meowbridge, North Yorkshire, England","notes":"Studied in Meowbridge","citations":[],"mediaIds":[],"address":""}],
             events: [],
             notes: [],
             citations: []
@@ -58,6 +58,11 @@ const sampleData = {
             avatarClass: "avatar-amber",
             birth: {"date":"18.05.2024","dateLabel":"18 May 2024","dateType":"Exact date","placeId":"place-pawford","state":"known","calendar":"Gregorian","first":{"year":2024,"month":5,"day":18},"second":null,"originalText":"18.05.2024","sortDate":"20240518","date2":"","date2Label":"","sortDate2":"","reason":"","burialPlaceId":null,"placeText":"","address":""},
             death: {"date":"","dateLabel":"","dateType":"Exact date","placeId":null,"burialPlaceId":null,"state":"empty","calendar":"Gregorian","first":{"year":null,"month":null,"day":null},"second":null,"originalText":"","sortDate":"","date2":"","date2Label":"","sortDate2":"","cause":"","address":"","burialAddress":""},
+            profile: { alternativeNames: null },
+            attributes: [],
+            events: [],
+            notes: [],
+            citations: [],
             meta: {"updated":"9 May 2026","sourceStatus":"Unsourced"}
         },
         {
@@ -71,6 +76,11 @@ const sampleData = {
             avatarClass: "avatar-purple",
             birth: {"date":"07.09.2025","dateLabel":"07 Sep 2025","dateType":"Exact date","placeId":null,"state":"known","calendar":"Gregorian","first":{"year":2025,"month":9,"day":7},"second":null,"originalText":"07.09.2025","sortDate":"20250907","date2":"","date2Label":"","sortDate2":"","reason":"","burialPlaceId":null,"placeText":"","address":""},
             death: {"date":"","dateLabel":"","dateType":"Exact date","placeId":null,"burialPlaceId":null,"state":"empty","calendar":"Gregorian","first":{"year":null,"month":null,"day":null},"second":null,"originalText":"","sortDate":"","date2":"","date2Label":"","sortDate2":"","cause":"","address":"","burialAddress":""},
+            profile: { alternativeNames: null },
+            attributes: [],
+            events: [],
+            notes: [],
+            citations: [],
             meta: {"updated":"9 May 2026","sourceStatus":"Unsourced"}
         },
         {
@@ -84,6 +94,11 @@ const sampleData = {
             avatarClass: "avatar-purple",
             birth: {"date":"","dateLabel":"","dateType":"Exact date","placeId":null,"state":"empty","calendar":"Gregorian","first":{"year":null,"month":null,"day":null},"second":null,"originalText":"","sortDate":"","date2":"","date2Label":"","sortDate2":"","reason":"","burialPlaceId":null,"placeText":"","address":""},
             death: {"date":"","dateLabel":"","dateType":"Exact date","placeId":null,"burialPlaceId":null,"state":"empty","calendar":"Gregorian","first":{"year":null,"month":null,"day":null},"second":null,"originalText":"","sortDate":"","date2":"","date2Label":"","sortDate2":"","cause":"","address":"","burialAddress":""},
+            profile: { alternativeNames: null },
+            attributes: [],
+            events: [],
+            notes: [],
+            citations: [],
             meta: {"updated":"4 May 2026","sourceStatus":"Unsourced"}
         },
         {
@@ -117,6 +132,11 @@ const sampleData = {
             avatarClass: "avatar-purple",
             birth: {"date":"03.06.1949","dateLabel":"03 Jun 1949","dateType":"Exact date","placeId":null,"state":"known","calendar":"Gregorian","first":{"year":1949,"month":6,"day":3},"second":null,"originalText":"03.06.1949","sortDate":"19490603","date2":"","date2Label":"","sortDate2":"","reason":"","burialPlaceId":null,"placeText":"","address":""},
             death: {"date":"04.01.2020","dateLabel":"04 Jan 2020","dateType":"Exact date","placeId":"place-meowbridge","burialPlaceId":"place-meowbridge","state":"known","calendar":"Gregorian","first":{"year":2020,"month":1,"day":4},"second":null,"originalText":"04.01.2020","sortDate":"20200104","date2":"","date2Label":"","sortDate2":"","placeText":"","address":"","burialPlaceText":"","burialAddress":"","cause":""},
+            profile: { alternativeNames: null },
+            attributes: [],
+            events: [],
+            notes: [],
+            citations: [],
             meta: {"updated":"4 May 2026","sourceStatus":"Partly sourced"}
         },
         {
@@ -130,6 +150,11 @@ const sampleData = {
             avatarClass: "",
             birth: {"date":"19.10.1951","dateLabel":"19 Oct 1951","dateType":"Exact date","placeId":"place-fishmarket-row","state":"known","calendar":"Gregorian","first":{"year":1951,"month":10,"day":19},"second":null,"originalText":"19.10.1951","sortDate":"19511019","date2":"","date2Label":"","sortDate2":"","reason":"","burialPlaceId":null,"placeText":"","address":""},
             death: {"date":"","dateLabel":"","dateType":"Exact date","placeId":null,"burialPlaceId":null,"state":"empty","calendar":"Gregorian","first":{"year":null,"month":null,"day":null},"second":null,"originalText":"","sortDate":"","date2":"","date2Label":"","sortDate2":"","placeText":"","address":"","burialPlaceText":"","burialAddress":"","cause":""},
+            profile: { alternativeNames: null },
+            attributes: [],
+            events: [],
+            notes: [],
+            citations: [],
             meta: {"updated":"28 Apr 2026","sourceStatus":"Partly sourced"}
         },
         {
@@ -143,6 +168,11 @@ const sampleData = {
             avatarClass: "avatar-purple",
             birth: {"date":"28.04.1955","dateLabel":"28 Apr 1955","dateType":"Exact date","placeId":"place-meowbridge","state":"known","calendar":"Gregorian","first":{"year":1955,"month":4,"day":28},"second":null,"originalText":"28.04.1955","sortDate":"19550428","date2":"","date2Label":"","sortDate2":"","reason":"","burialPlaceId":null,"placeText":"","address":""},
             death: {"date":"","dateLabel":"","dateType":"Exact date","placeId":null,"burialPlaceId":null,"state":"empty","calendar":"Gregorian","first":{"year":null,"month":null,"day":null},"second":null,"originalText":"","sortDate":"","date2":"","date2Label":"","sortDate2":"","cause":"","address":"","burialAddress":""},
+            profile: { alternativeNames: null },
+            attributes: [],
+            events: [],
+            notes: [],
+            citations: [],
             meta: {"updated":"28 Apr 2026","sourceStatus":"Partly sourced"}
         },
         {
@@ -157,6 +187,11 @@ const sampleData = {
             primaryPhotoId: "photo-archibald-workshop",
             birth: {"date":"02.01.1915","dateLabel":"02 Jan 1915","dateType":"Exact date","placeId":"place-pawford","state":"known","calendar":"Gregorian","first":{"year":1915,"month":1,"day":2},"second":null,"originalText":"02.01.1915","sortDate":"19150102","date2":"","date2Label":"","sortDate2":"","reason":"","burialPlaceId":null,"placeText":"","address":""},
             death: {"date":"17.07.1982","dateLabel":"17 Jul 1982","dateType":"Exact date","placeId":"place-pawford","burialPlaceId":"place-pawford","state":"known","calendar":"Gregorian","first":{"year":1982,"month":7,"day":17},"second":null,"originalText":"17.07.1982","sortDate":"19820717","date2":"","date2Label":"","sortDate2":"","placeText":"","address":"","burialPlaceText":"","burialAddress":"","cause":""},
+            profile: { alternativeNames: null },
+            attributes: [],
+            events: [],
+            notes: [],
+            citations: [],
             meta: {"updated":"24 Apr 2026","sourceStatus":"Partly sourced"}
         },
         {
@@ -170,6 +205,11 @@ const sampleData = {
             avatarClass: "avatar-purple",
             birth: {"date":"21.09.1918","dateLabel":"21 Sep 1918","dateType":"Exact date","placeId":"place-old-cattery","state":"known","calendar":"Gregorian","first":{"year":1918,"month":9,"day":21},"second":null,"originalText":"21.09.1918","sortDate":"19180921","date2":"","date2Label":"","sortDate2":"","reason":"","burialPlaceId":null,"placeText":"","address":""},
             death: {"date":"03.03.1991","dateLabel":"03 Mar 1991","dateType":"Exact date","placeId":null,"burialPlaceId":null,"state":"known","calendar":"Gregorian","first":{"year":1991,"month":3,"day":3},"second":null,"originalText":"03.03.1991","sortDate":"19910303","date2":"","date2Label":"","sortDate2":"","placeText":"","address":"","burialPlaceText":"","burialAddress":"","cause":""},
+            profile: { alternativeNames: null },
+            attributes: [],
+            events: [],
+            notes: [],
+            citations: [],
             meta: {"updated":"24 Apr 2026","sourceStatus":"Partly sourced"}
         },
         {
@@ -183,6 +223,11 @@ const sampleData = {
             avatarClass: "",
             birth: {"date":"","dateLabel":"","dateType":"Exact date","placeId":null,"state":"empty","calendar":"Gregorian","first":{"year":null,"month":null,"day":null},"second":null,"originalText":"","sortDate":"","date2":"","date2Label":"","sortDate2":"","reason":"","burialPlaceId":null,"placeText":"","address":""},
             death: {"date":"1968","dateLabel":"1968","dateType":"Exact date","placeId":"place-meowbridge","burialPlaceId":"place-meowbridge","state":"known","calendar":"Gregorian","first":{"year":1968,"month":null,"day":null},"second":null,"originalText":"1968","sortDate":"19680000","date2":"","date2Label":"","sortDate2":"","placeText":"","address":"","burialPlaceText":"","burialAddress":"","cause":""},
+            profile: { alternativeNames: null },
+            attributes: [],
+            events: [],
+            notes: [],
+            citations: [],
             meta: {"updated":"24 Apr 2026","sourceStatus":"Unsourced"}
         },
         {
@@ -196,6 +241,11 @@ const sampleData = {
             avatarClass: "avatar-purple",
             birth: {"date":"11.11.1922","dateLabel":"11 Nov 1922","dateType":"Exact date","placeId":"place-meowbridge","state":"known","calendar":"Gregorian","first":{"year":1922,"month":11,"day":11},"second":null,"originalText":"11.11.1922","sortDate":"19221111","date2":"","date2Label":"","sortDate2":"","reason":"","burialPlaceId":null,"placeText":"","address":""},
             death: {"date":"","dateLabel":"","dateType":"Exact date","placeId":null,"burialPlaceId":null,"state":"empty","calendar":"Gregorian","first":{"year":null,"month":null,"day":null},"second":null,"originalText":"","sortDate":"","date2":"","date2Label":"","sortDate2":"","placeText":"","address":"","burialPlaceText":"","burialAddress":"","cause":""},
+            profile: { alternativeNames: null },
+            attributes: [],
+            events: [],
+            notes: [],
+            citations: [],
             meta: {"updated":"24 Apr 2026","sourceStatus":"Unsourced"}
         },
         {
@@ -209,6 +259,11 @@ const sampleData = {
             avatarClass: "",
             birth: {"date":"08.05.1920","dateLabel":"08 May 1920","dateType":"Exact date","placeId":"place-fishmarket-row","state":"known","calendar":"Gregorian","first":{"year":1920,"month":5,"day":8},"second":null,"originalText":"08.05.1920","sortDate":"19200508","date2":"","date2Label":"","sortDate2":"","reason":"","burialPlaceId":null,"placeText":"","address":""},
             death: {"date":"09.12.1999","dateLabel":"09 Dec 1999","dateType":"Exact date","placeId":"place-fishmarket-row","burialPlaceId":"place-fishmarket-row","state":"known","calendar":"Gregorian","first":{"year":1999,"month":12,"day":9},"second":null,"originalText":"09.12.1999","sortDate":"19991209","date2":"","date2Label":"","sortDate2":"","placeText":"","address":"","burialPlaceText":"","burialAddress":"","cause":""},
+            profile: { alternativeNames: null },
+            attributes: [],
+            events: [],
+            notes: [],
+            citations: [],
             meta: {"updated":"24 Apr 2026","sourceStatus":"Partly sourced"}
         },
         {
@@ -222,6 +277,11 @@ const sampleData = {
             avatarClass: "avatar-purple",
             birth: {"date":"30.03.1924","dateLabel":"30 Mar 1924","dateType":"Exact date","placeId":null,"state":"known","calendar":"Gregorian","first":{"year":1924,"month":3,"day":30},"second":null,"originalText":"30.03.1924","sortDate":"19240330","date2":"","date2Label":"","sortDate2":"","reason":"","burialPlaceId":null,"placeText":"","address":""},
             death: {"date":"15.06.2004","dateLabel":"15 Jun 2004","dateType":"Exact date","placeId":"place-meowbridge","burialPlaceId":"place-meowbridge","state":"known","calendar":"Gregorian","first":{"year":2004,"month":6,"day":15},"second":null,"originalText":"15.06.2004","sortDate":"20040615","date2":"","date2Label":"","sortDate2":"","placeText":"","address":"","burialPlaceText":"","burialAddress":"","cause":""},
+            profile: { alternativeNames: null },
+            attributes: [],
+            events: [],
+            notes: [],
+            citations: [],
             meta: {"updated":"24 Apr 2026","sourceStatus":"Partly sourced"}
         },
         {
@@ -235,6 +295,11 @@ const sampleData = {
             avatarClass: "",
             birth: {"date":"1919","dateLabel":"1919","dateType":"Exact date","placeId":null,"state":"known","calendar":"Gregorian","first":{"year":1919,"month":null,"day":null},"second":null,"originalText":"1919","sortDate":"19190000","date2":"","date2Label":"","sortDate2":"","reason":"","burialPlaceId":null,"placeText":"","address":""},
             death: {"date":"","dateLabel":"","dateType":"Exact date","placeId":null,"burialPlaceId":null,"state":"empty","calendar":"Gregorian","first":{"year":null,"month":null,"day":null},"second":null,"originalText":"","sortDate":"","date2":"","date2Label":"","sortDate2":"","placeText":"","address":"","burialPlaceText":"","burialAddress":"","cause":""},
+            profile: { alternativeNames: null },
+            attributes: [],
+            events: [],
+            notes: [],
+            citations: [],
             meta: {"updated":"24 Apr 2026","sourceStatus":"Unsourced"}
         },
         {
@@ -252,7 +317,7 @@ const sampleData = {
             meta: {"updated":"24 Apr 2026","sourceStatus":"Unsourced"},
             profile: {},
             attributes: [],
-            events: [{"id":"pearl-bapm","gedcomTag":"BAPM","type":"BAPM","date":{"date":"1928","dateLabel":"1928","dateType":"Exact date","state":"known","calendar":"Gregorian","first":{"year":1928,"month":null,"day":null},"second":null,"originalText":"1928","sortDate":"19280000","date2":"","date2Label":"","sortDate2":"","placeId":null,"reason":"","burialPlaceId":null},"placeId":"place-old-cattery","placeText":"Old Cattery, North Yorkshire, England","notes":"","citations":[],"mediaIds":[],"address":""}],
+            events: [{"id":"pearl-bapm","gedcomTag":"BAPM","date":{"date":"1928","dateLabel":"1928","dateType":"Exact date","state":"known","calendar":"Gregorian","first":{"year":1928,"month":null,"day":null},"second":null,"originalText":"1928","sortDate":"19280000","date2":"","date2Label":"","sortDate2":"","placeId":null,"reason":"","burialPlaceId":null},"placeId":"place-old-cattery","placeText":"Old Cattery, North Yorkshire, England","notes":"","citations":[],"mediaIds":[],"address":""}],
             notes: [],
             citations: []
         },
@@ -267,6 +332,11 @@ const sampleData = {
             avatarClass: "avatar-amber",
             birth: {"date":"1896","dateLabel":"1896","dateType":"Exact date","placeId":"place-old-cattery","state":"known","calendar":"Gregorian","first":{"year":1896,"month":null,"day":null},"second":null,"originalText":"1896","sortDate":"18960000","date2":"","date2Label":"","sortDate2":"","reason":"","burialPlaceId":null,"placeText":"","address":""},
             death: {"date":"14.04.1961","dateLabel":"14 Apr 1961","dateType":"Exact date","placeId":"place-old-cattery","burialPlaceId":"place-old-cattery","state":"known","calendar":"Gregorian","first":{"year":1961,"month":4,"day":14},"second":null,"originalText":"14.04.1961","sortDate":"19610414","date2":"","date2Label":"","sortDate2":"","placeText":"","address":"","burialPlaceText":"","burialAddress":"","cause":""},
+            profile: { alternativeNames: null },
+            attributes: [],
+            events: [],
+            notes: [],
+            citations: [],
             meta: {"updated":"24 May 2026","sourceStatus":"Partly sourced"}
         },
         {
@@ -280,6 +350,11 @@ const sampleData = {
             avatarClass: "avatar-purple",
             birth: {"date":"","dateLabel":"","dateType":"Exact date","placeId":null,"state":"empty","calendar":"Gregorian","first":{"year":null,"month":null,"day":null},"second":null,"originalText":"","sortDate":"","date2":"","date2Label":"","sortDate2":"","reason":"","burialPlaceId":null,"placeText":"","address":""},
             death: {"date":"09.09.1970","dateLabel":"09 Sep 1970","dateType":"Exact date","placeId":"place-old-cattery","burialPlaceId":"place-old-cattery","state":"known","calendar":"Gregorian","first":{"year":1970,"month":9,"day":9},"second":null,"originalText":"09.09.1970","sortDate":"19700909","date2":"","date2Label":"","sortDate2":"","placeText":"","address":"","burialPlaceText":"","burialAddress":"","cause":""},
+            profile: { alternativeNames: null },
+            attributes: [],
+            events: [],
+            notes: [],
+            citations: [],
             meta: {"updated":"24 May 2026","sourceStatus":"Needs source"}
         },
         {
@@ -293,6 +368,11 @@ const sampleData = {
             avatarClass: "avatar-blue",
             birth: {"date":"1898","dateLabel":"1898","dateType":"Exact date","placeId":null,"state":"known","calendar":"Gregorian","first":{"year":1898,"month":null,"day":null},"second":null,"originalText":"1898","sortDate":"18980000","date2":"","date2Label":"","sortDate2":"","reason":"","burialPlaceId":null,"placeText":"","address":""},
             death: {"date":"","dateLabel":"","dateType":"Exact date","placeId":null,"burialPlaceId":null,"state":"empty","calendar":"Gregorian","first":{"year":null,"month":null,"day":null},"second":null,"originalText":"","sortDate":"","date2":"","date2Label":"","sortDate2":"","placeText":"","address":"","burialPlaceText":"","burialAddress":"","cause":""},
+            profile: { alternativeNames: null },
+            attributes: [],
+            events: [],
+            notes: [],
+            citations: [],
             meta: {"updated":"24 May 2026","sourceStatus":"Unsourced"}
         },
         {
@@ -306,6 +386,11 @@ const sampleData = {
             avatarClass: "avatar-purple",
             birth: {"date":"1894","dateLabel":"1894","dateType":"Exact date","placeId":"place-fishmarket-row","state":"known","calendar":"Gregorian","first":{"year":1894,"month":null,"day":null},"second":null,"originalText":"1894","sortDate":"18940000","date2":"","date2Label":"","sortDate2":"","reason":"","burialPlaceId":null,"placeText":"","address":""},
             death: {"date":"22.02.1966","dateLabel":"22 Feb 1966","dateType":"Exact date","placeId":null,"burialPlaceId":null,"state":"known","calendar":"Gregorian","first":{"year":1966,"month":2,"day":22},"second":null,"originalText":"22.02.1966","sortDate":"19660222","date2":"","date2Label":"","sortDate2":"","placeText":"","address":"","burialPlaceText":"","burialAddress":"","cause":""},
+            profile: { alternativeNames: null },
+            attributes: [],
+            events: [],
+            notes: [],
+            citations: [],
             meta: {"updated":"24 May 2026","sourceStatus":"Partly sourced"}
         },
         {
@@ -319,6 +404,11 @@ const sampleData = {
             avatarClass: "avatar-green",
             birth: {"date":"1887","dateLabel":"1887","dateType":"Exact date","placeId":"place-pawford","state":"known","calendar":"Gregorian","first":{"year":1887,"month":null,"day":null},"second":null,"originalText":"1887","sortDate":"18870000","date2":"","date2Label":"","sortDate2":"","reason":"","burialPlaceId":null,"placeText":"","address":""},
             death: {"date":"05.05.1954","dateLabel":"05 May 1954","dateType":"Exact date","placeId":"place-pawford","burialPlaceId":"place-pawford","state":"known","calendar":"Gregorian","first":{"year":1954,"month":5,"day":5},"second":null,"originalText":"05.05.1954","sortDate":"19540505","date2":"","date2Label":"","sortDate2":"","placeText":"","address":"","burialPlaceText":"","burialAddress":"","cause":""},
+            profile: { alternativeNames: null },
+            attributes: [],
+            events: [],
+            notes: [],
+            citations: [],
             meta: {"updated":"24 May 2026","sourceStatus":"Partly sourced"}
         },
         {
@@ -332,6 +422,11 @@ const sampleData = {
             avatarClass: "avatar-amber",
             birth: {"date":"1891","dateLabel":"1891","dateType":"Exact date","placeId":"place-meowbridge","state":"known","calendar":"Gregorian","first":{"year":1891,"month":null,"day":null},"second":null,"originalText":"1891","sortDate":"18910000","date2":"","date2Label":"","sortDate2":"","reason":"","burialPlaceId":null,"placeText":"","address":""},
             death: {"date":"","dateLabel":"","dateType":"Exact date","placeId":null,"burialPlaceId":null,"state":"empty","calendar":"Gregorian","first":{"year":null,"month":null,"day":null},"second":null,"originalText":"","sortDate":"","date2":"","date2Label":"","sortDate2":"","placeText":"","address":"","burialPlaceText":"","burialAddress":"","cause":""},
+            profile: { alternativeNames: null },
+            attributes: [],
+            events: [],
+            notes: [],
+            citations: [],
             meta: {"updated":"24 May 2026","sourceStatus":"Unsourced"}
         },
         {
@@ -345,6 +440,11 @@ const sampleData = {
             avatarClass: "avatar-purple",
             birth: {"date":"","dateLabel":"","dateType":"Exact date","placeId":null,"state":"empty","calendar":"Gregorian","first":{"year":null,"month":null,"day":null},"second":null,"originalText":"","sortDate":"","date2":"","date2Label":"","sortDate2":"","reason":"","burialPlaceId":null,"placeText":"","address":""},
             death: {"date":"03.08.1968","dateLabel":"03 Aug 1968","dateType":"Exact date","placeId":"place-meowbridge","burialPlaceId":"place-meowbridge","state":"known","calendar":"Gregorian","first":{"year":1968,"month":8,"day":3},"second":null,"originalText":"03.08.1968","sortDate":"19680803","date2":"","date2Label":"","sortDate2":"","placeText":"","address":"","burialPlaceText":"","burialAddress":"","cause":""},
+            profile: { alternativeNames: null },
+            attributes: [],
+            events: [],
+            notes: [],
+            citations: [],
             meta: {"updated":"24 May 2026","sourceStatus":"Partly sourced"}
         }
     ],

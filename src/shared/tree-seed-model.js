@@ -499,7 +499,7 @@ function buildSampleEvents(context = null)
                 const placeId = cleanDatePlaceId(event.placeId) || null;
 
                 events.push({
-                    id: `event-${family.id}-${event.id || 'marriage'}`,
+                    id: `event-${family.id}-${event.id}`,
                     projectId: family.projectId || personA.projectId || personB.projectId,
                     type: 'marriage',
                     editTarget: { kind: 'relationship', personId: personA.id, recordId: family.id },
@@ -636,7 +636,7 @@ function buildSampleEvents(context = null)
                 const hasEducationContent = Boolean(
                     fromDate
                 || toDate
-                || timelineAttributeHasContent(attribute, ['institutionName', 'agency', 'value', 'type', 'institutionType', 'notes'])
+                || timelineAttributeHasContent(attribute, ['institutionName', 'value', 'institutionType', 'notes'])
                 );
 
                 if (!hasEducationContent) return;
@@ -644,7 +644,7 @@ function buildSampleEvents(context = null)
                 const eventDate = timelineDatePayload(primaryDate, 'Exact date');
 
                 events.push({
-                    id: `event-${attribute.id || `${person.id}-education`}`,
+                    id: `event-${attribute.id}`,
                     projectId: person.projectId,
                     type: 'education',
                     editTarget: { kind: 'attribute', personId: person.id, recordId: attribute.id },
@@ -672,7 +672,7 @@ function buildSampleEvents(context = null)
                 const toDate = timelineOptionalGenealogyDate(attribute.toDate, 'Exact date');
                 const primaryDate = fromDate || toDate || timelineUnknownGenealogyDate('Exact date');
 
-                const company = cleanEditFieldValue(attribute.company || attribute.agency);
+                const company = cleanEditFieldValue(attribute.company);
                 const occupation = cleanEditFieldValue(attribute.value || attribute.occupation);
 
                 const hasOccupationContent = Boolean(
@@ -688,7 +688,7 @@ function buildSampleEvents(context = null)
                 const eventDate = timelineDatePayload(primaryDate, 'Exact date');
 
                 events.push({
-                    id: `event-${attribute.id || `${person.id}-occupation`}`,
+                    id: `event-${attribute.id}`,
                     projectId: person.projectId,
                     type: 'occupation',
                     editTarget: { kind: 'attribute', personId: person.id, recordId: attribute.id },
@@ -743,7 +743,6 @@ function buildSampleEvents(context = null)
                     id:
                   `event-${
                       attribute.id
-                      || `${person.id}-fact`
                   }`,
 
                     projectId:
@@ -797,7 +796,7 @@ function buildSampleEvents(context = null)
             if (!['BAPM', 'BURI'].includes(tag)) return;
             const eventDate = eventDateFields(event.date || emptyGenealogyDate('Exact date'));
             events.push({
-                id: `event-${event.id || `${person.id}-${tag.toLowerCase()}`}`,
+                id: `event-${event.id}`,
                 projectId: person.projectId,
                 type: tag === 'BAPM' ? 'baptism' : 'burial',
                 editTarget: { kind: 'event', personId: person.id, recordId: event.id, tag },
@@ -835,10 +834,6 @@ function rebuildSampleEventsAndPruneSourceLinks()
     for (const key of ['archiveFiles', 'notes'])
         sampleData[key] = projectEventReferences(sampleData[key], eventProjects);
 
-    /*
-        Source links are populated later than the
-        first generated-event build during startup.
-      */
     if (
         Array.isArray(
             sampleData.sourceLinks

@@ -78,34 +78,14 @@ function formatProjectDate(
 
 function projectModifiedTimestamp(project)
 {
-    const preferred = Date.parse(project?.modifiedAt || '');
-    if (Number.isFinite(preferred)) return preferred;
-    const legacy = Date.parse(project?.modified || '');
-    return Number.isFinite(legacy) ? legacy : Number.NEGATIVE_INFINITY;
+    const timestamp = Date.parse(project?.modifiedAt || '');
+    return Number.isFinite(timestamp) ? timestamp : Number.NEGATIVE_INFINITY;
 }
 
 function projectCreatedTimestamp(project)
 {
-    const preferred =
-        Date.parse(
-            project?.createdAt || ''
-        );
-
-    if (
-        Number.isFinite(preferred)
-    )
-    {
-        return preferred;
-    }
-
-    const legacy =
-        Date.parse(
-            project?.created || ''
-        );
-
-    return Number.isFinite(legacy)
-        ? legacy
-        : Number.NEGATIVE_INFINITY;
+    const timestamp = Date.parse(project?.createdAt || '');
+    return Number.isFinite(timestamp) ? timestamp : Number.NEGATIVE_INFINITY;
 }
 
 function formatProjectCreated(
@@ -2048,9 +2028,7 @@ function createBlankProject({ name, description = '' })
         modifiedAt: now,
         status: 'Local project',
         cover: 'paper',
-        defaultPersonId: null,
-        files: 0,
-        notes: 0
+        defaultPersonId: null
     };
 
     sampleData.projects.push(project);

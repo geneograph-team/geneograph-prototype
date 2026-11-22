@@ -245,6 +245,28 @@ function retargetStructuredPlaceReferences(record, removeId, keepId)
         if (Array.isArray(record[key])) record[key] = [...new Set(record[key].map(id => id === removeId ? keepId : id))];
 }
 
+function updateBoardFactPlaceReferences(board, place, replacement = null)
+{
+    const diagram = board.diagram;
+    const records = [
+        ...(diagram?.people || []).flatMap(person => [person.birth, person.death]),
+        ...(diagram?.families || []).flatMap(family => family.events || [])
+    ];
+    let updated = false;
+    for (const record of records)
+    {
+        if (!recordHasPlaceReference(record, place.id)) continue;
+        if (replacement) retargetStructuredPlaceReferences(record, place.id, replacement.id);
+        else
+        {
+            if (record.placeId === place.id && !record.placeText) record.placeText = place.name;
+            clearStructuredPlaceReferences(record, place.id);
+        }
+        updated = true;
+    }
+    return updated;
+}
+
 function placeMergeValuePresent(value)
 {
     return value !== null && value !== undefined && value !== ''
@@ -402,7 +424,7 @@ function mergeSavedPlaces(keepId, removeId, { aliases = true, locationChoice, fi
     });
     (sampleData.boards || []).forEach(board =>
     {
-        let updated = false;
+        let updated = updateBoardFactPlaceReferences(board, removed, keep);
         (board.diagram?.nodes || []).forEach(node =>
         {
             if (node.type !== 'place' || node.placeRef?.scope !== 'project' || node.placeRef.id !== removeId) return;

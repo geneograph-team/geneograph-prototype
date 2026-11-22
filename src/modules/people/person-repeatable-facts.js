@@ -13,10 +13,7 @@ function repeatableFactLabel(tag)
 function renderRepeatableFactEntry(tag, record = null)
 {
     const prefix = createRuntimeId('fact-field');
-    const value = record ? { ...record,
-        institutionName: record.institutionName ?? record.agency,
-        company: record.company ?? record.agency,
-        institutionType: record.institutionType || record.type || 'Unknown' } : {};
+    const value = record || {};
     const text = (key, label, multiline = false) => `<div class="field ${multiline ? 'full' : ''}"><label for="${prefix}-${key}">${escapeHtml(t(label))}</label>${multiline
         ? `<textarea id="${prefix}-${key}" data-repeat-field="${key}" data-source-value="${escapeHtml(value[key] || '')}">${escapeHtml(localizedDataFieldValue(value[key] || ''))}</textarea>`
         : `<input id="${prefix}-${key}" data-repeat-field="${key}" data-source-value="${escapeHtml(value[key] || '')}" value="${escapeHtml(localizedDataFieldValue(value[key] || ''))}">`}</div>`;
@@ -139,8 +136,6 @@ function applyRepeatableFacts(person, draft)
         const resolved = resolvePlaceAssignment(place, record.placeId);
         Object.assign(record, values, { placeId: resolved.placeId, placeText: resolved.placeText, address: resolved.address });
         if (row.tag !== 'FACT') record.date = null;
-        if (row.tag !== 'FACT' && 'agency' in record) delete record.agency;
-        if (row.tag === 'EDUC') record.type = record.institutionType === 'Unknown' ? '' : record.institutionType;
     });
 }
 
