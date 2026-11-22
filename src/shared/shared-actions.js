@@ -251,9 +251,11 @@ async function prepareProjectCoverImage(source)
         || width * height > PROJECT_COVER_MAX_SOURCE_PIXELS)
         throw new Error('cover-too-large');
     const scale = Math.min(1, PROJECT_COVER_MAX_RENDER_EDGE / Math.max(width, height));
-    // File-backed images can be canvas-tainted under file://. A small source
-    // that already loaded can still be used directly without repainting.
-    if (scale === 1 && !source.startsWith('data:')) return source;
+    // File-backed images may display successfully but taint Canvas under
+    // file://. Keep the validated source instead of trying to re-encode it.
+    const fileBacked = !source.startsWith('data:')
+        && new URL(source, document.baseURI).protocol === 'file:';
+    if (fileBacked || (scale === 1 && !source.startsWith('data:'))) return source;
     const canvas = document.createElement('canvas');
     canvas.width = Math.max(1, Math.round(width * scale));
     canvas.height = Math.max(1, Math.round(height * scale));
