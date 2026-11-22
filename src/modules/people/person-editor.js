@@ -97,7 +97,7 @@ function openAddPersonModal(title, subtitle, options = {})
             </div><div class="two-col-form add-person-name-fields">
               <div class="field">
                 <label for="addPersonFirstName">First name</label>
-                <input id="addPersonFirstName" data-source-value="${escapeHtml(editValues.firstName)}" value="${escapeHtml(localizedDataFieldValue(editValues.firstName))}" placeholder="e.g. Silver">
+                <input id="addPersonFirstName" data-source-value="${escapeHtml(editValues.firstName)}" value="${escapeHtml(localizedDataFieldValue(editValues.firstName))}" placeholder="e.g. Silver"${options.factTarget ? '' : ' data-modal-initial-focus'}>
               </div>
 
               <div class="field">
@@ -239,8 +239,6 @@ function openAddPersonModal(title, subtitle, options = {})
     bindRepeatableFacts(modalBackdrop.querySelector('.add-person-modal'));
     if (options.factTarget)
         focusPersonFactTarget(options.factTarget);
-    else
-        modalBackdrop.querySelector('#addPersonFirstName')?.focus({ preventScroll: true });
     updateAddPersonConditionalFields();
     const addPersonModal = modalBackdrop.querySelector('.add-person-modal');
     const initialSnapshot = addPersonModalSnapshot(addPersonModal);
