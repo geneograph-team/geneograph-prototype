@@ -424,10 +424,16 @@ function relationshipCount(personId)
         );
 }
 
-function renderRelationships(personId)
+function renderRelationships(personId, limit = Infinity)
 {
+    let remaining = limit;
     const groups = getRelationshipGroups(personId)
-        .map(renderRelationshipGroup)
+        .map(group =>
+        {
+            const items = group.items.slice(0, remaining);
+            remaining -= items.length;
+            return renderRelationshipGroup({ ...group, items });
+        })
         .filter(Boolean);
 
     if (!groups.length)

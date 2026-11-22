@@ -12,6 +12,13 @@ const PERSON_PANEL_PREVIEW_LIMITS =
         notes: CONNECTED_NOTES_PREVIEW_LIMIT
     });
 
+// Scoped to Family Tree/People; the original 3-item limits are also used in Archive.
+const PERSON_SIDEBAR_PREVIEW_LIMITS =
+    Object.freeze({
+        items: 10,
+        photos: 9
+    });
+
 function personResourceDisplayName(person)
 {
     return (
@@ -244,7 +251,7 @@ function renderFamilyPhotos(person)
             person?.id
         ).slice(
             0,
-            PERSON_PANEL_PREVIEW_LIMITS
+            PERSON_SIDEBAR_PREVIEW_LIMITS
                 .photos
         );
 
@@ -314,8 +321,8 @@ function renderFamilyArchiveItems(
             person?.id
         ).slice(
             0,
-            PERSON_PANEL_PREVIEW_LIMITS
-                .archive
+            PERSON_SIDEBAR_PREVIEW_LIMITS
+                .items
         );
 
     if (!files.length)
@@ -370,8 +377,8 @@ function renderFamilyNotes(
           person?.id || '',
 
         limit:
-          PERSON_PANEL_PREVIEW_LIMITS
-              .notes,
+          PERSON_SIDEBAR_PREVIEW_LIMITS
+              .items,
 
         emptyText:
           'No notes linked to this person.'
@@ -973,9 +980,10 @@ function renderPersonSidebar(
         </button>
       </div>`;
 
-    const timelineContent = renderFamilyTreeTimeline(person.id);
+    const timelineContent = renderFamilyTreeTimeline(person.id, PERSON_SIDEBAR_PREVIEW_LIMITS.items);
+    const timelineCount = getFamilyTreeTimelineEvents(person.id).length;
     const relationshipsContent =
-        renderRelationships(person.id);
+        renderRelationships(person.id, PERSON_SIDEBAR_PREVIEW_LIMITS.items);
 
     const relationshipsCount =
         relationshipCount(person.id);
@@ -1020,6 +1028,9 @@ function renderPersonSidebar(
                 sources:
                 personSources,
 
+                limit: PERSON_SIDEBAR_PREVIEW_LIMITS.items,
+                showAllWhenEmpty: true,
+
                 emptyText:
                 'No sources linked to this person.'
             })
@@ -1050,7 +1061,16 @@ function renderPersonSidebar(
                 'Add fact'
             )}
           </button>`,
-            { inlineAction: true }
+            {
+                inlineAction: true,
+                footerHtml: timelineCount > PERSON_SIDEBAR_PREVIEW_LIMITS.items
+                    ? renderPersonPanelViewAll({
+                        resource: 'timeline',
+                        count: timelineCount,
+                        personId: person.id
+                    })
+                    : ''
+            }
         )}
         ${renderInspectorSection(
             'relationships',
@@ -1058,7 +1078,16 @@ function renderPersonSidebar(
             translateCountPhrase(`${relationshipsCount} ${relationshipsCount === 1 ? 'connection' : 'connections'}`),
             relationshipsContent,
             `<button class="panel-action" type="button" data-manage-relationships="${escapeHtml(person.id)}" aria-label="${escapeHtml(t('Edit'))}" title="${escapeHtml(t('Edit'))}">${renderPanelButtonLabel(icon.edit, 'Edit')}</button>`,
-            { inlineAction: true }
+            {
+                inlineAction: true,
+                footerHtml: relationshipsCount > PERSON_SIDEBAR_PREVIEW_LIMITS.items
+                    ? renderPersonPanelViewAll({
+                        resource: 'relationships',
+                        count: relationshipsCount,
+                        personId: person.id
+                    })
+                    : ''
+            }
         )}
         ${renderInspectorSection(
             'photos',
@@ -1122,7 +1151,8 @@ function renderPersonSidebar(
               renderPersonPanelViewAll({
                   resource: 'archive',
                   count: archiveCount,
-                  personId: person.id
+                  personId: person.id,
+                  showWhenEmpty: true
               })
             }
         )}
@@ -1156,7 +1186,8 @@ function renderPersonSidebar(
               renderPersonPanelViewAll({
                   resource: 'notes',
                   count: noteCount,
-                  personId: person.id
+                  personId: person.id,
+                  showWhenEmpty: true
               })
             }
         )}
@@ -1217,9 +1248,9 @@ function getFamilyTreeTimelineEvents(personId)
         .sort(compareTimelineEvents);
 }
 
-function renderFamilyTreeTimeline(personId)
+function renderFamilyTreeTimeline(personId, limit = Infinity)
 {
-    const events = getFamilyTreeTimelineEvents(personId);
+    const events = getFamilyTreeTimelineEvents(personId).slice(0, limit);
 
     if (!events.length)
     {

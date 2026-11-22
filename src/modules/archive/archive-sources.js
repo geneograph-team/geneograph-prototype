@@ -998,6 +998,9 @@ function renderConnectedSourceList({
     emptyText =
         'No sources linked.',
 
+    limit = 4,
+    showAllWhenEmpty = false,
+
     readOnly =
         false
 })
@@ -1010,13 +1013,34 @@ function renderConnectedSourceList({
         ).filter(Boolean);
 
     const visibleSources =
-        validSources.slice(0, 4);
+        validSources.slice(0, limit);
+
+    const footer = `
+        <div class="panel-section-footer">
+          <button
+            class="panel-section-view-all"
+            type="button"
+            data-connected-source-view-all
+            data-connected-source-target-type="${escapeHtml(targetType)}"
+            data-connected-source-target-id="${escapeHtml(targetId)}"
+            data-connected-source-project="${escapeHtml(projectId)}"
+            aria-label="View all ${validSources.length} sources">
+
+            <span>View all sources</span>
+
+            <span
+              class="panel-section-view-all-icon"
+              aria-hidden="true">
+              ${icon.chevron}
+            </span>
+          </button>
+        </div>
+      `;
 
     if (!visibleSources.length)
     {
-        return renderInspectorSectionEmpty(
-            emptyText
-        );
+        return renderInspectorSectionEmpty(emptyText)
+            + (showAllWhenEmpty ? footer : '');
     }
 
     const sourceItems =
@@ -1168,25 +1192,7 @@ function renderConnectedSourceList({
           ${sourceItems}
         </div>
 
-        <div class="panel-section-footer">
-          <button
-            class="panel-section-view-all"
-            type="button"
-            data-connected-source-view-all
-            data-connected-source-target-type="${escapeHtml(targetType)}"
-            data-connected-source-target-id="${escapeHtml(targetId)}"
-            data-connected-source-project="${escapeHtml(projectId)}"
-            aria-label="View all ${validSources.length} sources">
-
-            <span>View all sources</span>
-
-            <span
-              class="panel-section-view-all-icon"
-              aria-hidden="true">
-              ${icon.chevron}
-            </span>
-          </button>
-        </div>
+        ${footer}
       `;
 }
 

@@ -862,6 +862,13 @@ function bindPersonSidebar(root, context = 'tree')
                         openNotesForPerson(
                             personId
                         );
+
+                        return;
+                    }
+
+                    if (resource === 'timeline' || resource === 'relationships')
+                    {
+                        openPeopleProfileFromRow(personId);
                     }
                 }
             );

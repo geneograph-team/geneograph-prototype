@@ -153,10 +153,11 @@ function renderInspectorSectionEmpty(
 function renderPersonPanelViewAll({
     resource,
     count,
-    personId
+    personId,
+    showWhenEmpty = false
 })
 {
-    if (!count || !personId)
+    if ((!count && !showWhenEmpty) || !personId)
     {
         return '';
     }
@@ -175,7 +176,17 @@ function renderPersonPanelViewAll({
         notes:
             count === 1
                 ? 'note'
-                : 'notes'
+                : 'notes',
+
+        timeline:
+            count === 1
+                ? 'event'
+                : 'events',
+
+        relationships:
+            count === 1
+                ? 'relationship'
+                : 'relationships'
     };
 
     const noun =

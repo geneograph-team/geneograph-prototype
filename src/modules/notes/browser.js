@@ -992,10 +992,7 @@ function renderConnectedNoteList({
         true
 })
 {
-    const visible = notes.slice(
-        0,
-        Math.min(limit, CONNECTED_NOTES_PREVIEW_LIMIT)
-    );
+    const visible = notes.slice(0, limit);
 
     if (!visible.length)
     {
