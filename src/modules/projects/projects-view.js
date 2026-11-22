@@ -591,7 +591,7 @@ function renderOpenProjectBody()
             ${[
                 ['Family Tree', icon.tree, 'Structured relationship canvas'],
                 ['People', icon.people, 'Browse and clean records'],
-                ['Geneograph', icon.geneograph, 'Visual research boards'],
+                ['Geneograph', icon.whiteboard, 'Visual research boards'],
                 ['Albums', icon.image, 'Photos and albums'],
                 ['Archive', icon.file, 'Files and sources'],
                 ['Notes', icon.note, 'Capture research notes']
@@ -1260,7 +1260,7 @@ function renderStartupRecentActivityCard()
 
 function renderOfflineProjectsCard()
 {
-    return `<div class="right-card offline-project-card"><div class="offline-card-titlebar"><h2>Sync status</h2><button class="text-action is-inactive" type="button" disabled>Sync now</button></div><div class="offline-card-body">
+    return `<div class="right-card offline-project-card"><div class="offline-card-titlebar"><h2>Sync status</h2><span class="project-settings-coming-later">Coming later</span></div><div class="offline-card-body">
         <div class="offline-card-main"><div class="sync-icon offline-icon">${icon.syncoffline}</div><div><strong>All files are stored locally</strong><span>Your projects, photos, archive files, notes, and boards stay on this device.</span></div></div>
         <div class="offline-card-footer"><span>Enable cloud sync to protect your files.</span></div>
       </div></div>`;
@@ -1337,7 +1337,7 @@ function renderProjectCloudSyncStatus()
 function renderOpenProjectOfflineCard(project)
 {
     return `<div class="right-card offline-project-card">
-        <div class="offline-card-titlebar"><h2>Sync status</h2><button class="text-action is-inactive" type="button" disabled>Sync now</button></div>
+        <div class="offline-card-titlebar"><h2>Sync status</h2><span class="project-settings-coming-later">Coming later</span></div>
         <div class="offline-card-body">
           ${renderProjectCloudSyncStatus()}
         <button class="offline-card-learn text-action project-overview-link" type="button" data-toast="Cloud backup help is a placeholder for a later flow.">
@@ -1406,7 +1406,7 @@ function renderActivityRows(count)
         Notes: icon.note,
         Archive: icon.file,
         Places: icon.mapPin,
-        Geneograph: icon.geneograph
+        Geneograph: icon.whiteboard
     };
     const rows = (sampleData.activity || [])
         .filter(row => row.projectId === currentProjectId())
