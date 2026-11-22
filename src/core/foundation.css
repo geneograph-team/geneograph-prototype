@@ -4343,39 +4343,6 @@ body.mobile-details-open .geneo-inspector [data-geneo-inspector-toggle] {
     overflow: hidden;
 }
 
-.project-cover-preview-label {
-    position: absolute;
-    z-index: 1;
-    top: var(--space-3);
-    left: var(--space-3);
-    right: var(--space-3);
-    display: grid;
-    gap: 4px;
-    min-width: 0;
-    color: var(--gg-accent-heritage-green-on-container);
-    text-shadow: 0 1px 3px color-mix(in srgb, var(--gg-scrim) 40%, transparent);
-    pointer-events: none;
-}
-
-.project-cover-preview.has-image-cover .project-cover-preview-label {
-    color: var(--gg-text);
-}
-
-.project-cover-preview-label strong {
-    display: block;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    font-size: 16px;
-}
-
-.project-cover-preview-label span {
-    font-size: 12px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
 .project-cover-preview.cover-positionable {
     cursor: grab;
     touch-action: none;
