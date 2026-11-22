@@ -4455,39 +4455,28 @@ body.mobile-details-open .geneo-inspector [data-geneo-inspector-toggle] {
     overflow-wrap: anywhere;
 }
 
-.project-location-actions {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: var(--space-2);
-    justify-content: stretch;
-}
-
-.project-location-actions .button {
-    width: 100%;
-    min-height: 42px;
-    justify-content: flex-start;
-    text-align: left;
-    letter-spacing: .01em;
-    padding: 0 var(--space-3);
-}
-
-.project-location-actions .project-settings-unavailable,
-.project-location-actions .project-settings-unavailable:hover {
-    opacity: 1;
-    background: var(--gg-disabled-surface);
-    color: var(--gg-disabled-text);
-    border-color: var(--gg-border);
-    cursor: help; /* Clickable preview: opens an unavailable-feature toast. */
-}
-
 .project-settings-section-heading {
     display: flex;
     align-items: center;
     justify-content: space-between;
+    flex-wrap: wrap;
+    min-height: 52px;
+    padding: var(--space-2) var(--space-4);
+    border-bottom: 1px solid var(--border-default);
     gap: var(--space-2);
 }
 
+.project-settings-section-heading > h3 {
+    flex: 1 1 180px;
+    min-width: 0;
+    min-height: 0;
+    padding: 0;
+    border: 0;
+}
+
 .project-settings-coming-later {
+    flex: none;
+    white-space: nowrap;
     color: var(--text-tertiary);
     font-size: 12px;
     font-weight: 700;
@@ -4519,13 +4508,6 @@ body.mobile-details-open .geneo-inspector [data-geneo-inspector-toggle] {
     gap: var(--space-2);
 }
 
-.project-settings-actions.project-location-actions {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    justify-content: stretch;
-}
-
-
 @media (max-width: 1180px) {
     .project-settings-form.two-col {
         grid-template-columns: 1fr;
@@ -4556,6 +4538,14 @@ body.mobile-details-open .geneo-inspector [data-geneo-inspector-toggle] {
     grid-template-columns: minmax(420px, 1.25fr) minmax(340px, .75fr);
     gap: var(--space-5);
     align-items: stretch;
+    width: 100%;
+}
+
+.project-settings-section-two {
+    display: grid;
+    grid-template-columns: minmax(0, 1.25fr) minmax(300px, .75fr);
+    align-items: start;
+    gap: var(--space-5);
     width: 100%;
 }
 
@@ -4642,8 +4632,7 @@ body.mobile-details-open .geneo-inspector [data-geneo-inspector-toggle] {
     flex-wrap: wrap;
 }
 
-.project-location-status,
-.project-location-muted {
+.project-location-status {
     min-height: 28px;
     display: inline-flex;
     align-items: center;
@@ -4664,7 +4653,7 @@ body.mobile-details-open .geneo-inspector [data-geneo-inspector-toggle] {
 
 .project-location-meta {
     display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: minmax(0, 1fr);
     gap: var(--space-4);
 }
 
@@ -4677,18 +4666,49 @@ body.mobile-details-open .geneo-inspector [data-geneo-inspector-toggle] {
 
 .project-location-actions {
     display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 170px), 1fr));
     gap: var(--space-2);
-    justify-content: stretch;
 }
 
-.project-location-actions .button {
+.project-location-actions .button,
+.project-cloud-actions .button {
     width: 100%;
     min-height: 42px;
     justify-content: flex-start;
     text-align: left;
     letter-spacing: .01em;
     padding: 0 var(--space-3);
+}
+
+.project-cloud-body {
+    align-content: start;
+}
+
+.project-cloud-actions {
+    width: 100%;
+    max-width: 280px;
+}
+
+.project-settings-explainer {
+    margin: 0;
+    color: var(--text-secondary);
+    font-size: 13px;
+    line-height: 1.5;
+}
+
+.project-location-actions .project-settings-unavailable,
+.project-location-actions .project-settings-unavailable:hover,
+.project-cloud-actions .project-settings-unavailable,
+.project-cloud-actions .project-settings-unavailable:hover {
+    opacity: 1;
+    background: var(--gg-disabled-surface);
+    color: var(--gg-disabled-text);
+    border-color: var(--gg-border);
+    cursor: help;
+}
+
+.project-location-actions .project-settings-demo {
+    cursor: help;
 }
 
 .project-privacy-grid {
@@ -4722,16 +4742,9 @@ body.mobile-details-open .geneo-inspector [data-geneo-inspector-toggle] {
 }
 
 @media (max-width: 1180px) {
-    .project-settings-section-one {
-        grid-template-columns: 1fr;
-    }
-
-    .project-location-actions {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-
-    .project-location-meta {
-        grid-template-columns: 1fr;
+    .project-settings-section-one,
+    .project-settings-section-two {
+        grid-template-columns: minmax(0, 1fr);
     }
 
     .project-privacy-grid {

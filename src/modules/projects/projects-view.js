@@ -780,35 +780,39 @@ function renderProjectSettings(project)
             </div>
           </section>
         </div>
-        <section class="project-settings-section project-settings-full-card">
-          <h3>Project location</h3>
-          <div class="project-settings-section-body project-location-body">
-            <div class="project-location-summary">
-              <span class="project-location-status">Sample project</span>
-              <span class="project-location-muted">Cloud backup disabled</span>
+        <div class="project-settings-section-two">
+          <section class="project-settings-section project-settings-local-card">
+            <h3>Project location</h3>
+            <div class="project-settings-section-body project-location-body">
+              ${project.id === 'p1' ? '<div class="project-location-summary"><span class="project-location-status">Sample project</span></div>' : ''}
+              <p class="project-settings-explainer">Example path only. Projects are not saved to folders in this demo.</p>
+              <div
+                class="project-location-path"
+                data-i18n-skip
+                title="${escapeHtml(projectPath)}">
+                ${escapeHtml(projectPath)}
+              </div>
+              <div class="project-location-meta">
+                <div class="project-settings-kv"><span>Last local backup</span><span>${escapeHtml(lastBackup)}</span></div>
+              </div>
+              <div class="project-location-actions">
+                <button class="button secondary project-settings-unavailable" type="button" id="viewProjectFolder" title="${escapeHtml(t('Opening a project folder is not available yet.'))}">${icon.folder} View in folder</button>
+                <button class="button secondary project-settings-demo" type="button" id="moveProjectLocation" title="${escapeHtml(t('Project files cannot be moved in this demo. The path below is an example only.'))}">${icon.movefolder} Move project (demo)</button>
+                <button class="button secondary project-settings-unavailable" type="button" id="createProjectBackup" title="${escapeHtml(t('Creating a local backup is not available yet.'))}">${icon.file} Create local backup</button>
+              </div>
             </div>
-            <div
-              class="project-location-path"
-              data-i18n-skip
-              title="${escapeHtml(
-                    projectPath
-                )}">
-              ${escapeHtml(
-                    projectPath
-                )}
-            </div>
-            <div class="project-location-meta">
-              <div class="project-settings-kv"><span>Last local backup</span><span>${escapeHtml(lastBackup)}</span></div>
+          </section>
+          <section class="project-settings-section project-settings-cloud-card">
+            <div class="project-settings-section-heading"><h3>Cloud sync</h3><span class="project-settings-coming-later">Coming later</span></div>
+            <div class="project-settings-section-body project-cloud-body">
               <div class="project-settings-kv"><span>Cloud backup</span><span>Disabled</span></div>
+              <p class="project-settings-explainer">Cloud storage is not connected in this prototype.</p>
+              <div class="project-cloud-actions">
+                <button class="button secondary project-settings-unavailable" type="button" id="enableProjectSync" title="${escapeHtml(t('Cloud sync is not available yet.'))}">${icon.sync} Sync now</button>
+              </div>
             </div>
-            <div class="project-location-actions">
-              <button class="button secondary project-settings-unavailable" type="button" id="viewProjectFolder">${icon.folder} View in folder</button>
-              <button class="button secondary" type="button" id="moveProjectLocation">${icon.movefolder} Move project</button>
-              <button class="button secondary project-settings-unavailable" type="button" id="createProjectBackup">${icon.file} Create local backup</button>
-              <button class="button secondary project-settings-unavailable" type="button" id="enableProjectSync">${icon.sync} Sync now</button>
-            </div>
-          </div>
-        </section>
+          </section>
+        </div>
         <section class="project-settings-section project-settings-full-card">
           <div class="project-settings-section-heading"><h3>Data and privacy</h3><span class="project-settings-coming-later">Coming later</span></div>
           <div class="project-settings-section-body">
