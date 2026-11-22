@@ -727,8 +727,8 @@
     line-height: 1.5;
 }
 
-/* Match Source metadata rows for Photo dates and albums. */
-.profile-connected-photo-details {
+/* Keep Photo spacing above the later shared Source list reset. */
+.profile-connected-media-details .profile-connected-photo-details {
     margin: var(--space-4) 0 0;
     padding-top: var(--space-5);
     border-top: 1px solid var(--border-default);
