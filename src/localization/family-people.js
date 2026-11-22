@@ -226,7 +226,10 @@ const RU_UI_FAMILY_TREE = {
     'Removing this fact will clear the saved alternative names data when you save the person.':'Это действие удалит факт при сохранении данных.',
     'Record an attribute or characteristic for': 'Добавьте факт или характеристику для',
     'Connect':
-        'Связать'
+        'Связать',
+
+    'Connect Archive files to {event}.':
+        'Связать файлы из Архива с событием «{event}».'
 };
 const RU_UI_PEOPLE = {
     'Parent-child relationship type': 'Тип родственной связи',

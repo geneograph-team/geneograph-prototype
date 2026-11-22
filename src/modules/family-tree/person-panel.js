@@ -1567,7 +1567,8 @@ function bindTimelineSourceControls(
             const event = sourceTargetRecord('event', eventId, projectId);
             if (!event) return showToast('The event is no longer available.');
             openConnectedFilesModal({ projectId, title: 'Add evidence file',
-                subtitle: `Connect Archive files to ${event.title}.`,
+                subtitle: t('Connect Archive files to {event}.')
+                    .replace('{event}', translateText(event.title || t('Event'))),
                 existingFileIds: timelineEvidenceFiles(event).map(file => file.id),
                 onSave: (ids, context) => archiveSetConnectionsAtomically(context.changes.decisions.map(({ id, linked }) => ({ ownerType: 'file', ownerId: id, entityType: 'event', entityId: eventId, shouldLink: linked }))),
                 afterSave } );
