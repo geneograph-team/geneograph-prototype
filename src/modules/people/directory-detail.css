@@ -513,8 +513,16 @@
     gap: 2px;
 }
 
+/* Share content-sized label tracks across both Profile life-event rows. */
+.profile-command-hero .profile-hero-life {
+    grid-template-columns: 20px max-content minmax(0, 1fr);
+    column-gap: var(--space-5);
+}
+
 .profile-command-hero .profile-hero-life-item--with-icon {
-    grid-template-columns: 20px 56px minmax(0, 1fr);
+    grid-column: 1 / -1;
+    grid-template-columns: subgrid;
+    column-gap: inherit;
     align-items: center;
 }
 
@@ -707,8 +715,7 @@
     }
 
     .profile-command-hero .profile-hero-life {
-        grid-template-columns: 1fr;
-        gap: var(--space-3);
+        row-gap: var(--space-3);
     }
 
     .profile-command-hero .profile-hero-life-item {
@@ -740,6 +747,28 @@
 
     .profile-command-hero .profile-hero-copy h1 {
         font-size: 22px;
+    }
+
+    /* On cramped screens keep the icon beside a stacked label and details. */
+    .profile-command-hero .profile-hero-life {
+        grid-template-columns: 20px minmax(0, 1fr);
+        column-gap: var(--space-3);
+    }
+
+    .profile-command-hero .profile-hero-life-icon {
+        grid-column: 1;
+        grid-row: 1 / span 2;
+        align-self: start;
+    }
+
+    .profile-command-hero .profile-hero-life-label {
+        grid-column: 2;
+        grid-row: 1;
+    }
+
+    .profile-command-hero .profile-hero-life-details {
+        grid-column: 2;
+        grid-row: 2;
     }
 }
 
