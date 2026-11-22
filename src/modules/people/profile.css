@@ -591,9 +591,14 @@
 .profile-connected-preview {
     width: 100%;
     grid-column: auto;
-    padding: var(--space-3);
     border: 1px solid var(--border-default);
     border-radius: var(--radius-sm);
+    background: var(--surface-card);
+}
+
+.profile-connected-preview-body {
+    min-width: 0;
+    padding: var(--space-3);
 }
 
 .profile-connected-records > .profile-connected-preview {
@@ -603,14 +608,22 @@
 .profile-connected-preview-head {
     display: flex;
     justify-content: space-between;
-    align-items: start;
-    gap: var(--space-2);
-    margin-bottom: var(--space-3);
+    align-items: center;
+    gap: var(--space-3);
+    min-height: 56px;
+    padding: var(--space-3);
+    border-bottom: 1px solid var(--border-default);
+    border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+    background: var(--surface-card-hover);
 }
 
 .profile-connected-preview-head h4 {
+    flex: 1 1 auto;
     min-width: 0;
     margin: 0;
+    font-size: 15px;
+    line-height: 1.4;
+    overflow-wrap: anywhere;
 }
 
 .profile-connected-preview,

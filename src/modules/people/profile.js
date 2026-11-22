@@ -850,7 +850,7 @@ function renderProfileConnectedContent(person)
         }).join('')}</div>
         <section class="profile-connected-preview" aria-label="${escapeHtml(t('Preview'))}">
             <div class="profile-connected-preview-head">
-                ${['photos', 'archive'].includes(view.kind) ? '' : `<h4>${escapeHtml(selected.title)}</h4>`}
+                <h4 data-user-content title="${escapeHtml(selected.title)}">${escapeHtml(selected.title)}</h4>
                 <div class="profile-connected-preview-actions">
                     ${view.kind === 'places'
                         ? `<button type="button" class="panel-action" data-profile-view-place>${renderPanelButtonLabel(icon.mapPin, 'Show on map')}</button>`
@@ -858,7 +858,9 @@ function renderProfileConnectedContent(person)
                     ${view.kind !== 'places' ? `<button type="button" class="control-icon-button" data-profile-unlink-record aria-label="${escapeHtml(t('Unlink from person'))}" title="${escapeHtml(t('Unlink from person'))}">${icon.unlink}</button>` : ''}
                 </div>
             </div>
-            ${renderProfileConnectedRecord(view.kind, selected)}
+            <div class="profile-connected-preview-body">
+                ${renderProfileConnectedRecord(view.kind, selected)}
+            </div>
         </section>
     </div>`;
 }
@@ -880,7 +882,6 @@ function renderProfileConnectedRecord(kind, item, full = false)
     {
         return `${renderPhotoThumbnail(record, { className: 'profile-connected-media', label: item.title })}
             <div class="profile-connected-media-details">
-                ${full ? '' : `<h4 data-user-content>${escapeHtml(item.title)}</h4>`}
                 ${paragraph(record.caption)}
                 <dl class="profile-connected-photo-details">
                     <div><dt>${escapeHtml(t('Date'))}</dt><dd>${escapeHtml(item.date)}</dd></div>
@@ -893,7 +894,6 @@ function renderProfileConnectedRecord(kind, item, full = false)
         const image = archiveImageExtensions.has(archiveDocumentExtension(record.name)) && archiveImageSource(record);
         const details = `<div class="profile-connected-media-details">
             <p class="profile-connected-file-meta">${escapeHtml([record.size, t(archiveFileTypeLabel(record))].filter(Boolean).join(' · '))}</p>
-            ${full ? '' : `<h4 data-user-content>${escapeHtml(item.title)}</h4>`}
             ${paragraph(record.description)}
         </div>`;
         if (archiveCanViewFile(record) && !image)
