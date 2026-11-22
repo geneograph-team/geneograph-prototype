@@ -37,7 +37,7 @@ Assess the complete affected user journey before choosing an implementation. Rep
 
 For stateful interactions, review the relevant initial, selected, staged, canceled, and applied states, including missing and already-linked records and both transfer directions. Status and grouping, displayed differences, available actions, previews, and saved results must describe the same operation. An automatic connection must not make a needed action disappear when the user reviews the other person.
 
-Evaluate the whole affected section for clear hierarchy, balanced placement, readable content, and understandable actions rather than judging individual controls in isolation. Reuse shared interaction patterns and styles. Separate what code and regression checks establish from what still needs visual or interaction verification; assigning browser QA to the user does not remove the responsibility to assess the workflow and data behavior.
+Evaluate the whole affected section for clear hierarchy, balanced placement, readable content, and understandable actions rather than judging individual controls in isolation. Reuse shared interaction patterns and styles. Separate what code and regression checks establish from what still needs visual or interaction verification. If browser QA is blocked or delegated, continue data-flow assessment and report what remains unverified.
 
 ## 4. Architecture and state
 
@@ -284,7 +284,7 @@ Semantic buttons, labeled icon actions, focus indicators, accessible names, sele
 | Localization and responsiveness | English/Russian copy, translated label fit, 320px phone through desktop, focus order, open menus and modals. |
 | Places geocoding | Geoapify primary, LocationIQ fallback on no matches/error/timeout, search cancellation, stale results, attribution in both pickers and About, credentials absent, quota/429, hosted referrers, `file://` manual entry. |
 
-Use the verification map to choose focused manual browser checks. Inspect the console and exercise the affected workflow in English and Russian where relevant.
+Use the verification map to choose risk-justified browser checks. Local Codex may run them without case-by-case approval under AGENTS.md. Inspect the console and exercise the affected workflow in English and Russian where relevant.
 
 ## 12. Engineering guidance
 
@@ -297,7 +297,7 @@ OpenSpec is initialized here with Codex integration. Keep its config short and w
 3. Reuse design tokens, icons, localized strings, shared media and paint controls, and established modal/inspector patterns.
 4. Keep project IDs, board assets, person references, and per-property default/override semantics intact. A view-only choice should not mutate saved records.
 5. Validate transitions, not only appearance: selection, Cancel, undo/redo, reload, import/export, missing assets, external-service failures, and mixed bulk values.
-6. Inspect the browser console and run `git diff --check`. For structural changes, open `src/index.html` locally and exercise the relevant workflow at desktop and phone widths.
+6. Verify by regression risk, including browser and console checks for interactive changes. Local Codex must not run Git commands; GitHub PR work may review the branch diff. For structural changes, exercise the affected workflow at desktop and phone widths when browser tooling is available.
 
 ### Repository footprint and deployment safety
 
@@ -309,7 +309,7 @@ Deployment and CI infrastructure are protected: **every change requires explicit
 
 The CSS consolidation is complete. Edit styles in the owning `src/modules/<feature>/` or `src/shared/` stylesheet; shared tokens live in `src/core/foundation.css`, and shared picker controls in `src/shared/resource-picker.css`. Reconcile existing declarations directly instead of adding a trailing override or unnecessary `!important`. Preserve direct `file://` opening and check the load order in `src/index.html` when changing the cascade.
 
-For shared or responsive changes, check the affected modules in English and Russian at desktop and phone widths, including focus and modal states. Run `git diff --check`. Automated checks should target meaningful regressions.
+For shared or responsive changes, check the affected modules in English and Russian at desktop and phone widths, including focus and modal states. Review formatting directly in local Codex or using the branch diff in GitHub chat. Automated checks should target meaningful regressions.
 
 ## 13. Production direction
 
