@@ -852,10 +852,9 @@ function renderProfileConnectedContent(person)
             <div class="profile-connected-preview-head">
                 <h4 data-user-content title="${escapeHtml(selected.title)}">${escapeHtml(selected.title)}</h4>
                 <div class="profile-connected-preview-actions">
-                    ${view.kind === 'places'
-                        ? `<button type="button" class="panel-action" data-profile-view-place>${renderPanelButtonLabel(icon.mapPin, 'Show on map')}</button>`
-                        : `<button type="button" class="control-icon-button" data-profile-view-record aria-label="${escapeHtml(t('Open full view'))}" title="${escapeHtml(t('Open full view'))}">${icon.expand}</button>`}
+                    ${view.kind !== 'places' ? `<button type="button" class="control-icon-button" data-profile-view-record aria-label="${escapeHtml(t('Open full view'))}" title="${escapeHtml(t('Open full view'))}">${icon.expand}</button>` : ''}
                     <button type="button" class="control-icon-button" data-profile-edit-record aria-label="${escapeHtml(t('Edit'))}" title="${escapeHtml(t('Edit'))}">${icon.edit}</button>
+                    ${view.kind === 'places' ? `<button type="button" class="panel-action" data-profile-view-place>${renderPanelButtonLabel(icon.mapPin, 'Show on map')}</button>` : ''}
                     ${view.kind !== 'places' ? `<button type="button" class="control-icon-button" data-profile-unlink-record aria-label="${escapeHtml(t('Unlink from person'))}" title="${escapeHtml(t('Unlink from person'))}">${icon.unlink}</button>` : ''}
                 </div>
             </div>

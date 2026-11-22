@@ -653,6 +653,10 @@
     height: 32px;
 }
 
+.profile-connected-preview-actions [data-profile-view-place] {
+    margin-inline-start: var(--space-3);
+}
+
 .profile-connected-preview-actions svg {
     width: 16px;
     height: 16px;
@@ -726,7 +730,7 @@
 /* Match Source metadata rows for Photo dates and albums. */
 .profile-connected-photo-details {
     margin: var(--space-4) 0 0;
-    padding-top: var(--space-3);
+    padding-top: var(--space-5);
     border-top: 1px solid var(--border-default);
 }
 
