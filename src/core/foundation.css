@@ -4467,7 +4467,7 @@ body.mobile-details-open .geneo-inspector [data-geneo-inspector-toggle] {
 }
 
 .project-settings-section-heading > h3 {
-    flex: 1 1 180px;
+    flex: 1 1 auto;
     min-width: 0;
     min-height: 0;
     padding: 0;
@@ -4640,14 +4640,8 @@ body.mobile-details-open .geneo-inspector [data-geneo-inspector-toggle] {
     padding: 0 10px;
     font-size: 12px;
     font-weight: 900;
-    border: 1px solid color-mix(in srgb, var(--gg-text) 7%, transparent);
-    background: color-mix(in srgb, var(--gg-text) 3.5%, transparent);
-    color: var(--text-secondary);
-}
-
-.project-location-status {
     color: var(--brand-green-300);
-    border-color: color-mix(in srgb, var(--gg-primary) 22%, transparent);
+    border: 1px solid color-mix(in srgb, var(--gg-primary) 22%, transparent);
     background: color-mix(in srgb, var(--gg-primary) 11%, transparent);
 }
 
