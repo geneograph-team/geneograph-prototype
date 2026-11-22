@@ -3,7 +3,7 @@
 .albums-tag-people-modal .photo-people-body { grid-template-columns: 320px minmax(0, 1fr); padding: 0; }
 .albums-tag-people-modal .photo-people-sidebar { min-height: 0; min-width: 0; overflow-y: auto; overflow-x: hidden; padding: var(--space-3); }
 .albums-tag-people-modal.is-searching .photo-people-sidebar { display: flex; flex-direction: column; }
-.albums-tag-people-modal.is-searching .photo-people-results-panel { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; }
+.albums-tag-people-modal.is-searching .photo-people-results-panel { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; align-self: stretch; }
 .albums-tag-people-modal.is-searching .photo-people-results { flex: 1 1 auto; min-height: 0; max-height: none; overflow-y: auto; }
 .albums-tag-people-modal .photo-people-results { border: 0; background: transparent; border-radius: 0; scrollbar-gutter: auto; }
 .albums-tag-people-modal .photo-people-workspace { min-height: 0; min-width: 0; display: grid; grid-template-rows: auto minmax(0, 1fr) auto; overflow: auto; padding: 0; }
