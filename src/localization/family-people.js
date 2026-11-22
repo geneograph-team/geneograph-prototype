@@ -248,7 +248,12 @@ const RU_UI_PEOPLE = {
     'These people have different recorded parents. Review their parents before connecting them as siblings.': 'У этих людей указаны разные родители. Проверьте родителей, прежде чем связывать их как братьев или сестёр.',
     'Choose a non-biological relationship type for this parent connection.': 'Для этой связи с родителем выберите небиологический тип родства.',
     'Create unknown father': 'Создать неизвестного отца',
+    'Create unknown mother': 'Создать неизвестную мать',
+    'Create unknown parents': 'Создать неизвестных родителей',
     'An unknown father will be created for both siblings.': 'Для обоих детей будет создан неизвестный отец.',
+    'An unknown mother will be created for both siblings.': 'Для обоих детей будет создана неизвестная мать.',
+    'Two unknown parents (father and mother) will be created for both siblings.':
+        'Для обоих детей будут созданы два неизвестных родителя — отец и мать.',
     'The siblings will share the selected parent or parents.': 'У обоих детей будут выбранные общие родители.',
     'These people already share a recorded parent.': 'У этих людей уже есть общий родитель.',
     'Different parents': 'Разные родители',

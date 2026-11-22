@@ -752,12 +752,11 @@ function biologicalParentConflict(parentId, childId, additionalParentIds = [], g
 function connectPersonDetailType()
 {
     const type = normalizeConnectRelationshipType(connectPersonModalState.relationshipType);
-    if (type === 'sibling' && connectPersonModalState.selectedPersonId
-        && !parentIdsForPerson(connectPersonModalState.anchorPersonId).length
-        && !parentIdsForPerson(connectPersonModalState.selectedPersonId).length)
-        return 'Biological';
     if (connectPersonModalState.detailType) return connectPersonModalState.detailType;
     if (type === 'partner') return 'Married';
+    if (type === 'sibling'
+        && unknownSiblingParentChoice(connectPersonModalState.parentFamilySelection))
+        return 'Unknown parentage';
     if (type === 'parent' && parentIdsForPerson(connectPersonModalState.anchorPersonId)
         .filter(id => centralFamilyRecords().some(family => unlinkFamilyChildrenIds(family)
             .includes(connectPersonModalState.anchorPersonId) && familyIncludesPerson(family, id)
@@ -795,18 +794,13 @@ function renderConnectPersonDetailSelector()
 {
     const type = normalizeConnectRelationshipType(connectPersonModalState.relationshipType);
     if (!type) return '';
-    const fixedBiological = type === 'sibling' && connectPersonModalState.selectedPersonId
-        && !parentIdsForPerson(connectPersonModalState.anchorPersonId).length
-        && !parentIdsForPerson(connectPersonModalState.selectedPersonId).length;
     const value = connectPersonDetailType();
-    const options = fixedBiological
-        ? `<option value="Biological">${escapeHtml(t('Biological'))}</option>`
-        : type === 'partner'
+    const options = type === 'partner'
         ? addPersonRelationshipTypeOptions(value)
         : parentChildRelationshipTypeOptions(value);
     return `<div class="field add-person-select-field connect-person-detail-field">
       <label for="connectPersonDetailType">${escapeHtml(t('Relationship type'))}</label>
-      <select class="compact-select add-person-select" id="connectPersonDetailType" data-connect-detail-type ${fixedBiological ? 'disabled' : ''}>${options}</select>
+      <select class="compact-select add-person-select" id="connectPersonDetailType" data-connect-detail-type>${options}</select>
       <span class="add-person-select-chevron" aria-hidden="true">${icon.chevron}</span>
     </div>`;
 }

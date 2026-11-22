@@ -717,20 +717,21 @@ function createPersonFromAddPersonModal(options = {}, additionalFacts = {}, date
     return person;
 }
 
-function createUnknownFather(childPersonId)
+function createUnknownParent(childPersonId, role)
 {
     const child = getPerson(childPersonId);
+    const isMother = role === 'mother';
     const now = new Date().toISOString();
-    const id = createPersonIdFromName('unknown-father', childPersonId);
+    const id = createPersonIdFromName(isMother ? 'unknown-mother' : 'unknown-father', childPersonId);
     const person = {
         id,
         projectId: child.projectId,
         createdAt: now,
         updatedAt: now,
         names: { first: '', middle: '', last: '', maiden: '' },
-        gender: 'male',
+        gender: isMother ? 'female' : 'male',
         livingStatus: 'Unknown',
-        avatarClass: 'avatar-green',
+        avatarClass: isMother ? 'avatar-purple' : 'avatar-green',
         birth: emptyGenealogyDate('Exact date'),
         death: emptyGenealogyDate('Exact date'),
         profile: { alternativeNames: null },
@@ -740,7 +741,7 @@ function createUnknownFather(childPersonId)
         citations: [],
         counts: { files: 0, notes: 0 },
         meta: { updated: 'Just now', sourceStatus: 'Unsourced',
-            placeholderRole: 'father' }
+            placeholderRole: isMother ? 'mother' : 'father' }
     };
     sampleData.people.push(person);
     return person;
@@ -1004,6 +1005,35 @@ function parentFamilyDisplayLabel(family)
 }
 
 const UNKNOWN_FATHER_FAMILY_CHOICE = '__unknown_father__';
+const UNKNOWN_MOTHER_FAMILY_CHOICE = '__unknown_mother__';
+const UNKNOWN_PARENTS_FAMILY_CHOICE = '__unknown_parents__';
+const UNKNOWN_SIBLING_PARENT_OPTIONS = Object.freeze([
+    { value: UNKNOWN_FATHER_FAMILY_CHOICE, label: 'Create unknown father',
+        help: 'An unknown father will be created for both siblings.', roles: ['father'] },
+    { value: UNKNOWN_MOTHER_FAMILY_CHOICE, label: 'Create unknown mother',
+        help: 'An unknown mother will be created for both siblings.', roles: ['mother'] },
+    { value: UNKNOWN_PARENTS_FAMILY_CHOICE, label: 'Create unknown parents',
+        help: 'Two unknown parents (father and mother) will be created for both siblings.', roles: ['father', 'mother'] }
+]);
+
+function unknownSiblingParentChoice(selection)
+{
+    return UNKNOWN_SIBLING_PARENT_OPTIONS.find(option => option.value === selection) || null;
+}
+
+function siblingParentSelectionHelp(selection)
+{
+    return t(unknownSiblingParentChoice(selection)?.help
+        || 'The siblings will share the selected parent or parents.');
+}
+
+function updateSiblingParentSelectionHelp(select)
+{
+    const section = select?.closest('[data-parent-family-selector]');
+    if (!section || section.dataset.parentFamilyType !== 'sibling') return;
+    const help = section.querySelector('[data-parent-family-help]');
+    if (help) help.textContent = siblingParentSelectionHelp(select.value);
+}
 
 function parentFamilyChoices(anchorPersonId, relationshipType, otherPersonId = '')
 {
@@ -1016,8 +1046,10 @@ function parentFamilyChoices(anchorPersonId, relationshipType, otherPersonId = '
         if (anchorParents.length && otherParents.length) return [];
         const sourcePersonId = anchorParents.length ? anchorPersonId : otherParents.length ? otherPersonId : '';
         if (!sourcePersonId)
-            return [{ value: UNKNOWN_FATHER_FAMILY_CHOICE, label: t('Create unknown father'),
-                family: null, parentIds: [], sourcePersonId: '' }];
+            return UNKNOWN_SIBLING_PARENT_OPTIONS.map(option => ({
+                value: option.value, label: t(option.label),
+                family: null, parentIds: [], sourcePersonId: ''
+            }));
         return parentFamiliesForPerson(sourcePersonId).flatMap(family =>
         {
             const parents = [familyPartnerAId(family), familyPartnerBId(family)].filter(Boolean);
@@ -1079,6 +1111,8 @@ function defaultParentFamilySelection(
 
     if (type === 'sibling')
     {
+        if (choices.some(choice => unknownSiblingParentChoice(choice.value)))
+            return UNKNOWN_FATHER_FAMILY_CHOICE;
         if (choices.length === 1) return choices[0].value;
         const families = new Set(choices.map(choice => choice.family.id));
         return families.size === 1 ? choices[0].value : '';
@@ -1192,7 +1226,8 @@ function renderParentFamilySelector({
     return `
         <section
           class="add-person-parent-family"
-          data-parent-family-selector>
+          data-parent-family-selector
+          data-parent-family-type="${type}">
 
           ${showHeading ? `<h3
             class="form-section-title"
@@ -1260,14 +1295,10 @@ function renderParentFamilySelector({
               ${showHeading ? '' : '<span class="add-person-family-error" data-add-person-family-error hidden></span>'}
             </div>
 
-            <span class="field-help">
-              ${
-                    isSibling
-                        ? selected === UNKNOWN_FATHER_FAMILY_CHOICE
-                            ? 'An unknown father will be created for both siblings.'
-                            : 'The siblings will share the selected parent or parents.'
-                        : t('Choose who will be recorded as this child’s parents.')
-                }
+            <span class="field-help" data-parent-family-help>
+              ${isSibling
+                ? escapeHtml(siblingParentSelectionHelp(selected))
+                : escapeHtml(t('Choose who will be recorded as this child’s parents.'))}
             </span>
           </div>
         </section>
@@ -1731,8 +1762,9 @@ function validateSiblingConnection(anchorPersonId, siblingPersonId, familyId, de
 
     const choice = parentFamilyChoices(anchorPersonId, 'sibling', siblingPersonId)
         .find(candidate => candidate.value === familyId);
-    if (choice?.value === UNKNOWN_FATHER_FAMILY_CHOICE)
-        return { ok: true, autoFather: true, choice };
+    const unknownParentChoice = unknownSiblingParentChoice(choice?.value);
+    if (unknownParentChoice)
+        return { ok: true, unknownParentRoles: unknownParentChoice.roles, choice };
     const family = choice?.family;
     const sourcePersonId = choice?.sourcePersonId;
     const targetPersonId = sourcePersonId === anchorPersonId ? siblingPersonId : anchorPersonId;
@@ -1778,13 +1810,18 @@ function connectSiblingsThroughFamily(anchorPersonId, siblingPersonId, familyId,
 
     if (!validation.ok) return validation;
 
-    if (validation.autoFather)
+    if (validation.unknownParentRoles)
     {
-        const father = createUnknownFather(anchorPersonId);
-        const family = createParentChildFamily(father.id, anchorPersonId);
+        const parents = validation.unknownParentRoles.map(role =>
+            createUnknownParent(anchorPersonId, role));
+        const family = createParentChildFamily(parents[0].id, anchorPersonId);
+        parents.slice(1).forEach(parent => assignParentToFamily(family, parent.id));
         unlinkSetFamilyChildren(family, [anchorPersonId, siblingPersonId]);
-        setParentChildRelationshipType(family, father.id, anchorPersonId, 'Biological');
-        setParentChildRelationshipType(family, father.id, siblingPersonId, 'Biological');
+        parents.forEach(parent =>
+        {
+            setParentChildRelationshipType(family, parent.id, anchorPersonId, detailType);
+            setParentChildRelationshipType(family, parent.id, siblingPersonId, detailType);
+        });
         return { ok: true, family, relationshipType: 'sibling', warning: null };
     }
 
@@ -2135,8 +2172,6 @@ function addPersonPartnerChildrenMode(options = {})
 function addPersonConnectionDetailType(options = {})
 {
     const intent = addPersonCreateConnectionIntent(options);
-    if (intent.relationshipType === 'sibling' && !parentIdsForPerson(intent.anchorPersonId).length)
-        return 'Biological';
     if (intent.relationshipType === 'partner')
         return modalBackdrop?.querySelector('[data-add-person-relationship-type]')?.value
             || options.connectionDetailType || 'Married';

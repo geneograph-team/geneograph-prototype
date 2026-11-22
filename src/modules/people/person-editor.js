@@ -58,11 +58,12 @@ function openAddPersonModal(title, subtitle, options = {})
           || ''
     );
     const initialConnectionDetailType = options.connectionDetailType
-        || (connectionIntent.relationshipType === 'parent'
-            && parentIdsForPerson(connectionIntent.anchorPersonId).length >= 2
-            ? 'Adoptive' : 'Biological');
-    const autoFatherForNewSibling = connectionIntent.relationshipType === 'sibling'
-        && !parentIdsForPerson(connectionIntent.anchorPersonId).length;
+        || (connectionIntent.relationshipType === 'sibling'
+            && unknownSiblingParentChoice(initialParentFamilySelection)
+            ? 'Unknown parentage'
+            : connectionIntent.relationshipType === 'parent'
+                && parentIdsForPerson(connectionIntent.anchorPersonId).length >= 2
+                ? 'Adoptive' : 'Biological');
 
     const anchorGender = String(getPerson(connectionIntent.anchorPersonId)?.gender || '').toLowerCase();
     const relativeGender = isPartnerMode && connectionIntent.shouldConnect
@@ -175,9 +176,7 @@ function openAddPersonModal(title, subtitle, options = {})
                 <div class="add-person-facts-body add-person-family-body" id="addPersonFamilyBody" data-add-person-family-body hidden>
                   <div class="field add-person-select-field">
                     <label for="addPersonConnectionDetailType">${escapeHtml(t('Relationship type'))}</label>
-                    <select class="compact-select add-person-select" id="addPersonConnectionDetailType" ${autoFatherForNewSibling ? 'disabled' : ''}>${autoFatherForNewSibling
-                        ? `<option value="Biological">${escapeHtml(t('Biological'))}</option>`
-                        : parentChildRelationshipTypeOptions(initialConnectionDetailType)}</select>
+                    <select class="compact-select add-person-select" id="addPersonConnectionDetailType">${parentChildRelationshipTypeOptions(initialConnectionDetailType)}</select>
                     <span class="add-person-select-chevron" aria-hidden="true">${icon.chevron}</span>
                     <span class="add-person-family-error" data-add-person-detail-error hidden></span>
                   </div>
@@ -217,6 +216,11 @@ function openAddPersonModal(title, subtitle, options = {})
         </div>
       </div>`);
     bindAddPersonModalControls(options.mode === 'edit' ? options.personId || '' : '');
+    modalBackdrop.querySelector('.add-person-modal')?.addEventListener('change', event =>
+    {
+        if (event.target.matches('[data-parent-family-selection]'))
+            updateSiblingParentSelectionHelp(event.target);
+    });
     if (connectionIntent.relationshipType === 'parent')
     {
         const typeSelect = modalBackdrop.querySelector('#addPersonConnectionDetailType');
@@ -292,12 +296,7 @@ function selectAddPersonPossibleMatch(personId, options = {}, editPerson = null)
         });
     const typeSelect = modalBackdrop?.querySelector('#addPersonConnectionDetailType');
     if (!typeSelect) return;
-    const fixedBiological = !parentIdsForPerson(intent.anchorPersonId).length
-        && !parentIdsForPerson(selectedPersonId).length;
-    typeSelect.disabled = fixedBiological;
-    typeSelect.innerHTML = fixedBiological
-        ? `<option value="Biological">${escapeHtml(t('Biological'))}</option>`
-        : parentChildRelationshipTypeOptions('Biological');
+    typeSelect.innerHTML = parentChildRelationshipTypeOptions(typeSelect.value);
 }
 
 function refreshAfterPossibleMatchConnection(anchorPersonId)
