@@ -2511,17 +2511,21 @@ function commitAddPersonModalCreate(title, subtitle, options = {})
         showAddPersonFamilyError('#addPersonConnectionDetailType', message);
         return null;
     }
-    const familySelectionValidation = validateParentFamilySelection({
-        anchorPersonId: connectionIntent.anchorPersonId,
-        relationshipType: connectionIntent.relationshipType,
-        selection: parentFamilySelection
-    });
-
-    if (!familySelectionValidation.ok)
+    if (connectionIntent.shouldConnect
+        && ['child', 'sibling'].includes(connectionIntent.relationshipType))
     {
-        showToast(familySelectionValidation.message);
-        showAddPersonFamilyError('#addPersonParentFamily', t(familySelectionValidation.message));
-        return null;
+        const familySelectionValidation = validateParentFamilySelection({
+            anchorPersonId: connectionIntent.anchorPersonId,
+            relationshipType: connectionIntent.relationshipType,
+            selection: parentFamilySelection
+        });
+
+        if (!familySelectionValidation.ok)
+        {
+            showToast(familySelectionValidation.message);
+            showAddPersonFamilyError('#addPersonParentFamily', t(familySelectionValidation.message));
+            return null;
+        }
     }
 
     const projectPeopleBeforeCreate = getPeople(currentProjectId()).length;
