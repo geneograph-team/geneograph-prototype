@@ -530,7 +530,7 @@ function openProjectCoverPhotoPicker(projectId, { onSelect, nested = false, sele
     let preparing = false;
     const originalSource = () => chosen.uploadDraft?.src
         || (chosen.photoId ? getPhoto(chosen.photoId, { projectId })?.src : '')
-        || chosen.imageSrc || '';
+        || chosen.coverImageSrc || chosen.imageSrc || '';
     const source = () => verifiedSource;
     const renderGrid = () =>
     {
@@ -616,6 +616,8 @@ function openProjectCoverPhotoPicker(projectId, { onSelect, nested = false, sele
         }
         try
         {
+            if (chosen.photoId && !getPhoto(chosen.photoId, { projectId }))
+                throw new Error('cover-unavailable');
             const prepared = await prepareProjectCoverImage(candidate);
             if (!modal.isConnected || request !== uploadRequest) return;
             chosen.coverImageSrc = prepared;
@@ -650,6 +652,10 @@ function openProjectCoverPhotoPicker(projectId, { onSelect, nested = false, sele
         const file = fileInput.files?.[0];
         if (!file) return;
         const request = ++uploadRequest;
+        preparing = true;
+        verifiedSource = '';
+        error.hidden = true;
+        refresh();
         try
         {
             const draft = await createPhotoUploadDraft(file, { idPrefix: 'project-cover-draft' });
@@ -660,8 +666,10 @@ function openProjectCoverPhotoPicker(projectId, { onSelect, nested = false, sele
         catch (_error)
         {
             if (!modal.isConnected || request !== uploadRequest) return;
+            preparing = false;
             error.textContent = t('Choose a JPEG, PNG, or WebP image under 20 MB.');
             error.hidden = false;
+            refresh();
         }
         fileInput.value = '';
     });
@@ -1454,8 +1462,8 @@ function openProjectCoverModal(
         );
     const currentPhotoSource = () => selectedPhoto.coverImageSrc
         || selectedPhoto.uploadDraft?.src
-        || (selectedPhoto.photoId ? getPhoto(selectedPhoto.photoId, { projectId: project.id })?.src : '')
-        || selectedPhoto.imageSrc || '';
+        || selectedPhoto.imageSrc
+        || (selectedPhoto.photoId ? getPhoto(selectedPhoto.photoId, { projectId: project.id })?.src : '') || '';
     const activeSource = () => projectCoverPresetImageSource(selectedCover)
         || (selectedCover === 'photo' ? currentPhotoSource() : '');
     const positioner = bindProjectCoverPositioner(preview, {
