@@ -28,7 +28,7 @@ The project follows linear history in order to:
   - Main branch for active development.
   - Holds the stable state of the project.
   - Protected branch (direct access is granted only to maintainers).
-  - Changes are made via merge requests.
+  - Changes are made via pull requests.
   - Direct commits are prohibited.
 
 ### Working branches
@@ -36,7 +36,7 @@ The project follows linear history in order to:
 - `feature`:
   - Each new feature is developed in a separate branch, which helps isolate changes.
 - `fix`:
-  - Used for fixes directly in the release version of the project.
+  - Used for focused fixes, including documentation corrections.
 
 ### Format
 
@@ -66,8 +66,8 @@ For example: `feature/user-authentication`
 
 ### 3. Change synchronization
 
-- Rebase onto `default` regularly.
-- Resolve conflicts in the working branch.
+- Review divergence from `default` before PR completion.
+- Resolve conflicts safely; do not force-push or rewrite shared history without explicit permission.
 
 ### 4. Cleanup
 
@@ -82,8 +82,7 @@ Changes are made according to this workflow:
 1. Create a branch from `default`.
 2. Work on the current task and commit the changes.
 3. Create a merge or pull request.
-4. Conduct code review and CI/CD checks.
-5. Rebase onto the latest `default`.
-6. Squash commits if necessary.
-7. Obtain maintainer approval for the merge.
-8. Merge using the fast-forward strategy.
+4. Review changes and available checks; record any unperformed CI or browser QA.
+5. Safely reconcile with the latest `default` when needed.
+6. Obtain explicit maintainer authorization to merge.
+7. The authorized maintainer chooses a repository-supported merge method consistent with the linear-history preference. Agents must not merge without explicit authorization.

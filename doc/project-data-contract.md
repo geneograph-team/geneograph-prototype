@@ -1,5 +1,7 @@
 # Project data contract
 
+**Status: provisional V1 contract.** Canonical-data cleanup [#330](https://github.com/geneograph-team/geneograph-prototype/issues/330) is unfinished. These are intended invariants and a proposed serialization boundary, **not** proof that complete validation, GEDCOM import [#331](https://github.com/geneograph-team/geneograph-prototype/issues/331) or project backup/restore [#332](https://github.com/geneograph-team/geneograph-prototype/issues/332) is implemented or verified. Finalize the contract with #330 without introducing legacy compatibility paths.
+
 A project owns the records listed by PROJECT_OWNED_COLLECTIONS in src/core/validation.js. Record IDs are stable within each collection. projectId identifies the owning project. References must resolve within that project. A board-local person ID is scoped to its board and is distinct from a Family Tree person ID.
 
 A Family Tree family is identified by its own ID. partnerAId and partnerBId identify its members, with an empty slot for a one-parent family. childIds records memberships. parentChildTypes records the type of each parent-child link. Partner role hints support display and placement. A pair of partners can belong to more than one family record. A child can belong to several families, and neither case implies that records should be merged. Family events carry relationship dates and places. Timeline rows display recorded events and facts.
@@ -20,7 +22,9 @@ A Family Tree family is identified by its own ID. partnerAId and partnerBId iden
 
 Display names, initials, timeline rows and UI counters are derived presentation. A link to a derived event ID is an authored relationship. Preserve that link and regenerate its target from the underlying person, family or fact identity.
 
-## V1 backup boundary
+## V1 backup boundary — proposed, not yet validated
+
+The matrix is the intended candidate boundary for #332, subject to #330's completed canonical model and meaningful reference-closed round trips. Include media/Archive metadata and Geneograph boards **only if they remain coherent without excluded binaries**; otherwise exclude the affected subset and disclose omissions. The matrix is not evidence that backup or restore is available today.
 
 | Include | Exclude |
 | --- | --- |

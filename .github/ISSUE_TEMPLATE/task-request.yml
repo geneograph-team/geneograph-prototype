@@ -10,15 +10,15 @@ body:
     - type: textarea
       id: formulation
       attributes:
-          label: Formulation
+          label: Goal and scope
           description: >
-              Description of task to complete.
+              Describe the outcome, affected areas and important boundaries.
     - type: textarea
       id: solution
       attributes:
-          label: Solution
+          label: Acceptance criteria
           description: >
-              Description of what want to happen.
+              Describe observable conditions for considering this task done.
     - type: textarea
       id: alternatives
       attributes:

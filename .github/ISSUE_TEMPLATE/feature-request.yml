@@ -10,17 +10,17 @@ body:
     - type: textarea
       id: formulation
       attributes:
-          label: Formulation
+          label: User problem and outcome
           description: >
-              Description of why a feature is need to integrate.
+              Explain who needs this and what they should accomplish.
       validations:
           required: true
     - type: textarea
       id: solution
       attributes:
-          label: Solution
+          label: Proposed behavior
           description: >
-              Description of what want to happen.
+              Describe the intended user journey and important boundaries.
     - type: textarea
       id: alternatives
       attributes:

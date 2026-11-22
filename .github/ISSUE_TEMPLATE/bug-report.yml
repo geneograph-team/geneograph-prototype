@@ -8,15 +8,15 @@ labels:
 body:
     # Bug information
     - type: textarea
-      id: version
+      id: environment
       attributes:
-          label: Version
+          label: Environment
           description: >
-              Fields to create a complete report.
+              Note hosted or file://, browser, language and viewport.
           placeholder: |
-              - Project version.
+              - Hosted or file://, browser, EN/RU, desktop/phone.
       validations:
-          required: true
+          required: false
     - type: textarea
       id: description
       attributes:
@@ -43,9 +43,9 @@ body:
     - type: textarea
       id: expected-behavior
       attributes:
-          label: Expected behavior
+          label: Expected outcome
           description: >
-              Description of what expected to happen.
+              Describe the complete intended workflow result, not just the symptom.
     - type: textarea
       id: screenshots
       attributes:

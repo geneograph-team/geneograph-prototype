@@ -1,32 +1,28 @@
-### Proposed changes
+### Outcome and scope
 
-<!--
-Please insert the list of changes below. For example:
+<!-- Describe the intended user outcome and root cause of a fix. -->
 
-- Added some functionality
-- Deleted old things
-- Fixed bug_name bug
--->
+### Affected behavior and records
 
-- 
+<!-- Relevant module entry points, shared consumers and invariants. -->
 
-### Associated issues
+### Verification
 
-<!--
-If this pull request is associated with any issue, then put its number here
-please. For example:
+<!-- Report exact checks completed; distinguish pending QA. -->
 
-- #8
--->
+- [ ] Static or regression checks (results below or N/A)
+- [ ] Browser/interaction QA (results below or pending/N/A)
 
-- 
+**Checks performed and results:**
 
-### Checklist
+**Pending checks, blockers and residual risks:**
 
-<!--
-Please write 'x' letter in '[]' to agree. For example:
+### Related issues / OpenSpec
 
-- [x] Manual testing
--->
+<!-- Link the issue and relevant change/spec when applicable. -->
 
-- [ ] Manual testing
+### Protected operations
+
+- [ ] No CI/deployment changes; or specific founder approval linked below.
+
+**Approval reference (if relevant):**

@@ -1,6 +1,6 @@
 # GeneoGraph Prototype: Current Design and Engineering Guide
 
-**Reviewed:** 2026-11-09
+**Documentation review:** 2026-11-22 (source and organization audit, not new browser QA)
 **Scope:** The working prototype in `src/`, not a specification of a shipped service.
 
 **Canonical checkout:** `E:\Geneograph\Concept\geneograph-prototype`.
@@ -148,98 +148,15 @@ Shapes and drawings have separate creation-strip settings, copied into new objec
 
 **Places map navigation:** Single-click a place in the Countries sidebar to select it; double-click to switch to map view (if needed) and center its marker within the unobscured viewport. Creating or repositioning a place with valid coordinates in the Places editor centers that marker after the map has reloaded, including while MapLibre is still initializing. Map loading/error notices are centered within the map panel and use a neutral List view escape action. If a place lacks coordinates, keep the manual position-editing path rather than guessing a location. The dark basemap is a locally hosted Liberty-derived MapLibre style; the light basemap remains upstream Liberty, and map colors stay separate from application theme tokens.
 
-### Places maps and browser geocoding (issue #158)
+### Places map and browser geocoding
 
-**Two independent services:** MapLibre GL JS renders the interactive map with **OpenFreeMap** vector tiles; it does not search for place names. Autocomplete instead uses **Geoapify first**, then **LocationIQ** as a fallback. All provider requests originate in the visitor's browser, **not** a GeneoGraph backend. The provider used is deliberately invisible in the search UI.
+MapLibre/OpenFreeMap renders the hosted map; browser-only Geoapify autocomplete falls back to LocationIQ when primary results are unavailable or unusable. User-cancelled searches do not launch fallback requests. Maintain keyboard access, attribution, useful error and empty states, and project-place/manual entry without external providers. Autocomplete is not historical evidence; typing alone never creates a Place record.
 
-**Search pipeline:**
+Operational request behavior, credentials, restrictions, provider limits, cancellation and hosted QA belong in [browser geocoder setup](browser-geocoder-setup.md). Settlement-only filtering is being verified under [issue #349](https://github.com/geneograph-team/geneograph-prototype/issues/349); code changes do not establish complete hosted QA.
 
-```text
-Places Add/Edit or Geneograph Add/Change Place
-  → shared searchSharedPlaceMapResults(query, AbortSignal)
-  → geneographGeocoder.search(query, signal, 5)
-  → Geoapify autocomplete (primary)
-      ├─ Valid matches → normalized place suggestions
-      └─ No valid matches / timeout / network, authorization or quota error
-           → LocationIQ autocomplete (fallback)
-                 ├─ Valid matches → same suggestion interface
-                 └─ No matches / failure → normal empty or unavailable state
-```
+### Basemap ownership and maintenance
 
-A user-cancelled or superseded search **never** falls through to LocationIQ. Requests have individual timeouts, per-browser pacing and short failure cooldowns. The two search screens continue to display existing project places and manually entered or historical names; searching alone creates **no** place record. Successful external results use the existing `{ id, kind, name, primary, context, coordinates: { lat, lng } }` contract; place records retain their project-scoped IDs. A provider's modern location suggestion should not be treated as proof of a historical settlement's identity.
-
-**Credentials and deployment:** `src/browser-config.js` deliberately contains `geoapifyKey: ''` and `locationiqKey: ''`. The GitHub Pages workflow reads **`GEOAPIFY_BROWSER_KEY`** and **`LOCATIONIQ_BROWSER_KEY`** from repository **Actions secrets** and writes them into the published `dist/browser-config.js` after copying `src/`. The deployed keys are **visible to every browser visitor**; GitHub Actions secrets protect *repository history*, not the deployed token values. Restrict keys in both provider dashboards to verified GeneoGraph referrers and monitor usage. No Worker, private API proxy or server-held credential exists.
-
-**Fallback and limits:** Without allowed keys, network access or provider availability, the application still supports project-place selection, creating places with names alone, and entering decimal coordinates manually; `file://` remains a non-map workflow. Daily free allowances are **account-wide**, while this adapter only throttles **each browser instance**; it cannot enforce a global usage ceiling. Silent fallback improves reliability but does not guarantee extra usable quota. Both required provider links appear *beneath autocomplete suggestions* in both place pickers and again under **Settings → About → Data providers**, independently of the active provider. The map's OpenFreeMap/OpenStreetMap attribution is separate.
-
-**Data and verification boundary:** There is no persistent raw geocoder response cache, and saved prototype place edits are still browser-memory-only. Any future durable genealogy store must document geocoded source attribution and honor each provider's storage/caching terms. Hosted EN/RU, historical-name coverage, referrer restrictions, failure/cancellation, credits and keyboard/mobile behavior require actual browser checks before merging; static adapter tests alone do not validate third-party API behavior. For exact deployment steps, quotas, terms, troubleshooting and manual QA, see [Browser geocoder setup](browser-geocoder-setup.md).
-
-### Liberty-derived dark map style (issue #177; supersedes #163)
-
-**Owned style:** `src/assets/map-styles/liberty-dark.json` is a static, versioned
-dark adaptation of the **111-layer OpenFreeMap Liberty style**, not the older
-OpenFreeMap Dark preset. Light mode still loads the original hosted Liberty URL.
-`src/core/runtime-config.js` selects the relative dark style URL; the MapLibre
-adapter resolves it against `document.baseURI` so GitHub Pages project
-subpaths work. No runtime `PLACES_DARK_MAP_PAINT` or layer-ID-dependent
-recoloring runs during `style.load`.
-
-**Upstream provenance:** Based on
-[OpenFreeMap Liberty](https://github.com/hyperknot/openfreemap-styles/blob/006ea5796803ba2df4330888836cb0a8f17473b4/styles/liberty/style.json)
-at commit `006ea5796803ba2df4330888836cb0a8f17473b4`
-(2026-10-25). The source's `__TILEJSON_DOMAIN__` placeholder is resolved
-to `tiles.openfreemap.org`. Vector/raster tiles, hashed sprite and Noto
-glyph endpoints remain on OpenFreeMap; label expressions and layer ordering
-are unchanged, including non-Latin name fallback. No MapTiler assets,
-additional keys or services are introduced.
-
-**Cartographic ownership:** Edit the **paint properties in the style JSON**,
-not the GeneoGraph v3 UI palette. Current dark direction (approximate hex
-samples; judge on real rendered tiles):
-
-| Feature | Dark Liberty color |
-| --- | --- |
-| Background / land | `#303C48` slate |
-| Water | `#25536A` maritime blue |
-| Protected areas / park polygons | `#354E48` muted green, zoom-faded |
-| Woodland / grassland | `#3B6B51` / `#4A6B53` vegetation |
-| Major roads / motorways | `#A99A82` / `#BA9E78` muted warm sand |
-| Minor roads | `#6E8392` steel blue |
-| Buildings | `#4C5B68` blue gray |
-| Cities / water labels | `#EBF0F4` / `#B1D7E5` |
-
-The `park` source layer may cover broad protected territories, including
-non-vegetated terrain. Its muted green fill fades from 2–12% at country/
-regional zoom to 20–28% locally. The separate dashed `park_outline`
-also fades from invisible at country scale to subtle locally. Woodland
-and grassland retain their independent physical landcover colors and
-opacities, so vegetation is more informative than protected boundaries.
-
-The existing zoom-dependent road widths, casings, distinct route classes,
-boundaries, building footprints, POIs, sprites and all 111 layer positions
-are preserved. Low-zoom Natural Earth raster relief is darkened and reduced
-in opacity so it does not wash out the background. User map markers,
-selected/draft pins, approximate-location circles and route layers are
-**application overlays**, created/recreated after style loading; do not
-embed them into the basemap JSON.
-
-**Credits and maintenance:** Preserve OpenFreeMap/OpenMapTiles/
-OpenStreetMap map attribution on all supported views. The adapted style
-retains the original Liberty [BSD-style code and CC BY design notices]
-(../src/assets/map-styles/LICENSE.md). When updating upstream, compare
-source layer IDs, order, sprite revisions, tiles, labels, and attribution
-before porting the dark colors to the newer Liberty baseline. Never fetch
-or introduce font assets into this repository.
-
-**Visual approval gate:** Before merging, compare the *current light map*,
-the previous dark map and this dark Liberty candidate at identical
-positions/zooms: city streets, rural countryside, water/coast and parks.
-Review EN/RU and Cyrillic labels, contrast of place names and boundaries,
-attribution, selected/draft markers, route stops/lines, approximate areas,
-and repeated light/dark theme switches on desktop and mobile. A static
-JSON audit or palette chips cannot substitute for hosted MapLibre visual
-QA. Founder approval of the actual rendered palette is required. Direct
-`file://` still offers manual coordinates, not an interactive map.
+The hosted Places map uses OpenFreeMap Liberty in light mode and `src/assets/map-styles/liberty-dark.json` in dark mode, selected by `src/core/runtime-config.js`. Map colors are independent from GeneoGraph UI palette tokens. Style provenance, attribution, paint choices and visual approval requirements are in [map-style maintenance](map-style-maintenance.md).
 
 ## 10. Publish and other unfinished capabilities
 

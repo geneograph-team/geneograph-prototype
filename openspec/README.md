@@ -18,7 +18,9 @@ Whenever an agent completes an approved substantive change, **perform this
 closeout in the same work item/PR without requiring another user request**:
 
 1. Confirm acceptance criteria and record checks actually performed.
-   Distinguish executable checks from unperformed manual browser QA.
+   Distinguish executable checks from unperformed manual browser QA. If a
+   material acceptance criterion remains unresolved, keep the change active.
+   Explicitly delegated or accepted manual QA must still be marked not run.
 2. Update `specs/` with the verified final behavior. Integrate deltas,
    reconcile superseded rules and remove duplicative active requirements.
 3. Complete the task checklist only for work done or explicitly accepted;

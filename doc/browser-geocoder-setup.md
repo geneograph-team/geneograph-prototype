@@ -2,7 +2,7 @@
 
 **Issue:** [#158](https://github.com/geneograph-team/geneograph-prototype/issues/158)
 **Architecture:** Geoapify primary → LocationIQ fallback, direct browser requests, no backend.
-**Reviewed:** 2026-11-09
+**Operational note:** Verify volatile provider prices, quotas and terms using the linked provider references; this guide is not a guarantee of current plan limits.
 **Credential status:** The owner reported both Actions repository secrets configured on 2026-11-09. GitHub does not disclose secret values to this review; actual deployment and authorized requests still need validation.
 
 ## 1. Configure GitHub Pages keys
@@ -27,9 +27,10 @@ inspection by the visitor's browser. Never describe browser keys as
 private secrets. The deployment is still a static website and requires
 no new backend.
 
-Geocoding will fail gracefully to manual entry until both secrets are
-configured and a deploy has completed. The primary and fallback are
-independently optional; a missing primary key triggers the secondary.
+Geocoding falls back to manual entry when no configured provider can return
+suggestions. Both keys enable the intended primary-plus-fallback behavior,
+but each provider can work independently; a missing primary triggers the
+secondary when it is configured and authorized.
 A direct `file://` checkout can still create places manually. API
 testing should use an approved hosted origin; a token restricted to
 GitHub Pages cannot usually make requests from localhost or `file://`.
@@ -114,17 +115,19 @@ secret tokens or reliable shared per-day quotas.
   Data providers**, whether a search uses one provider or the other.
 - Manual place creation remains available through outages, file-open
   and malformed results.
+- The pushed adapter filters external suggestions to inhabited settlements;
+  hosted QA for this behavior remains pending under [#349](https://github.com/geneograph-team/geneograph-prototype/issues/349).
 - No raw request/response cache is kept. Each browser throttles
   Geoapify to about 3 requests/second and LocationIQ to under one
   request/second; temporary provider cooldowns reduce repeated failures.
 
 **Daily limits cannot be coordinated across all browsers without a
-backend.** Geoapify's free tier currently offers 3,000 credits/day
-and up to 5 requests/second, generally one autocomplete query per credit;
-Geoapify describes free limits as soft. LocationIQ currently offers
-5,000 requests/day and 60/minute. They are separate provider quotas,
-**not** a combined guaranteed 8,000 searches/day. Monitor each provider's
-usage statistics and preserve manual editing if either quota is reached.
+backend.** Verify current pricing, quotas and attribution in the linked
+[Geoapify pricing](https://www.geoapify.com/pricing/) and
+[LocationIQ pricing](https://locationiq.com/pricing) pages and account
+dashboards before release. Providers have independent limits; client-side
+pacing is not an account-wide quota. Preserve manual entry when either
+provider is unavailable.
 
 ### Fallback semantics
 
@@ -147,31 +150,13 @@ The adapter does not expose a provider selector or fallback status in
 either UI. Displayed place name and coordinates are suggestions, not
 verified historical findings.
 
-**Search cancellation (#168):** After a 300 ms typing pause, a
-browser lookup can start. Each subsequent input cancels the previous
-in-flight request, resets the timer, and queues a new lookup after the
-next pause. This is intentional; fast keystrokes inside the debounce
-window should produce **one** network request.
+**Search cancellation:** Place-search fields debounce input by 300 ms,
+cancel superseded requests and ignore stale results. Deliberate user abort
+never triggers fallback; provider timeout or failure may. Test slow and
+rapid typing, Escape, stale results and fallback in the hosted UI.
 
-The adapter combines the UI cancellation signal and its 6.5-second
-timeout with native `AbortSignal.any` / `AbortSignal.timeout` in
-supporting browsers. This removes the second abort-forwarding event that
-previously appeared in console stacks. The compatibility path preserves
-abort reasons and cleans up its timeout/listener. **User cancellation**
-returns an ignored empty result in the shared UI wrapper and never
-launches LocationIQ; **provider timeout/failure** remains eligible for
-fallback. All three search surfaces now handle timer-launched promises
-and clear completed controllers. Genuine errors still surface normally.
-
-**Verification status:** The one-off Node and Chromium regression
-harnesses used during #168 were removed after the change; their former
-paths (`scripts/check-place-search-lifecycle.cjs` and
-`tests/browser/place-search-cancellation.html`) are **not** current
-commands or required repository artifacts. The original intermittent
-hosted rejection was not reproduced by the initial isolated harness.
-Verify slow and rapid typing, cancellation, Escape, stale results and
-provider fallback on the actual hosted app; do not infer a regression
-pass from the former temporary tests.
+Temporary Node/Chromium harnesses used for historical [#168](https://github.com/geneograph-team/geneograph-prototype/issues/168)
+were removed; they are neither current commands nor evidence of browser QA.
 
 Ambiguous village names must still be reviewed against historical
 sources before assignment.
@@ -201,12 +186,12 @@ not currently part of the repository):
 ```sh
 node --check src/core/geocoder-adapter.js
 node --check src/shared/date-and-place-fields.js
-git diff --check default...HEAD
 ```
 
 For changes to localization, also run the existing
-`node scripts/check-localization-catalog.cjs`. These checks do not
-replace real hosted-browser verification.
+`node scripts/check-localization-catalog.cjs`. Local Codex reviews edited-file formatting without Git; GitHub PR work
+reviews the branch diff. These checks do not replace real hosted-browser
+verification.
 
 After deploying with **both** Actions secrets, test EN/RU queries
 (`Lviv`, `Lwów`, `Lemberg`, `Львів`, `Львов`,
