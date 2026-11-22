@@ -39,6 +39,10 @@ When adding, moving or revising documentation, follow `doc/documentation-archite
 - Follow the Git guides: prefer one commit per complete logical change, with a capitalized imperative header of at most 72 characters and no conventional-commit prefix.
 - Review the final changed-file list and diff, run appropriate available checks, and create a PR targeting `default`. Link the issue when applicable; explain root cause, scope, tests, limitations and manual QA. Leave it unmerged. Revise the existing PR branch when feasible.
 
+### Issue scoping
+
+When creating or refining a GitHub issue, add a short **Implementation entry points** section listing concrete starting file paths and, where useful, function or symbol names. **List anchors only:** do not explain each file's purpose or prescribe a complete implementation path. These are starting points, not an exhaustive file list or a limit on the work. During implementation, investigate any additional files, dependencies and workflows needed to satisfy the issue.
+
 ## 3. Investigate before implementing
 
 **Investigate comprehensively; implement proportionately.** Assess risk by affected behavior and records, not the patch's size.
