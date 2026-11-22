@@ -9,6 +9,9 @@ const RU_UI_ALBUMS = {
     'All photos':
         'Все фотографии',
 
+    '{person} will also be tagged in this photo.':
+        'На этой фотографии также будет отмечен человек «{person}».',
+
     'Album path':
         'Путь к альбому',
 

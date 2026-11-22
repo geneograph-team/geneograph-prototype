@@ -117,7 +117,7 @@ function openAddPersonModal(title, subtitle, options = {})
             </div></section>
           ${!isEditMode && connectionIntent.shouldConnect && connectionIntent.relationshipType === 'parent'
         ? `<div class="field add-person-select-field">
-              <label for="addPersonConnectionDetailType">${escapeHtml(t('Relationship type'))}</label>
+              <label for="addPersonConnectionDetailType">${escapeHtml(parentChildRelationshipTypeFieldLabel())}</label>
               <select class="compact-select add-person-select" id="addPersonConnectionDetailType">${parentChildRelationshipTypeOptions(initialConnectionDetailType)}</select>
               <span class="add-person-select-chevron" aria-hidden="true">${icon.chevron}</span>
             </div>` : ''}
@@ -175,7 +175,7 @@ function openAddPersonModal(title, subtitle, options = {})
                 </button>
                 <div class="add-person-facts-body add-person-family-body" id="addPersonFamilyBody" data-add-person-family-body hidden>
                   <div class="field add-person-select-field">
-                    <label for="addPersonConnectionDetailType">${escapeHtml(t('Relationship type'))}</label>
+                    <label for="addPersonConnectionDetailType">${escapeHtml(parentChildRelationshipTypeFieldLabel())}</label>
                     <select class="compact-select add-person-select" id="addPersonConnectionDetailType">${parentChildRelationshipTypeOptions(initialConnectionDetailType)}</select>
                     <span class="add-person-select-chevron" aria-hidden="true">${icon.chevron}</span>
                     <span class="add-person-family-error" data-add-person-detail-error hidden></span>

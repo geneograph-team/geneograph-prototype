@@ -4295,7 +4295,7 @@ function renderParentChildRelationshipEditFields(
     return `
         <div class="field add-person-select-field">
           <label for="relationshipEditParentChildType">
-            Relationship type
+            ${escapeHtml(parentChildRelationshipTypeFieldLabel())}
           </label>
 
           <select

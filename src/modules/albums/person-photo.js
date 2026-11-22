@@ -138,7 +138,7 @@ function renderPersonPhotoProjectResults()
         projectId: person.projectId
     });
     const selectedIsUntagged = selectedPhoto
-        && !(selectedPhoto.personIds || []).includes(person.id);
+        && !photoIsTaggedWithPerson(selectedPhoto, person);
 
     if (!allProjectPhotos.length)
     {
@@ -165,7 +165,12 @@ function renderPersonPhotoProjectResults()
         </div></div>`;
     }
 
-    return `${selectedIsUntagged ? `<div class="person-photo-picker-notice">${escapeHtml(formatPersonFullName(person) || 'This person')} will also be tagged in this photo.</div>` : ''}
+    const tagNotice = selectedIsUntagged
+        ? t('{person} will also be tagged in this photo.')
+            .replace('{person}', formatPersonFullName(person) || t('This person'))
+        : '';
+
+    return `${selectedIsUntagged ? `<div class="person-photo-picker-notice" data-i18n-skip>${escapeHtml(tagNotice)}</div>` : ''}
         <div class="rp-results rp-photo-grid">${photos.map(photo => renderPersonPhotoCandidate(photo, person)).join('')}</div>`;
 }
 

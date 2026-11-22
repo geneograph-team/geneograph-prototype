@@ -22,6 +22,13 @@ function parentChildRelationshipType(
     );
 }
 
+function parentChildRelationshipTypeFieldLabel()
+{
+    return state.language === 'ru'
+        ? t('Parent-child relationship type')
+        : t('Relationship type');
+}
+
 function parentChildRelationshipTypeOptions(
     selected = 'Biological'
 )
@@ -806,7 +813,7 @@ function renderConnectPersonDetailSelector()
         ? addPersonRelationshipTypeOptions(value)
         : parentChildRelationshipTypeOptions(value);
     return `<div class="field add-person-select-field connect-person-detail-field">
-      <label for="connectPersonDetailType">${escapeHtml(t('Relationship type'))}</label>
+      <label for="connectPersonDetailType">${escapeHtml(type === 'partner' ? t('Relationship type') : parentChildRelationshipTypeFieldLabel())}</label>
       <select class="compact-select add-person-select" id="connectPersonDetailType" data-connect-detail-type>${options}</select>
       <span class="add-person-select-chevron" aria-hidden="true">${icon.chevron}</span>
     </div>`;

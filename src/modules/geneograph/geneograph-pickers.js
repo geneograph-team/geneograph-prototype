@@ -1828,7 +1828,7 @@ function renderGeneoRelativeConfiguration(relative)
     const initialType = relative.detailType || (category === 'parent' && (biologicalParents.length >= 2
         || (suggestedGender !== 'unknown' && biologicalParents.some(id => getGeneographPerson(id)?.gender === suggestedGender))) ? 'Adoptive' : 'Biological');
     const fields = `<div class="add-person-family-body">
-      <div class="field add-person-select-field"><label for="geneoRelativeType">${escapeHtml(t('Relationship type'))}</label><select id="geneoRelativeType" class="compact-select add-person-select" ${autoFather ? 'disabled' : ''}>${parentChildRelationshipTypeOptions(initialType)}</select><span class="add-person-select-chevron" aria-hidden="true">${icon.chevron}</span></div>
+      <div class="field add-person-select-field"><label for="geneoRelativeType">${escapeHtml(parentChildRelationshipTypeFieldLabel())}</label><select id="geneoRelativeType" class="compact-select add-person-select" ${autoFather ? 'disabled' : ''}>${parentChildRelationshipTypeOptions(initialType)}</select><span class="add-person-select-chevron" aria-hidden="true">${icon.chevron}</span></div>
       ${['child', 'sibling'].includes(category) ? `<div class="field add-person-select-field"><label for="geneoRelativeFamily">${escapeHtml(t(category === 'sibling' ? 'Shared parents' : 'Parents'))}</label><select id="geneoRelativeFamily" class="compact-select add-person-select"><option value="">${escapeHtml(t('Choose parents'))}</option>${choices.map(choice =>
       {
           const names = choice.parentIds.map(id => geneoPersonDisplayName(getGeneographPerson(id)));

@@ -229,6 +229,7 @@ const RU_UI_FAMILY_TREE = {
         'Связать'
 };
 const RU_UI_PEOPLE = {
+    'Parent-child relationship type': 'Тип родственной связи',
     'Unknown father': 'Неизвестный отец',
     'Middle name or patronym, if recorded.': 'Второе имя или отчество, если известно.',
     'Add son': 'Добавить сына',
