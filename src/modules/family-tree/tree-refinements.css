@@ -816,7 +816,7 @@ html.tree-fullscreen .tree-shell {
 
     .module-shortcuts {
         grid-template-columns:
-            repeat(2, 1fr);
+            repeat(2, minmax(0, 1fr));
     }
 
     .global-search {
@@ -954,8 +954,7 @@ html.tree-fullscreen .tree-shell {
         padding: 0 var(--space-4) var(--space-4);
     }
 
-    .choice-grid,
-    .module-shortcuts {
+    .choice-grid {
         grid-template-columns: 1fr;
     }
 
@@ -970,6 +969,12 @@ html.tree-fullscreen .tree-shell {
 
         grid-column:
             1 / -1;
+    }
+}
+
+@media (max-width: 600px) {
+    .module-shortcuts {
+        grid-template-columns: minmax(0, 1fr);
     }
 }
 

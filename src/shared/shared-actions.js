@@ -1124,16 +1124,6 @@ function uniqueProjectId()
     return candidate;
 }
 
-function uniqueProjectCopyName(projectName)
-{
-    const base = `${cleanEditFieldValue(projectName) || 'Untitled project'} copy`;
-    const names = new Set(sampleData.projects.map(project => project.name.toLocaleLowerCase()));
-    if (!names.has(base.toLocaleLowerCase())) return base;
-    let suffix = 2;
-    while (names.has(`${base} ${suffix}`.toLocaleLowerCase())) suffix += 1;
-    return `${base} ${suffix}`;
-}
-
 function bindProjectActionModalReturnFocus(anchor)
 {
     if (!anchor?.isConnected) return;
@@ -1189,33 +1179,6 @@ function openRenameProjectModal(projectId, anchor = null)
         renderStartup();
         showToast('Project renamed.');
     });
-}
-
-function duplicateProject(projectId)
-{
-    const project = sampleData.projects.find(item => item.id === projectId);
-    if (!project) return null;
-    const now = new Date();
-    const timestamp = now.toISOString();
-    const copy = {
-        id: uniqueProjectId(),
-        name: uniqueProjectCopyName(project.name),
-        createdAt: timestamp,
-        modifiedAt: timestamp,
-        status: project.status || 'Local project',
-        cover: resolvedProjectCoverStyle(project),
-        coverImageSrc: project.cover === 'photo' ? projectCoverImageSource(project) : '',
-        coverPosition: normalizeProjectCoverPosition(project.coverPosition),
-        files: 0,
-        notes: 0,
-        desc: project.desc || ''
-    };
-    sampleData.projects.unshift(copy);
-    markPrototypeSessionEdited();
-    state.selectedProjectId = copy.id;
-    renderStartup();
-    showToast('Project duplicated.');
-    return copy;
 }
 
 function openProjectCoverModal(
@@ -1585,7 +1548,7 @@ function openProjectMenu(id, anchor)
     const menu = document.createElement('div');
     menu.className = 'menu-popover app-action-menu project-action-menu';
     menu.id = 'projectMenu';
-    menu.innerHTML = `<button type="button" data-action="rename">${escapeHtml(t('Rename'))}</button><button type="button" data-action="duplicate">${escapeHtml(t('Duplicate'))}</button><button type="button" data-action="cover">${escapeHtml(t('Update cover'))}</button><button type="button" class="danger" data-action="delete">${escapeHtml(t('Delete'))}</button>`;
+    menu.innerHTML = `<button type="button" data-action="rename">${escapeHtml(t('Rename'))}</button><button type="button" data-action="cover">${escapeHtml(t('Update cover'))}</button><button type="button" class="danger" data-action="delete">${escapeHtml(t('Delete'))}</button>`;
     document.body.appendChild(menu);
     positionAnchoredActionMenu(menu, anchor);
     menu.addEventListener('click', e =>
@@ -1594,7 +1557,6 @@ function openProjectMenu(id, anchor)
         if (!action) return;
         closeMenu();
         if (action === 'rename') openRenameProjectModal(id, anchor);
-        if (action === 'duplicate') duplicateProject(id);
         if (action === 'cover') openProjectCoverModal(id, anchor);
         if (action === 'delete') openDeleteProjectConfirm(id, anchor);
     });

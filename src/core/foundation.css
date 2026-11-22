@@ -2796,12 +2796,15 @@ button.app-chip:disabled,
 
 .module-shortcuts {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: var(--space-3);
-    margin-top: var(--space-5);
 }
 
 .shortcut-card {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    min-width: 0;
     border: 1px solid var(--border-default);
     background: var(--surface-card);
     border-radius: var(--radius-sm);
@@ -2829,6 +2832,17 @@ button.app-chip:disabled,
     display: block;
     color: var(--text-primary);
     margin-bottom: 4px;
+}
+
+.shortcut-card span {
+    display: block;
+    font-size: 13px;
+    line-height: 1.4;
+}
+
+.shortcut-card:focus-visible {
+    outline: 2px solid var(--gg-primary);
+    outline-offset: 2px;
 }
 
 .menu-popover {

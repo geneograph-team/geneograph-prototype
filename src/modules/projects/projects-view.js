@@ -591,8 +591,10 @@ function renderOpenProjectBody()
             ${[
                 ['Family Tree', icon.tree, 'Structured relationship canvas'],
                 ['People', icon.people, 'Browse and clean records'],
+                ['Geneograph', icon.geneograph, 'Visual research boards'],
                 ['Albums', icon.image, 'Photos and albums'],
-                ['Archive', icon.file, 'Files and sources']
+                ['Archive', icon.file, 'Files and sources'],
+                ['Notes', icon.note, 'Capture research notes']
             ].map(([label, svg, text]) => `<button class="shortcut-card" type="button" data-shortcut="${label}">${svg}<strong>${label}</strong><span>${text}</span></button>`).join('')}
           </div>
         </div>
@@ -1090,7 +1092,6 @@ function renderStartupRecentActivityCard()
             projectId: 'p1',
             project: 'Whiskerfield Family Tree',
             module: 'Albums',
-            context: 'Albums',
             icon: icon.image,
             tone: 'photos',
             title: '4 photos added',
@@ -1103,12 +1104,11 @@ function renderStartupRecentActivityCard()
             projectId: 'p1',
             project: 'Whiskerfield Family Tree',
             module: 'People',
-            context: 'People',
             icon: icon.people,
             tone: 'people',
-            title: 'Profile updated',
+            title: 'Birthplace verified',
             detail:
-            'Luna Purrington now has a verified birth place',
+            'Luna Purrington’s recorded birthplace was confirmed',
             occurredAt:
             '2026-05-23T18:20:00Z'
         },
@@ -1116,7 +1116,6 @@ function renderStartupRecentActivityCard()
             projectId: 'p1',
             project: 'Whiskerfield Family Tree',
             module: 'Family Tree',
-            context: 'Family Tree',
             icon: icon.importOutline,
             tone: 'files',
             title: 'GEDCOM import reviewed',
@@ -1166,11 +1165,6 @@ function renderStartupRecentActivityCard()
                             item.project
                         );
 
-                    const context =
-                        translateText(
-                            item.context
-                        );
-
                     const detail =
                         translateText(
                             item.detail
@@ -1183,7 +1177,7 @@ function renderStartupRecentActivityCard()
 
                     const ariaLabel =
                         translateAttributeValue(
-                            `Open ${item.project} ${item.context} activity`
+                            `Open ${item.project} ${item.module} activity`
                         );
 
                     return `
@@ -1234,10 +1228,6 @@ function renderStartupRecentActivityCard()
                         ">
                         ${escapeHtml(
                             projectName
-                        )}
-                        ·
-                        ${escapeHtml(
-                            context
                         )}
                       </span>
 

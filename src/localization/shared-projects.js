@@ -782,6 +782,8 @@ const RU_UI_PROJECTS = Object.freeze({
     'Browse and clean records': 'Просмотр и уточнение записей',
     'Photos and albums': 'Фотографии и альбомы',
     'Files and sources': 'Файлы и источники',
+    'Visual research boards': 'Визуальные доски для исследований',
+    'Capture research notes': 'Сохраняйте исследовательские заметки',
     'Drop a GEDCOM file here to import': 'Перетащите сюда файл GEDCOM для импорта',
     'Supports .ged files': 'Поддерживаются файлы .ged',
     'Project insights': 'Подсказки по проекту',
@@ -802,7 +804,6 @@ const RU_UI_PROJECTS = Object.freeze({
     'Rename project': 'Переименовать проект',
     'Update the project name shown throughout GeneoGraph.': 'Измените название проекта, отображаемое во всех разделах GeneoGraph.',
     'Project renamed.': 'Проект переименован.',
-    'Project duplicated.': 'Копия проекта создана.',
     'Choose the cover shown on this project card.': 'Выберите обложку для карточки проекта.',
     'Cover style': 'Стиль обложки',
     'Archival paper': 'Архивная бумага',
@@ -888,7 +889,6 @@ const RU_UI_PROJECTS = Object.freeze({
 const RU_DATA_PROJECTS = Object.freeze({
     'Whiskerfield Family Tree': 'Семейное древо Вискерфильдов',
     'Whiskerfield Family History': 'История семьи Вискерфильдов',
-    'Whiskerfield Family Tree copy': 'Копия семейного древа Вискерфильдов',
     'Research into the Whiskerfield and Purrington family lines from Pawford, Meowbridge, Fishmarket Row, and Old Cattery.': 'Исследование родов Вискерфильд и Пуррингтон из Поуфорда, Мяубриджа, Фишмаркет-Роу и Олд-Кэттери.'
 });
 
@@ -901,12 +901,10 @@ const RU_DATA_PROJECT_ACTIVITY = Object.freeze({
     '4 photos added': 'Добавлено 4 фотографии',
     'Whiskerfield family album photos are ready to organize': 'Фотографии из семейного альбома Вискерфильдов готовы к сортировке',
     'Profile updated': 'Профиль обновлён',
-    'Luna Purrington now has a verified birth place': 'Место рождения Луны Пуррингтон подтверждено',
+    'Birthplace verified': 'Место рождения подтверждено',
+    'Luna Purrington’s recorded birthplace was confirmed': 'Место рождения Луны Пуррингтон подтверждено',
     'GEDCOM import reviewed': 'Импорт GEDCOM проверен',
     '17 people were added to the project': 'В проект добавлено 17 человек',
-    'Whiskerfield Family Tree · Albums': 'Семейное древо Вискерфильдов · Альбомы',
-    'Whiskerfield Family Tree · People': 'Семейное древо Вискерфильдов · Люди',
-    'Whiskerfield Family Tree · Family Tree': 'Семейное древо Вискерфильдов · Семейное древо',
     'Open Whiskerfield Family Tree Albums activity': 'Открыть действия модуля «Альбомы» проекта «Семейное древо Вискерфильдов»',
     'Open Whiskerfield Family Tree People activity': 'Открыть действия модуля «Люди» проекта «Семейное древо Вискерфильдов»',
     'Open Whiskerfield Family Tree Family Tree activity': 'Открыть действия модуля «Семейное древо» проекта «Семейное древо Вискерфильдов»',
