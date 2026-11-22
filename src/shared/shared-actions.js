@@ -555,11 +555,15 @@ function openProjectCoverPhotoPicker(projectId, { onSelect, nested = false, sele
         <div class="modal-header"><div><h2 id="coverPhotoPickerTitle">Choose cover photo</h2><p>Select a project photo or upload a new image.</p></div>
             <button class="close-button" type="button" data-close aria-label="Close">${icon.close}</button></div>
         <div class="project-cover-photo-body">
-            <div class="project-cover-photo-preview-pane"><h3>Cover preview</h3><div class="project-cover-preview project-cover-photo-preview" data-cover-photo-preview role="group" aria-label="Drag to position cover; use arrow keys to adjust"></div><button class="project-cover-reset" type="button" data-cover-photo-reset hidden>Reset position</button></div>
+            <div class="project-cover-photo-preview-pane">
+                <div class="project-cover-photo-preview-wrap">
+                    <div class="project-cover-preview project-cover-photo-preview" data-cover-photo-preview role="group" aria-label="Drag to position cover; use arrow keys to adjust"></div>
+                    <button class="project-cover-reset" type="button" data-cover-photo-reset hidden>Reset position</button>
+                </div>
+            </div>
             <div class="project-cover-photo-library">
-                <label class="project-cover-photo-search-label" for="coverPhotoSearch">Search photos</label>
                 <div class="project-cover-photo-toolbar">
-                    <div class="app-search-field project-cover-photo-search">${icon.search}<input id="coverPhotoSearch" data-cover-photo-search type="search" placeholder="Search photos" autocomplete="off"></div>
+                    <div class="app-search-field project-cover-photo-search">${icon.search}<input id="coverPhotoSearch" data-cover-photo-search type="search" placeholder="Search photos" aria-label="Search photos" autocomplete="off"></div>
                     <button type="button" class="button secondary project-cover-photo-upload" data-cover-photo-upload>${icon.plus} Upload new photo</button>
                 </div>
                 <div class="project-cover-photo-grid" data-cover-photo-grid>${renderGrid()}</div>
