@@ -652,6 +652,8 @@ function openProjectCoverPhotoPicker(projectId, { onSelect, nested = false, sele
         const file = fileInput.files?.[0];
         if (!file) return;
         const request = ++uploadRequest;
+        const previousSource = verifiedSource;
+        const previousChoice = chosen;
         preparing = true;
         verifiedSource = '';
         error.hidden = true;
@@ -667,7 +669,12 @@ function openProjectCoverPhotoPicker(projectId, { onSelect, nested = false, sele
         {
             if (!modal.isConnected || request !== uploadRequest) return;
             preparing = false;
-            error.textContent = t('Choose a JPEG, PNG, or WebP image under 20 MB.');
+            chosen = previousChoice;
+            verifiedSource = previousSource;
+            error.textContent = !PHOTO_UPLOAD_ALLOWED_TYPES.includes(file.type)
+                || file.size > PHOTO_UPLOAD_MAX_BYTES
+                ? t('Choose a JPEG, PNG, or WebP image under 20 MB.')
+                : projectCoverValidationMessage(_error);
             error.hidden = false;
             refresh();
         }
