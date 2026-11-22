@@ -10,7 +10,7 @@ function openDeletePeopleConfirm(personIds)
     const validIds = validPeople.map(person => person.id);
     const count = validPeople.length;
     const visibleNames = validPeople.slice(0, 5)
-        .map(person => `<li>${escapeHtml(person.names?.display || 'Unnamed person')}</li>`)
+        .map(person => `<li>${escapeHtml(formatPersonFullName(person) || 'Unnamed person')}</li>`)
         .join('');
     const remaining = count - 5;
     const noun = count === 1 ? 'person' : 'people';
@@ -57,7 +57,38 @@ function deletePeopleRecords(personIds)
         }
     });
 
+    for (const records of [sampleData.archiveFiles, sampleData.notes])
+    {
+        for (const record of records)
+        {
+            if (!record.linkedPersonIds?.some(id => deletedIds.has(id))) continue;
+            record.linkedPersonIds = record.linkedPersonIds.filter(id => !deletedIds.has(id));
+            record.updatedAt = now;
+        }
+    }
+    for (const file of sampleData.archiveFiles)
+    {
+        if (!file.personRegions || !Object.keys(file.personRegions).some(id => deletedIds.has(id))) continue;
+        file.personRegions = Object.fromEntries(Object.entries(file.personRegions).filter(([id]) => !deletedIds.has(id)));
+        file.updatedAt = now;
+    }
+    for (const board of sampleData.boards)
+    {
+        for (const person of board.diagram.people)
+        {
+            if (!deletedIds.has(person.treePersonId)) continue;
+            person.treePersonId = null;
+            person.syncState = 'local';
+            board.modifiedAt = now;
+        }
+    }
+
     sampleData.people = sampleData.people.filter(person => !deletedIds.has(person.id));
+
+    for (const filter of sampleData.placeSavedFilters)
+    {
+        if (deletedIds.has(filter.filters?.personId)) filter.filters.personId = '';
+    }
 
     sampleData.projects.forEach(project =>
     {

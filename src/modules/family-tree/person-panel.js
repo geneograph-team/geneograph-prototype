@@ -15,7 +15,7 @@ const PERSON_PANEL_PREVIEW_LIMITS =
 function personResourceDisplayName(person)
 {
     return (
-        person?.names?.display
+        formatPersonFullName(person)
         || person?.name
         || 'Person'
     );
@@ -102,7 +102,7 @@ function openPersonFilesModal(
     }
 
     const name =
-        person.names?.display
+        formatPersonFullName(person)
         || person.name
         || 'this person';
 
@@ -209,8 +209,7 @@ function renderPersonPhotoUnlinkButton(
         || 'Photo';
 
     const personLabel =
-        getPerson(personId)
-            ?.names?.display
+        formatPersonFullName(getPerson(personId))
         || 'this person';
 
     return `
@@ -416,7 +415,7 @@ function openPersonNotesModal(
             'person',
             person
         )
-        || person.names?.display
+        || formatPersonFullName(person)
         || person.name
         || 'this person';
 

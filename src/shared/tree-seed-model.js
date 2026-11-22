@@ -202,7 +202,7 @@ function treePersonDisplayName(
         );
 
     if (!coreName)
-        return cleanTreeNamePart(names.display) || 'Unnamed person';
+        return formatPersonFullName(person) || 'Unnamed person';
 
     return [
         cleanTreeNamePart(names.prefix),
@@ -220,7 +220,7 @@ function toTreePerson(person)
               person
           ),
         first: cleanTreeNamePart(person.names?.first),
-        short: person.names.initials,
+        short: formatPersonInitials(person),
         gender: person.gender,
         birth: formatGenealogyDateLabel(person.birth),
         place: getPlaceEventDisplay(person.birth),
@@ -275,8 +275,8 @@ function toPeopleRecord(
         ).length;
     return {
         id: person.id,
-        initials: person.names.initials,
-        name: person.names.display,
+        initials: formatPersonInitials(person),
+        name: formatPersonFullName(person),
         first: person.names.first,
         surname: person.names.last,
         living: person.livingStatus,
@@ -316,7 +316,7 @@ function toPeopleRecord(
         sourceCount,
         avatarClass: person.avatarClass,
         primaryPhotoId: person.primaryPhotoId || '',
-        parents: getParents(person.id).map(parent => parent.names.display).join(' and ') || 'Unknown parents'
+        parents: getParents(person.id).map(parent => formatPersonFullName(parent)).join(' and ') || 'Unknown parents'
     };
 }
 
@@ -430,14 +430,9 @@ function timelineDatePayload(dateInput, fallbackType = 'Exact date')
     return eventDateFields(dateInput || timelineUnknownGenealogyDate(fallbackType));
 }
 
-function relationshipEventTag(event)
-{
-    return event?.gedcomTag || event?.tag || '';
-}
-
 function familyMarriageEventsForTimeline(family)
 {
-    return family.events.filter(event => relationshipEventTag(event) === 'MARR');
+    return family.events.filter(event => event.gedcomTag === 'MARR');
 }
 
 function timelineAttributeHasContent(attribute, fields = [])
@@ -486,7 +481,7 @@ function buildSampleEvents(context = null)
             placeText: person.birth?.placeText || '',
             address: person.birth?.address || '',
             title: 'Birth',
-            description: `Birth of ${person.names.display}`
+            description: `Birth of ${formatPersonFullName(person)}`
         });
     });
 
@@ -517,7 +512,7 @@ function buildSampleEvents(context = null)
                     placeText: event.placeText || eventPlaceName(placeId),
                     address: event.address || '',
                     title: 'Marriage',
-                    description: `Marriage of ${personA.names.display} and ${personB.names.display}`,
+                    description: `Marriage of ${formatPersonFullName(personA)} and ${formatPersonFullName(personB)}`,
                     marriageType: event.typeLabel || family.marriageType || ''
                 });
             });
@@ -601,7 +596,7 @@ function buildSampleEvents(context = null)
               }`,
 
                 description:
-              child.names.display
+              formatPersonFullName(child)
             });
         });
     });
@@ -623,7 +618,7 @@ function buildSampleEvents(context = null)
                 placeText: person.death?.placeText || '',
                 address: person.death?.address || '',
                 title: 'Death',
-                description: `Death of ${person.names.display}`
+                description: `Death of ${formatPersonFullName(person)}`
             });
         }
 
@@ -798,7 +793,7 @@ function buildSampleEvents(context = null)
 
         (person.events || []).forEach(event =>
         {
-            const tag = event.tag || event.gedcomTag;
+            const tag = event.gedcomTag;
             if (!['BAPM', 'BURI'].includes(tag)) return;
             const eventDate = eventDateFields(event.date || emptyGenealogyDate('Exact date'));
             events.push({
@@ -813,7 +808,7 @@ function buildSampleEvents(context = null)
                 placeText: event.placeText || '',
                 address: event.address || '',
                 title: tag === 'BAPM' ? 'Baptism' : 'Burial',
-                description: event.notes || event.placeText || `${tag === 'BAPM' ? 'Baptism' : 'Burial'} of ${person.names.display}`
+                description: event.notes || event.placeText || `${tag === 'BAPM' ? 'Baptism' : 'Burial'} of ${formatPersonFullName(person)}`
             });
         });
     });

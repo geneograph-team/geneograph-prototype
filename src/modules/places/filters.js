@@ -114,7 +114,7 @@ function projectPeopleForPlaceFilters()
 function placeFilterPersonName(person)
 {
     return (
-        person?.names?.display
+        formatPersonFullName(person)
         || person?.name
         || 'Unnamed person'
     );

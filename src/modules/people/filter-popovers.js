@@ -1207,7 +1207,7 @@ function openPeopleActionsMenu(
     menu.setAttribute(
         'aria-label',
         `Actions for ${
-            person.names?.display || 'person'
+            formatPersonFullName(person) || 'person'
         }`
     );
 

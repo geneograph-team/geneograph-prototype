@@ -11,8 +11,6 @@ const PROJECT_OWNED_COLLECTIONS = Object.freeze([
     'archiveFiles',
     'sources',
     'sourceLinks',
-    'archiveImports',
-    'archiveIssues',
     'noteCollections',
     'notes',
     'boardCollections',
@@ -23,6 +21,9 @@ const PROJECT_OWNED_COLLECTIONS = Object.freeze([
     'notifications'
 ]);
 
+const PROJECT_DRAFT_COLLECTIONS = Object.freeze(PROJECT_OWNED_COLLECTIONS.filter(key =>
+    !['events', 'activity', 'notifications'].includes(key)));
+
 // Reconstruct derived events on a detached copy before checking evidence links.
 function prepareProjectDraft(project, records)
 {
@@ -30,11 +31,16 @@ function prepareProjectDraft(project, records)
         return { errors: ['Project collections must be an object.'] };
     if (Object.hasOwn(records, 'events'))
         return { errors: ['Timeline events are derived and must not be included in project input.'] };
+    const excluded = Object.keys(records).filter(key => PROJECT_OWNED_COLLECTIONS.includes(key)
+        && !PROJECT_DRAFT_COLLECTIONS.includes(key));
+    if (excluded.length) return { errors: excluded.map(key => 'Project input must exclude ' + key + '.') };
 
     try
     {
         const draftProject = structuredClone(project);
         const draft = structuredClone(records);
+        const inputErrors = validateProjectDraft(draftProject, draft, { deferEventReferences: true });
+        if (inputErrors.length) return { errors: inputErrors };
         draft.events = buildSampleEvents({
             people: draft.people ?? [],
             families: draft.families ?? [],
@@ -49,7 +55,7 @@ function prepareProjectDraft(project, records)
     }
 }
 
-function validateProjectDraft(project, records)
+function validateProjectDraft(project, records, { deferEventReferences = false } = {})
 {
     if (typeof project?.id !== 'string' || !project.id.trim()
         || typeof project?.name !== 'string' || !project.name.trim()
@@ -84,12 +90,35 @@ function validateProjectDraft(project, records)
     const people = indexes.get('people');
     if (project.defaultPersonId && !people.has(project.defaultPersonId))
         errors.push('Project default person is missing: ' + project.defaultPersonId);
+    if (project.coverPhotoId && !indexes.get('media').has(project.coverPhotoId))
+        errors.push('Project cover photo is missing: ' + project.coverPhotoId);
     for (const family of indexes.get('families').values())
     {
-        const partners = [family.partnerAId, family.partnerBId].filter(Boolean);
+        for (const field of ['partner1Id', 'partner2Id', 'personAId', 'personBId', 'fatherId', 'motherId', 'husbandId', 'wifeId', 'childrenIds', 'nonEvents'])
+            if (Object.hasOwn(family, field)) errors.push('Family ' + family.id + ' contains retired field ' + field);
+        for (const role of ['start', 'end'])
+            for (const suffix of ['Date', 'DateLabel', 'DateType', 'SortDate', 'Calendar', 'OriginalText', 'PlaceId', 'PlaceText', 'Address'])
+                if (Object.hasOwn(family, role + suffix))
+                    errors.push('Family ' + family.id + ' contains retired field ' + role + suffix);
+        if (family.type !== 'family')
+            errors.push('Family ' + family.id + '.type must be family.');
+        if (!Array.isArray(family.events))
+            errors.push('Family ' + family.id + '.events must be an array.');
+        const partnerSlots = [family.partnerAId, family.partnerBId];
+        if (partnerSlots.some(id => typeof id !== 'string' || (id !== '' && !id.trim())))
+        {
+            errors.push('Family ' + family.id + ' partner slots must contain a person ID or an empty string.');
+            continue;
+        }
+        const partners = partnerSlots.filter(Boolean);
         if (!partners.length || new Set(partners).size !== partners.length || !Array.isArray(family.childIds))
         {
             errors.push('Invalid family membership in ' + family.id);
+            continue;
+        }
+        if (family.childIds.some(id => typeof id !== 'string' || !id.trim()))
+        {
+            errors.push('Family ' + family.id + '.childIds must contain nonempty person IDs.');
             continue;
         }
         if (new Set(family.childIds).size !== family.childIds.length)
@@ -144,9 +173,29 @@ function validateProjectDraft(project, records)
     }
     if (parentCounts.size)
         errors.push('Family memberships contain a parent cycle. Check the ancestry of ' + parentCounts.keys().next().value + '.');
+    for (const place of indexes.get('places').values())
+    {
+        const owner = 'places/' + place.id;
+        if (typeof place.name !== 'string' || !place.name.trim())
+            errors.push(owner + '.name must be nonempty text.');
+        const aliases = place.alternativeNames;
+        if (!Array.isArray(aliases) || aliases.some(name => typeof name !== 'string' || !name.trim()))
+            errors.push(owner + '.alternativeNames must be an array of nonempty text.');
+        else if (new Set(aliases.map(normalizePlaceLookupText)).size !== aliases.length)
+            errors.push(owner + '.alternativeNames contains duplicates.');
+        const point = place.coordinates;
+        const validPoint = typeof point?.lat === 'number' && typeof point?.lng === 'number'
+            && validLatitude(point.lat) && validLongitude(point.lng);
+        if (point !== null && !validPoint)
+            errors.push(owner + '.coordinates must be null or contain numeric latitude and longitude in range.');
+        const radius = place.approximateRadiusMeters;
+        if (radius != null && (typeof radius !== 'number' || !validPlaceRadiusMeters(radius) || !validPoint))
+            errors.push(owner + '.approximateRadiusMeters requires a valid radius in meters and a coordinate pair.');
+    }
+
     const references = {
         places: { parentId: 'places' },
-        placeIssues: { placeId: 'places' },
+        placeIssues: { placeId: 'places', otherPlaceId: 'places' },
         media: { placeId: 'places', personIds: ['people'], albumIds: ['albums'] },
         archiveFolders: { parentId: 'archiveFolders' },
         archiveFiles: { folderId: 'archiveFolders', documentPlaceId: 'places', linkedPersonIds: ['people'],
@@ -158,6 +207,7 @@ function validateProjectDraft(project, records)
     };
     function requireReference(owner, field, target, id)
     {
+        if (target === 'events' && deferEventReferences && typeof id === 'string' && id.trim()) return;
         if (typeof id !== 'string' || !indexes.get(target).has(id))
             errors.push(owner + '.' + field + ' references missing ' + target + '/' + id);
     }
@@ -169,10 +219,10 @@ function validateProjectDraft(project, records)
             for (const [field, target] of Object.entries(fields))
             {
                 const value = record[field];
-                if (value == null || value === '') continue;
+                if (!Object.hasOwn(record, field)) continue;
                 if (!Array.isArray(target))
                 {
-                    requireReference(owner, field, target, value);
+                    if (value != null && value !== '') requireReference(owner, field, target, value);
                     continue;
                 }
                 if (!Array.isArray(value) || new Set(value).size !== value.length)
@@ -186,9 +236,13 @@ function validateProjectDraft(project, records)
     }
     function validateDate(owner, date)
     {
+        const validParts = parts => parts && !Array.isArray(parts)
+            && [parts.year, parts.month, parts.day].every(value => value === null || Number.isInteger(value))
+            && genealogyDateParts(parts.year, parts.month, parts.day, date.calendar);
         if (!date || !GENEALOGY_DATE_TYPES.includes(date.dateType) || !GENEALOGY_CALENDARS.includes(date.calendar)
             || !['empty', 'unknown', 'known', 'unparsed'].includes(date.state)
-            || typeof date.originalText !== 'string' || !date.first
+            || typeof date.originalText !== 'string' || !validParts(date.first)
+            || (date.second !== null && !validParts(date.second))
             || (date.state === 'known' && normalizeGenealogyDateInput(date).state !== 'known'))
             errors.push(owner + ' must contain a structured genealogy date.');
     }
@@ -211,7 +265,7 @@ function validateProjectDraft(project, records)
             if (fact[field] != null) validateDate(owner + '.' + field, fact[field]);
         for (const field of ['placeId', 'burialPlaceId'])
             if (fact[field]) requireReference(owner, field, 'places', fact[field]);
-        if (fact.mediaIds != null)
+        if (Object.hasOwn(fact, 'mediaIds'))
         {
             if (!Array.isArray(fact.mediaIds) || new Set(fact.mediaIds).size !== fact.mediaIds.length)
                 errors.push(owner + '.mediaIds must contain unique record IDs.');
@@ -226,6 +280,22 @@ function validateProjectDraft(project, records)
             validateFactReferences(owner, record);
             if (collection === 'people')
             {
+                const names = record.names;
+                if (!names || typeof names !== 'object' || Array.isArray(names))
+                    errors.push(owner + '.names must be a record.');
+                else
+                {
+                    if (Object.hasOwn(names, 'display') || Object.hasOwn(names, 'initials'))
+                        errors.push(owner + '.names must exclude derived display and initials.');
+                    for (const field of ['first', 'middle', 'last', 'maiden', 'prefix', 'suffix'])
+                    {
+                        if (!Object.hasOwn(names, field) && !['first', 'last'].includes(field)) continue;
+                        const value = names[field];
+                        if (typeof value !== 'string' || value.length > 1024)
+                            errors.push(owner + '.names.' + field + ' must be text of at most 1024 characters.');
+                    }
+                }
+
                 if (record.primaryPhotoId) requireReference(owner, 'primaryPhotoId', 'media', record.primaryPhotoId);
                 for (const field of ['birth', 'death'])
                     if (record[field] != null) validateFactReferences(owner + '.' + field, record[field], true);
@@ -233,17 +303,31 @@ function validateProjectDraft(project, records)
             for (const field of ['events', 'attributes'])
             {
                 const facts = record[field];
-                if (facts == null) continue;
+                if (!Object.hasOwn(record, field)) continue;
                 if (!Array.isArray(facts))
                 {
                     errors.push(owner + '.' + field + ' must be an array.');
                     continue;
                 }
+                const factIds = new Set();
                 for (const [index, fact] of facts.entries())
-                    validateFactReferences(owner + '.' + field + '[' + index + ']', fact);
+                {
+                    const factPath = owner + '.' + field + '[' + index + ']';
+                    if (typeof fact?.id !== 'string' || !fact.id.trim() || factIds.has(fact.id))
+                        errors.push(factPath + ' requires a unique nonempty fact ID.');
+                    else factIds.add(fact.id);
+                    if (field === 'events'
+                        && (typeof fact?.gedcomTag !== 'string' || !fact.gedcomTag.trim() || Object.hasOwn(fact, 'tag')))
+                        errors.push(factPath + ' requires a canonical gedcomTag and cannot contain tag.');
+                    if (field === 'attributes' && (typeof fact?.tag !== 'string' || !fact.tag.trim()))
+                        errors.push(factPath + ' requires a nonempty attribute tag.');
+                    validateFactReferences(factPath, fact);
+                }
             }
         }
     }
+    for (const filter of indexes.get('placeSavedFilters').values())
+        if (filter.filters?.personId) requireReference('placeSavedFilters/' + filter.id, 'filters.personId', 'people', filter.filters.personId);
     const folders = indexes.get('archiveFolders');
     const checkedFolders = new Set();
     for (const folder of folders.values())
@@ -273,6 +357,20 @@ function validateProjectDraft(project, records)
                 errors.push('Note ' + note.id + ' has an invalid reciprocal link to ' + id);
         }
     }
+    for (const file of indexes.get('archiveFiles').values())
+    {
+        const owner = 'archiveFiles/' + file.id;
+        if (file.documentPlaceId && Array.isArray(file.linkedPlaceIds) && file.linkedPlaceIds.includes(file.documentPlaceId))
+            errors.push(owner + ' repeats its document place in related places.');
+        if (file.personRegions == null) continue;
+        if (typeof file.personRegions !== 'object' || Array.isArray(file.personRegions))
+        {
+            errors.push(owner + '.personRegions must be keyed by person ID.');
+            continue;
+        }
+        for (const id of Object.keys(file.personRegions)) requireReference(owner, 'personRegions', 'people', id);
+    }
+    const citationKeys = new Set();
     const citationTargets = new Map(Object.entries({
         file: 'archiveFiles', photo: 'media', person: 'people', event: 'events', note: 'notes', place: 'places'
     }));
@@ -283,6 +381,9 @@ function validateProjectDraft(project, records)
         const target = citationTargets.get(link.targetType);
         if (target) requireReference(owner, 'targetId', target, link.targetId);
         else errors.push(owner + ' has an invalid target type.');
+        const key = JSON.stringify([link.sourceId, link.targetType, link.targetId]);
+        if (citationKeys.has(key)) errors.push(owner + ' duplicates an existing source link.');
+        citationKeys.add(key);
     }
     for (const board of indexes.get('boards').values()) validateProjectBoard(board, indexes, errors);
     return errors;
@@ -326,11 +427,22 @@ function validateProjectBoard(board, indexes, errors)
             errors.push(owner + '/' + family.id + ' requires partnerIds and children arrays.');
             continue;
         }
+        const familyPath = owner + '/' + family.id;
+        if (family.partnerIds.length > 2 || new Set(family.partnerIds).size !== family.partnerIds.length
+            || family.partnerIds.some(id => typeof id !== 'string' || !id.trim()))
+            errors.push(familyPath + '.partnerIds must contain at most two distinct person IDs.');
         for (const id of family.partnerIds) check(family, 'partnerIds', local.get('people'), id);
+        const children = new Set();
         for (const child of family.children)
         {
             if (!child?.personId) errors.push(owner + '/' + family.id + ' contains a child without a person ID.');
-            else check(family, 'children', local.get('people'), child.personId);
+            else
+            {
+                check(family, 'children', local.get('people'), child.personId);
+                if (children.has(child.personId) || family.partnerIds.includes(child.personId))
+                    errors.push(familyPath + ' has a duplicate child or self-parent membership: ' + child.personId);
+                children.add(child.personId);
+            }
         }
     }
     for (const node of local.get('nodes').values())
@@ -338,9 +450,43 @@ function validateProjectBoard(board, indexes, errors)
         if (node.type === 'person' && !node.personId) errors.push(owner + '/' + node.id + ' requires a person ID.');
         check(node, 'personId', local.get('people'), node.personId);
         check(node, 'parentPanelId', local.get('nodes'), node.parentPanelId);
+        if (node.type === 'image')
+            for (const field of ['photoId', 'title'])
+                if (Object.hasOwn(node, field)) errors.push(owner + '/' + node.id + ' contains retired image field ' + field);
+        if (node.type === 'image' && (!['board', 'project'].includes(node.imageRef?.scope)
+            || typeof node.imageRef.id !== 'string' || !node.imageRef.id.trim()))
+            errors.push(owner + '/' + node.id + '.imageRef requires a project photo or board asset ID.');
+        if (node.type === 'place' && !(node.placeRef?.scope === 'board'
+            ? typeof node.placeRef.name === 'string' && node.placeRef.name.trim()
+            : node.placeRef?.scope === 'project' && typeof node.placeRef.id === 'string' && node.placeRef.id.trim()
+                && typeof node.placeRef.fallbackName === 'string'))
+            errors.push(owner + '/' + node.id + '.placeRef requires a local name or project place ID.');
         if (node.imageRef?.scope === 'board') check(node, 'imageRef', local.get('assets'), node.imageRef.id);
         if (node.imageRef?.scope === 'project') check(node, 'imageRef', indexes.get('media'), node.imageRef.id);
         if (node.placeRef?.scope === 'project') check(node, 'placeRef', indexes.get('places'), node.placeRef.id);
+    }
+    const nodes = local.get('nodes');
+    const checkedPanels = new Set();
+    for (const node of nodes.values())
+    {
+        let parent = node;
+        const chain = new Set();
+        while (parent?.parentPanelId && !checkedPanels.has(parent.id))
+        {
+            if (chain.has(parent.id))
+            {
+                errors.push(owner + ' has a panel nesting cycle at ' + parent.id);
+                break;
+            }
+            chain.add(parent.id);
+            parent = nodes.get(parent.parentPanelId);
+            if (parent && parent.type !== 'panel')
+            {
+                errors.push(owner + ' has a non-panel container ' + parent.id);
+                break;
+            }
+        }
+        for (const id of chain) checkedPanels.add(id);
     }
     for (const connection of local.get('connections').values())
     {

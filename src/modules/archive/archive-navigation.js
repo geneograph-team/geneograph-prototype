@@ -1473,7 +1473,7 @@ function connectedFileContextConfig(
 
             label:
             record =>
-                record?.names?.display
+                formatPersonFullName(record)
               || record?.name
               || 'this person',
 

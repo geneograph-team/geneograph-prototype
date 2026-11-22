@@ -59,7 +59,7 @@ function placeInspectorPersonName(
 )
 {
     return (
-        person?.names?.display
+        formatPersonFullName(person)
         || person?.name
         || 'Unnamed person'
     );

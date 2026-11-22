@@ -627,7 +627,7 @@ function derivePlacesRoute(selection = {})
     return {
         mode,
         configured: validSubject,
-        subject: mode === 'person' ? (person?.names?.display || person?.name || '') : surname,
+        subject: mode === 'person' ? (formatPersonFullName(person) || person?.name || '') : surname,
         personId: person?.id || '',
         surname,
         people,

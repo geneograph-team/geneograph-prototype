@@ -784,7 +784,7 @@ function bindPersonSidebar(root, context = 'tree')
 
                     subtitle:
                 `Connect existing sources to ${
-                    centralPerson.names?.display
+                    formatPersonFullName(centralPerson)
                   || 'this person'
                 }.`,
 

@@ -3185,7 +3185,6 @@ function normalizeGeneographBoardAsset(asset)
 
     if (
         !id
-        || !src
         || !PHOTO_UPLOAD_ALLOWED_TYPES.includes(mimeType)
     )
     {
@@ -3273,7 +3272,7 @@ function resolveGeneographImageSource(
 
         return {
             ref,
-            available: true,
+            available: Boolean(photo.src),
             photo,
             displayName: geneoImageRecordName(photo),
             filename: String(photo.filename || photo.title || '').trim(),
@@ -3300,7 +3299,7 @@ function resolveGeneographImageSource(
 
     return {
         ref,
-        available: true,
+        available: Boolean(asset.src),
         photo: asset,
         displayName: geneoImageRecordName(asset),
         filename: String(asset.filename || '').trim(),
@@ -3863,7 +3862,11 @@ function normalizeGeneographBoardRecord(board, projectPeople)
             (Array.isArray(family.children) ? family.children : []).forEach(child =>
             {
                 if (!child || !personIds.has(child.personId) || children.some(item => item.personId === child.personId)) return;
-                children.push({ personId: child.personId, parentageType: String(child.parentageType || 'unknown') });
+                const membership = { personId: child.personId, parentageType: String(child.parentageType || 'unknown') };
+                const parentTypes = partnerIds.filter(id => typeof child.parentChildTypes?.[id] === 'string');
+                if (parentTypes.length)
+                    membership.parentChildTypes = Object.fromEntries(parentTypes.map(id => [id, child.parentChildTypes[id]]));
+                children.push(membership);
             });
             if (!partnerIds.length && !children.length) return;
             familyIds.add(family.id);

@@ -34,7 +34,7 @@ function addPersonMarriageTypeOptions(selected = 'Civil')
 
 function relationshipEventMatches(event, tag, typeLabel = '')
 {
-    if (!event || String(event.gedcomTag || event.tag || '').toUpperCase() !== tag) return false;
+    if (!event || event.gedcomTag !== tag) return false;
     if (tag !== 'EVEN') return true;
     return cleanEditFieldValue(event.typeLabel).toLowerCase() === cleanEditFieldValue(typeLabel).toLowerCase();
 }
@@ -42,18 +42,6 @@ function relationshipEventMatches(event, tag, typeLabel = '')
 function partnerRelationshipManagedEvent(family, tag, typeLabel = '')
 {
     return (family?.events || []).find(event => relationshipEventMatches(event, tag, typeLabel)) || null;
-}
-
-function legacyRelationshipDate(family, prefix = 'start')
-{
-    return normalizeGenealogyDateInput({
-        date: family?.[`${prefix}Date`] || '',
-        dateLabel: family?.[`${prefix}DateLabel`] || '',
-        dateType: family?.[`${prefix}DateType`] || 'Exact date',
-        sortDate: family?.[`${prefix}SortDate`] || '',
-        calendar: family?.[`${prefix}Calendar`] || 'Gregorian',
-        originalText: family?.[`${prefix}OriginalText`] || ''
-    }, 'Exact date');
 }
 
 function partnerRelationshipStartEvent(family, type = familyRelationshipType(family))
@@ -66,9 +54,7 @@ function partnerRelationshipStartEvent(family, type = familyRelationshipType(fam
     return createRelationshipEvent(definition.startTag, definition.startEventType, {
         id: `${family?.id || 'new-relationship'}-start`,
         typeLabel: definition.startTypeLabel,
-        date: legacyRelationshipDate(family, 'start'),
-        placeId: family?.startPlaceId || null,
-        placeText: family?.startPlaceText || ''
+        date: emptyGenealogyDate('Exact date')
     });
 }
 
@@ -83,9 +69,7 @@ function partnerRelationshipEndEvent(family, type = familyRelationshipType(famil
     return createRelationshipEvent(definition.endTag, definition.endEventType, {
         id: `${family?.id || 'new-relationship'}-end`,
         typeLabel: definition.endTypeLabel,
-        date: legacyRelationshipDate(family, 'end'),
-        placeId: family?.endPlaceId || null,
-        placeText: family?.endPlaceText || ''
+        date: emptyGenealogyDate('Exact date')
     });
 }
 
@@ -94,20 +78,20 @@ function renderPartnerRelationshipDateFields({ prefix, relationshipType, family 
     const definition = partnerRelationshipDefinition(relationshipType);
     const startEvent = partnerRelationshipStartEvent(family, relationshipType);
     const endEvent = partnerRelationshipEndEvent(family, relationshipType);
-    const startPlace = editPlaceValue(startEvent?.placeId || family?.startPlaceId, startEvent?.placeText || family?.startPlaceText);
-    const endPlace = editPlaceValue(endEvent?.placeId || family?.endPlaceId, endEvent?.placeText || family?.endPlaceText);
+    const startPlace = editPlaceValue(startEvent?.placeId, startEvent?.placeText);
+    const endPlace = editPlaceValue(endEvent?.placeId, endEvent?.placeText);
 
     return `<div class="partner-relationship-start" data-partner-relationship-start>
         ${renderGenealogyDateField(`${prefix}StartDate`, definition.startLabel, startEvent?.date || emptyGenealogyDate('Exact date'), {
             inputId: `${prefix}StartDateInput`, typeId: `${prefix}StartDateType`, placeholder: 'e.g. 14 Feb 1915', defaultDateType: 'Exact date', className: 'full genealogy-date-inline-range'
         })}
-        ${renderPlaceCombobox({ id: `${prefix}StartPlace`, label: definition.startPlaceLabel, value: startPlace, selectedPlaceId: startEvent?.placeId || family?.startPlaceId || '', addressValue: startEvent?.address || family?.startAddress || '', placeholder: 'e.g. Meowbridge, England', className: 'full', inputAttrs: 'data-partner-relationship-start-place' })}
+        ${renderPlaceCombobox({ id: `${prefix}StartPlace`, label: definition.startPlaceLabel, value: startPlace, selectedPlaceId: startEvent?.placeId || '', addressValue: startEvent?.address || '', placeholder: 'e.g. Meowbridge, England', className: 'full', inputAttrs: 'data-partner-relationship-start-place' })}
       </div>
       <div class="partner-relationship-end" data-partner-relationship-end ${definition.hasEnd ? '' : 'hidden'}>
         ${renderGenealogyDateField(`${prefix}EndDate`, definition.endLabel || 'To', endEvent?.date || emptyGenealogyDate('Exact date'), {
             inputId: `${prefix}EndDateInput`, typeId: `${prefix}EndDateType`, placeholder: 'e.g. 12 Jun 2025', defaultDateType: 'Exact date', className: 'full genealogy-date-inline-range'
         })}
-        ${renderPlaceCombobox({ id: `${prefix}EndPlace`, label: definition.endPlaceLabel || 'To place', value: endPlace, selectedPlaceId: endEvent?.placeId || family?.endPlaceId || '', addressValue: endEvent?.address || family?.endAddress || '', placeholder: 'e.g. Pawford, England', className: 'full', inputAttrs: 'data-partner-relationship-end-place' })}
+        ${renderPlaceCombobox({ id: `${prefix}EndPlace`, label: definition.endPlaceLabel || 'To place', value: endPlace, selectedPlaceId: endEvent?.placeId || '', addressValue: endEvent?.address || '', placeholder: 'e.g. Pawford, England', className: 'full', inputAttrs: 'data-partner-relationship-end-place' })}
       </div>`;
 }
 
@@ -133,7 +117,7 @@ function renderAddPersonRelationshipCard({
         : mode === 'addPartner'
             ? initialType
             : 'Partner';
-    const partnerName = partner?.names?.display || (mode === 'addPartner' ? 'Selected person' : 'Unknown person');
+    const partnerName = formatPersonFullName(partner) || (mode === 'addPartner' ? 'Selected person' : 'Unknown person');
     const fieldPrefix = `addPersonRelationship${index}`;
     const startEvent = partnerRelationshipStartEvent(relationship, relationshipType);
     const marriageType = startEvent?.typeLabel || relationship?.marriageType || 'Civil';
@@ -566,7 +550,7 @@ function upsertManagedRelationshipEvent(relationship, role, definition, dateInpu
     const typeLabel = tag === 'MARR' ? marriageType : managedTypeLabel;
     let event = partnerRelationshipManagedEvent(relationship, tag, managedTypeLabel);
     const date = normalizeGenealogyDateInput(dateInput || {}, 'Exact date');
-    const resolvedPlace = (options.resolvePlace || resolvePlaceAssignment)(placeInput, event?.placeId || relationship?.[`${role}PlaceId`] || '');
+    const resolvedPlace = (options.resolvePlace || resolvePlaceAssignment)(placeInput, event?.placeId || '');
 
     if (!event)
     {
@@ -590,19 +574,9 @@ function upsertManagedRelationshipEvent(relationship, role, definition, dateInpu
         event.placeId = resolvedPlace.placeId;
         event.placeText = resolvedPlace.placeText;
         event.address = resolvedPlace.address;
-        event.sortDate = date.sortDate || '';
         event.relationshipManagedRole = role;
     }
 
-    relationship[`${role}Date`] = date.date;
-    relationship[`${role}DateLabel`] = date.dateLabel;
-    relationship[`${role}DateType`] = date.dateType;
-    relationship[`${role}SortDate`] = date.sortDate;
-    relationship[`${role}Calendar`] = date.calendar;
-    relationship[`${role}OriginalText`] = date.originalText;
-    relationship[`${role}PlaceId`] = resolvedPlace.placeId;
-    relationship[`${role}PlaceText`] = resolvedPlace.placeText;
-    relationship[`${role}Address`] = resolvedPlace.address;
     return event;
 }
 
@@ -611,15 +585,10 @@ function removeManagedRelationshipEndEvents(relationship)
     relationship.events = (relationship.events || []).filter(event =>
     {
         if (event.relationshipManagedRole === 'end') return false;
-        const tag = String(event.gedcomTag || event.tag || '').toUpperCase();
+        const tag = event.gedcomTag;
         const type = cleanEditFieldValue(event.typeLabel).toLowerCase();
         return !(['DIV', 'ANUL'].includes(tag) || (tag === 'EVEN' && ['partnership ended', 'separation'].includes(type)));
     });
-    ['endDate', 'endDateLabel', 'endDateType', 'endSortDate', 'endCalendar', 'endOriginalText', 'endPlaceId', 'endPlaceText']
-        .forEach(key =>
-        {
-            relationship[key] = key.endsWith('Id') ? null : '';
-        });
 }
 
 function upsertPartnerRelationshipEvents(relationship, values, options = {})
@@ -689,8 +658,6 @@ function createPersonFromAddPersonModal(options = {}, additionalFacts = {}, date
     const livingStatus = normalizeLivingStatus(readAddPersonModalValue('#addPersonLivingStatus'));
     const birthDate = dates.birth;
     const deathDate = livingStatus === 'Deceased' ? dates.death : emptyGenealogyDate('Exact date');
-    const display = [firstName, middleName, lastName].filter(Boolean).join(' ');
-    const initials = `${firstName[0] || 'U'}${lastName[0] || ''}`.toUpperCase();
     const birthPlace = resolvePlaceInputSelector('#addPersonBirthPlace');
     const deathPlace = livingStatus === 'Deceased'
         ? resolvePlaceInputSelector('#addPersonDeathPlace')
@@ -702,7 +669,7 @@ function createPersonFromAddPersonModal(options = {}, additionalFacts = {}, date
         projectId,
         createdAt: now,
         updatedAt: now,
-        names: { first: firstName, middle: middleName, last: lastName, maiden: maidenName, display, initials },
+        names: { first: firstName, middle: middleName, last: lastName, maiden: maidenName },
         gender: genderValue === 'Male' ? 'male' : genderValue === 'Female' ? 'female' : 'unknown',
         livingStatus,
         avatarClass: genderValue === 'Female' ? 'avatar-purple' : genderValue === 'Male' ? 'avatar-green' : '',
@@ -760,7 +727,7 @@ function createUnknownFather(childPersonId)
         projectId: child.projectId,
         createdAt: now,
         updatedAt: now,
-        names: { first: '', middle: '', last: '', maiden: '', display: 'Unknown father', initials: '?' },
+        names: { first: '', middle: '', last: '', maiden: '' },
         gender: 'male',
         livingStatus: 'Unknown',
         avatarClass: 'avatar-green',
@@ -1978,7 +1945,6 @@ function connectPartners(personAId, personBId, options = {})
         relationshipStatus: 'active',
         childIds: [],
         events: [],
-        nonEvents: [],
         attributes: [],
         notes: [],
         citations: [],
@@ -2695,7 +2661,7 @@ function addPersonNameValuesForPerson(person)
         person?.names?.last,
         person?.names?.suffix,
         person?.names?.maiden,
-        person?.names?.display,
+        formatPersonFullName(person),
         person?.name
     ]
 
@@ -2711,7 +2677,7 @@ function scoreAddPersonPossibleMatch(person, draft, options = {})
     const personMiddle = addPersonMatchTextVariants(names.middle);
     const personLast = addPersonMatchTextVariants(names.last);
     const personMaiden = addPersonMatchTextVariants(names.maiden);
-    const personDisplay = addPersonMatchTextVariants(names.display || person?.name);
+    const personDisplay = addPersonMatchTextVariants(formatPersonFullName(person) || person?.name);
     const birthDates = addPersonPersonDateValues(person?.birth);
     const deathDates = addPersonPersonDateValues(person?.death);
     const birthPlaces = addPersonPersonPlaceValues(person?.birth);
@@ -3134,7 +3100,7 @@ function bindAddPersonSideCards(options = {}, editPerson = null)
         || currentProjectId();
 
     const subjectLabel =
-        editPerson?.names?.display
+        formatPersonFullName(editPerson)
         || 'New person';
 
     modalBackdrop
@@ -3297,16 +3263,10 @@ function bindAddPersonSideCards(options = {}, editPerson = null)
     });
 }
 
-function unlinkStoredFamilies()
-{
-    if (!Array.isArray(sampleData.families)) sampleData.families = [];
-    return sampleData.families;
-}
-
 function unlinkPersonName(personOrId)
 {
     const person = typeof personOrId === 'string' ? getPerson(personOrId) : personOrId;
-    return person?.names?.display || person?.name || 'Unknown person';
+    return formatPersonFullName(person) || person?.name || 'Unknown person';
 }
 
 function unlinkFamilyPartnerAId(family)
@@ -3347,40 +3307,6 @@ function unlinkSetFamilyChildren(family, childIds = [])
     return ids;
 }
 
-function unlinkStoredFamilyById(familyId)
-{
-    return unlinkStoredFamilies().find(family => family.id === familyId) || null;
-}
-
-function unlinkCentralFamilyById(familyId)
-{
-    return centralFamilyRecords().find(family => family.id === familyId) || null;
-}
-
-function unlinkMaterializeFamily(family)
-{
-    if (!family?.id) return null;
-
-    const existing = unlinkStoredFamilyById(family.id);
-    if (existing) return existing;
-
-    const copy = {
-        ...family,
-        childIds: unlinkFamilyChildrenIds(family),
-        events: Array.isArray(family.events) ? [...family.events] : [],
-        attributes: Array.isArray(family.attributes) ? [...family.attributes] : [],
-        notes: Array.isArray(family.notes) ? [...family.notes] : [],
-        citations: Array.isArray(family.citations) ? [...family.citations] : [],
-        mediaIds: Array.isArray(family.mediaIds) ? [...family.mediaIds] : [],
-        parentChildTypes: sanitizeParentChildTypes(
-            family.parentChildTypes
-        ),
-    };
-
-    unlinkStoredFamilies().push(copy);
-    return copy;
-}
-
 function unlinkFindCentralFamilyForParentChild(parentId, childId, preferredFamilyId = '')
 {
     const matches = centralFamilyRecords().filter(family =>
@@ -3388,13 +3314,6 @@ function unlinkFindCentralFamilyForParentChild(parentId, childId, preferredFamil
         && unlinkFamilyIncludesPerson(family, parentId) && unlinkFamilyChildrenIds(family).includes(childId)
     );
     return matches.length === 1 ? matches[0] : null;
-}
-
-function unlinkFindStoredFamilyForParentChild(parentId, childId, preferredFamilyId = '')
-{
-    return unlinkMaterializeFamily(
-        unlinkFindCentralFamilyForParentChild(parentId, childId, preferredFamilyId)
-    );
 }
 
 function unlinkFindCentralPartnerFamily(personAId, personBId, preferredFamilyId = '')
@@ -3406,13 +3325,6 @@ function unlinkFindCentralPartnerFamily(personAId, personBId, preferredFamilyId 
     return matches.length === 1 ? matches[0] : null;
 }
 
-function unlinkFindStoredPartnerFamily(personAId, personBId, preferredFamilyId = '')
-{
-    return unlinkMaterializeFamily(
-        unlinkFindCentralPartnerFamily(personAId, personBId, preferredFamilyId)
-    );
-}
-
 function unlinkUniqueFamilyId(base = 'family')
 {
     const cleanBase = String(base || 'family')
@@ -3422,7 +3334,7 @@ function unlinkUniqueFamilyId(base = 'family')
     let id = cleanBase;
     let counter = 2;
 
-    while (centralFamilyRecords().some(family => family.id === id) || unlinkStoredFamilyById(id))
+    while (centralFamilyRecords().some(family => family.id === id))
     {
         id = `${cleanBase}-${counter}`;
         counter += 1;
@@ -3431,84 +3343,20 @@ function unlinkUniqueFamilyId(base = 'family')
     return id;
 }
 
-function unlinkParentSlotForPerson(parentId)
+function unlinkCreateSingleParentFamily(parentId, childIds, sourceFamily)
 {
-    const gender = String(getPerson(parentId)?.gender || '').toLowerCase();
-
-    if (gender === 'female')
-    {
-        return {
-            partnerAId: '',
-            partnerBId: parentId,
-            fatherId: '',
-            motherId: parentId,
-            partnerARoleHint: '',
-            partnerBRoleHint: 'WIFE'
-        };
-    }
-
-    return {
-        partnerAId: parentId,
-        partnerBId: '',
-        fatherId: parentId,
-        partnerARoleHint: 'HUSB',
-        partnerBRoleHint: ''
-    };
-}
-
-function unlinkApplyFamilyAliases(family)
-{
-    const partnerA = unlinkFamilyPartnerAId(family);
-    const partnerB = unlinkFamilyPartnerBId(family);
-
-    family.partnerAId = partnerA;
-
-
-
-    family.partnerBId = partnerB;
-
-
-
-    unlinkSetFamilyChildren(family, unlinkFamilyChildrenIds(family));
-
-    family.events = Array.isArray(family.events) ? family.events : [];
-    family.attributes = Array.isArray(family.attributes) ? family.attributes : [];
-    family.notes = Array.isArray(family.notes) ? family.notes : [];
-    family.citations = Array.isArray(family.citations) ? family.citations : [];
-    family.mediaIds = Array.isArray(family.mediaIds) ? family.mediaIds : [];
-
-    family.type = family.type || 'family';
-    family.relationshipStatus = family.relationshipStatus || 'active';
-
-    return family;
-}
-
-function unlinkFindStoredSingleParentFamily(parentId)
-{
-    return unlinkStoredFamilies().find(family =>
-    {
-        const partnerA = unlinkFamilyPartnerAId(family);
-        const partnerB = unlinkFamilyPartnerBId(family);
-        const partners = [partnerA, partnerB].filter(Boolean);
-
-        return partners.length === 1 && partners[0] === parentId;
-    }) || null;
-}
-
-function unlinkCreateSingleParentFamily(parentId, childIds = [], projectId = '')
-{
-    const slot = unlinkParentSlotForPerson(parentId);
+    const usesSlotA = sourceFamily.partnerAId === parentId;
     const family = {
         id: unlinkUniqueFamilyId(`family-${parentId}-single-parent`),
-        projectId: projectId || currentProjectId(),
+        projectId: sourceFamily.projectId,
         type: 'family',
 
 
-        partnerAId: slot.partnerAId,
-        partnerARoleHint: slot.partnerARoleHint,
+        partnerAId: usesSlotA ? parentId : '',
+        partnerARoleHint: usesSlotA ? sourceFamily.partnerARoleHint || '' : '',
 
-        partnerBId: slot.partnerBId,
-        partnerBRoleHint: slot.partnerBRoleHint,
+        partnerBId: usesSlotA ? '' : parentId,
+        partnerBRoleHint: usesSlotA ? '' : sourceFamily.partnerBRoleHint || '',
 
         relationshipType: 'Single parent',
         relationshipStatus: 'active',
@@ -3525,23 +3373,8 @@ function unlinkCreateSingleParentFamily(parentId, childIds = [], projectId = '')
     family.gedcomXref = `@F${family.id.replace(/[^a-z0-9]/gi, '').toUpperCase()}@`;
     unlinkSetFamilyChildren(family, childIds);
 
-    unlinkStoredFamilies().push(family);
+    centralFamilyRecords().push(family);
     return family;
-}
-
-function unlinkAddChildrenToSingleParentFamily(parentId, childIds = [], projectId = '')
-{
-    if (!parentId || !childIds.length) return null;
-
-    const family = unlinkFindStoredSingleParentFamily(parentId)
-        || unlinkCreateSingleParentFamily(parentId, [], projectId);
-
-    unlinkSetFamilyChildren(family, [
-        ...unlinkFamilyChildrenIds(family),
-        ...childIds
-    ]);
-
-    return unlinkApplyFamilyAliases(family);
 }
 
 function unlinkFamilyHasPartnerPair(family)
@@ -3562,7 +3395,7 @@ function unlinkFamilyHasPayload(family)
 
 function unlinkRemoveFamilyById(familyId)
 {
-    const families = unlinkStoredFamilies();
+    const families = centralFamilyRecords();
     const index = families.findIndex(family => family.id === familyId);
 
     if (index >= 0)
@@ -3591,7 +3424,7 @@ function unlinkParentChildRelationship({ parentId, childId, familyId = '' } = {}
         return { ok: false, message: 'Relationship information is missing.' };
     }
 
-    const family = unlinkFindStoredFamilyForParentChild(parentId, childId, familyId);
+    const family = unlinkFindCentralFamilyForParentChild(parentId, childId, familyId);
 
     if (!family)
     {
@@ -3640,10 +3473,10 @@ function unlinkParentChildRelationship({ parentId, childId, familyId = '' } = {}
         );
 
         const singleParentFamily =
-            unlinkAddChildrenToSingleParentFamily(
+            unlinkCreateSingleParentFamily(
                 otherParentId,
                 [childId],
-                family.projectId
+                family
             );
 
         setParentChildRelationshipType(
@@ -3654,7 +3487,6 @@ function unlinkParentChildRelationship({ parentId, childId, familyId = '' } = {}
         );
     }
 
-    unlinkApplyFamilyAliases(family);
     unlinkRemoveFamilyIfEmptyAndOrphaned(family);
     markPrototypeSessionEdited();
 
@@ -3671,7 +3503,7 @@ function unlinkPartnerRelationship({ personAId, personBId, familyId = '', keepCh
         return { ok: false, message: 'Relationship information is missing.' };
     }
 
-    const family = unlinkFindStoredPartnerFamily(personAId, personBId, familyId);
+    const family = unlinkFindCentralPartnerFamily(personAId, personBId, familyId);
 
     if (!family)
     {
@@ -3696,10 +3528,10 @@ function unlinkPartnerRelationship({ personAId, personBId, familyId = '', keepCh
         }));
 
         const singleParentFamily =
-            unlinkAddChildrenToSingleParentFamily(
+            unlinkCreateSingleParentFamily(
                 keepChildrenWithParentId,
                 childIds,
-                family.projectId
+                family
             );
 
         retainedTypes.forEach(({ childId, type }) =>
@@ -3967,17 +3799,17 @@ function openManageRelationshipsModal(personId, sidebarContext = 'tree', returnS
         <h3>${escapeHtml(t(group.title))}<span>${group.items.length}</span></h3>
         ${group.items.map(item => `<button type="button" class="manage-relationships-choice ${keyFor(item) === selectedKey ? 'is-selected' : ''}" data-manage-select="${escapeHtml(keyFor(item))}" aria-current="${keyFor(item) === selectedKey ? 'true' : 'false'}">
             ${renderPersonAvatar(item.person, 'small-avatar', { element: 'span', decorative: true })}
-            <span class="manage-relationships-copy"><strong>${escapeHtml(translateText(item.person.names?.display || 'Unnamed person'))}</strong><span>${escapeHtml(item.kind === 'sibling' ? t('Shared parent connection') : translateText(item.meta || ''))}</span></span>
+            <span class="manage-relationships-copy"><strong>${escapeHtml(translateText(formatPersonFullName(item.person) || 'Unnamed person'))}</strong><span>${escapeHtml(item.kind === 'sibling' ? t('Shared parent connection') : translateText(item.meta || ''))}</span></span>
           </button>`).join('')}
       </section>`).join('') : `<p class="panel-muted">${escapeHtml(t('No immediate relationships recorded for this person.'))}</p>`;
     const details = selected ? `<div class="manage-relationships-detail-head">
         ${renderPersonAvatar(selected.person, 'small-avatar', { element: 'span', decorative: true })}
-        <div class="manage-relationships-identity"><h3>${escapeHtml(translateText(selected.person.names?.display || 'Unnamed person'))}</h3><span>${escapeHtml(t(selected.kind === 'sibling' ? 'Sibling' : selected.kind === 'partner' ? 'Partner' : selected.kind === 'parent' ? 'Parent' : 'Child'))}</span></div>
-        ${selected.kind === 'sibling' ? '' : `<button class="manage-relationships-unlink" type="button" data-manage-unlink aria-label="${escapeHtml(t('Unlink'))}: ${escapeHtml(translateText(selected.person.names?.display || 'Unnamed person'))}" title="${escapeHtml(t('Unlink'))}">${icon.unlink}<span>${escapeHtml(t('Unlink'))}</span></button>`}
+        <div class="manage-relationships-identity"><h3>${escapeHtml(translateText(formatPersonFullName(selected.person) || 'Unnamed person'))}</h3><span>${escapeHtml(t(selected.kind === 'sibling' ? 'Sibling' : selected.kind === 'partner' ? 'Partner' : selected.kind === 'parent' ? 'Parent' : 'Child'))}</span></div>
+        ${selected.kind === 'sibling' ? '' : `<button class="manage-relationships-unlink" type="button" data-manage-unlink aria-label="${escapeHtml(t('Unlink'))}: ${escapeHtml(translateText(formatPersonFullName(selected.person) || 'Unnamed person'))}" title="${escapeHtml(t('Unlink'))}">${icon.unlink}<span>${escapeHtml(t('Unlink'))}</span></button>`}
       </div>
       ${selected.kind === 'sibling' ? `<div class="manage-relationships-sibling">
           <p>${escapeHtml(t('Siblings share at least one parent. Review a parent connection below to change this.'))}</p>
-          <div class="manage-relationships-parent-actions">${sharedParents.map(parent => `<button class="button secondary" type="button" data-manage-parent-link="${escapeHtml(parent.id)}">${icon.people}<span>${escapeHtml(translateText(parent.names?.display || 'Unnamed person'))}</span>${icon.chevron}</button>`).join('')}</div>
+          <div class="manage-relationships-parent-actions">${sharedParents.map(parent => `<button class="button secondary" type="button" data-manage-parent-link="${escapeHtml(parent.id)}">${icon.people}<span>${escapeHtml(translateText(formatPersonFullName(parent) || 'Unnamed person'))}</span>${icon.chevron}</button>`).join('')}</div>
           <p class="panel-muted">${escapeHtml(t('Changing a parent connection may also affect other siblings.'))}</p>
         </div>` : `<div class="manage-relationships-fields form-grid">${editContext?.ok ? selected.kind === 'partner' ? renderPartnerRelationshipEditFields(editContext) : renderParentChildRelationshipEditFields(editContext) : `<p class="panel-muted">${escapeHtml(t('Relationship record not found.'))}</p>`}</div>
         `}`
@@ -3985,7 +3817,7 @@ function openManageRelationshipsModal(personId, sidebarContext = 'tree', returnS
 
     const emptyContent = `<div class="manage-relationships-empty"><h3>${escapeHtml(t('No relatives added yet'))}</h3><p>${escapeHtml(t('Add a new relative or connect someone already in this project.'))}</p><div class="manage-relationships-empty-actions"><button class="button primary" type="button" data-manage-add-relative aria-haspopup="menu" aria-expanded="false">${icon.plus}<span>${escapeHtml(t('Add relative'))}</span></button><button class="button secondary" type="button" data-manage-connect-existing>${icon.link}<span>${escapeHtml(t('Connect existing person'))}</span></button></div></div>`;
     openModal(`<div class="modal manage-relationships-modal ${items.length ? '' : 'is-empty'}" role="dialog" aria-modal="true" aria-labelledby="manageRelationshipsTitle">
-        <div class="modal-header"><div><h2 id="manageRelationshipsTitle">${escapeHtml(t('Manage relationships'))}</h2><p>${escapeHtml(translateText(person.names?.display || 'Unnamed person'))}</p></div><button class="close-button" type="button" data-close aria-label="${escapeHtml(t('Close'))}">${icon.close}</button></div>
+        <div class="modal-header"><div><h2 id="manageRelationshipsTitle">${escapeHtml(t('Manage relationships'))}</h2><p>${escapeHtml(translateText(formatPersonFullName(person) || 'Unnamed person'))}</p></div><button class="close-button" type="button" data-close aria-label="${escapeHtml(t('Close'))}">${icon.close}</button></div>
         <div class="modal-body manage-relationships-body">${items.length ? `<nav class="manage-relationships-rail" aria-label="${escapeHtml(t('Relationships'))}">${personList}</nav><section class="manage-relationships-detail" aria-label="${escapeHtml(t('Relationship details'))}">${details}</section>` : emptyContent}</div>
         <div class="modal-footer manage-relationships-footer"><button class="button secondary" type="button" data-close>${escapeHtml(t('Done'))}</button>${selected && selected.kind !== 'sibling' ? `<button class="button primary" type="button" data-manage-save disabled>${escapeHtml(t('Save relationship'))}</button>` : ''}</div>
       </div>`);
@@ -4354,7 +4186,7 @@ function buildRelationshipEditContext(raw = {})
 
 function relationshipEditPersonName(personId)
 {
-    return getPerson(personId)?.names?.display
+    return formatPersonFullName(getPerson(personId))
         || 'Unknown person';
 }
 

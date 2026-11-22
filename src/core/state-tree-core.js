@@ -708,7 +708,7 @@ function openTreeSettingsModal()
           <div class="modal-body tree-settings-body">
             <div class="tree-settings-focus">
               <span>Focus person</span>
-              <strong>${escapeHtml(focusPerson?.names?.display || focusPerson?.name || 'Unknown')}</strong>
+              <strong>${escapeHtml(formatPersonFullName(focusPerson) || focusPerson?.name || 'Unknown')}</strong>
             </div>
             <div class="two-col-form tree-settings-generation-grid">
               <div class="field">
@@ -1117,14 +1117,6 @@ function buildFamilyTreeProjection(people, families, options = {})
 function currentPeopleRecords()
 {
     return getPeopleRecordsFromSampleData(currentProjectId());
-}
-
-function normalizePlaceLookupText(value)
-{
-    return cleanEditFieldValue(value)
-        .replace(/\s+/g, ' ')
-        .replace(/[.,;:]+$/g, '')
-        .toLowerCase();
 }
 
 function placeDisplayText(place)

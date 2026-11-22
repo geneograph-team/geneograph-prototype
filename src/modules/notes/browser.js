@@ -2386,7 +2386,7 @@ function eventRelationItemModel(
         personResourceDisplayName(
             owner
         )
-        || owner.names?.display
+        || formatPersonFullName(owner)
         || 'Unnamed person';
 
     const presentation =
@@ -2446,8 +2446,7 @@ function eventRelationItemModel(
                 personResourceDisplayName(
                     relatedPeople[0]
                 )
-            || relatedPeople[0]
-                .names?.display
+            || formatPersonFullName(relatedPeople[0])
             || 'another person'
             }`;
     }
@@ -2459,8 +2458,7 @@ function eventRelationItemModel(
             personResourceDisplayName(
                 relatedPeople[0]
             )
-          || relatedPeople[0]
-              .names?.display
+          || formatPersonFullName(relatedPeople[0])
           || 'another person';
 
         relationshipLabel =
@@ -2690,7 +2688,7 @@ function renderNoteLinkedRecordRows(
                 .map(person =>
                 {
                     const name =
-                        person.names?.display
+                        formatPersonFullName(person)
                   || 'Unnamed person';
 
                     return `

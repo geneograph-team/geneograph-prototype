@@ -344,6 +344,4 @@ sampleData.archiveFiles = [
     }
 ];
 
-sampleData.archiveImports = [];
-sampleData.archiveIssues = [];
 

@@ -770,7 +770,7 @@ function renderAlbumsPhotoPeople(
           ${people.map(person =>
             {
                 const name =
-                    person.names?.display
+                    formatPersonFullName(person)
               || 'Unnamed person';
 
                 const mainContent = `

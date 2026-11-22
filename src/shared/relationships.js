@@ -52,17 +52,11 @@ function normalizedFamilyPair(family)
     let motherId = familyMotherId(family);
     const ids = [rawA, rawB].filter(Boolean);
 
-    if (!fatherId && !motherId && ids.length === 2)
-    {
-        fatherId = ids[0];
-        motherId = ids[1];
-    }
-    else if (!fatherId && !motherId && ids.length === 1)
-    {
-        const role = familyPartnerRole(family, ids[0]);
-        if (role === 'mother') motherId = ids[0];
-        else fatherId = ids[0];
-    }
+    // The layout has two slots. Keep both recorded parents even when their
+    // roles are identical or unspecified.
+    const unplaced = ids.filter(id => id !== fatherId && id !== motherId);
+    if (!fatherId) fatherId = unplaced.shift();
+    if (!motherId) motherId = unplaced.shift();
 
     return { fatherId: fatherId || '', motherId: motherId || '' };
 }
@@ -184,7 +178,7 @@ function getChildren(personId)
 
 function isFamilyRelationship(rel)
 {
-    return rel?.type === 'family' || rel?.type === 'partner';
+    return rel?.type === 'family';
 }
 
 function relationshipPartnerAId(rel)
@@ -1151,7 +1145,7 @@ function createRelationshipEvent(tag, eventType, values = {})
         date,
         placeId: cleanDatePlaceId(values.placeId),
         placeText: values.placeText || '',
-        sortDate: date.sortDate || '',
+        address: values.address || '',
         confidence: values.confidence || ''
     };
 }

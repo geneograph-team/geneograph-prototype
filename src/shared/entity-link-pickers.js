@@ -1320,7 +1320,7 @@ function openEventLinkModal({
             personResourceDisplayName(
                 person
             )
-          || person?.names?.display
+          || formatPersonFullName(person)
           || 'Unnamed person';
 
     const normalizeSearch =

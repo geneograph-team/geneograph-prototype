@@ -189,7 +189,7 @@ function placesRoutePopupOptions(
             value: person.id,
 
             label:
-            person.names?.display
+            formatPersonFullName(person)
             || person.name
             || t('Unnamed person'),
 
@@ -656,7 +656,7 @@ function openPlacesRouteMenu(
                     second
                 ) =>
                     (
-                        first.names?.display
+                        formatPersonFullName(first)
                 || first.name
                 || ''
                     )

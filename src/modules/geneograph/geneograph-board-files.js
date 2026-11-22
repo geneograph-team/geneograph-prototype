@@ -354,7 +354,7 @@ function importGeneographBoardPayload(payload, projectId = currentProjectId())
     {
         const linked = person.treePersonId ? getPerson(person.treePersonId) : null;
         if (!linked || linked.projectId !== projectId
-            || linked.names?.display !== geneoPersonDisplayName(person))
+            || formatPersonFullName(linked) !== geneoPersonDisplayName(person))
         {
             person.treePersonId = null;
             person.syncState = 'local';

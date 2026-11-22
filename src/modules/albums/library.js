@@ -73,7 +73,7 @@ function photoSearchText(photo)
         photo.caption,
         photo.placeText,
         getPlaceDisplay(photo.placeId),
-        ...getPhotoPeople(photo).map(person => person.names?.display || ''),
+        ...getPhotoPeople(photo).map(person => formatPersonFullName(person) || ''),
         ...(photo.albumIds || []).map(getAlbumName)
     ].join(' ').toLowerCase();
 }
@@ -1541,7 +1541,7 @@ function renderAlbumsSelectionBar()
 function renderAlbumsPhotoCard(photo, selectedIds, width = 0)
 {
     const names = getPhotoPeople(photo)
-        .map(person => person.names?.display)
+        .map(person => formatPersonFullName(person))
         .filter(Boolean);
     const selected = selectedIds.has(photo.id);
     const widthStyle = width > 0
@@ -1725,7 +1725,7 @@ function renderAlbumsList(photos)
             const people =
                 getPhotoPeople(photo)
                     .map(person =>
-                        person.names?.display
+                        formatPersonFullName(person)
                     )
                     .filter(Boolean)
                     .join(', ')

@@ -318,7 +318,7 @@ function renderRelation(item)
     if (!person) return '';
 
     const name =
-        person.names?.display || 'Unnamed person';
+        formatPersonFullName(person) || 'Unnamed person';
 
     const actions =
         item.canEdit || item.canUnlink
@@ -592,7 +592,7 @@ function connectPersonName(person)
     if (person?.meta?.placeholderRole === 'father'
         && ![person.names?.first, person.names?.middle, person.names?.last].some(Boolean))
         return t('Unknown father');
-    return person?.names?.display || person?.name || 'Unknown person';
+    return formatPersonFullName(person) || person?.name || 'Unknown person';
 }
 
 function connectPersonLifeLine(person)

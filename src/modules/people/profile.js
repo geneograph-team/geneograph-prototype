@@ -935,7 +935,7 @@ function renderProfileConnectedRecord(kind, item, full = false)
         ...sourceLinksForSource(record.id, null, record.projectId).map(link =>
         {
             const target = sourceTargetRecord(link.targetType, link.targetId, record.projectId);
-            return target?.names?.display || target?.title || target?.name;
+            return formatPersonFullName(target) || target?.title || target?.name;
         }).filter(Boolean)
     ];
     return `${renderArchiveSourceDetails(record, localizedSourceCategoryLabel(record.category), { allowPlaceNavigation: false })}
@@ -1148,7 +1148,7 @@ function bindProfileConnectedExplorer(person)
             if (profileResourceAction === 'add-note') openPersonNotesModal(person.id, 'profile');
             if (profileResourceAction === 'add-sources') openSourcesForTargetModal({
                 targetType: 'person', targetId: person.id, projectId: person.projectId,
-                title: 'Add sources', subtitle: person.names?.display || person.name,
+                title: 'Add sources', subtitle: formatPersonFullName(person) || person.name,
                 afterSave: renderAfterPersonConnectedResourcesChanged
             });
             return;

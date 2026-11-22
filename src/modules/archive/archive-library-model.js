@@ -95,8 +95,7 @@ function archiveSearchText(file)
     const people =
         archiveFilePersonIds(file)
             .map(id =>
-                getPerson(id)
-                    ?.names?.display
+                formatPersonFullName(getPerson(id))
             || ''
             )
             .join(' ');

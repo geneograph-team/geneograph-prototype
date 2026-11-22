@@ -1791,7 +1791,7 @@ function removePhotoPersonTag(photoId, personId)
         photo,
 
         contextLabel:
-          person.names?.display
+          formatPersonFullName(person)
           || person.name
           || (state.language === 'ru' ? 'Человек' : 'Person'),
 
@@ -1972,6 +1972,56 @@ function deletePhotosPermanently(
             )
         );
 
+    const retainedImages = [];
+    const photosById = new Map(photos.map(photo => [photo.id, photo]));
+    for (const board of sampleData.boards)
+    {
+        const assetsByPhoto = new Map();
+        for (const node of board.diagram.nodes)
+        {
+            if (node.type !== 'image' || node.imageRef?.scope !== 'project') continue;
+            const photo = photosById.get(node.imageRef.id);
+            if (!photo || photo.projectId !== board.projectId) continue;
+            let asset = assetsByPhoto.get(photo.id);
+            if (!asset)
+            {
+                asset = normalizeGeneographBoardAsset({
+                    ...photo, id: createRuntimeId('geneo-asset'), displayName: photo.title
+                });
+                if (!asset?.src)
+                {
+                    showToast(t('A linked project photo is unavailable.'));
+                    return;
+                }
+                assetsByPhoto.set(photo.id, asset);
+            }
+            retainedImages.push({ board, node, asset });
+        }
+    }
+    for (const { board, node, asset } of retainedImages)
+    {
+        if (!board.diagram.assets.some(item => item.id === asset.id)) board.diagram.assets.push(asset);
+        node.imageRef = { scope: 'board', id: asset.id };
+        board.modifiedAt = new Date().toISOString();
+    }
+
+    for (const board of sampleData.boards)
+    {
+        let changed = false;
+        for (const person of board.diagram.people)
+        {
+            if (!ids.has(person.photoId)) continue;
+            person.photoId = null;
+            if (!person.photoAssetId)
+            {
+                person.photoCrop = null;
+                person.photoRegion = null;
+            }
+            changed = true;
+        }
+        if (changed) board.modifiedAt = new Date().toISOString();
+    }
+
     markPrototypeSessionEdited();
     sampleData.projects.forEach(project =>
     {
@@ -1997,6 +2047,9 @@ function deletePhotosPermanently(
                 person.primaryPhotoCrop =
                     null;
             }
+
+            if (Array.isArray(person.mediaIds))
+                person.mediaIds = person.mediaIds.filter(id => !ids.has(id));
 
             (
                 person.events || []
@@ -2035,6 +2088,9 @@ function deletePhotosPermanently(
     centralFamilyRecords()
         .forEach(family =>
         {
+            if (Array.isArray(family.mediaIds))
+                family.mediaIds = family.mediaIds.filter(id => !ids.has(id));
+
             (
                 family.events || []
             ).forEach(event =>

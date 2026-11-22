@@ -27,10 +27,10 @@ function formatPersonInitials(person)
     const f = normalizeNameSegment(n.first);
     const l = normalizeNameSegment(n.last);
     const initials = `${f[0] || ''}${l[0] || ''}`.toUpperCase();
-    return initials || (n.initials || '??');
+    return initials || (person?.meta?.placeholderRole === 'father' ? '?' : '??');
 }
 
-function rebuildPersonDisplayName(person)
+function clearNamedPersonPlaceholderRole(person)
 {
     if (!person || !person.names) return person;
 
@@ -39,8 +39,6 @@ function rebuildPersonDisplayName(person)
             person.names.suffix].some(value => normalizeNameSegment(value)))
         delete person.meta.placeholderRole;
 
-    person.names.display = formatPersonFullName(person);
-    person.names.initials = formatPersonInitials(person);
 
     return person;
 }

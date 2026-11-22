@@ -58,7 +58,7 @@ const RU_UI_GENEO = {
     'relationship field changes': 'изменения полей связи',
     'This relationship field cannot be copied independently.': 'Это поле связи нельзя перенести отдельно.',
     'A relationship field changed. Clear its selection and review the latest values.': 'Поле связи изменилось. Сбросьте выбор и проверьте актуальные значения.',
-    'More than one Family Tree connection matches these people. Resolve the duplicate connections first.': 'Этим людям соответствуют несколько связей в Семейном дереве. Сначала устраните дублирующиеся связи.',
+    'More than one Family Tree family matches these people. Review the families in Family Tree.': 'Этим людям соответствуют несколько связей в Семейном дереве. Проверьте семьи в Семейном дереве.',
     'Choose a board': 'Выбрать холст',
     'Add to Geneograph board': 'Добавить на холст Генеографа',
     'Add to board': 'Добавить на холст',

@@ -154,7 +154,7 @@ function renderPersonPhotoProjectResults()
         const taggedScope = Boolean(state.personPhotoPicker.filters?.tagged);
         const message = hasSearch
             ? 'No matching project photos.'
-            : taggedScope ? `No photos are tagged with ${person.names?.display || 'this person'}.` : 'No matching project photos.';
+            : taggedScope ? `No photos are tagged with ${formatPersonFullName(person) || 'this person'}.` : 'No matching project photos.';
         return `<div class="person-photo-empty"><div>
           <strong>${escapeHtml(message)}</strong>
           <div class="person-photo-empty-actions">
@@ -165,7 +165,7 @@ function renderPersonPhotoProjectResults()
         </div></div>`;
     }
 
-    return `${selectedIsUntagged ? `<div class="person-photo-picker-notice">${escapeHtml(person.names?.display || 'This person')} will also be tagged in this photo.</div>` : ''}
+    return `${selectedIsUntagged ? `<div class="person-photo-picker-notice">${escapeHtml(formatPersonFullName(person) || 'This person')} will also be tagged in this photo.</div>` : ''}
         <div class="rp-results rp-photo-grid">${photos.map(photo => renderPersonPhotoCandidate(photo, person)).join('')}</div>`;
 }
 
@@ -474,7 +474,7 @@ function renderPersonPhotoSharedChooseModal(person)
     const filters = picker.filters || { favorite: false, person: '', tagged: true };
     openModal(`<section class="modal resource-picker person-photo-shared-modal ${upload ? `rp-upload-staging ${picker.uploadDraft ? 'has-items' : ''}` : ''}"
       data-resource-picker="photos" data-person-photo-picker role="dialog" aria-modal="true" aria-labelledby="personPhotoPickerTitle">
-      <header class="modal-header"><div><h2 id="personPhotoPickerTitle">${escapeHtml(t('Change photo for {name}').replace('{name}', person.names?.display || 'Person'))}</h2>
+      <header class="modal-header"><div><h2 id="personPhotoPickerTitle">${escapeHtml(t('Change photo for {name}').replace('{name}', formatPersonFullName(person) || 'Person'))}</h2>
         <p>${escapeHtml(t('This photo will appear in Family Tree, People, and Profile.'))}</p></div>
         <button class="close-button" type="button" data-close aria-label="${escapeHtml(t('Close'))}">${icon.close}</button></header>
       <div class="rp-toolbar">
@@ -587,7 +587,7 @@ function renderPersonPhotoPickerModal()
               <h2 id="personPhotoPickerTitle">
                 Change photo for ${
                     escapeHtml(
-                        person.names?.display
+                        formatPersonFullName(person)
                     || 'Person'
                     )
                 }
@@ -1712,7 +1712,7 @@ function renderPersonPhotosAdderModal()
         .sourceTab = sourceTab;
 
     const name =
-        person.names?.display
+        formatPersonFullName(person)
         || 'Person';
 
     const presentModal =
@@ -2238,7 +2238,7 @@ function commitPersonPhotosAdder()
     markPersonUpdated(person);
 
     const name =
-        person.names?.display
+        formatPersonFullName(person)
         || 'Person';
 
     closeModal({
@@ -2735,7 +2735,7 @@ function applyPersonPrimaryPhoto({ personId, existingPhotoId = '', uploadDraft =
     ensurePhotoPersonTag(photo, person);
     setPhotoPersonRegion(photo, person.id, region);
     setPersonPrimaryPhoto(person.id, photo.id, null, { rerender: false, notify: false });
-    const name = person.names?.display || 'Person';
+    const name = formatPersonFullName(person) || 'Person';
     resetPersonPhotoPickerState();
     closeModal({ force: true });
     renderAfterPersonPrimaryPhotoChange();
@@ -2747,7 +2747,7 @@ function removeCurrentPersonPhoto()
 {
     const person = personPhotoPickerPerson();
     if (!person?.primaryPhotoId) return;
-    const name = person.names?.display || 'Person';
+    const name = formatPersonFullName(person) || 'Person';
     person.primaryPhotoId = '';
     person.primaryPhotoCrop = null;
     markPersonUpdated(person);

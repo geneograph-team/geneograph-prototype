@@ -895,12 +895,12 @@ function applyAddPersonAdditionalFacts(person, facts = {})
     ensurePersonCentralStructures(person);
     const active = new Set(facts.activeFactIds || []);
     const targetEvent = person.events.find(event => event.id === facts.targetEventId);
-    const writeEvent = (tag, values) => targetEvent && (targetEvent.tag || targetEvent.gedcomTag) === tag
+    const writeEvent = (tag, values) => targetEvent && targetEvent.gedcomTag === tag
         ? Object.assign(targetEvent, values) : upsertPersonEvent(person, tag, values);
 
     person.names.prefix = active.has('prefix') ? (normalizeNameSegment(facts.prefix)) : '';
     person.names.suffix = active.has('suffix') ? (normalizeNameSegment(facts.suffix)) : '';
-    rebuildPersonDisplayName(person);
+    clearNamedPersonPlaceholderRole(person);
 
 
     if (person.livingStatus === 'Deceased' && active.has('causeOfDeath'))
@@ -950,7 +950,7 @@ function applyAddPersonAdditionalFacts(person, facts = {})
 
     if (active.has('baptism') && facts.baptism)
     {
-        const existingBaptism = targetEvent && (targetEvent.tag || targetEvent.gedcomTag) === 'BAPM' ? targetEvent : personEventByTag(person, 'BAPM');
+        const existingBaptism = targetEvent && targetEvent.gedcomTag === 'BAPM' ? targetEvent : personEventByTag(person, 'BAPM');
         const baptismPlace = resolvePlaceAssignment(facts.baptism.place, existingBaptism?.placeId);
 
         writeEvent('BAPM', {
@@ -962,17 +962,10 @@ function applyAddPersonAdditionalFacts(person, facts = {})
     }
     else
     {
-        if (targetEvent && (targetEvent.tag || targetEvent.gedcomTag) === 'BAPM') person.events = person.events.filter(event => event.id !== targetEvent.id);
+        if (targetEvent && targetEvent.gedcomTag === 'BAPM') person.events = person.events.filter(event => event.id !== targetEvent.id);
         else removePersonEvent(person, 'BAPM');
     }
 }
-function updatePersonInitials(person)
-{
-    const first = person.names.first || '';
-    const last = person.names.last || '';
-    person.names.initials = `${first[0] || ''}${last[0] || ''}`.toUpperCase() || person.names.initials || '??';
-}
-
 function saveEditPersonModalValues(personId)
 {
     const person = getPerson(personId);
@@ -1021,7 +1014,7 @@ function saveEditPersonModalValues(personId)
         && person.meta?.placeholderRole === 'father')
         delete person.meta.placeholderRole;
 
-    rebuildPersonDisplayName(person);
+    clearNamedPersonPlaceholderRole(person);
 
 
     person.gender = genderValue === 'Male'
@@ -1088,7 +1081,7 @@ function openEditPersonModal(personId)
         return;
     }
 
-    openAddPersonModal('Edit person', person.names.display, {
+    openAddPersonModal('Edit person', formatPersonFullName(person), {
         mode: 'edit',
         personId
     });
@@ -1313,18 +1306,17 @@ function removePersonAttribute(person, tag)
 function personEventByTag(person, tag)
 {
     ensurePersonCentralStructures(person);
-    return person?.events?.find(event => event.tag === tag || event.gedcomTag === tag) || null;
+    return person?.events?.find(event => event.gedcomTag === tag) || null;
 }
 
 function upsertPersonEvent(person, tag, values = {})
 {
     ensurePersonCentralStructures(person);
-    let event = person.events.find(item => item.tag === tag || item.gedcomTag === tag);
+    let event = person.events.find(item => item.gedcomTag === tag);
     if (!event)
     {
         event = {
             id: `${tag.toLowerCase()}-${person.id}`,
-            tag,
             gedcomTag: tag,
             type: tag,
             date: null,
@@ -1336,14 +1328,14 @@ function upsertPersonEvent(person, tag, values = {})
         };
         person.events.push(event);
     }
-    Object.assign(event, values, { tag, gedcomTag: tag });
+    Object.assign(event, values, { gedcomTag: tag });
     return event;
 }
 
 function removePersonEvent(person, tag)
 {
     ensurePersonCentralStructures(person);
-    person.events = person.events.filter(event => event.tag !== tag && event.gedcomTag !== tag);
+    person.events = person.events.filter(event => event.gedcomTag !== tag);
 }
 
 function hasTextValue(value)
@@ -1431,11 +1423,11 @@ function peopleProfileDetailsFor(person)
         {
             if (prop === 'prefix')
             {
-                centralPerson.names.prefix = normalizeNameSegment(value); rebuildPersonDisplayName(centralPerson); return true;
+                centralPerson.names.prefix = normalizeNameSegment(value); clearNamedPersonPlaceholderRole(centralPerson); return true;
             }
             if (prop === 'suffix')
             {
-                centralPerson.names.suffix = normalizeNameSegment(value); rebuildPersonDisplayName(centralPerson); return true;
+                centralPerson.names.suffix = normalizeNameSegment(value); clearNamedPersonPlaceholderRole(centralPerson); return true;
             }
 
             if (prop === 'maidenName')

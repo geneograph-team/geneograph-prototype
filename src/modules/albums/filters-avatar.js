@@ -86,7 +86,7 @@ function albumsPersonFilterOptions()
               person.id,
 
                 label:
-              person.names?.display
+              formatPersonFullName(person)
               || 'Unnamed person',
 
                 count:
@@ -420,7 +420,7 @@ function personPrimaryPhotoId(person)
 
 function personAvatarInitials(person)
 {
-    return person?.names?.initials || person?.initials || person?.short || '??';
+    return person?.names ? formatPersonInitials(person) : person?.initials || person?.short || '??';
 }
 
 function personAvatarClass(person)
@@ -548,7 +548,7 @@ function renderPersonAvatar(
         ) || person?.embeddedPhoto || null;
 
     const label =
-        centralPerson?.names?.display
+        formatPersonFullName(centralPerson)
         || person?.name
         || 'Person';
 
@@ -611,7 +611,7 @@ function renderEditablePersonAvatar(person, className, options = {})
 {
     const centralPerson = getPerson(person?.id) || person;
     if (!centralPerson?.id) return renderPersonAvatar(person, className, options);
-    const name = centralPerson.names?.display || person?.name || 'Person';
+    const name = formatPersonFullName(centralPerson) || person?.name || 'Person';
     const hasPrimaryPhoto = Boolean(getPhoto(centralPerson.primaryPhotoId, {
         projectId: centralPerson.projectId
     }));

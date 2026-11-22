@@ -211,7 +211,7 @@ function openTimelinePersonEditor(target)
     const scrolls = [...document.querySelectorAll(scrollSelector)].map(element => ({ top: element.scrollTop, left: element.scrollLeft }));
     const mainScroll = { top: main.scrollTop, left: main.scrollLeft };
     const treeScroll = state.activeModule === 'Family Tree' ? captureTreeCanvasScroll() : null;
-    openAddPersonModal('Edit person', getPerson(target.personId).names.display, { mode: 'edit', personId: target.personId, factTarget: target });
+    openAddPersonModal('Edit person', formatPersonFullName(getPerson(target.personId)), { mode: 'edit', personId: target.personId, factTarget: target });
     modalBackdrop.afterClose = () =>
     {
         state.selectedPersonId = selectedPersonId; state.selectedPeopleId = selectedPeopleId;

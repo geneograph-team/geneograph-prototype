@@ -337,7 +337,7 @@ function renderPublishScopeStep()
 
               <select id="publishFocusPerson" ${people.length ? '' : 'disabled'}>
                 ${people.length
-                    ? people.map(person => `<option value="${escapeHtml(person.id)}" ${person.id === state.publishFocusPersonId ? 'selected' : ''}>${escapeHtml(person.names?.display || 'Unknown')}</option>`).join('')
+                    ? people.map(person => `<option value="${escapeHtml(person.id)}" ${person.id === state.publishFocusPersonId ? 'selected' : ''}>${escapeHtml(formatPersonFullName(person) || 'Unknown')}</option>`).join('')
                     : '<option value="">No people</option>'}
               </select>
             </div>
@@ -439,7 +439,7 @@ function renderPublishReportPreview()
     const project = currentProject();
     const person = publishFocusPerson();
     if (!project || !person) return `<div class="panel-muted">${escapeHtml(t('Add people before creating person-based publications.'))}</div>`;
-    const personName = person.names?.display || 'Unknown';
+    const personName = formatPersonFullName(person) || 'Unknown';
     const birth = formatGenealogyDateLabel(person.birth) || 'Birth date unknown';
     const birthPlace = person.birth?.placeId
         ? getPlaceDisplay(person.birth.placeId)
@@ -469,11 +469,11 @@ function renderPublishChartPreview()
     const parentCards = parentIds.map((personId, index) =>
     {
         const parent = getPerson(personId);
-        return `<div class="publish-chart-card" style="left:${index ? 470 : 170}px;top:118px"><strong>${escapeHtml(parent?.names?.display || 'Unknown')}</strong><span>Parent</span></div>`;
+        return `<div class="publish-chart-card" style="left:${index ? 470 : 170}px;top:118px"><strong>${escapeHtml(formatPersonFullName(parent) || 'Unknown')}</strong><span>Parent</span></div>`;
     }).join('');
     return `<div class="publish-chart-preview">
         ${parentCards}
-        <div class="publish-chart-card" style="left:300px;top:300px;border-color:color-mix(in srgb, var(--gg-primary) 80%, transparent)"><strong>${escapeHtml(person.names?.display || 'Unknown')}</strong><span>Focus person</span></div>
+        <div class="publish-chart-card" style="left:300px;top:300px;border-color:color-mix(in srgb, var(--gg-primary) 80%, transparent)"><strong>${escapeHtml(formatPersonFullName(person) || 'Unknown')}</strong><span>Focus person</span></div>
         <div class="publish-chip" style="position:absolute;left:24px;bottom:24px">Page 1 - Fit to printable area</div>
       </div>`;
 }
@@ -559,7 +559,7 @@ function savePublishDraft(exported)
     const projectId = requireActiveProjectId();
     const focusPerson = publishFocusPerson();
     if (!projectId || (publishTypeNeedsPeople(type.id) && !focusPerson)) return;
-    const focusName = focusPerson?.names?.display || currentProject()?.name || 'Project';
+    const focusName = formatPersonFullName(focusPerson) || currentProject()?.name || 'Project';
     const draft = {
         id: `pub-${Date.now()}`,
         projectId,
@@ -689,7 +689,7 @@ function publishStepCopy()
 function publishScopeLabel()
 {
     const mode = state.publishScopeMode.replaceAll('-', ' ');
-    const focusName = publishFocusPerson()?.names?.display || currentProject()?.name || 'Project';
+    const focusName = formatPersonFullName(publishFocusPerson()) || currentProject()?.name || 'Project';
     return `${capitalize(mode)} - ${focusName} - ${state.publishGenerations} generations`;
 }
 

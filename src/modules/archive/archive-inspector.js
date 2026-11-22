@@ -1587,7 +1587,7 @@ function renderArchiveSourceConnectionContent(
                 .map(person =>
                 {
                     const name =
-                        person.names?.display
+                        formatPersonFullName(person)
                   || person.name
                   || 'Unnamed person';
 

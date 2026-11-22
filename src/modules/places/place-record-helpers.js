@@ -1,3 +1,11 @@
+function normalizePlaceLookupText(value)
+{
+    return cleanEditFieldValue(value)
+        .replace(/\s+/g, ' ')
+        .replace(/[.,;:]+$/g, '')
+        .toLowerCase();
+}
+
 function getPlace(placeId)
 {
     return sampleData.places.find(place => place.id === placeId) || null;

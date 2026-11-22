@@ -72,7 +72,7 @@ function restoreModalChoiceFocus({
 function archiveEventLabel(event)
 {
     if (!event) return 'Event';
-    const people = (event.personIds || []).map(id => getPerson(id)?.names?.display).filter(Boolean);
+    const people = (event.personIds || []).map(id => formatPersonFullName(getPerson(id))).filter(Boolean);
     return [event.title || event.type || 'Event', people.join(' & ')].filter(Boolean).join(' · ');
 }
 
@@ -211,7 +211,7 @@ function archiveEntityConfig(type)
         person: {
             singular: 'person', title: 'People', addLabel: 'Add people',
             records: () => (sampleData.people || []).filter(person => !person.deleted && person.projectId === projectId),
-            label: record => record?.names?.display || record?.name || 'Person',
+            label: record => formatPersonFullName(record) || record?.name || 'Person',
             meta: record =>
                 archiveFilePersonMeta(
                     record
