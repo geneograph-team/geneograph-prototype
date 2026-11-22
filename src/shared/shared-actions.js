@@ -526,9 +526,12 @@ function openProjectCoverPhotoPicker(projectId, { onSelect, nested = false, sele
     let uploadRequest = 0;
     const photos = () => sampleData.media.filter(media =>
         media.projectId === projectId && media.kind === 'photo' && media.src);
-    const source = () => chosen.uploadDraft?.src
+    let verifiedSource = '';
+    let preparing = false;
+    const originalSource = () => chosen.uploadDraft?.src
         || (chosen.photoId ? getPhoto(chosen.photoId, { projectId })?.src : '')
         || chosen.imageSrc || '';
+    const source = () => verifiedSource;
     const renderGrid = () =>
     {
         const matches = photos().filter(photo =>
@@ -561,7 +564,7 @@ function openProjectCoverPhotoPicker(projectId, { onSelect, nested = false, sele
                 <label class="project-cover-photo-albums" data-cover-photo-albums hidden><input type="checkbox" data-cover-photo-add-albums> Add to Albums</label>
                 <p class="project-cover-photo-error" data-cover-photo-error role="alert" hidden></p>
             </div>
-            <div class="project-cover-photo-preview-pane"><h3>Cover preview</h3><div class="project-cover-preview project-cover-photo-preview" data-cover-photo-preview role="group" aria-label="Drag to position cover; use arrow keys to adjust"></div><button class="project-cover-reset" type="button" data-cover-photo-reset hidden>Reset position</button></div>
+            <div class="project-cover-photo-preview-pane"><h3>Cover preview</h3><div class="project-cover-preview project-cover-photo-preview" data-cover-photo-preview role="group" aria-label="Drag to position cover; use arrow keys to adjust"><div class="project-cover-preview-label" aria-hidden="true"><strong>${escapeHtml(project.name)}</strong><span>${escapeHtml(project.status || 'Local project')}</span></div></div><button class="project-cover-reset" type="button" data-cover-photo-reset hidden>Reset position</button></div>
         </div>
         <div class="modal-footer"><button class="button secondary" type="button" data-close>Cancel</button>
             <button class="button primary" type="button" data-cover-photo-confirm>Use photo</button></div>
@@ -590,21 +593,55 @@ function openProjectCoverPhotoPicker(projectId, { onSelect, nested = false, sele
         positioner();
         albumsChoice.hidden = !chosen.uploadDraft;
         modal.querySelector('[data-cover-photo-add-albums]').checked = Boolean(chosen.addToAlbums);
-        confirm.disabled = !source();
+        confirm.disabled = preparing || !verifiedSource;
     };
     modal.querySelector('[data-cover-photo-search]').addEventListener('input', event =>
     {
         query = event.target.value;
         grid.innerHTML = renderGrid();
     });
+    const verifyChoice = async () =>
+    {
+        const request = ++uploadRequest;
+        preparing = true;
+        verifiedSource = '';
+        error.hidden = true;
+        refresh();
+        const candidate = originalSource();
+        if (!candidate)
+        {
+            preparing = false;
+            refresh();
+            return;
+        }
+        try
+        {
+            const prepared = await prepareProjectCoverImage(candidate);
+            if (!modal.isConnected || request !== uploadRequest) return;
+            chosen.coverImageSrc = prepared;
+            verifiedSource = prepared;
+        }
+        catch (failure)
+        {
+            if (!modal.isConnected || request !== uploadRequest) return;
+            error.textContent = projectCoverValidationMessage(failure);
+            error.hidden = false;
+        }
+        finally
+        {
+            if (modal.isConnected && request === uploadRequest)
+            {
+                preparing = false;
+                refresh();
+            }
+        }
+    };
     grid.addEventListener('click', event =>
     {
         const button = event.target.closest('[data-cover-photo-id]');
         if (!button) return;
-        uploadRequest += 1;
         chosen = { photoId: button.dataset.coverPhotoId, position: { x: 50, y: 50 } };
-        error.hidden = true;
-        refresh();
+        verifyChoice();
     });
     const fileInput = modal.querySelector('[data-cover-photo-file]');
     modal.querySelector('[data-cover-photo-upload]').addEventListener('click', () => fileInput.click());
@@ -618,8 +655,7 @@ function openProjectCoverPhotoPicker(projectId, { onSelect, nested = false, sele
             const draft = await createPhotoUploadDraft(file, { idPrefix: 'project-cover-draft' });
             if (!modal.isConnected || request !== uploadRequest) return;
             chosen = { uploadDraft: draft, addToAlbums: false, position: { x: 50, y: 50 } };
-            error.hidden = true;
-            refresh();
+            verifyChoice();
         }
         catch (_error)
         {
@@ -635,11 +671,11 @@ function openProjectCoverPhotoPicker(projectId, { onSelect, nested = false, sele
     });
     confirm.addEventListener('click', () =>
     {
-        if (!source()) return;
+        if (preparing || !verifiedSource) return;
         closeModal();
-        onSelect({ ...chosen });
+        onSelect({ ...chosen, coverImageSrc: verifiedSource });
     });
-    refresh();
+    verifyChoice();
 }
 
 function formatProjectCount(count)
