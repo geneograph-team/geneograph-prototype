@@ -23,7 +23,11 @@ const context = vm.createContext({
     getNotesForPerson: () => [],
     document: { documentElement: { lang: 'en' } },
     cleanEditFieldValue: text => String(text ?? ''),
-    currentProjectId: () => null
+    currentProjectId: () => null,
+    // Browser dependencies outside this data-only smoke test.
+    sourceIdsForTarget: () => [],
+    timelineYearFromValue: date => date?.first?.year || '',
+    treeDefaultPersonId: projectId => projectId === 'p1' ? 'silver' : 'stress-person-0349'
 });
 for (const file of [
     'seed/sample-data',
@@ -159,6 +163,18 @@ assert.equal(treeFamilies.length, 442);
 assert.equal(new Set(treeFamilies.map(family => family.id)).size, 442);
 assert.ok(treeFamilies.every(family => family.left && family.right && family.children.length),
     'all visual family contexts must have two partners and children');
+
+// Exercise the same projection used when opening People. Canonical person.meta
+// is optional, so its absence must not crash the directory.
+const peopleDirectoryRecords = run('getPeopleRecordsFromSampleData("' + projectId + '")');
+assert.equal(peopleDirectoryRecords.length, 1200);
+assert.equal(new Set(peopleDirectoryRecords.map(person => person.id)).size, 1200);
+assert.ok(peopleDirectoryRecords.every(person => person.updated === ''),
+    'missing optional metadata should produce a blank updated label');
+assert.equal(peopleDirectoryRecords[0].name, 'Person 0001');
+run('sampleData.people.find(p => p.id === "stress-person-0001").meta = { updated: "Changed" }');
+assert.equal(run('getPeopleRecordsFromSampleData("' + projectId + '")[0].updated'), 'Changed');
+run('delete sampleData.people.find(p => p.id === "stress-person-0001").meta');
 assert.equal(run('JSON.stringify([sampleData.people.filter(p => p.projectId === "p1"), sampleData.families.filter(f => f.projectId === "p1")])'), p1Before);
 run('sampleData.people.find(p => p.id === "stress-person-0349").names.first = "Edited"');
 const peopleCount = run('sampleData.people.length');
