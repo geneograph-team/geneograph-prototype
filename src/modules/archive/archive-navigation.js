@@ -37,19 +37,12 @@ function archiveFilePlaceIds(file)
     return archiveUniqueIds([file?.documentPlaceId, ...(file?.linkedPlaceIds || [])].filter(Boolean));
 }
 
-function archiveSetFilePlaces(file, placeIds, { resolveLegacy = false } = {})
+function archiveSetFilePlaces(file, placeIds)
 {
     const ids = archiveUniqueIds(placeIds || []);
     if (!file || ids.some(id => !getPlace(id) || getPlace(id).projectId !== file.projectId)) return false;
-    const legacyText = !file.documentPlaceId
-        ? String(file.documentPlaceText || '').trim()
-        : '';
-    const matchedLegacy = ids.some(id => normalizePlaceLookupText(getPlace(id)?.name || '')
-        === normalizePlaceLookupText(legacyText));
     const documentPlaceId = ids.includes(file.documentPlaceId) ? file.documentPlaceId : null;
-    const documentPlaceText = documentPlaceId ? file.documentPlaceText
-        : ((resolveLegacy && ids.length) || matchedLegacy) ? '' : legacyText;
-    archiveApplyDocumentPlace(file, documentPlaceId, documentPlaceText, ids);
+    archiveApplyDocumentPlace(file, documentPlaceId, ids);
     file.updatedAt = new Date().toISOString();
     return true;
 }

@@ -357,20 +357,6 @@
         var(--space-4);
 }
 
-.archive-legacy-place {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 4px 10px;
-    min-width: 0;
-    padding: 8px;
-    color: var(--text-primary);
-}
-
-.archive-legacy-place span { min-width: 0; overflow-wrap: anywhere; }
-.archive-legacy-place small { color: var(--text-tertiary); }
-.archive-legacy-place .panel-action { margin-left: auto; }
-
 .archive-file-form-grid input,
 .archive-file-form-grid select {
     box-sizing: border-box;

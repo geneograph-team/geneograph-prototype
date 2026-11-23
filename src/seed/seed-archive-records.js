@@ -338,7 +338,7 @@ sampleData.archiveFiles = [
         addedAt: '2026-06-02T09:32:00Z', updatedAt: '2026-06-02T09:32:00Z'
     },
     {
-        id: 'af-marriage-packet', projectId: 'p1', folderId: 'certificates', name: 'silver_luna_marriage_packet.pdf', kind: 'pdf', type: 'PDF', mimeType: 'application/pdf', assetUrl: 'assets/documents/silver_luna_marriage_packet.pdf', sizeBytes: 3229, favorite: false,
+        id: 'af-marriage-packet', projectId: 'p1', folderId: 'certificates', name: 'silver_luna_marriage_packet.pdf', kind: 'pdf', type: 'PDF', mimeType: 'application/pdf', assetUrl: 'assets/documents/silver_luna_marriage_packet.pdf', sizeBytes: 6723, favorite: false,
         description: 'Research packet for Silver and Luna’s marriage.', linkedPersonIds: ['silver', 'luna'], linkedEventIds: ['event-rel-silver-luna-partner-rel-silver-luna-partner-marriage'], linkedNoteIds: [], documentPlaceId: 'place-meowbridge', linkedPlaceIds: [],
         addedAt: '2026-06-02T09:33:00Z', updatedAt: '2026-06-02T09:33:00Z'
     }

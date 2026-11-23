@@ -999,10 +999,7 @@ function renderArchiveFilePlaces(file, readOnly)
     const places = archiveFilePlaceIds(file)
         .map(id => getPlace(id))
         .filter(place => place && place.projectId === file.projectId);
-    const legacyText = !file.documentPlaceId
-        ? String(file.documentPlaceText || '').trim()
-        : '';
-    if (!places.length && !legacyText)
+    if (!places.length)
         return renderInspectorSectionEmpty('No places linked to this file.');
     return `<div class="relationship-list notes-place-list archive-file-place-list">
       ${places.map(place => {
@@ -1016,7 +1013,6 @@ function renderArchiveFilePlaces(file, readOnly)
           ${readOnly ? '' : `<div class="relation-actions"><button class="relation-action-button" type="button" data-archive-unlink-owner-type="file" data-archive-unlink-owner-id="${escapeHtml(file.id)}" data-archive-unlink-type="place" data-archive-unlink-id="${escapeHtml(place.id)}" aria-label="${escapeHtml(t('Unlink') + ' ' + name)}" title="${escapeHtml(t('Unlink'))}">${icon.unlink}</button></div>`}
         </div>`;
       }).join('')}
-      ${legacyText ? `<div class="archive-legacy-place"><span>${escapeHtml(legacyText)}</span><small>${escapeHtml(t('Place name not linked to a project place'))}</small>${readOnly ? '' : `<button class="panel-action" type="button" data-archive-resolve-file-place="${escapeHtml(file.id)}">${escapeHtml(t('Find place'))}</button>`}</div>` : ''}
     </div>`;
 }
 

@@ -560,11 +560,6 @@ function bindArchiveControls(root = main.querySelector('.archive-shell'))
         );
     root.querySelector('[data-archive-add-file-place]')?.addEventListener('click', event =>
         openArchiveFilePlacesModal(event.currentTarget.dataset.archiveAddFilePlace));
-    root.querySelector('[data-archive-resolve-file-place]')?.addEventListener('click', event =>
-    {
-        const file = archiveFileById(event.currentTarget.dataset.archiveResolveFilePlace);
-        if (file) openArchiveFilePlacesModal(file.id, file.documentPlaceText || '', true);
-    });
     root.querySelector('[data-archive-edit-source-details]')?.addEventListener('click', event =>
         openArchiveSourceModal(event.currentTarget.dataset.archiveEditSourceDetails));
     root

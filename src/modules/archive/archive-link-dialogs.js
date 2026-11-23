@@ -494,7 +494,7 @@ function openArchiveFileNoteModal(
     );
 }
 
-function openArchiveFilePlacesModal(fileId, query = '', resolveLegacy = false)
+function openArchiveFilePlacesModal(fileId, query = '')
 {
     const file = archiveFileById(fileId);
     if (!file) return;
@@ -511,7 +511,7 @@ function openArchiveFilePlacesModal(fileId, query = '', resolveLegacy = false)
                 const current = archiveFileById(fileId, file.projectId);
                 const next = context?.changes && current
                     ? rpApplyConnectionChanges(archiveFilePlaceIds(current), context) : nextPlaceIds;
-                if (!current || !archiveSetFilePlaces(current, next, { resolveLegacy })) {
+                if (!current || !archiveSetFilePlaces(current, next)) {
                     showToast(t('Places could not be updated.'));
                     return false;
                 }

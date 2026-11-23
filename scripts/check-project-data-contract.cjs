@@ -42,6 +42,36 @@ for (const file of files)
 }
 
 const sample = vm.runInContext('sampleData', context);
+function readJpegDimensions(filename)
+{
+    const bytes = fs.readFileSync(filename);
+    assert.equal(bytes.readUInt16BE(0), 0xffd8);
+    let index = 2;
+    while (index < bytes.length - 8)
+    {
+        if (bytes[index++] !== 0xff) continue;
+        while (bytes[index] === 0xff) index++;
+        const marker = bytes[index++];
+        if (marker === 0xd9 || marker === 0xda) break;
+        if (marker === 0x01 || (marker >= 0xd0 && marker <= 0xd7)) continue;
+        const size = bytes.readUInt16BE(index);
+        if ([0xc0, 0xc1, 0xc2, 0xc3, 0xc5, 0xc6, 0xc7, 0xc9, 0xca, 0xcb, 0xcd, 0xce, 0xcf].includes(marker))
+            return { width: bytes.readUInt16BE(index + 5), height: bytes.readUInt16BE(index + 3) };
+        assert.ok(size >= 2, 'Invalid JPEG section length');
+        index += size;
+    }
+    throw new Error('No JPEG frame dimensions: ' + filename);
+}
+for (const photo of sample.media)
+{
+    const filename = path.join(sourceDirectory, photo.src);
+    assert.equal(fs.statSync(filename).size, photo.sizeBytes, photo.id + ' file size');
+    // The >1 MiB grandparents image's dimensions require separate verification.
+    if (photo.id !== 'photo-grandparents-garden')
+        assert.deepEqual(readJpegDimensions(filename), { width: photo.width, height: photo.height }, photo.id);
+}
+assert.equal(fs.statSync(path.join(sourceDirectory, 'assets/documents/silver_luna_marriage_packet.pdf')).size, 6723);
+assert.equal(sample.media.find(photo => photo.id === 'photo-family-table').date.first.year, 2010);
 const startupEvidence = JSON.stringify([sample.sourceLinks, sample.archiveFiles, sample.notes]);
 vm.runInContext(fs.readFileSync(path.join(__dirname, '../src/seed/seed-genealogy.js'), 'utf8'), context);
 assert.equal(JSON.stringify([sample.sourceLinks, sample.archiveFiles, sample.notes]), startupEvidence);
@@ -134,6 +164,22 @@ const malformedVitalDate = context.prepareProjectDraft(project, malformedVitalDa
 for (const field of ['birth.first.aliasYear', 'birth.placeText'])
     assert.ok(malformedVitalDate.errors.some(error => error.includes('people/' + badVitalPerson.id + '.' + field)));
 assert.equal(Object.hasOwn(malformedVitalDate, 'records'), false);
+const unknownOuterDateFields = JSON.parse(before);
+unknownOuterDateFields.people[0].birth.unsupportedYear = 1999;
+unknownOuterDateFields.media[0].date.unsupportedFlag = true;
+unknownOuterDateFields.archiveFiles[0].documentDate.unexpectedNote = 'extra';
+const outerDateErrors = context.prepareProjectDraft(project, unknownOuterDateFields).errors;
+for (const field of ['people/' + unknownOuterDateFields.people[0].id + '.birth.unsupportedYear',
+    'media/' + unknownOuterDateFields.media[0].id + '.date.unsupportedFlag',
+    'archiveFiles/' + unknownOuterDateFields.archiveFiles[0].id + '.documentDate.unexpectedNote'])
+    assert.ok(outerDateErrors.some(error => error.includes(field + ' is unexpected.')), field);
+const extraRegionFields = JSON.parse(before);
+extraRegionFields.media[0].personRegions.silver.unknownTag = true;
+extraRegionFields.archiveFiles[0].personRegions.barnaby.unknownTag = true;
+const regionErrors = context.prepareProjectDraft(project, extraRegionFields).errors;
+for (const field of ['media/' + extraRegionFields.media[0].id + '.personRegions.silver.unknownTag',
+    'archiveFiles/' + extraRegionFields.archiveFiles[0].id + '.personRegions.barnaby.unknownTag'])
+    assert.ok(regionErrors.some(error => error.includes(field + ' is unexpected.')), field);
 const malformedNestedDateReference = JSON.parse(before);
 const datedPhoto = malformedNestedDateReference.media.find(photo => photo.date);
 datedPhoto.date.placeId = { toString: false };
@@ -177,6 +223,10 @@ for (const field of ['attributes[0].notes', 'attributes[0].citations', 'events['
 assert.ok(malformedFactDraft.errors.some(error => error.includes('people/' + factOwner.id + '.attributes[0]') && error.includes('unexpectedField')));
 assert.equal(Object.hasOwn(malformedFactDraft, 'records'), false);
 
+const obsoleteArchivePlace = JSON.parse(before);
+obsoleteArchivePlace.archiveFiles[0].documentPlaceText = 'Legacy name';
+assert.ok(context.prepareProjectDraft(project, obsoleteArchivePlace).errors.some(error =>
+    error.includes('archiveFiles/' + obsoleteArchivePlace.archiveFiles[0].id + '.documentPlaceText is unexpected.')));
 const malformedResearch = JSON.parse(before);
 Object.assign(malformedResearch.notes[0], { title: 1, bodyFormat: 'quill-delta-v1', bodyDelta: null });
 Object.assign(malformedResearch.archiveFiles[0], { name: ' ', sizeBytes: -1, linkedSourceIds: [] });
@@ -762,19 +812,8 @@ const imageOnlyLegacyNode = imageOnlyLegacyFile.board.diagram.nodes.find(node =>
 imageOnlyLegacyNode.photoId = imageOnlyLegacyNode.imageRef.id;
 delete imageOnlyLegacyNode.imageRef;
 assert.throws(() => context.validateGeneographBoardFile(imageOnlyLegacyFile), /board image reference is invalid/);
-const oldBoardFile = structuredClone(context.window.GENEO_SEED_BOARD_ASSETS[0].payload);
-oldBoardFile.board.diagram.themeProvenanceVersion = 0;
-delete oldBoardFile.board.diagram.canvas.backgroundOverride;
-const [legacyMarriage, eventMarriage] = oldBoardFile.board.diagram.families
-    .filter(family => family.events.some(event => event.gedcomTag === 'MARR'));
-legacyMarriage.marriageType = 'Religious';
-delete legacyMarriage.events;
-eventMarriage.marriageType = 'Religious';
-const titledImage = oldBoardFile.board.diagram.nodes.find(node => node.type === 'image');
-titledImage.name = '';
-titledImage.title = 'Annotated family photograph';
-titledImage.appearance.strokeType = 'dashed';
-const oldBoardFileBefore = JSON.stringify(oldBoardFile);
+const currentBoardFile = structuredClone(context.window.GENEO_SEED_BOARD_ASSETS[0].payload);
+const currentBoardFileBefore = JSON.stringify(currentBoardFile);
 let openedBoardId;
 Object.assign(context, {
     validProjectById: id => id === project.id ? project : null,
@@ -782,33 +821,29 @@ Object.assign(context, {
     markPrototypeSessionEdited() {},
     openGeneographBoard: id => { openedBoardId = id; }
 });
-const unsupportedBoardFile = { ...oldBoardFile, board: { ...oldBoardFile.board,
-    diagram: { ...oldBoardFile.board.diagram, themeProvenanceVersion: 2 } } };
+const unsupportedBoardFile = structuredClone(currentBoardFile);
+unsupportedBoardFile.board.diagram.themeProvenanceVersion = 0;
 assert.throws(() => context.importGeneographBoardPayload(unsupportedBoardFile, project.id), /invalid theme color settings/);
+const legacyFamilyFile = structuredClone(currentBoardFile);
+legacyFamilyFile.board.diagram.families[0].marriageType = 'Religious';
+assert.throws(() => context.importGeneographBoardPayload(legacyFamilyFile, project.id), /supported Geneograph board file/);
+const legacyImageFile = structuredClone(currentBoardFile);
+legacyImageFile.board.diagram.nodes.find(node => node.type === 'image').title = 'Old image title';
+assert.throws(() => context.importGeneographBoardPayload(legacyImageFile, project.id), /supported Geneograph board file/);
+const legacyPaintFile = structuredClone(currentBoardFile);
+legacyPaintFile.board.diagram.nodes[0].appearance.strokeType = 'solid';
+assert.throws(() => context.importGeneographBoardPayload(legacyPaintFile, project.id), /supported Geneograph board file/);
 assert.equal(sample.boards[0], seededBoard);
-const importedBoard = context.importGeneographBoardPayload(oldBoardFile, project.id);
-const oldBoardFileDiagram = importedBoard.diagram;
-const importedImage = oldBoardFileDiagram.nodes.find(node => node.id === titledImage.id);
-assert.equal(Object.hasOwn(importedImage.appearance, 'strokeType'), false);
-assert.equal(importedImage.name, titledImage.title);
-assert.equal(Object.hasOwn(importedImage, 'title'), false);
-const importedFamily = id => oldBoardFileDiagram.families.find(family => family.id === id);
-assert.equal(context.partnerRelationshipStartEvent(importedFamily(legacyMarriage.id)).typeLabel, 'Religious');
-assert.equal(context.partnerRelationshipStartEvent(importedFamily(eventMarriage.id)).typeLabel, 'Civil');
-assert.ok(oldBoardFileDiagram.families.every(family => !Object.hasOwn(family, 'marriageType')));
+const importedBoard = context.importGeneographBoardPayload(currentBoardFile, project.id);
+const currentBoardDiagram = importedBoard.diagram;
 assert.equal(openedBoardId, importedBoard.id);
 assert.equal(sample.boards[0], importedBoard);
-assert.equal(JSON.stringify(oldBoardFile), oldBoardFileBefore);
+assert.equal(JSON.stringify(currentBoardFile), currentBoardFileBefore);
+assert.equal(currentBoardDiagram.themeProvenanceVersion, 1);
 assert.deepEqual(Array.from(context.validateProjectDraft(project,
     Object.fromEntries(collections.map(key => [key, sample[key] || []])))), []);
 sample.boards.shift();
 delete context.state.geneoBoardViewports[importedBoard.id];
-assert.equal(oldBoardFileDiagram.themeProvenanceVersion, 1);
-assert.equal(oldBoardFileDiagram.canvas.backgroundOverride, true);
-assert.equal(oldBoardFileDiagram.nodes[0].appearance.paintOverrides.stroke, true);
-const importedCanvasColor = oldBoardFileDiagram.canvas.backgroundPaint.color;
-context.geneoApplyThemeDefaultsToDiagram(oldBoardFileDiagram);
-assert.equal(oldBoardFileDiagram.canvas.backgroundPaint.color, importedCanvasColor);
 invalidThemeDiagram.themeProvenanceVersion = 0;
 assert.ok(context.prepareProjectDraft(project, invalidBoardTheme).errors.some(error =>
     error.includes('themeProvenanceVersion is unsupported')));

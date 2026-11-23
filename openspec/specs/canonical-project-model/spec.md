@@ -15,6 +15,25 @@ The prototype SHALL maintain one authored project record model with stable proje
 - **AND** timeline rows and UI display values are derived without modifying authored Archive, Notes or Source evidence
 - **AND** no legacy internal schema conversion is necessary
 
+### Requirement: Strict structured dates and image regions
+
+Every canonical structured genealogy date SHALL reject unknown outer fields as well as invalid or unknown nested date parts. Photo and Archive person-region rectangles SHALL contain only normalized x, y, width and height coordinates; unexpected properties SHALL be rejected with record/field diagnostics.
+
+#### Scenario: Unexpected nested input
+
+- **WHEN** a detached import candidate contains an unrecognized date field or tagged image-region property
+- **THEN** validation reports the affected owner and field without changing live records
+
+### Requirement: Archive places reference project Places
+
+Archive file place links SHALL use project-scoped Place IDs, not a parallel unlinked document-place text field.
+
+#### Scenario: Link a file to a place
+
+- **WHEN** the researcher links or changes an Archive file place
+- **THEN** the selected Place record is referenced within the same project
+- **AND** adding, unlinking or merging places preserves valid file links without inventing text-only place records
+
 ### Requirement: Detached strict project draft validation
 
 The project draft validator SHALL reject unsupported shapes, duplicate/missing IDs, incorrect types, invalid genealogy and board graphs, and dangling or cross-project structured references before changing live project data.

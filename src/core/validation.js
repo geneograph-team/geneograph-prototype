@@ -348,6 +348,10 @@ function validateProjectDraft(project, records, { deferEventReferences = false }
     {
         if (isProjectDataRecord(date))
         {
+            rejectUnknownFields(owner, date, ['date', 'dateLabel', 'dateType', 'state', 'calendar',
+                'first', 'second', 'originalText', 'sortDate', 'date2', 'date2Label', 'sortDate2',
+                'placeId', 'burialPlaceId', 'placeText', 'address', 'reason', 'cause',
+                'burialPlaceText', 'burialAddress']);
             for (const field of ['date', 'dateLabel', 'sortDate', 'date2', 'date2Label', 'sortDate2',
                 'placeText', 'address', 'reason', 'cause', 'burialPlaceText', 'burialAddress'])
                 if (date[field] != null && typeof date[field] !== 'string')
@@ -379,6 +383,8 @@ function validateProjectDraft(project, records, { deferEventReferences = false }
         else for (const [personId, region] of Object.entries(regions))
         {
             requireReference(path, 'personRegions', 'people', personId);
+            if (isProjectDataRecord(region))
+                rejectUnknownFields(path + '.personRegions.' + personId, region, ['x', 'y', 'width', 'height']);
             if (!isProjectImageRegion(region))
                 errors.push(path + '.personRegions.' + personId + ' must be within the ' + surface + '.');
         }
@@ -754,7 +760,7 @@ function validateProjectDraft(project, records, { deferEventReferences = false }
         const owner = 'archiveFiles/' + file.id;
         const referenceFields = Object.keys(references.archiveFiles);
         rejectUnknownFields(owner, file, ['id', 'projectId', 'name', 'originalName', 'kind', 'type', 'mimeType',
-            'sizeBytes', 'favorite', 'description', 'documentDate', 'documentPlaceText', 'personRegions',
+            'sizeBytes', 'favorite', 'description', 'documentDate', 'personRegions',
             'assetUrl', 'previewUrl', 'thumbnailUrl', 'addedAt', 'updatedAt',
             'size', 'added', 'updated', 'linkedSourceIds', ...referenceFields]);
         for (const field of referenceFields)
@@ -764,7 +770,7 @@ function validateProjectDraft(project, records, { deferEventReferences = false }
         if (typeof file.favorite !== 'boolean') errors.push(owner + '.favorite must be boolean.');
         for (const field of ['type', 'mimeType', 'description'])
             if (typeof file[field] !== 'string') errors.push(owner + '.' + field + ' must be text.');
-        for (const field of ['originalName', 'documentPlaceText', 'assetUrl', 'previewUrl', 'thumbnailUrl'])
+        for (const field of ['originalName', 'assetUrl', 'previewUrl', 'thumbnailUrl'])
             if (Object.hasOwn(file, field) && typeof file[field] !== 'string')
                 errors.push(owner + '.' + field + ' must be text when set.');
         if (!Number.isSafeInteger(file.sizeBytes) || file.sizeBytes < 0)
@@ -807,6 +813,7 @@ function isProjectImageRegion(region)
 {
     return isProjectDataRecord(region)
         && ['x', 'y', 'width', 'height'].every(key => Number.isFinite(region[key]))
+        && Object.keys(region).every(key => ['x', 'y', 'width', 'height'].includes(key))
         && region.x >= 0 && region.y >= 0 && region.width > 0 && region.height > 0
         && region.x + region.width <= 1.000001 && region.y + region.height <= 1.000001;
 }

@@ -385,14 +385,13 @@ function mergeSavedPlaces(keepId, removeId, { aliases = true, locationChoice, fi
     (sampleData.archiveFiles || []).forEach(file =>
     {
         if (!archiveFilePlaceIds(file).includes(removeId)) return;
-        const documentPlace = archiveDocumentPlace(file);
+        const documentPlaceId = file.documentPlaceId || null;
         const related = archiveFilePlaceIds(file);
         retargetStructuredPlaceReferences(file, removeId, keepId);
-        archiveApplyDocumentPlace(file,
-            documentPlace.placeId === removeId ? keepId : documentPlace.placeId,
-            documentPlace.placeText,
+        const remappedDocumentPlaceId = documentPlaceId === removeId ? keepId : documentPlaceId;
+        archiveApplyDocumentPlace(file, remappedDocumentPlaceId,
             [...new Set(related.map(id => id === removeId ? keepId : id))]
-                .filter(id => id !== (documentPlace.placeId === removeId ? keepId : documentPlace.placeId)));
+                .filter(id => id !== remappedDocumentPlaceId));
     });
     [sampleData.sources, sampleData.notes].forEach(records =>
         (records || []).forEach(record => retargetStructuredPlaceReferences(record, removeId, keepId)));

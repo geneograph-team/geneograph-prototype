@@ -704,7 +704,6 @@ function archiveSetConnectionsAtomically(
                 ? {
                     linkedPlaceIds: [...(archiveFileById(write.ownerId)?.linkedPlaceIds || [])],
                     documentPlaceId: archiveFileById(write.ownerId)?.documentPlaceId,
-                    documentPlaceText: archiveFileById(write.ownerId)?.documentPlaceText,
                     updatedAt: archiveFileById(write.ownerId)?.updatedAt
                 }
                 : null;
@@ -754,7 +753,6 @@ function archiveSetConnectionsAtomically(
                         {
                             file.linkedPlaceIds = [...(previous.previousPlace?.linkedPlaceIds || [])];
                             file.documentPlaceId = previous.previousPlace?.documentPlaceId || null;
-                            file.documentPlaceText = previous.previousPlace?.documentPlaceText || '';
                             file.updatedAt = previous.previousPlace?.updatedAt;
                         }
                     }
@@ -810,46 +808,18 @@ function archiveDocumentDateModel(file)
     return file?.documentDate || emptyGenealogyDate();
 }
 
-function archiveDocumentPlace(
-    file
-)
-{
-    const placeId = file?.documentPlaceId || '';
-
-    return {
-        placeId,
-
-        placeText:
-          String(
-              file?.documentPlaceText
-            || ''
-          ).trim()
-    };
-}
-
 function archiveApplyDocumentPlace(
     file,
     placeId,
-    placeText,
     relatedPlaceIds = archiveFilePlaceIds(file)
-        .filter(id => id !== archiveDocumentPlace(file).placeId)
+        .filter(id => id !== (file?.documentPlaceId || ''))
 )
 {
-    const normalizedPlaceId =
-        String(
-            placeId || ''
-        ).trim();
-
-    file.documentPlaceId =
-        normalizedPlaceId
-        || null;
-
-    file.documentPlaceText =
-        String(
-            placeText || ''
-        ).trim();
-
-    file.linkedPlaceIds = archiveUniqueIds(relatedPlaceIds.filter(id => id && id !== normalizedPlaceId));
+    const normalizedPlaceId = String(placeId || '').trim();
+    file.documentPlaceId = normalizedPlaceId || null;
+    file.linkedPlaceIds = archiveUniqueIds(
+        relatedPlaceIds.filter(id => id && id !== normalizedPlaceId)
+    );
 }
 
 function archiveFileEditDraftFromFile(

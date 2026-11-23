@@ -233,10 +233,8 @@ function validateGeneographBoardFile(payload)
     if (diagram.assets.length > 200 || diagram.people.length > 2000 || diagram.families.length > 2000
         || diagram.nodes.length > 2000 || diagram.connections.length > 4000)
         throw geneoBoardFileError('The board file contains too many objects.');
-    if (diagram.themeProvenanceVersion !== undefined
-        && diagram.themeProvenanceVersion !== 0 && diagram.themeProvenanceVersion !== 1)
+    if (diagram.themeProvenanceVersion !== 1)
         throw geneoBoardFileError('The board has invalid theme color settings.');
-    if (diagram.themeProvenanceVersion === 1)
     {
         const validOverrides = value => value && ['fill', 'stroke', 'text'].every(key =>
             typeof value[key] === 'boolean');
@@ -247,6 +245,12 @@ function validateGeneographBoardFile(payload)
             || !diagram.nodes.every(node => validOverrides(node.appearance?.paintOverrides)))
             throw geneoBoardFileError('The board has invalid theme color settings.');
     }
+    if (diagram.families.some(family => Object.hasOwn(family, 'marriageType'))
+        || diagram.nodes.some(node =>
+            (node.type === 'image' && (Object.hasOwn(node, 'title') || Object.hasOwn(node, 'photoId')))
+            || ['backgroundColor', 'strokeColor', 'textColor', 'strokeType'].some(field =>
+                Object.hasOwn(node.appearance || {}, field))))
+        throw geneoBoardFileError('This is not a supported Geneograph board file.');
     if (diagram.connectionDefaults?.cornerRadius !== undefined
         && (!Number.isInteger(diagram.connectionDefaults.cornerRadius)
             || diagram.connectionDefaults.cornerRadius < 0
@@ -349,44 +353,11 @@ function validateGeneographBoardFile(payload)
     return payload;
 }
 
-function geneoImportBoardTheme(diagram)
-{
-    if (diagram.themeProvenanceVersion === 1) return;
-    // Older external board files treated their saved colors as fixed.
-    diagram.themeProvenanceVersion = 1;
-    diagram.canvas.backgroundOverride = Boolean(diagram.canvas.backgroundPaint);
-    diagram.connectionDefaults ||= {};
-    diagram.connectionDefaults.lineOverride = Boolean(diagram.connectionDefaults.line);
-    const markSavedColors = appearance =>
-    {
-        appearance.paintOverrides = Object.fromEntries(['fill', 'stroke', 'text'].map(key =>
-            [key, Boolean(appearance[key])]));
-    };
-    for (const appearance of Object.values(diagram.cardAppearanceDefaults || {}))
-        if (appearance && typeof appearance === 'object') markSavedColors(appearance);
-    for (const node of diagram.nodes)
-        markSavedColors(node.appearance ||= {});
-}
-
 function importGeneographBoardPayload(payload, projectId = currentProjectId())
 {
     if (!validProjectById(projectId)) throw geneoBoardFileError('Open a project before importing a board.');
     validateGeneographBoardFile(payload);
     const diagram = structuredClone(payload.board.diagram);
-    geneoImportBoardTheme(diagram);
-    for (const family of diagram.families)
-    {
-        if (typeof family.marriageType !== 'string' || !family.marriageType) continue;
-        family.events ||= [];
-        const start = partnerRelationshipStartEvent(family);
-        if (start.gedcomTag !== 'MARR' || start.typeLabel) continue;
-        start.typeLabel = family.marriageType;
-        if (!family.events.includes(start))
-        {
-            start.relationshipManagedRole = 'start';
-            family.events.push(start);
-        }
-    }
     for (const person of diagram.people)
     {
         const linked = person.treePersonId ? getPerson(person.treePersonId) : null;
@@ -398,24 +369,8 @@ function importGeneographBoardPayload(payload, projectId = currentProjectId())
         }
         person.photoId = null;
     }
-    const assetsById = new Map(diagram.assets.map(asset => [asset.id, asset]));
     for (const node of diagram.nodes)
     {
-        // Older standalone files can carry flat appearance fields.
-        if (node.appearance && typeof node.appearance === 'object')
-            for (const field of ['backgroundColor', 'strokeColor', 'textColor', 'strokeType'])
-                delete node.appearance[field];
-        if (node.type === 'image')
-        {
-            const title = String(node.title || '').trim();
-            const asset = assetsById.get(node.imageRef.id);
-            const implicitNames = [asset?.title, asset?.displayName, asset?.filename, geneoFilenameStem(asset?.filename)]
-                .map(value => String(value || '').trim());
-            if (!String(node.name || '').trim() && title && !implicitNames.includes(title))
-                node.name = title.slice(0, 80);
-            delete node.title;
-            delete node.photoId;
-        }
         if (node.type !== 'place' || node.placeRef?.scope !== 'project') continue;
         const place = getPlace(node.placeRef.id);
         if (!place || place.projectId !== projectId
