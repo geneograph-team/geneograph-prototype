@@ -795,7 +795,7 @@ function getProjectPeopleCount(
     }
 
     // The technical fixture exposes its intended count in Projects without
-    // constructing its 1,200 canonical people until first project activation.
+    // constructing its canonical people until first project activation.
     if (projectId === FAMILY_TREE_STRESS_TEST_PROJECT_ID
         && !familyTreeStressTestIsLoaded(projectId))
         return FAMILY_TREE_STRESS_TEST_PERSON_COUNT;
