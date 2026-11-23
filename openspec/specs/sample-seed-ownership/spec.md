@@ -53,6 +53,13 @@ and must be deleted with the fixture.
 - **AND** a second opening does not regenerate or discard edits
 - **AND** file-based startup requires no network fetch
 
+#### Scenario: Fully populated ancestors above the proband
+- **WHEN** the tester selects Person 0001 in Family Tree
+- **THEN** Person 0002 is the recorded father and Person 0003 the recorded mother
+- **AND** their recorded parents are Person 0004–0007, and every row up to nine ancestor levels is fully populated with 2^level distinct people
+- **AND** Person 0001 has no descendants in this baseline fixture
+- **AND** all ancestry remains navigable despite the Tree UI's existing six-level-at-once limit
+
 #### Scenario: Single-appearance Family Tree baseline
 - **WHEN** the tester focuses anywhere in the technical project's pedigree
 - **THEN** each canonical person appears at most once in that view
