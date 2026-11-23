@@ -291,7 +291,7 @@ function toPeopleRecord(
           || '',
         death: formatGenealogyDateLabel(person.death),
         deathPlace: getPlaceEventDisplay(person.death),
-        updated: person.meta.updated,
+        updated: person.meta?.updated || '',
         updatedAt:
           person.updatedAt || '',
 
