@@ -2715,13 +2715,25 @@ function addPersonPossibleMatchIndex(fresh = false)
     return addPersonPossibleMatchState.index;
 }
 
+function addPersonDraftHasSearchEvidence(draft, hasFamilyContext = false)
+{
+    const meaningfulNames = Object.values(draft.names).filter(value => value.trim().length >= 3);
+    if (meaningfulNames.length >= 2) return true;
+    if (meaningfulNames.length !== 1) return false;
+    const specificDate = [draft.birth, draft.death].some(date =>
+        date.state === 'known' && date.first?.month && date.first?.day);
+    const knownPlace = [draft.birth, draft.death].some(date =>
+        Boolean(date.placeId || date.placeText));
+    return Number(specificDate) + Number(knownPlace) + Number(hasFamilyContext) >= 2;
+}
+
 function findAddPersonPossibleMatches(options = {}, editPerson = null, { fresh = false } = {})
 {
     const draft = collectAddPersonDraftForMatching();
-    if (!Object.values(draft.names).some(value => value.trim().length >= 3)) return [];
+    const intent = addPersonCreateConnectionIntent(options);
+    if (!addPersonDraftHasSearchEvidence(draft, intent.shouldConnect)) return [];
     const index = addPersonPossibleMatchIndex(fresh);
     if (!index) return [];
-    const intent = addPersonCreateConnectionIntent(options);
     return PersonMatchEngine.search(index, draft, {
         excludeIds: [editPerson?.id || '', intent.shouldConnect ? intent.anchorPersonId : ''].filter(Boolean),
         anchorPersonId: intent.shouldConnect ? intent.anchorPersonId : '',
