@@ -535,14 +535,15 @@ function renderAppSortOption({
     value,
     label,
     selected,
-    attribute
+    attribute,
+    role = 'radio'
 })
 {
     return `
         <button
           class="app-sort-option"
           type="button"
-          role="radio"
+          role="${escapeHtml(role)}"
           aria-checked="${
                 selected
                     ? 'true'

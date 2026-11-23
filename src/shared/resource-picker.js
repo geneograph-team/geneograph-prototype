@@ -192,19 +192,24 @@ function rpEnhanceSortControl(root, selector)
     if (!sortControl.isConnected) sortSelect.before(sortControl);
     sortSelect.remove();
     sortControl.className = 'rp-sort';
-    sortControl.innerHTML = `${icon.sortLines}<span class="rp-sort-chevron" aria-hidden="true">${icon.chevron}</span>`;
+    sortControl.innerHTML = '';
     sortControl.append(sortSelect);
     sortSelect.hidden = true;
     const sortTrigger = document.createElement('button');
     sortTrigger.type = 'button';
-    sortTrigger.className = 'rp-sort-trigger';
+    sortTrigger.className = 'app-sort-trigger rp-sort-trigger';
     sortTrigger.setAttribute('aria-haspopup', 'menu');
     sortTrigger.setAttribute('aria-expanded', 'false');
+    sortTrigger.innerHTML = `
+        <span class="app-sort-icon" aria-hidden="true">${icon.sortLines}</span>
+        <span class="app-sort-current"></span>
+        <span class="app-sort-chevron" aria-hidden="true">${icon.chevron}</span>`;
     sortControl.append(sortTrigger);
     const updateLabel = () =>
     {
-        sortTrigger.textContent = sortSelect.selectedOptions[0]?.textContent || '';
-        sortTrigger.setAttribute('aria-label', `${rpText('Sort', 'Сортировка')}: ${sortTrigger.textContent}`);
+        const label = sortSelect.selectedOptions[0]?.textContent || '';
+        sortTrigger.querySelector('.app-sort-current').textContent = label;
+        sortTrigger.setAttribute('aria-label', `${rpText('Sort', 'Сортировка')}: ${label}`);
     };
     sortSelect.addEventListener('change', updateLabel);
     updateLabel();
@@ -214,10 +219,18 @@ function rpEnhanceSortControl(root, selector)
         closeMenu();
         const menu = document.createElement('div');
         menu.id = 'projectMenu';
-        menu.className = 'menu-popover rp-sort-menu';
+        menu.className = 'menu-popover app-sort-popover rp-sort-menu';
         menu.setAttribute('role', 'menu');
         menu.setAttribute('aria-label', rpText('Sort', 'Сортировка'));
-        menu.innerHTML = [...sortSelect.options].filter(option => !option.hidden).map(option => `<button type="button" role="menuitemradio" aria-checked="${option.selected}" data-sort-value="${option.value}"><span>${escapeHtml(option.textContent)}</span><span aria-hidden="true">${option.selected ? icon.check : ''}</span></button>`).join('');
+        menu.innerHTML = `<div class="app-sort-popover-group" role="group" aria-label="${escapeHtml(rpText('Sort by', 'Сортировать по'))}">${[...sortSelect.options]
+            .filter(option => !option.hidden)
+            .map(option => renderAppSortOption({
+                value: option.value,
+                label: option.textContent,
+                selected: option.selected,
+                attribute: 'data-sort-value',
+                role: 'menuitemradio'
+            })).join('')}</div>`;
         modalBackdrop.append(menu);
         const rect = sortTrigger.getBoundingClientRect();
         menu.style.left = `${Math.max(12, Math.min(rect.left, innerWidth - menu.offsetWidth - 12))}px`;
