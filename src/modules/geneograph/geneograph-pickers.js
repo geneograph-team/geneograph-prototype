@@ -2441,7 +2441,8 @@ function renderGeneographPersonPossibleMatchesCard(
         </h3>
       `;
 
-    if (!draft.hasSignal)
+    if (!draft.hasSignal || !Object.values(draft.names || {})
+        .some(value => value.trim().length >= 3))
     {
         return `<div class="modal-side-card" data-geneo-person-possible-matches aria-live="polite">
           ${header}
