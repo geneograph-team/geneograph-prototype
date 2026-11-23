@@ -31,9 +31,20 @@ assert.equal(lunaMatch[0]?.personId, 'luna');
 assert.equal(lunaMatch[0]?.tier, 'moderate');
 assert.deepEqual(match(query({ first: 'Silver', last: 'Whiskerfield' }, date(1920, 1, 1))), []);
 assert.equal(Engine.nameQuality('Луна', 'Luna'), 3);
+const oldCalendar = date(1582, 10, 5); oldCalendar.calendar = 'Julian';
+const newCalendar = date(1582, 10, 15);
+assert.equal(Engine.dateEvidence(oldCalendar, newCalendar).strength, 2);
+const distantRange = date(1700, null, null, 'Between');
+distantRange.second = { year: 1701, month: null, day: null };
+assert.equal(Engine.dateEvidence(distantRange, date(1900, null, null)).conflict, true);
 const aliases = [person('alia', { first: 'Maria', middle: '', last: 'Ivanova', maiden: '' }, date(1850, null, null), { alternativeNames: 'Mary Smith' })];
 const aliasIndex = Engine.createIndex(aliases, [], [], 'p1');
 assert.equal(Engine.search(aliasIndex, query({ first: 'Mary', last: 'Smith' }))[0]?.personId, 'alia');
+const placesById = new Map(places.map(place => [place.id, place]));
+const sqlStyle = Engine.rankCandidates([Engine.preparePerson(silver, placesById)],
+    query({ first: 'Silver' }, date(null, 3, 3, 'Exact date', 'pawford')),
+    { places: placesById, projectId: 'p1' });
+assert.equal(sqlStyle[0]?.personId, 'silver');
 assert.deepEqual(Array.from(Engine.search(aliasIndex, query({ first: 'Mary', middle: 'Mary' })), x => x.personId), []);
 const deleted = { ...person('deleted', { first: 'Silvy', last: 'Whiskerfield' }, date(1998, 3, 3)), deleted: true };
 const foreign = { ...person('foreign', { first: 'Silvy', last: 'Whiskerfield' }, date(1998, 3, 3)), projectId: 'p2' };
