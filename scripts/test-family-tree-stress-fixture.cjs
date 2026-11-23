@@ -17,6 +17,11 @@ const context = vm.createContext({
     localizedDataFieldValue: text => text,
     escapeHtml: text => text,
     getPlaceDisplay: () => '',
+    getPlaceEventDisplay: () => '',
+    getPersonPhotoCount: () => 0,
+    getArchiveFilesForPerson: () => [],
+    getNotesForPerson: () => [],
+    document: { documentElement: { lang: 'en' } },
     cleanEditFieldValue: text => String(text ?? ''),
     currentProjectId: () => null
 });
@@ -145,6 +150,15 @@ assert.equal(run('sampleData.people.filter(p => p.projectId === "' + projectId +
 assert.equal(run('sampleData.families.filter(f => f.projectId === "' + projectId + '").length'), 442);
 assert.ok(run('sampleData.events.filter(e => e.projectId === "' + projectId + '").length') >= 1200);
 assert.equal(run('getProjectPeopleCount("' + projectId + '")'), 1200);
+const treePeople = run('getTreePeopleFromSampleData("' + projectId + '")');
+const treeFamilies = run('getTreeFamiliesFromSampleData("' + projectId + '")');
+assert.equal(treePeople.length, 1200);
+assert.equal(new Set(treePeople.map(person => person.id)).size, 1200,
+    'Tree input must not contain repeated person IDs');
+assert.equal(treeFamilies.length, 442);
+assert.equal(new Set(treeFamilies.map(family => family.id)).size, 442);
+assert.ok(treeFamilies.every(family => family.left && family.right && family.children.length),
+    'all visual family contexts must have two partners and children');
 assert.equal(run('JSON.stringify([sampleData.people.filter(p => p.projectId === "p1"), sampleData.families.filter(f => f.projectId === "p1")])'), p1Before);
 run('sampleData.people.find(p => p.id === "stress-person-0349").names.first = "Edited"');
 const peopleCount = run('sampleData.people.length');
