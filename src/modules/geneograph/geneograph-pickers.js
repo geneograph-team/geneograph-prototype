@@ -3820,6 +3820,9 @@ function bindGeneographPersonModal(personId = '', options = {})
     const statusMenu = modalBackdrop.querySelector('#geneoPersonStatusMenu');
     bindGenealogyDateFields(modalBackdrop);
     bindPlaceComboboxes(modalBackdrop);
+    // Applying a structured calendar date does not fire native input/change.
+    form?.addEventListener('genealogy-date-committed', () =>
+        scheduleGeneographPersonPossibleMatchesRefresh(options));
     modalBackdrop.querySelector('#geneoRelativePartnerType')?.addEventListener('change', event =>
     {
         const section = modalBackdrop.querySelector('[data-geneo-relative-config]');
