@@ -41,7 +41,7 @@ Ten project cohorts **do not imply ten simultaneously visible Tree rows**. Curre
 
 ## Checks and benchmarking
 
-Run `node scripts/test-family-tree-stress-fixture.cjs`. The dependency-free test verifies count, determinism, generation spacing, **connectedness of all person and family nodes**, and **acyclicity of the person–family membership graph** (exactly one path between any two nodes). It also asserts at most one parent and partner family per person, canonical validation, 8-child families, isolation from Whiskerfield, first-open loading, no duplicate records on reopen and preservation of an edit. This structural check prevents fixture-induced repeated appearances; only real browser QA can confirm rendering.
+Run `node scripts/test-family-tree-stress-fixture.cjs`. The dependency-free test verifies count, determinism, generation spacing, **connectedness of all person and family nodes**, and **acyclicity of the person–family membership graph** (exactly one path between any two nodes). It also asserts at most one parent and partner family per person, canonical validation, 8-child families, isolation from Whiskerfield, first-open loading, no duplicate records on reopen and preservation of an edit. The **People module's directory record adapter is exercised with all 1,200 records**, including absence and presence of optional `person.meta.updated`; missing metadata must not crash the People view. This structural check prevents fixture-induced repeated appearances; only real browser QA can confirm rendering.
 
 For browser QA, measure:
 1. Startup with stress project **unopened** (confirm no stress records in `sampleData.people`).
