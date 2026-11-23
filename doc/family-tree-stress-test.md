@@ -21,6 +21,8 @@ The Projects list includes only lightweight project metadata at initial startup.
 
 Reopening or switching projects in the same browser session reuses the records without regeneration or overwriting edits. Everything remains memory-only like the rest of the prototype; a browser reload reconstructs the same canonical fixture after opening again. This works with `file://` without a fetch request, backend or worker.
 
+**After updating the generator, perform a full page reload before testing.** An already-open tab retains its previous in-memory test records until reload; switching projects alone will **not** replace those records.
+
 The Projects card displays the **intended 1,200-person count before materialization**, not a zero-person preview. Whiskerfield (`p1`) is unchanged. Project IDs and person/family IDs are isolated.
 
 ## Stable QA focus points
