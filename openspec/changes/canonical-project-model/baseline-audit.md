@@ -31,6 +31,24 @@
 - `src/modules/archive/archive-inspector.js`: `documentPlaceText` legacy UI fallback remains; audit current canonical writers and correct treatment of genuine free-text place entry.
 - The old #330 checklist mentions `isFamilyRelationship()` accepting `partner`; pushed `src/shared/relationships.js` already uses canonical `type === 'family'`. **Do not redo completed cleanup.**
 
+## M2 writer and reader audit
+
+| Candidate | Storage and writer | Readers and decision |
+| --- | --- | --- |
+| Occupation company | Person OCCU attribute. The repeatable fact editor writes company, and detached validation rejects agency. | Removed the agency fallback from the Profile details adapter and repeatable fact summaries. |
+| Archive documentPlaceText | Archive file. The document Place writer stores the recorded text alongside the project Place ID. | Retained for the inspector, Place dialog and rollback because the text is authored data. |
+| Board normalization | Standalone board file. The importer calls the board normalizer after adapting its external payload. | Keep the external conversion. The authored sample passes detached validation before theme colors are applied. |
+| Family partner identifiers | Family records use partnerAId and partnerBId. The People relationship editor creates temporary personAId and personBId pairs, including unlink context. | Preserve the transient properties used by validatePartnerConnection and the unlink dialog. Detached validation rejects those names on persisted family records. |
+| Partner event selection | The relationship editor writes managed roles on edited events. Canonical recorded family events can carry a GEDCOM tag and type label before any editor has assigned a managed role. | Preserve tag and type-label lookup for recorded events. It resolves an existing event identity, which its evidence links depend on. |
+| Board marriage type | The standalone board-file importer reads marriageType from the external file and transfers it to the recorded marriage event. | Preserve the external adapter. Detached board validation rejects marriageType on internal family records. |
+| Rebuilt event evidence | The shared timeline rebuild derives event rows, filters Archive and Note event targets by project, and prunes invalid Source links. | Keep the rebuild path. Verify evidence retention across actual record edits under M3. |
+| Archive sizes and human-readable dates | Archive upload reads size from the browser File input and writes sizeBytes. Project, Archive and Note records use canonical timestamp fields. | Preserve File.size reads at upload boundaries. No internal reader for the retired stored file size or old display timestamps was found in the targeted search. |
+| Album photo range | Album photo editing saves a structured date with first and second calendar parts. Detached validation rejects fromDate and toDate on that record. | Removed the alias translation from photoDateModel. The authored range still renders both years. |
+| Education and occupation date | The repeatable fact editor writes fromDate and toDate. Sample ranged facts formerly carried a redundant null date. | Removed the single-date fallback from editor, summary and timeline and rejected date on those two tags. Custom facts keep their single date. |
+| Flat board paint | Board editor and Sync write nested paint records. Detached validation rejects the obsolete flat properties. | Removed flat paint stripping from the live appearance helper and kept it at standalone import. Browser File import preserved the canonical stroke color. |
+| Occupation edit and evidence | The People editor rewrites the selected fact and rebuilds the timeline. | Chromium preserved the Source link to event-occu-barnaby and all family memberships. The partner event record and family update timestamp changed, so full relationship edit isolation remains an M3 concern. |
+
+
 ## Verification handoff
 
 1. Run `node scripts/check-project-data-contract.cjs` against the current local checkout, record SHA-equivalent content/revision and outcome without using Git in Codex. Run localization after affected source changes. A script containing assertions is not a result.

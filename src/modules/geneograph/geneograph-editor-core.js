@@ -2987,10 +2987,6 @@ function geneoAppearance(value, defaults = {}, nodeType = '')
     {
         delete result.fontSize;
     }
-    delete result.backgroundColor;
-    delete result.strokeColor;
-    delete result.textColor;
-    delete result.strokeType;
     return result;
 }
 

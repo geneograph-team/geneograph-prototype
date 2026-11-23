@@ -18,7 +18,7 @@ const context = vm.createContext({
 });
 const files = [
     'seed/sample-data', 'seed/seed-genealogy', 'shared/genealogy-dates', 'modules/places/place-record-helpers',
-    'shared/person-name-helpers', 'shared/relationships', 'modules/family-tree/relationships', 'shared/tree-seed-model',
+    'shared/person-name-helpers', 'shared/media-and-album-model', 'shared/relationships', 'modules/family-tree/relationships', 'shared/tree-seed-model',
     'modules/people/person-form-fields', 'modules/people/person-editor', 'shared/date-and-place-fields',
     'modules/archive/archive-sources', 'seed/seed-archive-records', 'seed/seed-notes-records', 'seed/seed-geneograph-collections',
     'modules/albums/photo-layout-and-crop', 'modules/albums/person-photo',
@@ -57,7 +57,7 @@ assert.equal(sample.boards[0], seededBoard);
 assert.equal(seededBoard.diagram, seededDiagram);
 assert.equal(JSON.stringify(seededBoard), seededBoardBeforeRefresh);
 const paint = { color: '#336699', enabled: false, opacity: 60 };
-const canvasAppearance = context.geneoAppearance({ stroke: paint, strokeColor: '#FFFFFF', strokeType: 'dashed' },
+const canvasAppearance = context.geneoAppearance({ stroke: paint },
     { strokePattern: 'solid' }, 'shape');
 assert.equal(canvasAppearance.stroke.color, paint.color);
 assert.equal(canvasAppearance.stroke.enabled, false);
@@ -247,6 +247,8 @@ for (const message of ['defaultPersonId must be a record ID', 'desc must be text
     assert.ok(malformedProject.errors.some(error => error.includes(message)));
 const gardenPhoto = authored.media.find(photo => photo.id === 'photo-grandparents-garden');
 assert.equal(context.formatGenealogyDateLabel(gardenPhoto.date), 'Between 1970 and 1975');
+assert.equal(context.formatPhotoDate(gardenPhoto), '1970 - 1975');
+assert.equal(context.photoDateModel({ date: { fromDate: '1970', toDate: '1975' } }).state, 'empty');
 const malformedMedia = JSON.parse(before);
 for (const collection of ['albums', 'archiveFolders', 'noteCollections', 'boardCollections'])
     malformedMedia[collection][0].name = '';
@@ -476,10 +478,10 @@ for (const field of ['first', 'last'])
 person.names = originalNames;
 
 const originalAttributes = person.attributes;
-const invalidEducation = { ...originalAttributes[0], type: 'School', agency: 'School name', institutionName: 123 };
+const invalidEducation = { ...originalAttributes[0], type: 'School', agency: 'School name', date: null, institutionName: 123 };
 person.attributes = [invalidEducation];
 const educationErrors = context.validateProjectDraft(project, restored);
-for (const message of ['retired attribute field agency', 'retired education field type', '.institutionName must be text'])
+for (const message of ['retired ranged attribute field date', 'retired attribute field agency', 'retired education field type', '.institutionName must be text'])
     assert.ok(educationErrors.some(error => error.includes(message)));
 person.attributes = [{ id: 'invalid-attribute', tag: 1, mediaIds: null }];
 const factErrors = context.validateProjectDraft(project, restored);
@@ -771,6 +773,7 @@ eventMarriage.marriageType = 'Religious';
 const titledImage = oldBoardFile.board.diagram.nodes.find(node => node.type === 'image');
 titledImage.name = '';
 titledImage.title = 'Annotated family photograph';
+titledImage.appearance.strokeType = 'dashed';
 const oldBoardFileBefore = JSON.stringify(oldBoardFile);
 let openedBoardId;
 Object.assign(context, {
@@ -786,6 +789,7 @@ assert.equal(sample.boards[0], seededBoard);
 const importedBoard = context.importGeneographBoardPayload(oldBoardFile, project.id);
 const oldBoardFileDiagram = importedBoard.diagram;
 const importedImage = oldBoardFileDiagram.nodes.find(node => node.id === titledImage.id);
+assert.equal(Object.hasOwn(importedImage.appearance, 'strokeType'), false);
 assert.equal(importedImage.name, titledImage.title);
 assert.equal(Object.hasOwn(importedImage, 'title'), false);
 const importedFamily = id => oldBoardFileDiagram.families.find(family => family.id === id);

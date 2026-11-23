@@ -17,7 +17,7 @@ function renderRepeatableFactEntry(tag, record = null)
     const text = (key, label, multiline = false, placeholder = '') => `<div class="field ${multiline ? 'full' : ''}"><label for="${prefix}-${key}">${escapeHtml(t(label))}</label>${multiline
         ? `<textarea id="${prefix}-${key}" data-repeat-field="${key}" data-source-value="${escapeHtml(value[key] || '')}">${escapeHtml(localizedDataFieldValue(value[key] || ''))}</textarea>`
         : `<input id="${prefix}-${key}" data-repeat-field="${key}" data-source-value="${escapeHtml(value[key] || '')}" value="${escapeHtml(localizedDataFieldValue(value[key] || ''))}"${placeholder ? ` placeholder="${escapeHtml(t(placeholder))}"` : ''}>`}</div>`;
-    const date = (key, label) => renderGenealogyDateField(`${prefix}-${key}`, label, value[key] || (key === 'fromDate' ? value.date : null) || emptyGenealogyDate('Exact date'), { className: 'genealogy-date-inline-range', defaultDateType: 'Exact date' });
+    const date = (key, label) => renderGenealogyDateField(`${prefix}-${key}`, label, value[key] || emptyGenealogyDate('Exact date'), { className: 'genealogy-date-inline-range', defaultDateType: 'Exact date' });
     const place = renderPlaceCombobox({ id: `${prefix}-place`, label: 'Place', value: editPlaceValue(value.placeId, value.placeText), selectedPlaceId: value.placeId || '', addressValue: value.address || '', placeholder: 'Search or type a place', className: 'full' });
     const dates = `<div class="add-person-fact-date-row repeatable-fact-dates full"><div class="profile-edit-date-cell">${date('fromDate', 'Start date')}</div><div class="profile-edit-date-cell">${date('toDate', 'End date')}</div></div>`;
     const fields = tag === 'FACT' ? renderCustomFactFields(prefix, value)
@@ -135,7 +135,6 @@ function applyRepeatableFacts(person, draft)
         const { place, ...values } = row.values;
         const resolved = resolvePlaceAssignment(place, record.placeId);
         Object.assign(record, values, { placeId: resolved.placeId, placeText: resolved.placeText, address: resolved.address });
-        if (row.tag !== 'FACT') record.date = null;
     });
 }
 
@@ -169,11 +168,11 @@ function renderRepeatableFactReadOnly(person, tag, preferredId = profileFactReco
 
     const fields = tag === 'EDUC'
         ? [['Institution name', educationInstitutionLabel(record)], ['Institution type', educationInstitutionTypeLabel(record) === 'Unknown' ? '' : educationInstitutionTypeLabel(record)], ['Education or credential', educationValueLabel(record)]]
-        : tag === 'OCCU' ? [['Occupation', record.value], ['Company name', record.company || record.agency]]
+        : tag === 'OCCU' ? [['Occupation', record.value], ['Company name', record.company]]
             : [['Fact details', record.value]];
     fields.push(['Place', editPlaceValue(record.placeId, record.placeText)], ['Address', record.address]);
     if (tag === 'FACT') fields.push(['Date or period', formatGenealogyDateLabel(record.date)]);
-    else fields.push(['Start date', formatGenealogyDateLabel(record.fromDate || record.date)], ['End date', formatGenealogyDateLabel(record.toDate)]);
+    else fields.push(['Start date', formatGenealogyDateLabel(record.fromDate)], ['End date', formatGenealogyDateLabel(record.toDate)]);
     fields.push(['Notes', record.notes]);
 
     const title = escapeHtml(tag === 'FACT' ? record.type || t('Custom fact') : t(repeatableFactLabel(tag)));

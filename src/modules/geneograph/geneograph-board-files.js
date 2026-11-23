@@ -401,6 +401,10 @@ function importGeneographBoardPayload(payload, projectId = currentProjectId())
     const assetsById = new Map(diagram.assets.map(asset => [asset.id, asset]));
     for (const node of diagram.nodes)
     {
+        // Older standalone files can carry flat appearance fields.
+        if (node.appearance && typeof node.appearance === 'object')
+            for (const field of ['backgroundColor', 'strokeColor', 'textColor', 'strokeType'])
+                delete node.appearance[field];
         if (node.type === 'image')
         {
             const title = String(node.title || '').trim();

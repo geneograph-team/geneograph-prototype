@@ -590,6 +590,8 @@ function validateProjectDraft(project, records, { deferEventReferences = false }
                         errors.push(factPath + ' requires a nonempty attribute tag.');
                     if (field === 'attributes' && ['EDUC', 'OCCU'].includes(fact?.tag))
                     {
+                        if (Object.hasOwn(fact, 'date'))
+                            errors.push(factPath + ' contains retired ranged attribute field date.');
                         if (Object.hasOwn(fact, 'agency'))
                             errors.push(factPath + ' contains retired attribute field agency.');
                         if (fact.tag === 'EDUC' && Object.hasOwn(fact, 'type'))

@@ -323,13 +323,7 @@ function addPhotosToAlbums(
 
 function photoDateModel(photo)
 {
-    const date = photo?.date || {};
-    return normalizeGenealogyDateInput({
-        ...date,
-        date: date.fromDate || date.date || '',
-        date2: date.toDate || '',
-        date2Label: date.toDate || ''
-    }, date.dateType || 'Exact date');
+    return photo?.date?.first ? photo.date : emptyGenealogyDate();
 }
 
 function mediaDateFromGenealogyModel(value)

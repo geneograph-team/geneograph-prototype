@@ -624,7 +624,7 @@ function buildSampleEvents(context = null)
         {
             if (attribute.tag === 'EDUC')
             {
-                const fromDate = timelineOptionalGenealogyDate(attribute.fromDate || attribute.date, 'Exact date');
+                const fromDate = timelineOptionalGenealogyDate(attribute.fromDate, 'Exact date');
                 const toDate = timelineOptionalGenealogyDate(attribute.toDate, 'Exact date');
                 const primaryDate = fromDate || toDate || timelineUnknownGenealogyDate('Exact date');
 
@@ -666,7 +666,7 @@ function buildSampleEvents(context = null)
 
             if (attribute.tag === 'OCCU')
             {
-                const fromDate = timelineOptionalGenealogyDate(attribute.fromDate || attribute.date, 'Exact date');
+                const fromDate = timelineOptionalGenealogyDate(attribute.fromDate, 'Exact date');
                 const toDate = timelineOptionalGenealogyDate(attribute.toDate, 'Exact date');
                 const primaryDate = fromDate || toDate || timelineUnknownGenealogyDate('Exact date');
 

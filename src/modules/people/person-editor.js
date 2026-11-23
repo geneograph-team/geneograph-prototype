@@ -1380,7 +1380,7 @@ function peopleProfileDetailsFor(person)
             if (prop === 'educationNotes') return education?.notes || '';
             if (prop === 'educationFromDate') return dateForForm(education?.fromDate, 'Exact date');
             if (prop === 'educationToDate') return dateForForm(education?.toDate, 'Exact date');
-            if (prop === 'workCompany') return work?.company || work?.agency || '';
+            if (prop === 'workCompany') return work?.company || '';
             if (prop === 'workOccupation') return work?.value || '';
             if (prop === 'workNotes') return work?.notes || '';
             if (prop === 'workFromDate') return dateForForm(work?.fromDate, 'Exact date');
