@@ -3050,6 +3050,12 @@ function refreshAddPersonPossibleMatchesCard(options = {}, editPerson = null)
 {
     const container = modalBackdrop?.querySelector('[data-add-person-possible-matches]');
     if (!container) return;
+
+    const focused = container.contains(document.activeElement) ? document.activeElement : null;
+    const focusedPersonId = focused?.closest('[data-add-person-possible-match]')
+        ?.dataset.addPersonPossibleMatch || '';
+    const focusedAction = Boolean(focused?.matches('[data-add-person-match-action]'));
+    const listScroll = container.querySelector('.add-person-match-list')?.scrollTop || 0;
     const next = renderAddPersonPossibleMatchesCard(options, editPerson);
     if (next === addPersonPossibleMatchState.lastHtml) return;
 
@@ -3058,6 +3064,13 @@ function refreshAddPersonPossibleMatchesCard(options = {}, editPerson = null)
     const refreshed = modalBackdrop.querySelector('[data-add-person-possible-matches]');
     if (refreshed) localizeUI(refreshed);
     bindAddPersonPossibleMatchRows(options, editPerson);
+
+    const list = refreshed?.querySelector('.add-person-match-list');
+    if (list) list.scrollTop = listScroll;
+    const focusTarget = focusedPersonId
+        ? refreshed?.querySelector('[data-add-person-possible-match="' + CSS.escape(focusedPersonId) + '"]')
+        : focusedAction ? refreshed?.querySelector('[data-add-person-match-action]') : null;
+    focusTarget?.focus({ preventScroll: true });
 }
 
 function openAddPersonPossibleMatch(personId)
