@@ -19,6 +19,7 @@ Static browser prototype for genealogy research. Open `src/index.html` directly 
 - [Product vision](doc/product-vision.md): product purpose and long-term direction, not the prototype's implemented feature list.
 - [Design guide](doc/design-document.md): prototype interaction and UX principles; [source map](doc/source-map.md): code ownership and load-order dependencies.
 - [Project data contract](doc/project-data-contract.md): evolving canonical record model; check active issues for unfinished validation.
+- [Internal Family Tree stress-test fixture](doc/family-tree-stress-test.md): **temporary QA only; remove before open user testing**. Not part of the public sample experience.
 - [OpenSpec](openspec/README.md): verified feature requirements, active changes and history.
 - [Git branching](doc/git-branching-model.md) and [commit style](doc/git-commit-style.md): ChatGPT GitHub PR workflow only; local Codex must not use Git.
 
