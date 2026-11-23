@@ -1,5 +1,6 @@
 // TEMPORARY INTERNAL FIXTURE — remove before open user testing.
-// Issue #381. Startup loads only this small generator; records appear on first open.
+// Issue #381. v2 is a non-reconverging single-appearance pedigree.
+// Startup loads only this small generator; records appear on first open.
 const FAMILY_TREE_STRESS_TEST_PROJECT_ID = 'p-family-tree-stress';
 const FAMILY_TREE_STRESS_TEST_PERSON_COUNT = 1200;
 const FAMILY_TREE_STRESS_TEST_COHORTS = Object.freeze([
@@ -43,7 +44,7 @@ function buildFamilyTreeStressTestFixture()
                     maiden: '', prefix: '', suffix: '' },
                 // The paired people are a descendant and a new spouse.
                 // Vary the descendant's gender between branches.
-                gender: generation < 9
+                gender: generation < FAMILY_TREE_STRESS_TEST_COHORTS.length - 1
                     ? ((Math.floor(i / 2) + generation + i % 2) % 2 ? 'female' : 'male')
                     : (i % 2 === 0 ? 'male' : 'female'),
                 livingStatus: year >= 1950 ? 'Living' : 'Deceased',
