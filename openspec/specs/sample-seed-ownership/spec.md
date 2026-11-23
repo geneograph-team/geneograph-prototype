@@ -31,10 +31,16 @@ project-consistent and available to their connected views.
 While internal Family Tree stress testing is in progress, the **temporary**
 second sample project (issue #381) SHALL expose only metadata at startup,
 then deterministically construct and validate its 1,200-person, ten-cohort,
-connected canonical family graph upon first project activation. It SHALL NOT
-modify Whiskerfield, duplicate records on reopening, or overwrite in-session
-edits. The fixture and its references **MUST be removed before open user
-testing**. This requirement is temporary and must be deleted with the fixture.
+connected canonical family graph upon first project activation. The graph SHALL
+be a **single branching pedigree**: every person belongs to at most one
+family as a child and at most one family as a partner; the person-family
+membership graph SHALL be connected and acyclic. No branches may reconverge,
+and no person SHALL need more than one visual appearance in a Tree view.
+Complex multiple-partner, half-sibling or pedigree-collapse cases are not
+part of this fixture. It SHALL NOT modify Whiskerfield, duplicate records
+on reopening, or overwrite in-session edits. The fixture and its references
+**MUST be removed before open user testing**. This requirement is temporary
+and must be deleted with the fixture.
 
 #### Scenario: Startup and first activation
 - **WHEN** the app starts before the internal test project is opened
@@ -44,3 +50,9 @@ testing**. This requirement is temporary and must be deleted with the fixture.
 - **THEN** all 1,200 synthetic people and their valid family graph are available atomically
 - **AND** a second opening does not regenerate or discard edits
 - **AND** file-based startup requires no network fetch
+
+#### Scenario: Single-appearance Family Tree baseline
+- **WHEN** the tester focuses anywhere in the technical project's pedigree
+- **THEN** each canonical person appears at most once in that view
+- **AND** there are no membership loops, repeated parent families or repeated partner families
+- **AND** any unknown-parent placeholders represent missing evidence, not duplicate person records
