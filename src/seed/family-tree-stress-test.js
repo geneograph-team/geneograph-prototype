@@ -3,7 +3,7 @@
 const FAMILY_TREE_STRESS_TEST_PROJECT_ID = 'p-family-tree-stress';
 const FAMILY_TREE_STRESS_TEST_PERSON_COUNT = 1200;
 const FAMILY_TREE_STRESS_TEST_COHORTS = Object.freeze([
-    12, 18, 28, 44, 68, 104, 156, 220, 270, 280
+    2, 10, 22, 40, 64, 96, 150, 220, 280, 316
 ]);
 let familyTreeStressTestLoaded = false;
 
@@ -17,7 +17,6 @@ function buildFamilyTreeStressTestFixture()
     const people = [];
     const families = [];
     const cohorts = [];
-    const previousParents = new Map();
     const pad = value => String(value).padStart(4, '0');
     const emptyDate = () => ({
         state: 'empty', dateType: 'Exact date', calendar: 'Gregorian',
@@ -42,7 +41,11 @@ function buildFamilyTreeStressTestFixture()
                 projectId: FAMILY_TREE_STRESS_TEST_PROJECT_ID,
                 names: { first: 'Person', middle: '', last: pad(number),
                     maiden: '', prefix: '', suffix: '' },
-                gender: i % 2 === 0 ? 'male' : 'female',
+                // The paired people are a descendant and a new spouse.
+                // Vary the descendant's gender between branches.
+                gender: generation < 9
+                    ? ((Math.floor(i / 2) + generation + i % 2) % 2 ? 'female' : 'male')
+                    : (i % 2 === 0 ? 'male' : 'female'),
                 livingStatus: year >= 1950 ? 'Living' : 'Deceased',
                 birth: yearDate(year),
                 death: emptyDate(),
@@ -55,12 +58,6 @@ function buildFamilyTreeStressTestFixture()
         cohorts.push(cohort);
     });
 
-    const sharedParent = (a, b) =>
-    {
-        const aParents = previousParents.get(a.id) || [];
-        const bParents = previousParents.get(b.id) || [];
-        return aParents.some(parent => bParents.includes(parent));
-    };
     const makeFamily = (a, b) =>
     {
         const family = {
@@ -68,8 +65,8 @@ function buildFamilyTreeStressTestFixture()
             projectId: FAMILY_TREE_STRESS_TEST_PROJECT_ID,
             type: 'family',
             partnerAId: a.id,
-            partnerBId: b?.id || '',
-            relationshipType: b ? 'Married' : 'Single parent',
+            partnerBId: b.id,
+            relationshipType: 'Married',
             relationshipStatus: 'unknown',
             childIds: [],
             parentChildTypes: {},
@@ -79,99 +76,62 @@ function buildFamilyTreeStressTestFixture()
         return family;
     };
 
+    // Each new generation consists of descendant/spouse pairs (except the
+    // last generation, which contains children only). A spouse is introduced
+    // without recorded parents. Only the descendant continues the connected
+    // ancestral branch. This deliberately avoids pedigree collapse, multiple
+    // partner families and repeated visual person instances in the Tree.
     for (let generation = 0; generation < cohorts.length - 1; generation += 1)
     {
         const parents = cohorts[generation];
-        const children = cohorts[generation + 1];
+        const next = cohorts[generation + 1];
         const generationFamilies = [];
-        if (generation === 0)
-        {
-            // Overlapping couples connect all twelve founders through real family edges.
-            for (let i = 0; i < parents.length - 1; i += 1)
-                generationFamilies.push(makeFamily(parents[i], parents[i + 1]));
-        }
-        else
-        {
-            // Match unrelated male/female cohort members. An augmenting-path
-            // assignment avoids mating siblings and known half-siblings.
-            const males = parents.filter(person => person.gender === 'male');
-            const females = parents.filter(person => person.gender === 'female');
-            const matchedFemale = new Map();
-            const assign = (male, visited) =>
-            {
-                for (const female of females)
-                {
-                    if (visited.has(female.id) || sharedParent(male, female)) continue;
-                    visited.add(female.id);
-                    const previous = matchedFemale.get(female.id);
-                    if (!previous || assign(previous, visited))
-                    {
-                        matchedFemale.set(female.id, male);
-                        return true;
-                    }
-                }
-                return false;
-            };
-            for (const male of males)
-                if (!assign(male, new Set()))
-                    throw new Error('Stress fixture could not pair generation ' + generation);
 
-            let index = 0;
-            for (const [femaleId, male] of matchedFemale)
-            {
-                const female = parents.find(person => person.id === femaleId);
-                generationFamilies.push(makeFamily(male,
-                    generation >= 2 && index % 17 === 7 ? null : female));
-                index += 1;
-            }
+        for (let index = 0; index < parents.length; index += 2)
+            generationFamilies.push(makeFamily(parents[index], parents[index + 1]));
 
-            // Another recorded partnership with children creates half-sibling
-            // contexts without duplicating child memberships.
-            const alternateParent = parents.find(person =>
-                person.gender === 'female' && !sharedParent(parents[0], person)
-                && !generationFamilies.some(family =>
-                    family.partnerAId === parents[0].id && family.partnerBId === person.id));
-            if (generation >= 2 && alternateParent)
-                generationFamilies.push(makeFamily(parents[0], alternateParent));
-        }
+        const children = generation + 1 === cohorts.length - 1
+            ? next
+            : next.filter((person, index) => index % 2 === 0);
 
-        // Every family gets a child. Reserve exactly seven extra children for
-        // every 27th family to create repeatable 8-child sibling groups.
+        // Every couple has at least one child. Reserve 7 extra children for
+        // selected households to produce 8-sibling stress cases; distribute
+        // the remainder deterministically without interleaving siblings.
         const quota = generationFamilies.map(() => 1);
-        let remaining = children.length - generationFamilies.length;
-        if (remaining < 0) throw new Error('Not enough children in generation ' + generation);
-        const wide = [];
-        for (let i = 0; i < quota.length && remaining >= 7; i += 27)
-        {
-            quota[i] += 7;
-            wide.push(i);
-            remaining -= 7;
-        }
-        const ordinary = quota.map((unused, index) => index)
-            .filter(index => !wide.includes(index));
-        for (let i = 0; i < remaining; i += 1)
-            quota[ordinary[(i + generation) % ordinary.length]] += 1;
+        let remaining = children.length - quota.length;
+        if (remaining < 0)
+            throw new Error('Not enough children in generation ' + generation);
 
-        // Round-robin allocations avoid clustering siblings in adjacent IDs.
-        let cursor = 0;
-        const assigned = new Map();
-        while (cursor < children.length)
+        const wide = new Set();
+        for (let index = 0; index < quota.length && remaining >= 7; index += 19)
         {
-            for (let i = 0; i < quota.length; i += 1)
+            quota[index] += 7;
+            remaining -= 7;
+            wide.add(index);
+        }
+
+        const ordinary = quota.map((unused, index) => index)
+            .filter(index => !wide.has(index));
+        for (let offset = 0; offset < remaining; offset += 1)
+        {
+            const index = ordinary[(offset + generation) % ordinary.length];
+            quota[index] += 1;
+        }
+
+        let cursor = 0;
+        for (let index = 0; index < generationFamilies.length; index += 1)
+        {
+            const family = generationFamilies[index];
+            for (let childIndex = 0; childIndex < quota[index]; childIndex += 1)
             {
-                if (!quota[i]) continue;
-                const family = generationFamilies[i];
                 const child = children[cursor++];
                 family.childIds.push(child.id);
-                assigned.set(child.id, [family.partnerAId, family.partnerBId].filter(Boolean));
-                for (const parentId of [family.partnerAId, family.partnerBId].filter(Boolean))
-                    family.parentChildTypes[parentId + '|' + child.id] = 'Biological';
-                quota[i] -= 1;
+                family.parentChildTypes[family.partnerAId + '|' + child.id] = 'Biological';
+                family.parentChildTypes[family.partnerBId + '|' + child.id] = 'Biological';
             }
         }
-        previousParents.clear();
-        for (const [childId, parentsForChild] of assigned)
-            previousParents.set(childId, parentsForChild);
+        if (cursor !== children.length)
+            throw new Error('Unassigned children in generation ' + generation);
     }
 
     return { people, families };
