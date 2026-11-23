@@ -1,6 +1,10 @@
 const sampleData = {
     projects: [
-        { id: 'p1', name: 'Whiskerfield Family Tree', defaultPersonId: 'silver', createdAt: '2026-05-01T00:00:00Z', modifiedAt: '2026-05-24T10:42:00Z', status: 'Local project', cover: 'golden-tree', desc: 'Research into the Whiskerfield and Purrington family lines from Pawford, Meowbridge, Fishmarket Row, and Old Cattery.' }
+        { id: 'p1', name: 'Whiskerfield Family Tree', defaultPersonId: 'silver', createdAt: '2026-05-01T00:00:00Z', modifiedAt: '2026-05-24T10:42:00Z', status: 'Local project', cover: 'golden-tree', desc: 'Research into the Whiskerfield and Purrington family lines from Pawford, Meowbridge, Fishmarket Row, and Old Cattery.' },
+        { id: 'p-family-tree-stress', name: 'Family Tree Stress Test [TEST ONLY]',
+            defaultPersonId: 'stress-person-0350', createdAt: '2026-11-23T00:00:00Z',
+            modifiedAt: '2026-11-23T00:00:00Z', status: 'Local project', cover: 'tree',
+            desc: 'INTERNAL TECHNICAL FIXTURE: 1,200 synthetic connected people, 10 generations. Remove before open user testing.' }
     ],
     projectContinuation: {
         projectId: 'p1',
@@ -789,6 +793,12 @@ function getProjectPeopleCount(
     {
         return 0;
     }
+
+    // The technical fixture exposes its intended count in Projects without
+    // constructing its 1,200 canonical people until first project activation.
+    if (projectId === FAMILY_TREE_STRESS_TEST_PROJECT_ID
+        && !familyTreeStressTestIsLoaded(projectId))
+        return FAMILY_TREE_STRESS_TEST_PERSON_COUNT;
 
     return getPeople(
         projectId
