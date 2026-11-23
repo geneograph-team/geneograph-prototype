@@ -3288,6 +3288,14 @@ function bindAddPersonSideCards(options = {}, editPerson = null)
         input.addEventListener('input', scheduleRefresh);
         input.addEventListener('change', scheduleRefresh);
     });
+    // Calendar/structured date editor commits without a text input event.
+    modalBackdrop?.querySelector('.add-person-modal')
+        ?.addEventListener('genealogy-date-committed', scheduleRefresh);
+    modalBackdrop?.querySelector('#addPersonStatusMenu')
+        ?.addEventListener('click', event =>
+        {
+            if (event.target.closest('[data-status-value]')) scheduleRefresh();
+        });
 }
 
 function unlinkPersonName(personOrId)
