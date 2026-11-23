@@ -47,71 +47,106 @@ const buildStarted = performance.now();
 const fixture = run('buildFamilyTreeStressTestFixture()');
 const buildMs = performance.now() - buildStarted;
 assert.equal(fixture.people.length, 1200);
-assert.equal(fixture.families.length, 472);
+assert.equal(fixture.families.length, 442);
 assert.equal(JSON.stringify(fixture), JSON.stringify(run('buildFamilyTreeStressTestFixture()')));
 assert.equal(fixture.people[0].birth.first.year, 1740);
 assert.equal(fixture.people.at(-1).birth.first.year, 2010);
-assert.equal(new Set(fixture.people.map(p => p.id)).size, 1200);
-assert.equal(new Set(fixture.families.map(f => f.id)).size, fixture.families.length);
+assert.equal(new Set(fixture.people.map(person => person.id)).size, 1200);
+assert.equal(new Set(fixture.families.map(family => family.id)).size, fixture.families.length);
+assert.equal(run('sampleData.projects[1].defaultPersonId'), 'stress-person-0349');
+
 const cohorts = new Map();
-const persons = new Map(fixture.people.map(person => [person.id, person]));
-const neighbors = new Map(fixture.people.map(person => [person.id, new Set()]));
-const biologicalParents = new Map();
+const peopleById = new Map(fixture.people.map(person => [person.id, person]));
+const parentFamilyById = new Map();
+const partnerFamilyById = new Map();
+
+// A bipartite person-family membership graph must be a connected TREE.
+// Connectedness alone is insufficient: cycles allow one person to be
+// encountered more than once through different visible pedigree branches.
+const membership = new Map([
+    ...fixture.people.map(person => ['person:' + person.id, new Set()]),
+    ...fixture.families.map(family => ['family:' + family.id, new Set()])
+]);
+let membershipEdges = 0;
+let wideFamilyCount = 0;
 for (const person of fixture.people)
     cohorts.set(person.birth.first.year, (cohorts.get(person.birth.first.year) || 0) + 1);
-assert.equal(cohorts.size, 10);
-assert.deepEqual([...cohorts.keys()], [1740, 1770, 1800, 1830, 1860, 1890, 1920, 1950, 1980, 2010]);
-const partners = new Map();
-let wideFamilyCount = 0;
-let unknownParentFamilyCount = 0;
+assert.deepEqual([...cohorts.entries()], [
+    [1740, 2], [1770, 10], [1800, 22], [1830, 40], [1860, 64],
+    [1890, 96], [1920, 150], [1950, 220], [1980, 280], [2010, 316]
+]);
+
 for (const family of fixture.families)
 {
     assert.equal(family.projectId, projectId);
-    const members = [family.partnerAId, family.partnerBId, ...family.childIds].filter(Boolean);
-    for (const id of members) assert.ok(persons.has(id), 'broken person reference ' + id);
-    for (const a of members)
-        for (const b of members)
-            if (a !== b) neighbors.get(a).add(b);
-    if (family.childIds.length >= 8 && family.childIds.length <= 10) wideFamilyCount += 1;
-    if (!family.partnerBId) unknownParentFamilyCount += 1;
-    for (const id of [family.partnerAId, family.partnerBId].filter(Boolean))
-        partners.set(id, (partners.get(id) || 0) + 1);
+    assert.ok(family.partnerAId && family.partnerBId, 'every family is a complete pair');
+    assert.ok(family.childIds.length >= 1 && family.childIds.length <= 10);
+    const members = [family.partnerAId, family.partnerBId, ...family.childIds];
+    assert.equal(new Set(members).size, members.length, 'duplicate family membership');
+    if (family.childIds.length >= 8) wideFamilyCount += 1;
+
+    for (const id of members)
+    {
+        assert.ok(peopleById.has(id), 'missing member ' + id);
+        const personKey = 'person:' + id;
+        const familyKey = 'family:' + family.id;
+        membership.get(personKey).add(familyKey);
+        membership.get(familyKey).add(personKey);
+        membershipEdges += 1;
+    }
+    for (const id of [family.partnerAId, family.partnerBId])
+    {
+        assert.ok(!partnerFamilyById.has(id), 'repeated partner context: ' + id);
+        partnerFamilyById.set(id, family.id);
+    }
     for (const childId of family.childIds)
     {
-        assert.ok(!biologicalParents.has(childId), 'duplicate biological parent family: ' + childId);
-        const parents = [family.partnerAId, family.partnerBId].filter(Boolean);
-        biologicalParents.set(childId, parents);
-        for (const parentId of parents)
-            assert.equal(persons.get(childId).birth.first.year - persons.get(parentId).birth.first.year, 30);
+        assert.ok(!parentFamilyById.has(childId), 'repeated parent context: ' + childId);
+        parentFamilyById.set(childId, family.id);
+        for (const parentId of [family.partnerAId, family.partnerBId])
+            assert.equal(peopleById.get(childId).birth.first.year -
+                peopleById.get(parentId).birth.first.year, 30);
     }
 }
-const discovered = new Set([fixture.people[0].id]);
-const queue = [...discovered];
-for (let i = 0; i < queue.length; i += 1)
-    for (const id of neighbors.get(queue[i]))
-        if (!discovered.has(id)) { discovered.add(id); queue.push(id); }
-assert.equal(discovered.size, 1200, 'all people must belong to one component');
-assert.ok(wideFamilyCount >= 5);
-assert.ok(unknownParentFamilyCount >= 1);
-assert.ok([...partners.values()].some(count => count > 1));
+assert.ok(wideFamilyCount >= 5, 'several wide sibling groups must remain');
+assert.equal(partnerFamilyById.size, fixture.families.length * 2);
+assert.equal(parentFamilyById.size, fixture.people.length - 2 - (fixture.families.length - 1));
+
 for (const family of fixture.families)
 {
-    if (!family.partnerBId) continue;
-    const a = biologicalParents.get(family.partnerAId) || [];
-    const b = biologicalParents.get(family.partnerBId) || [];
-    assert.ok(!a.some(id => b.includes(id)), 'known siblings cannot be partners in ' + family.id);
+    if (family.id === 'stress-family-0001')
+    {
+        assert.ok(!parentFamilyById.has(family.partnerAId));
+        assert.ok(!parentFamilyById.has(family.partnerBId));
+    }
+    else
+    {
+        assert.ok(parentFamilyById.has(family.partnerAId), 'continuing descendant needs a parent family');
+        assert.ok(!parentFamilyById.has(family.partnerBId), 'married-in spouse may not reconnect another branch');
+    }
 }
-assert.equal(run('validateProjectDraft(sampleData.projects[1], buildFamilyTreeStressTestFixture()).length'), 0);
+for (const person of fixture.people)
+    assert.ok(parentFamilyById.has(person.id) || partnerFamilyById.has(person.id),
+        'disconnected record: ' + person.id);
 
+const discovered = new Set(['person:' + fixture.people[0].id]);
+const queue = [...discovered];
+for (let i = 0; i < queue.length; i += 1)
+    for (const id of membership.get(queue[i]))
+        if (!discovered.has(id)) { discovered.add(id); queue.push(id); }
+assert.equal(discovered.size, membership.size, 'all persons and families must be connected');
+assert.equal(membershipEdges, membership.size - 1, 'pedigree must have no reconverging branches');
+
+assert.equal(run('validateProjectDraft(sampleData.projects[1], buildFamilyTreeStressTestFixture()).length'), 0);
 const openedAt = performance.now();
 assert.equal(run('ensureFamilyTreeStressTestProjectLoaded("' + projectId + '")'), true);
 const openMs = performance.now() - openedAt;
 assert.equal(run('sampleData.people.filter(p => p.projectId === "' + projectId + '").length'), 1200);
-assert.equal(run('sampleData.families.filter(f => f.projectId === "' + projectId + '").length'), 472);
+assert.equal(run('sampleData.families.filter(f => f.projectId === "' + projectId + '").length'), 442);
 assert.ok(run('sampleData.events.filter(e => e.projectId === "' + projectId + '").length') >= 1200);
 assert.equal(run('getProjectPeopleCount("' + projectId + '")'), 1200);
 assert.equal(run('JSON.stringify([sampleData.people.filter(p => p.projectId === "p1"), sampleData.families.filter(f => f.projectId === "p1")])'), p1Before);
-run('sampleData.people.find(p => p.id === "stress-person-0350").names.first = "Edited"');
+run('sampleData.people.find(p => p.id === "stress-person-0349").names.first = "Edited"');
 const peopleCount = run('sampleData.people.length');
 const familyCount = run('sampleData.families.length');
 const eventCount = run('sampleData.events.length');
@@ -119,12 +154,12 @@ assert.equal(run('ensureFamilyTreeStressTestProjectLoaded("' + projectId + '")')
 assert.equal(run('sampleData.people.length'), peopleCount);
 assert.equal(run('sampleData.families.length'), familyCount);
 assert.equal(run('sampleData.events.length'), eventCount);
-assert.equal(run('sampleData.people.find(p => p.id === "stress-person-0350").names.first'), 'Edited');
+assert.equal(run('sampleData.people.find(p => p.id === "stress-person-0349").names.first'), 'Edited');
 
 console.log(JSON.stringify({
     ok: true, people: fixture.people.length, families: fixture.families.length,
-    connected: discovered.size, generations: cohorts.size,
-    wideFamilies: wideFamilyCount, unknownParentFamilies: unknownParentFamilyCount,
+    connectedMembershipNodes: discovered.size, noPedigreeCycles: true,
+    generations: cohorts.size, wideFamilies: wideFamilyCount,
     buildMs: Math.round(buildMs), firstOpenMs: Math.round(openMs),
     note: 'Synthetic Node timings, not browser render/layout measurements'
 }, null, 2));
