@@ -45,6 +45,18 @@ const sqlStyle = Engine.rankCandidates([Engine.preparePerson(silver, placesById)
     query({ first: 'Silver' }, date(null, 3, 3, 'Exact date', 'pawford')),
     { places: placesById, projectId: 'p1' });
 assert.equal(sqlStyle[0]?.personId, 'silver');
+
+// Distinct canonical Places with the same short locality must not count
+// as corroborating evidence when their full recorded locations differ.
+const ambiguousPlaces = [...places, { id: 'pawford-fr', projectId: 'p1',
+    name: 'Pawford, France', alternativeNames: [] }];
+const locationIndex = Engine.createIndex([silver], ambiguousPlaces, [], 'p1');
+assert.deepEqual(Array.from(Engine.search(locationIndex,
+    query({ first: 'Silver' }, date(null, 3, 3, 'Exact date', 'pawford-fr'))),
+    row => row.personId), []);
+const freeTextBirth = { ...date(null, 3, 3), placeText: 'Pawford' };
+assert.deepEqual(Array.from(Engine.search(locationIndex, query({ first: 'Silver' }, freeTextBirth)),
+    row => row.personId), ['silver']);
 assert.deepEqual(Array.from(Engine.search(aliasIndex, query({ first: 'Mary', middle: 'Mary' })), x => x.personId), []);
 const deleted = { ...person('deleted', { first: 'Silvy', last: 'Whiskerfield' }, date(1998, 3, 3)), deleted: true };
 const foreign = { ...person('foreign', { first: 'Silvy', last: 'Whiskerfield' }, date(1998, 3, 3)), projectId: 'p2' };
