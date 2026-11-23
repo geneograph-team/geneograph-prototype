@@ -326,6 +326,9 @@ function renderRelation(item)
 
     const name =
         formatPersonFullName(person) || 'Unnamed person';
+    const metaId = item.kind === 'partner' && item.meta
+        ? `relation-meta-${item.personId}-${item.familyId}`
+        : '';
 
     const actions =
         item.canEdit || item.canUnlink
@@ -375,7 +378,8 @@ function renderRelation(item)
             class="relation-row-main"
             type="button"
             data-select-relationship-person="${escapeHtml(person.id)}"
-            aria-label="Select ${escapeHtml(name)}">
+            aria-label="Select ${escapeHtml(name)}"
+            ${metaId ? `aria-describedby="${escapeHtml(metaId)}"` : ''}>
 
             ${renderPersonAvatar(
                 person,
@@ -388,7 +392,7 @@ function renderRelation(item)
 
             <span class="relation-row-copy">
               <strong>${escapeHtml(name)}</strong>
-              <span>${escapeHtml(item.meta)}</span>
+              <span ${metaId ? `id="${escapeHtml(metaId)}"` : ''}>${escapeHtml(item.meta)}</span>
             </span>
           </button>
 

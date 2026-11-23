@@ -378,7 +378,10 @@ html.tree-fullscreen .tree-shell {
 
 .tree-line.partner {
     stroke: var(--tree-connection-partner);
-    stroke-dasharray: 0;
+}
+
+.tree-line.partner.is-separated-or-divorced {
+    stroke-dasharray: 10 12;
 }
 
 .tree-person-card {

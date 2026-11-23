@@ -426,7 +426,6 @@
 
 .tree-line.partner {
     stroke: var(--tree-connection-partner);
-    stroke-dasharray: 4 5;
 }
 
 .tree-person-card,

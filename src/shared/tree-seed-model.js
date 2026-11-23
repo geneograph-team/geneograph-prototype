@@ -387,7 +387,8 @@ function getTreeFamiliesFromSampleData(projectId)
                 children,
                 missingFather: !pair.fatherId,
                 missingMother: !pair.motherId,
-                relationshipType: family.relationshipType || 'Partner'
+                relationshipType: family.relationshipType || 'Partner',
+                relationshipStatus: family.relationshipStatus || ''
             };
         })
         .filter(family => family.left || family.right || family.children.length);

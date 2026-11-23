@@ -1183,6 +1183,16 @@ function treeConnectorPath(points)
     }, `M${normalized[0].x} ${normalized[0].y}`);
 }
 
+function treePartnerConnectorClass(family)
+{
+    const type = String(family?.relationshipType || '').trim().toLowerCase();
+    const status = String(family?.relationshipStatus || '').trim().toLowerCase();
+    const dashed = ['separated', 'divorced'].includes(type)
+        || ['separated', 'divorced'].includes(status);
+
+    return dashed ? 'tree-line partner is-separated-or-divorced' : 'tree-line partner';
+}
+
 function buildTreeConnectorDescriptors(
     layout,
     { arrangeBands = false } = {}
@@ -1192,6 +1202,7 @@ function buildTreeConnectorDescriptors(
     const drafts = [];
     const partnerKeys = new Set();
     const partnerGroups = [];
+    const familyById = new Map((layout.families || []).map(family => [family.id, family]));
 
     function normalizePoints(points)
     {
@@ -1291,7 +1302,7 @@ function buildTreeConnectorDescriptors(
         addDescriptor({
             familyId,
             role: 'partner',
-            className: 'tree-line partner',
+            className: treePartnerConnectorClass(familyById.get(familyId)),
             points: [
                 {
                     x: first.rightX,
