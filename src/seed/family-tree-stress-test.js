@@ -1,11 +1,10 @@
 // TEMPORARY INTERNAL FIXTURE — remove before open user testing.
-// Issue #381. v2 is a non-reconverging single-appearance pedigree.
-// Startup loads only this small generator; records appear on first open.
+// Issue #381. v3 is a complete 10-generation upward ancestor pedigree.
+// Loading the code at startup does NOT generate records: first project open does.
 const FAMILY_TREE_STRESS_TEST_PROJECT_ID = 'p-family-tree-stress';
-const FAMILY_TREE_STRESS_TEST_PERSON_COUNT = 1200;
-const FAMILY_TREE_STRESS_TEST_COHORTS = Object.freeze([
-    2, 10, 22, 40, 64, 96, 150, 220, 280, 316
-]);
+const FAMILY_TREE_STRESS_TEST_ANCESTOR_LEVELS = 9;
+const FAMILY_TREE_STRESS_TEST_PERSON_COUNT =
+    2 ** (FAMILY_TREE_STRESS_TEST_ANCESTOR_LEVELS + 1) - 1;
 let familyTreeStressTestLoaded = false;
 
 function familyTreeStressTestIsLoaded(projectId)
@@ -17,8 +16,8 @@ function buildFamilyTreeStressTestFixture()
 {
     const people = [];
     const families = [];
-    const cohorts = [];
     const pad = value => String(value).padStart(4, '0');
+    const id = number => 'stress-person-' + pad(number);
     const emptyDate = () => ({
         state: 'empty', dateType: 'Exact date', calendar: 'Gregorian',
         originalText: '', first: { year: null, month: null, day: null },
@@ -30,109 +29,55 @@ function buildFamilyTreeStressTestFixture()
         second: null, placeId: null
     });
 
-    FAMILY_TREE_STRESS_TEST_COHORTS.forEach((count, generation) =>
+    // Standard binary pedigree numbering:
+    // Person 0001 = proband (bottom), 0002 = father, 0003 = mother,
+    // 0004/0005 = paternal grandparents, 0006/0007 = maternal grandparents.
+    // For person n, father = 2n and mother = 2n + 1.
+    // All 9 levels of parents are known, so the first 10 rows contain
+    // 1, 2, 4, 8, ... 512 distinct people with NO pedigree collapse.
+    for (let number = 1; number <= FAMILY_TREE_STRESS_TEST_PERSON_COUNT; number += 1)
     {
-        const year = 1740 + generation * 30;
-        const cohort = [];
-        for (let i = 0; i < count; i += 1)
-        {
-            const number = people.length + 1;
-            const person = {
-                id: 'stress-person-' + pad(number),
-                projectId: FAMILY_TREE_STRESS_TEST_PROJECT_ID,
-                names: { first: 'Person', middle: '', last: pad(number),
-                    maiden: '', prefix: '', suffix: '' },
-                // The paired people are a descendant and a new spouse.
-                // Vary the descendant's gender between branches.
-                gender: generation < FAMILY_TREE_STRESS_TEST_COHORTS.length - 1
-                    ? ((Math.floor(i / 2) + generation + i % 2) % 2 ? 'female' : 'male')
-                    : (i % 2 === 0 ? 'male' : 'female'),
-                livingStatus: year >= 1950 ? 'Living' : 'Deceased',
-                birth: yearDate(year),
-                death: emptyDate(),
-                profile: { alternativeNames: null },
-                events: [], attributes: [], notes: [], citations: [], mediaIds: []
-            };
-            people.push(person);
-            cohort.push(person);
-        }
-        cohorts.push(cohort);
-    });
+        const generation = Math.floor(Math.log2(number));
+        const birthYear = 2000 - generation * 30;
+        people.push({
+            id: id(number),
+            projectId: FAMILY_TREE_STRESS_TEST_PROJECT_ID,
+            names: { first: 'Person', middle: '', last: pad(number),
+                maiden: '', prefix: '', suffix: '' },
+            gender: number % 2 === 0 ? 'male' : 'female',
+            livingStatus: birthYear >= 1950 ? 'Living' : 'Deceased',
+            birth: yearDate(birthYear),
+            death: emptyDate(),
+            profile: { alternativeNames: null },
+            events: [], attributes: [], notes: [], citations: [], mediaIds: []
+        });
+    }
 
-    const makeFamily = (a, b) =>
+    // Exactly one canonical family for each child who has recorded parents.
+    // Each parent appears in ONE family as a partner and, unless in the
+    // oldest generation, ONE other family as a child. The result is a
+    // connected acyclic person–family graph with no repeated visual paths.
+    const childrenWithParents = Math.floor(FAMILY_TREE_STRESS_TEST_PERSON_COUNT / 2);
+    for (let childNumber = 1; childNumber <= childrenWithParents; childNumber += 1)
     {
-        const family = {
-            id: 'stress-family-' + pad(families.length + 1),
+        const fatherId = id(childNumber * 2);
+        const motherId = id(childNumber * 2 + 1);
+        const childId = id(childNumber);
+        families.push({
+            id: 'stress-family-' + pad(childNumber),
             projectId: FAMILY_TREE_STRESS_TEST_PROJECT_ID,
             type: 'family',
-            partnerAId: a.id,
-            partnerBId: b.id,
+            partnerAId: fatherId,
+            partnerBId: motherId,
             relationshipType: 'Married',
             relationshipStatus: 'unknown',
-            childIds: [],
-            parentChildTypes: {},
+            childIds: [childId],
+            parentChildTypes: {
+                [fatherId + '|' + childId]: 'Biological',
+                [motherId + '|' + childId]: 'Biological'
+            },
             events: [], attributes: [], notes: [], citations: [], mediaIds: []
-        };
-        families.push(family);
-        return family;
-    };
-
-    // Each new generation consists of descendant/spouse pairs (except the
-    // last generation, which contains children only). A spouse is introduced
-    // without recorded parents. Only the descendant continues the connected
-    // ancestral branch. This deliberately avoids pedigree collapse, multiple
-    // partner families and repeated visual person instances in the Tree.
-    for (let generation = 0; generation < cohorts.length - 1; generation += 1)
-    {
-        const parents = cohorts[generation];
-        const next = cohorts[generation + 1];
-        const generationFamilies = [];
-
-        for (let index = 0; index < parents.length; index += 2)
-            generationFamilies.push(makeFamily(parents[index], parents[index + 1]));
-
-        const children = generation + 1 === cohorts.length - 1
-            ? next
-            : next.filter((person, index) => index % 2 === 0);
-
-        // Every couple has at least one child. Reserve 7 extra children for
-        // selected households to produce 8-sibling stress cases; distribute
-        // the remainder deterministically without interleaving siblings.
-        const quota = generationFamilies.map(() => 1);
-        let remaining = children.length - quota.length;
-        if (remaining < 0)
-            throw new Error('Not enough children in generation ' + generation);
-
-        const wide = new Set();
-        for (let index = 0; index < quota.length && remaining >= 7; index += 19)
-        {
-            quota[index] += 7;
-            remaining -= 7;
-            wide.add(index);
-        }
-
-        const ordinary = quota.map((unused, index) => index)
-            .filter(index => !wide.has(index));
-        for (let offset = 0; offset < remaining; offset += 1)
-        {
-            const index = ordinary[(offset + generation) % ordinary.length];
-            quota[index] += 1;
-        }
-
-        let cursor = 0;
-        for (let index = 0; index < generationFamilies.length; index += 1)
-        {
-            const family = generationFamilies[index];
-            for (let childIndex = 0; childIndex < quota[index]; childIndex += 1)
-            {
-                const child = children[cursor++];
-                family.childIds.push(child.id);
-                family.parentChildTypes[family.partnerAId + '|' + child.id] = 'Biological';
-                family.parentChildTypes[family.partnerBId + '|' + child.id] = 'Biological';
-            }
-        }
-        if (cursor !== children.length)
-            throw new Error('Unassigned children in generation ' + generation);
+        });
     }
 
     return { people, families };
