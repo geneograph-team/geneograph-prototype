@@ -2215,6 +2215,7 @@ button {
 
 
 .dropzone {
+    width: 100%;
     min-height: 96px;
     border: 1px dashed var(--border-strong);
     background: transparent;
@@ -2939,6 +2940,65 @@ button.app-chip:disabled,
 
 .modal-body {
     padding: var(--space-6);
+}
+
+.gedcom-import-body,
+.gedcom-preview {
+    display: grid;
+    gap: var(--space-4);
+}
+
+.gedcom-import-body [hidden],
+.gedcom-preview:empty,
+.gedcom-error:empty {
+    display: none;
+}
+
+.gedcom-file-row {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: var(--space-3);
+}
+
+.gedcom-file-name {
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+
+.gedcom-file-name,
+.gedcom-file-version,
+.gedcom-session-note {
+    color: var(--text-secondary);
+}
+
+.gedcom-import-body p,
+.gedcom-counts,
+.gedcom-counts dd {
+    margin: 0;
+}
+
+.gedcom-counts {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(94px, 1fr));
+    gap: var(--space-3);
+    padding-block: var(--space-3);
+    border-block: 1px solid var(--border-default);
+}
+
+.gedcom-counts dt {
+    color: var(--text-secondary);
+    overflow-wrap: anywhere;
+}
+
+.gedcom-counts dd {
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+}
+
+[data-gedcom-import] button[type="submit"]:disabled {
+    opacity: 0.5;
+    cursor: default;
 }
 
 .project-delete-warning {

@@ -855,7 +855,7 @@ html.tree-fullscreen .tree-shell {
     }
 
     .project-wide-hero-page .dropzone {
-        grid-column: 1;
+        grid-column: 1 / -1;
         grid-row: 3;
         margin-top: 0;
     }
@@ -864,6 +864,10 @@ html.tree-fullscreen .tree-shell {
         grid-column: 2;
         grid-row: 2 / span 2;
         align-self: start;
+    }
+
+    .project-wide-hero-page:has(.dropzone) > .right-column {
+        grid-row: 2;
     }
 }
 

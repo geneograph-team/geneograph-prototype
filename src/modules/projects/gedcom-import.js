@@ -468,7 +468,7 @@ function gedcomImportSummary(report)
         return '<details><summary>' + escapeHtml(t(title)) + ' (' + total + ')</summary><ul>' + examples + '</ul>'
             + (entries.length > 25 ? '<p>' + escapeHtml(t('Showing the first 25 tag types.')) + '</p>' : '') + '</details>';
     };
-    return '<dl>' + rows.map(([label, value]) => '<dt>' + escapeHtml(t(label)) + '</dt><dd>' + value + '</dd>').join('')
+    return '<dl class="gedcom-counts">' + rows.map(([label, value]) => '<div><dt>' + escapeHtml(t(label)) + '</dt><dd>' + value + '</dd></div>').join('')
         + '</dl>' + warningGroup('skipped', 'Skipped or unsupported GEDCOM data')
         + warningGroup('date-text', 'Dates preserved as text')
         + (report.overBackupRecordLimit ? '<p>' + escapeHtml(t('This project exceeds the 50,000-record limit for project backups.')) + '</p>' : '')
@@ -480,16 +480,22 @@ function openImportModal(initialFile = null)
     openModal(`<div class="modal" role="dialog" aria-modal="true" aria-labelledby="importTitle">
         <div class="modal-header"><h2 id="importTitle">${escapeHtml(t('Import GEDCOM'))}</h2>
         <button class="close-button" type="button" data-close aria-label="${escapeHtml(t('Close'))}">${icon.close}</button></div>
-        <form data-gedcom-import><div class="modal-body form-grid">
-        <div class="field full"><label for="gedcomFile">${escapeHtml(t('GEDCOM file'))}</label><input id="gedcomFile" type="file" accept=".ged"></div>
+        <form data-gedcom-import><div class="modal-body gedcom-import-body">
+        <div class="gedcom-file-row">
+            <button type="button" class="button secondary" data-gedcom-choose data-modal-initial-focus>${icon.import}${escapeHtml(t('Choose file'))}</button>
+            <span class="gedcom-file-name" data-gedcom-file-name role="status" data-user-content>${escapeHtml(t('Supports .ged files'))}</span>
+            <input id="gedcomFile" type="file" accept=".ged" hidden>
+        </div>
         <div class="field full" data-gedcom-name hidden><label for="gedcomProjectName">${escapeHtml(t('Project name'))}</label><input id="gedcomProjectName" maxlength="120" required disabled></div>
-        <div class="field full" data-gedcom-preview aria-live="polite"></div>
-        <p class="field full" data-gedcom-error role="alert"></p>
-        <p class="field full">${escapeHtml(t('Imported projects stay in this session. Reloading discards them and any edits.'))}</p>
+        <div class="gedcom-preview" data-gedcom-preview aria-live="polite"></div>
+        <p class="gedcom-error" data-gedcom-error role="alert"></p>
+        <p class="gedcom-session-note">${escapeHtml(t('Imported projects stay in this session. Reloading discards them and any edits.'))}</p>
         </div><div class="modal-footer"><button class="button secondary" type="button" data-close>${escapeHtml(t('Cancel'))}</button>
         <button class="button primary" type="submit" disabled>${escapeHtml(t('Import to new project'))}</button></div></form></div>`);
     const form = modalBackdrop.querySelector('[data-gedcom-import]');
     const input = form.querySelector('#gedcomFile');
+    const fileName = form.querySelector('[data-gedcom-file-name]');
+    form.querySelector('[data-gedcom-choose]').addEventListener('click', () => input.click());
     const name = form.querySelector('#gedcomProjectName');
     const preview = form.querySelector('[data-gedcom-preview]');
     const error = form.querySelector('[data-gedcom-error]');
@@ -507,6 +513,7 @@ function openImportModal(initialFile = null)
         const sequence = ++readSequence;
         parsed = null;
         preview.replaceChildren();
+        fileName.textContent = file?.name || t('Supports .ged files');
         error.textContent = '';
         submit.disabled = name.disabled = true;
         name.closest('[data-gedcom-name]').hidden = true;
@@ -527,7 +534,7 @@ function openImportModal(initialFile = null)
                 return;
             }
             parsed = candidate;
-            preview.innerHTML = '<p>' + escapeHtml(file.name) + ' · GEDCOM ' + candidate.version + '</p>' + gedcomImportSummary(gedcomImportReport(draft));
+            preview.innerHTML = '<p class="gedcom-file-version">GEDCOM ' + candidate.version + '</p>' + gedcomImportSummary(gedcomImportReport(draft));
             name.closest('[data-gedcom-name]').hidden = false;
             submit.disabled = name.disabled = false;
         }
