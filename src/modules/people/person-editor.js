@@ -259,9 +259,10 @@ function openAddPersonModal(title, subtitle, options = {})
     };
     if (isEditMode)
     {
+        const initialRelationships = collectAddPersonRelationshipBlock().relationships || [];
         modalBackdrop.querySelector('[data-save-edit-person]')?.addEventListener('click', () =>
         {
-            saveEditPersonModalValues(options.personId);
+            saveEditPersonModalValues(options.personId, initialRelationships);
         });
     }
     else
@@ -982,7 +983,7 @@ function applyAddPersonAdditionalFacts(person, facts = {})
         else removePersonEvent(person, 'BAPM');
     }
 }
-function saveEditPersonModalValues(personId)
+function saveEditPersonModalValues(personId, initialRelationships = [])
 {
     const person = getPerson(personId);
 
@@ -1066,7 +1067,12 @@ function saveEditPersonModalValues(personId)
     }
 
     applyAddPersonAdditionalFacts(person, additionalFacts);
-    savePersonRelationshipBlock(personId, relationshipValues);
+    const initialById = new Map(initialRelationships.map(values => [values.relationshipId, JSON.stringify(values)]));
+    savePersonRelationshipBlock(personId, {
+        ...relationshipValues,
+        relationships: relationshipValues.relationships.filter(values =>
+            initialById.get(values.relationshipId) !== JSON.stringify(values))
+    });
     applyAddPersonAttachmentDrafts(
         personId
     );

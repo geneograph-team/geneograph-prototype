@@ -54,3 +54,11 @@
 1. Run `node scripts/check-project-data-contract.cjs` against the current local checkout, record SHA-equivalent content/revision and outcome without using Git in Codex. Run localization after affected source changes. A script containing assertions is not a result.
 2. Run UI flows in M3 against actual interactive records (new/existing partners, parent families, unlink, event evidence, Geneograph Sync); note EN/RU, themes, keyboard, desktop/mobile and `file://` coverage separately.
 3. Document exact passing/failing evidence and explicit blockers in the **milestone issue**, not in duplicate permanent specs. Do not mark an issue complete just because a small change was made.
+
+## M3 local verification
+
+- Chromium on file URLs exercised new and existing partner selection, parent/child/sibling creation, invalid partner guards, and precise unlink of a separate union.
+- An occupation edit preserved family records. A marriage-type edit retained Source, Archive, and Note evidence through three timeline rebuilds.
+- Both Sync directions passed preview, Apply, injected rollback, retry, toolbar Undo, Place transfer, and cross-project rejection. Board-local IDs, assets, and photo references held.
+- Russian/light and English/dark passed keyboard staging and Escape. The English inspector opener regained focus. Other browsers and a broad responsive matrix were not run.
+- JavaScript syntax, project data contract, and localization checks passed.

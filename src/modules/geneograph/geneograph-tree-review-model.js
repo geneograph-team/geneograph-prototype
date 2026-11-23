@@ -1338,16 +1338,18 @@ function geneoTreeImportCommit()
     if (plan.error) { draft.error = plan.error; geneoTreeImportRender(); return false; }
     const board = getGeneographBoard(draft.boardId, { projectId: draft.projectId });
     if (!geneoReviewPatchesSafe(board, plan.patches)) return false;
+    const modifiedAt = board.modifiedAt;
     try
     {
         geneoReviewWritePatches(board, plan.patches, 'after');
+        touchGeneographBoard(board);
         if (plan.patches.length)
             geneoPushHistorySnapshot(JSON.stringify({ geneoReviewHistory: true, boardId: board.id, side: 'before', patches: plan.patches }));
-        touchGeneographBoard(board);
     }
     catch (error)
     {
         geneoReviewWritePatches(board, plan.patches, 'before');
+        board.modifiedAt = modifiedAt;
         draft.error = t('No changes were applied. Review your choices and try again.');
         geneoTreeImportRender();
         return false;
