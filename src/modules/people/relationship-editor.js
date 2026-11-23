@@ -2405,49 +2405,50 @@ function applyAddPersonAttachmentDrafts(personId)
         }
     );
 
-    const fileWrites =
-        readAddPersonFileIds().map(fileId => ({
+    const linkedFiles = new Set(
+        getArchiveFilesForPerson(person.id).map(file => file.id)
+    );
+    const selectedFiles = new Set(readAddPersonFileIds());
+    const fileWrites = [...new Set([...linkedFiles, ...selectedFiles])]
+        .filter(id => linkedFiles.has(id) !== selectedFiles.has(id))
+        .map(id => ({
             ownerType: 'file',
-            ownerId: fileId,
+            ownerId: id,
             entityType: 'person',
             entityId: person.id,
-            shouldLink: true
+            shouldLink: selectedFiles.has(id)
         }));
 
     if (fileWrites.length)
     {
-        archiveSetConnectionsAtomically(
-            fileWrites
-        );
+        archiveSetConnectionsAtomically(fileWrites);
     }
 
-    readAddPersonNoteIds().forEach(noteId =>
+    const linkedNotes = new Set(
+        getNotesForPerson(person.id, {
+            projectId: person.projectId,
+            includeArchived: true
+        }).map(note => note.id)
+    );
+    const selectedNotes = new Set(readAddPersonNoteIds());
+
+    for (const noteId of new Set([...linkedNotes, ...selectedNotes]))
     {
-        const note =
-            getNote(noteId, {
-                projectId:
-              person.projectId,
-                includeArchived:
-              true
-            });
+        if (linkedNotes.has(noteId) === selectedNotes.has(noteId)) continue;
+        const note = getNote(noteId, {
+            projectId: person.projectId,
+            includeArchived: true
+        });
+        if (!note) continue;
 
-        if (!note) return;
+        const personIds = new Set(note.linkedPersonIds || []);
+        if (selectedNotes.has(noteId)) personIds.add(person.id);
+        else personIds.delete(person.id);
 
-        setNoteEntityLinks(
-            note.id,
-            'person',
-            [
-                ...new Set([
-                    ...(note.linkedPersonIds || []),
-                    person.id
-                ])
-            ],
-            {
-                projectId:
-              note.projectId
-            }
-        );
-    });
+        setNoteEntityLinks(note.id, 'person', [...personIds], {
+            projectId: person.projectId
+        });
+    }
 }
 
 function commitAddPersonModalCreate(title, subtitle, options = {})
@@ -2952,7 +2953,7 @@ function initializeAddPersonAttachmentDraft(editPerson = null)
 
         noteIds:
           editPerson
-              ? getNotesForPerson(editPerson.id)
+              ? getNotesForPerson(editPerson.id, { includeArchived: true })
                   .map(note => note.id)
               : []
     };
@@ -3003,7 +3004,7 @@ function refreshAddPersonAttachmentCounts()
             if (element)
             {
                 element.textContent =
-                    `${count} selected`;
+                    translateText(`${count} selected`);
             }
         }
     );
@@ -3074,7 +3075,7 @@ function renderAddPersonAttachmentSideCard()
 
             <span
               data-add-person-attachment-count="${escapeHtml(type)}">
-              ${count} selected
+              ${escapeHtml(translateText(`${count} selected`))}
             </span>
           </div>
         </button>`;
@@ -3192,7 +3193,17 @@ function bindAddPersonSideCards(options = {}, editPerson = null)
               readAddPersonPhotoIds(),
 
                 onSave:
-              (ids, context) => setAddPersonPhotoDraftIds(rpApplyConnectionChanges(readAddPersonPhotoIds(), context))
+              (ids, context) =>
+              {
+                  setAddPersonPhotoDraftIds(rpApplyConnectionChanges(readAddPersonPhotoIds(), context));
+                  return { ok: true };
+              },
+
+                afterSave:
+              refreshAddPersonAttachmentCounts,
+
+                suppressLinkToast:
+              true
             });
         });
 
@@ -3293,16 +3304,14 @@ function bindAddPersonSideCards(options = {}, editPerson = null)
               },
 
                 onSave:
-              noteIds =>
+              (noteIds, context) =>
               {
-                  setAddPersonNoteDraftIds([
-                      ...readAddPersonNoteIds(),
-                      ...noteIds
-                  ]);
+                  setAddPersonNoteDraftIds(rpApplyConnectionChanges(readAddPersonNoteIds(), context));
 
                   return {
+                      ok: true,
                       addedLinkCount:
-                    noteIds.length
+                    context.changes.addedIds.length
                   };
               },
 
