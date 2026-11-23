@@ -2328,152 +2328,72 @@ function openGeneographRelativePopover(
 
 let geneoPersonPossibleMatchState = {
     selectedPersonId: '',
-    refreshFrame: null
+    refreshFrame: null,
+    index: null,
+    indexProjectId: '',
+    peopleLength: -1,
+    placesLength: -1,
+    lastHtml: ''
 };
 
 function collectGeneographPersonDraftForMatching()
 {
-    const value =
-        selector =>
-            modalBackdrop
-                ?.querySelector(selector)
-                ?.value
-          || '';
-
-    const firstName =
-        normalizeAddPersonMatchText(
-            value('#geneoPersonFirstName')
-        );
-
-    const middleName =
-        normalizeAddPersonMatchText(
-            value('#geneoPersonMiddleName')
-        );
-
-    const lastName =
-        normalizeAddPersonMatchText(
-            value('#geneoPersonLastName')
-        );
-
-    const maidenName =
-        normalizeAddPersonMatchText(
-            value('#geneoPersonMaidenName')
-        );
-
-    const birthDate =
-        normalizeAddPersonMatchText(
-            value('#geneoPersonBirthDate')
-        );
-
-    const deathDate =
-        normalizeAddPersonMatchText(
-            value('#geneoPersonDeathDate')
-        );
-
-    const birthPlace =
-        normalizeAddPersonMatchText(
-            value('#geneoPersonBirthPlace')
-        );
-
-    const deathPlace =
-        normalizeAddPersonMatchText(
-            value('#geneoPersonDeathPlace')
-        );
-
+    const names = {
+        first: readAddPersonModalValue('#geneoPersonFirstName'),
+        middle: readAddPersonModalValue('#geneoPersonMiddleName'),
+        last: readAddPersonModalValue('#geneoPersonLastName'),
+        maiden: readAddPersonModalValue('#geneoPersonMaidenName')
+    };
+    const birth = addPersonDraftMatchEvent('geneoPersonBirth', '#geneoPersonBirthPlace');
+    const isDeceased = readAddPersonModalValue('#geneoPersonLivingStatus') === 'Deceased';
+    const death = isDeceased
+        ? addPersonDraftMatchEvent('geneoPersonDeath', '#geneoPersonDeathPlace')
+        : emptyGenealogyDate();
     return {
-        firstName,
-        middleName,
-        lastName,
-        maidenName,
-        birthDate,
-        deathDate,
-        birthPlace,
-        deathPlace,
-        hasSignal: Boolean(
-            firstName
-          || middleName
-          || lastName
-          || maidenName
-          || birthDate
-          || deathDate
-          || birthPlace
-          || deathPlace
-        )
+        names, birth, death,
+        hasSignal: Boolean(Object.values(names).some(value => value.trim())
+            || birth.state === 'known' || birth.placeId || birth.placeText
+            || death.state === 'known' || death.placeId || death.placeText)
     };
 }
 
-function geneoPossibleMatchScoreOptions(
-    options = {}
-)
+function geneoPossibleMatchScoreOptions(options = {})
 {
-    const anchorNode =
-        options.relative?.anchorNodeId
-            ? getGeneographNode(
-                options.relative.anchorNodeId
-            )
-            : null;
-
-    const anchorPerson =
-        anchorNode?.type === 'person'
-            ? getGeneographPerson(
-                anchorNode.personId
-            )
-            : null;
-
+    const anchorNode = options.relative?.anchorNodeId
+        ? getGeneographNode(options.relative.anchorNodeId) : null;
+    const anchorPerson = anchorNode?.type === 'person'
+        ? getGeneographPerson(anchorNode.personId) : null;
     return {
-        connectToPersonId:
-          anchorPerson?.treePersonId
-          || ''
+        connectToPersonId: anchorPerson?.treePersonId || '',
+        relationshipType: options.relative ? geneoRelativeCategory(options.relative.type) : ''
     };
 }
 
-function findGeneographPersonPossibleMatches(
-    options = {}
-)
+function findGeneographPersonPossibleMatches(options = {}, { fresh = false } = {})
 {
-    const draft =
-        collectGeneographPersonDraftForMatching();
+    const draft = collectGeneographPersonDraftForMatching();
+    if (!Object.values(draft.names).some(value => value.trim().length >= 3)) return [];
 
-    if (!draft.hasSignal) return [];
-
-    const projectId =
-        selectedGeneographBoard()?.projectId
-        || currentProjectId();
-
-    const scoreOptions =
-        geneoPossibleMatchScoreOptions(
-            options
-        );
-
-    return getPeople(projectId)
-        .filter(person =>
-            person?.id
-          && !person.deleted
-          && person.id
-            !== scoreOptions.connectToPersonId
-        )
-        .map(person => ({
-            person,
-            score:
-            scoreAddPersonPossibleMatch(
-                person,
-                draft,
-                scoreOptions
-            )
-        }))
-        .filter(item => item.score >= 24)
-        .sort(
-            (first, second) =>
-                second.score - first.score
-            || connectPersonName(
-                first.person
-            ).localeCompare(
-                connectPersonName(
-                    second.person
-                )
-            )
-        )
-        .slice(0, 2);
+    const projectId = selectedGeneographBoard()?.projectId || currentProjectId();
+    if (!projectId) return [];
+    const state = geneoPersonPossibleMatchState;
+    if (fresh || !state.index || state.indexProjectId !== projectId
+        || state.peopleLength !== sampleData.people.length
+        || state.placesLength !== sampleData.places.length)
+    {
+        state.index = PersonMatchEngine.createIndex(
+            getPeople(projectId), sampleData.places, sampleData.families, projectId);
+        state.indexProjectId = projectId;
+        state.peopleLength = sampleData.people.length;
+        state.placesLength = sampleData.places.length;
+    }
+    const context = geneoPossibleMatchScoreOptions(options);
+    return PersonMatchEngine.search(state.index, draft, {
+        excludeIds: [context.connectToPersonId].filter(Boolean),
+        anchorPersonId: context.connectToPersonId,
+        relationshipType: context.relationshipType,
+        limit: 2
+    });
 }
 
 function renderGeneographPersonPossibleMatchesCard(
@@ -2526,7 +2446,7 @@ function renderGeneographPersonPossibleMatchesCard(
         return `<div class="modal-side-card" data-geneo-person-possible-matches aria-live="polite">
           ${header}
           <div class="add-person-match-empty">
-            Enter a name, date, or place to check the Family Tree.
+            Enter a name to check the Family Tree.
           </div>
         </div>`;
     }
@@ -2536,7 +2456,7 @@ function renderGeneographPersonPossibleMatchesCard(
         return `<div class="modal-side-card" data-geneo-person-possible-matches aria-live="polite">
           ${header}
           <div class="add-person-match-empty">
-            No strong matches found in the Family Tree.
+            No convincing matches found in the Family Tree.
           </div>
         </div>`;
     }
@@ -2639,10 +2559,10 @@ function refreshGeneographPersonPossibleMatches(
     const scrollTop =
         body?.scrollTop || 0;
 
-    current.outerHTML =
-        renderGeneographPersonPossibleMatchesCard(
-            options
-        );
+    const next = renderGeneographPersonPossibleMatchesCard(options);
+    if (next === geneoPersonPossibleMatchState.lastHtml && !focusSelected) return;
+    current.outerHTML = next;
+    geneoPersonPossibleMatchState.lastHtml = next;
 
     const refreshed =
         modalBackdrop.querySelector(
@@ -3258,6 +3178,8 @@ function commitGeneographPersonPossibleMatchDraft(
         || treePerson.projectId
           !== board.projectId
         || treePerson.deleted
+        || !findGeneographPersonPossibleMatches(options, { fresh: true })
+            .some(item => item.personId === treePerson.id)
     )
     {
         showToast(
@@ -4016,7 +3938,12 @@ function openGeneographPersonModal(
 
     geneoPersonPossibleMatchState = {
         selectedPersonId: '',
-        refreshFrame: null
+        refreshFrame: null,
+        index: null,
+        indexProjectId: '',
+        peopleLength: -1,
+        placesLength: -1,
+        lastHtml: ''
     };
 
     openModal(
