@@ -51,6 +51,7 @@ Collect measurements in the PR/issue or QA notes, not in permanent source files.
 - [ ] Delete `src/seed/family-tree-stress-test.js` and its `src/index.html` script tag.
 - [ ] Remove the `p-family-tree-stress` project metadata and lazy-count special case from `src/seed/sample-data.js`.
 - [ ] Remove the `ensureFamilyTreeStressTestProjectLoaded` activation hook in `src/shared/shared-actions.js`.
+- [ ] Remove the technical project name/description translations from `src/localization/shared-projects.js`.
 - [ ] Remove `scripts/test-family-tree-stress-fixture.cjs`, this temporary guide, and the dedicated OpenSpec requirement; update `README.md`, `AGENTS.md` and `doc/source-map.md` references.
 - [ ] Verify Projects lists only intended public samples, run `node scripts/check-project-data-contract.cjs`, recheck navigation and `file://`, and inspect the built release output for `p-family-tree-stress` or `stress-person-` references.
 - [ ] Document removal in the open-user-testing release PR before deploying that build.
