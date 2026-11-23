@@ -69,6 +69,17 @@ assert.equal(unparsed.records.people[0].birth.originalText, 'INT 1970 (estimated
 assert.equal(unparsed.records.people[0].birth.state, 'unparsed');
 assert.ok(unparsed.warnings.some(warning => warning.tag === 'DATE' && warning.kind === 'date-text'));
 
+const splitConc = Buffer.concat([
+    Buffer.from('1 NOTE A'), Buffer.from([0xd0]), Buffer.from('\r\n2 CONC '),
+    Buffer.from([0xb5]), Buffer.from('B')
+]);
+assert.equal(context.decodeGedcomImport(splitConc), '1 NOTE Aе\r\n2 CONC B');
+assert.throws(() => context.decodeGedcomImport(Buffer.concat([splitConc, Buffer.from([0xff])])), /valid UTF-8/);
+assert.throws(() => context.decodeGedcomImport(Buffer.from(splitConc.toString('latin1').replace('CONC', 'CONT'), 'latin1')), /valid UTF-8/);
+const wrappedNote = map(file(['0 @I1@ INDI', '1 NOTE First line', 'Unprefixed note text', '2 CONC Last part']));
+assert.deepEqual(Array.from(wrappedNote.errors), []);
+assert.ok(wrappedNote.warnings.some(item => item.tag === 'CONT' && item.lines[0] === 7));
+assert.throws(() => parse(file(['0 @I1@ INDI', '1 NOTE First line', '2 invalid tag'])), /Malformed/);
 assert.throws(() => context.decodeGedcomImport(Uint8Array.of(0xff)), /valid UTF-8/);
 assert.throws(() => context.decodeGedcomImport(new Uint8Array(8 * 1024 * 1024 + 1)), /8 MiB/);
 for (const [invalid, diagnostic] of [

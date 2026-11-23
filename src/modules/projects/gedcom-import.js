@@ -16,16 +16,47 @@ class GedcomImportError extends Error
     }
 }
 
+// Some exporters split a UTF-8 character across physical CONC lines.
+function repairGedcomConcBytes(bytes)
+{
+    const source = new Uint8Array(bytes.buffer || bytes, bytes.byteOffset || 0, bytes.byteLength);
+    const continuations = /(?:\r\n|\r|\n)[1-9][0-9]? +CONC /g;
+    const byteText = new TextDecoder('windows-1252').decode(source);
+    let repaired = null;
+    for (const match of byteText.matchAll(continuations))
+    {
+        const boundary = match.index;
+        const payload = boundary + match[0].length;
+        let start = boundary - 1;
+        while (start > boundary - 3 && (source[start] & 0xc0) === 0x80) start--;
+        const lead = source[start];
+        const width = lead >= 0xc2 && lead <= 0xdf ? 2
+            : lead >= 0xe0 && lead <= 0xef ? 3
+                : lead >= 0xf0 && lead <= 0xf4 ? 4 : 0;
+        const missing = width - (boundary - start);
+        if (missing <= 0 || payload + missing > source.length
+            || !source.subarray(payload, payload + missing).every(byte => (byte & 0xc0) === 0x80)) continue;
+        repaired ||= source.slice();
+        repaired.copyWithin(boundary + missing, boundary, payload);
+        repaired.set(source.subarray(payload, payload + missing), boundary);
+    }
+    return repaired;
+}
+
 function decodeGedcomImport(bytes)
 {
     if (!bytes.byteLength || bytes.byteLength > GEDCOM_IMPORT_LIMITS.bytes)
         throw new GedcomImportError('Choose a nonempty GEDCOM file up to 8 MiB.');
-    try
-    {
-        return new TextDecoder('utf-8', { fatal: true }).decode(bytes);
-    }
+    const decoder = new TextDecoder('utf-8', { fatal: true });
+    try { return decoder.decode(bytes); }
     catch
     {
+        const repaired = repairGedcomConcBytes(bytes);
+        if (repaired)
+        {
+            try { return decoder.decode(repaired); }
+            catch { /* Reject any remaining malformed UTF-8. */ }
+        }
         throw new GedcomImportError('The GEDCOM file must use valid UTF-8 encoding.');
     }
 }
@@ -49,8 +80,19 @@ function parseGedcomImport(text)
         if (raw.length > limits.lineLength)
             throw new GedcomImportError('A GEDCOM line is too long.', line);
         const match = /^(0|[1-9][0-9]?) +(?:(@[^@\s]+@) +)?([A-Z_][A-Z0-9_]*)(?: +(.*))?$/.exec(raw);
-        if (!match || /[\u0000-\u0008\u000b\u000c\u000e-\u001f\ufeff]/.test(raw))
+        if (/[\u0000-\u0008\u000b\u000c\u000e-\u001f\ufeff]/.test(raw))
             throw new GedcomImportError('Malformed GEDCOM line.', line);
+        if (!match)
+        {
+            // Some exported NOTE values contain literal newlines without CONT.
+            const previous = stack.at(-1);
+            const note = previous?.tag === 'NOTE' ? previous
+                : ['CONC', 'CONT'].includes(previous?.tag) && stack.at(-2)?.tag === 'NOTE' ? stack.at(-2) : null;
+            if (!note || /^\s*\d/.test(raw))
+                throw new GedcomImportError('Malformed GEDCOM line.', line);
+            note.children.push({ tag: 'CONT', value: raw, line, xref: '', children: [] });
+            continue;
+        }
         const level = Number(match[1]);
         const [, , xref, tag, value = ''] = match;
         if (level > limits.depth || level > stack.length || (level && xref))
