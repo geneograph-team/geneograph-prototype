@@ -233,6 +233,8 @@ const RU_UI_FAMILY_TREE = {
 };
 const RU_UI_PEOPLE = {
     'Enter a name to check for existing people.': 'Введите имя, чтобы проверить возможные совпадения.',
+    'Enter a name to check the Family Tree.': 'Введите имя, чтобы проверить совпадения в семейном дереве.',
+    'No convincing matches found in the Family Tree.': 'В семейном дереве нет убедительных совпадений.',
     'No convincing matches yet. Add another name or corroborating details.': 'Пока нет убедительных совпадений. Укажите ещё одно имя или подтверждающие сведения.',
     'Names agree': 'Имена совпадают',
     'Dates compatible': 'Даты совместимы',
