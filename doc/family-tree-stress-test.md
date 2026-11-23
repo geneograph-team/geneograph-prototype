@@ -5,13 +5,15 @@
 
 ## Purpose and limits
 
-This project exercises GeneoGraph's **Family Tree** with a larger, connected, intentionally varied synthetic population. It is a repeatable regression and performance input for #318 (deep layout), #319 (multiple visual contexts), #320 (zoom/card readability), #321 (avatars/paint performance) and umbrella #379. The fixture contains **no people from Whiskerfield**, photos, sources, narrative biographies or research claims. It is **not** intended to resemble historical demographics.
+This project exercises GeneoGraph's **Family Tree** with a large, **single-appearance branching pedigree**. It is a repeatable regression and performance input for #318 (deep layout), #319 (**single-instance identity baseline**, not multiple-family contexts), #320 (zoom/card readability), #321 (photo-light rendering baseline) and umbrella #379. The fixture contains **no people from Whiskerfield**, photos, sources, narrative biographies or research claims. It is **not** intended to resemble historical demographics.
 
 - Project: `Family Tree Stress Test [TEST ONLY]`, project ID `p-family-tree-stress`.
-- Exactly **1,200 people** in ten cohorts: 1740 (12), 1770 (18), 1800 (28), 1830 (44), 1860 (68), 1890 (104), 1920 (156), 1950 (220), 1980 (270), 2010 (280). **Exactly 30 years** between the synthetic birth years of recorded parent and child.
-- **472 family records**, one undirected connected family graph, zero orphan people, no directed parentage cycles. Multiple partners, half-siblings, single-parent/unknown-partner slots, asymmetric branches, and 8-child sibling groups are deliberate stress cases.
+- Exactly **1,200 people** in ten cohorts: 1740 (2), 1770 (10), 1800 (22), 1830 (40), 1860 (64), 1890 (96), 1920 (150), 1950 (220), 1980 (280), 2010 (316). **Exactly 30 years** between the synthetic birth years of recorded parent and child.
+- **442 family records**, one connected person–family **membership tree**: no reconverging ancestry, no pedigree loops, no duplicate partner families or parent families for any person. Every person belongs to **at most one family as a partner** and **at most one family as a child**. This prevents the test data from requiring repeated visual appearances of the same canonical person.
+- Two founders form the first couple. Each following paired generation contains descendants and newly introduced partners of the **same birth cohort**, each recorded in one partner family. New partners have **unknown parents**, so an “Add father” / “Add mother” placeholder may be expected above those individuals; it does not represent a second person. All such partners are connected to the founding couple through recorded marriage and descendant links.
+- Asymmetric branches, cousins and **23 eight-child families** provide density without multiple partnerships, half-sibling branches, consanguinity or shared-ancestor reconvergence. Complex multiple-family contexts belong to separate #319 tests, not this baseline fixture.
 - Generic `Person 0001`–`Person 1200` names and deterministic `stress-person-0001`… IDs. Numeric surname fields are intentionally synthetic. Birth dates are year-only and Gregorian; other date/place fields are unknown. No images are generated, so this is a **photo-light volume baseline**, not a photo-heavy #321 fixture.
-- Generator version: **v1**, defined by `FAMILY_TREE_STRESS_TEST_COHORTS` and deterministic family allocation in `src/seed/family-tree-stress-test.js`. Reproducibility is tested by full JSON equality on repeated builds.
+- Generator version: **v2** (single-appearance pedigree), defined by `FAMILY_TREE_STRESS_TEST_COHORTS` and deterministic family allocation in `src/seed/family-tree-stress-test.js`. Reproducibility is tested by full JSON equality on repeated builds.
 
 ## Loading and safe use
 
@@ -25,23 +27,24 @@ The Projects card displays the **intended 1,200-person count before materializat
 
 | Scenario | Select |
 | --- | --- |
-| Default central focus, generations above and below | `stress-person-0350` (1920 cohort) |
-| Distant founding cohort | `stress-person-0001` (1740) |
+| Default central focus, generations above and below | `stress-person-0349` (1920 descendant with recorded ancestry) |
+| Founding couple / oldest cohort | `stress-person-0001`, `stress-person-0002` (1740) |
 | Last cohort / distant descendants | `stress-person-1200` (2010) |
-| Wide sibling family, eight children | `stress-family-0001`; `stress-person-0013` |
-| Shared ancestor, multiple partners, half-sibling branches | `stress-person-0002`; its families `stress-family-0001` and `stress-family-0002` |
-| Single recorded parent / missing partner slot | `stress-family-0028` (parent `stress-person-0043`, child `stress-person-0066`) |
+| Wide sibling family (8 children, one pair of parents) | `stress-family-0007`; e.g. `stress-person-0035` |
+| Another wide household at the next generation | `stress-family-0018`; e.g. `stress-person-0075` |
+| Married-in spouse with unknown ancestors | `stress-person-0014`, partnered with `stress-person-0013` in `stress-family-0007` |
+| No duplicate contexts after navigating between branches | `stress-person-0349`, then `stress-person-0035`, then `stress-person-1200` |
 
 Ten project cohorts **do not imply ten simultaneously visible Tree rows**. Current controls cap ancestry at six generations and descendants at five, each relative to a focus person. Move focus between cohorts to test the full range; changing those limits is outside #381.
 
 ## Checks and benchmarking
 
-Run `node scripts/test-family-tree-stress-fixture.cjs`. The dependency-free test verifies count, determinism, generation spacing, full undirected connectivity, canonical validation, missing parents, wide families, no recorded sibling partners, isolation from Whiskerfield, first-open loading, no duplicate records on reopen and preservation of an edit.
+Run `node scripts/test-family-tree-stress-fixture.cjs`. The dependency-free test verifies count, determinism, generation spacing, **connectedness of all person and family nodes**, and **acyclicity of the person–family membership graph** (exactly one path between any two nodes). It also asserts at most one parent and partner family per person, canonical validation, 8-child families, isolation from Whiskerfield, first-open loading, no duplicate records on reopen and preservation of an edit. This structural check prevents fixture-induced repeated appearances; only real browser QA can confirm rendering.
 
 For browser QA, measure:
 1. Startup with stress project **unopened** (confirm no stress records in `sampleData.people`).
 2. First open of test project, then reopen after navigating back; record elapsed time and heap use if available.
-3. Focus on `stress-person-0350`, `stress-person-0001`, `stress-person-1200`; record visible card count, projection/layout/render times, navigation, pan, fit, zoom levels and keyboard/inspector behavior.
+3. Focus on `stress-person-0349`, `stress-person-0035`, `stress-person-1200`; record visible card count, projection/layout/render times, navigation, pan, fit, zoom levels and keyboard/inspector behavior. **Check rendered cards for duplicate `data-person-id` values within each view and report any repeats as a Tree rendering bug, not as acceptable fixture data.**
 4. EN/RU and light/dark, desktop/narrow viewport; verify Whiskerfield still works and project switching never leaks records.
 
 Collect measurements in the PR/issue or QA notes, not in permanent source files. Node-side build/activation timings are **not** browser paint/layout measurements. Photo-heavy avatar tests require a separate #321 fixture.
