@@ -959,6 +959,10 @@ function activateProject(projectId, {
 
     if (!project) return false;
 
+    // First activation is the only data-generation boundary. This runs
+    // before resetting views or rendering, so consumers see a complete graph.
+    if (!ensureFamilyTreeStressTestProjectLoaded(project.id)) return false;
+
     const projectChanged = state.currentProjectId !== project.id;
     if (
         state.activeModule === 'Geneograph'
