@@ -232,6 +232,13 @@ const RU_UI_FAMILY_TREE = {
         'Связать файлы из Архива с событием «{event}».'
 };
 const RU_UI_PEOPLE = {
+    'Enter a name to check for existing people.': 'Введите имя, чтобы проверить возможные совпадения.',
+    'No convincing matches yet. Add another name or corroborating details.': 'Пока нет убедительных совпадений. Укажите ещё одно имя или подтверждающие сведения.',
+    'Names agree': 'Имена совпадают',
+    'Dates compatible': 'Даты совместимы',
+    'Places agree': 'Места совпадают',
+    'Family connection': 'Родственная связь',
+    'The selected match is no longer available. Review the suggestions.': 'Выбранное совпадение больше недоступно. Проверьте предложения.',
     'Parent-child relationship type': 'Тип родственной связи',
     'Unknown father': 'Неизвестный отец',
     'Middle name or patronym, if recorded.': 'Второе имя или отчество, если известно.',

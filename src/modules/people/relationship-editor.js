@@ -2643,180 +2643,91 @@ function commitAddPersonModalCreate(title, subtitle, options = {})
     };
 }
 
-function normalizeAddPersonMatchText(value)
+function addPersonDraftMatchEvent(fieldId, placeSelector)
 {
-    return cleanEditFieldValue(value)
-        .replace(/\s+/g, ' ')
-        .toLowerCase();
-}
-
-function addPersonMatchTextVariants(value)
-{
-    const source = value == null ? '' : String(value);
-
-    return [...new Set([
-        source,
-        localizedDataFieldValue(source)
-    ]
-        .map(normalizeAddPersonMatchText)
-        .filter(Boolean))];
-}
-
-function addPersonMatchValues(...values)
-{
-    return [...new Set(values.flatMap(addPersonMatchTextVariants))];
-}
-
-function addPersonDraftDateValue(selector)
-{
-    return normalizeAddPersonMatchText(modalBackdrop?.querySelector(selector)?.value || '');
-}
-
-function addPersonDraftPlaceValue(selector)
-{
-    return normalizeAddPersonMatchText(modalBackdrop?.querySelector(selector)?.value || '');
-}
-
-function addPersonPersonDateValues(event)
-{
-    return addPersonMatchValues(
-        event?.date,
-        event?.dateLabel,
-        event?.originalText,
-        event?.sortDate
+    const field = modalBackdrop?.querySelector('[data-genealogy-date-field="' + fieldId + '"]');
+    const type = field?.querySelector('[data-genealogy-date-type]')?.value || 'Exact date';
+    const model = readGenealogyDateModel(field);
+    const parsed = parseGenealogyDateTextAsType(
+        field?.querySelector('[data-genealogy-date-input]')?.value || '',
+        type,
+        {
+            calendar: model.calendar,
+            date2: field?.querySelector('[data-genealogy-date-input-to]')?.value || ''
+        }
     );
-}
-
-function addPersonPersonPlaceValues(event)
-{
-    return addPersonMatchValues(
-        getPlaceEventDisplay(event),
-        getPlaceDisplay(event?.placeId),
-        event?.placeText
-    );
+    const place = modalBackdrop?.querySelector(placeSelector);
+    return {
+        ...(parsed.valid ? parsed.value : emptyGenealogyDate(type)),
+        placeId: place?.dataset.placeId || '',
+        placeText: place ? collectLocalizedDataFieldValue(place, place.dataset.sourceValue || place.value).trim() : ''
+    };
 }
 
 function collectAddPersonDraftForMatching()
 {
-    const firstName = normalizeAddPersonMatchText(readAddPersonModalValue('#addPersonFirstName'));
-    const middleName = normalizeAddPersonMatchText(readAddPersonModalValue('#addPersonMiddleName'));
-    const lastName = normalizeAddPersonMatchText(readAddPersonModalValue('#addPersonLastName'));
-    const maidenName = normalizeAddPersonMatchText(readAddPersonModalValue('#addPersonMaidenName'));
-    const birthDate = addPersonDraftDateValue('#addPersonBirthDate');
-    const deathDate = addPersonDraftDateValue('#addPersonDeathDate');
-    const birthPlace = addPersonDraftPlaceValue('#addPersonBirthPlace');
-    const deathPlace = addPersonDraftPlaceValue('#addPersonDeathPlace');
-
+    const names = {
+        first: readAddPersonModalValue('#addPersonFirstName'),
+        middle: readAddPersonModalValue('#addPersonMiddleName'),
+        last: readAddPersonModalValue('#addPersonLastName'),
+        maiden: readAddPersonModalValue('#addPersonMaidenName')
+    };
+    const birth = addPersonDraftMatchEvent('addPersonBirth', '#addPersonBirthPlace');
+    const isDeceased = readAddPersonModalValue('#addPersonLivingStatus') === 'Deceased';
+    const death = isDeceased
+        ? addPersonDraftMatchEvent('addPersonDeath', '#addPersonDeathPlace')
+        : emptyGenealogyDate();
     return {
-        firstName,
-        middleName,
-        lastName,
-        maidenName,
-        birthDate,
-        deathDate,
-        birthPlace,
-        deathPlace,
-        hasSignal: Boolean(
-            firstName
-            || middleName
-            || lastName
-            || maidenName
-            || birthDate
-            || deathDate
-            || birthPlace
-            || deathPlace
-        )
+        names,
+        birth,
+        death,
+        hasSignal: Boolean(Object.values(names).some(value => value.trim())
+            || birth.state === 'known' || birth.placeId || birth.placeText
+            || death.state === 'known' || death.placeId || death.placeText)
     };
 }
 
-function addPersonNameValuesForPerson(person)
-{
-    return [
-        person?.names?.prefix,
-        person?.names?.first,
-        person?.names?.middle,
-        person?.names?.last,
-        person?.names?.suffix,
-        person?.names?.maiden,
-        formatPersonFullName(person),
-        person?.name
-    ]
-
-        .map(normalizeAddPersonMatchText)
-        .filter(Boolean);
-}
-
-function scoreAddPersonPossibleMatch(person, draft, options = {})
-{
-    let score = 0;
-    const names = person?.names || {};
-    const personFirst = addPersonMatchTextVariants(names.first);
-    const personMiddle = addPersonMatchTextVariants(names.middle);
-    const personLast = addPersonMatchTextVariants(names.last);
-    const personMaiden = addPersonMatchTextVariants(names.maiden);
-    const personDisplay = addPersonMatchTextVariants(formatPersonFullName(person) || person?.name);
-    const birthDates = addPersonPersonDateValues(person?.birth);
-    const deathDates = addPersonPersonDateValues(person?.death);
-    const birthPlaces = addPersonPersonPlaceValues(person?.birth);
-    const deathPlaces = addPersonPersonPlaceValues(person?.death);
-
-    if (draft.firstName && personFirst.includes(draft.firstName)) score += 34;
-    else if (draft.firstName && personFirst.some(value => value.startsWith(draft.firstName))) score += 18;
-    else if (draft.firstName && personDisplay.some(value => value.includes(draft.firstName))) score += 12;
-
-    if (draft.middleName && personMiddle.includes(draft.middleName)) score += 10;
-
-    if (draft.lastName && personLast.includes(draft.lastName)) score += 32;
-    else if (draft.lastName && personDisplay.some(value => value.includes(draft.lastName))) score += 16;
-
-    if (draft.maidenName && (personMaiden.includes(draft.maidenName) || personLast.includes(draft.maidenName))) score += 22;
-
-    if (draft.birthDate && birthDates.includes(draft.birthDate)) score += 34;
-    else if (draft.birthDate && birthDates.some(value => value.includes(draft.birthDate) || draft.birthDate.includes(value))) score += 24;
-
-    if (draft.deathDate && deathDates.includes(draft.deathDate)) score += 26;
-    else if (draft.deathDate && deathDates.some(value => value.includes(draft.deathDate) || draft.deathDate.includes(value))) score += 24;
-
-    if (draft.birthPlace && birthPlaces.some(value => value === draft.birthPlace)) score += 24;
-    else if (draft.birthPlace && birthPlaces.some(value => value.includes(draft.birthPlace) || draft.birthPlace.includes(value))) score += 24;
-
-    if (draft.deathPlace && deathPlaces.some(value => value === draft.deathPlace)) score += 24;
-    else if (draft.deathPlace && deathPlaces.some(value => value.includes(draft.deathPlace) || draft.deathPlace.includes(value))) score += 24;
-
-    const anchor = getPerson(options.connectToPersonId || options.personId || '');
-    if (anchor)
-    {
-        const anchorLast = addPersonMatchTextVariants(anchor.names?.last);
-        if (anchorLast.some(value => personLast.includes(value))) score += 8;
-    }
-
-    return score;
-}
-
 let addPersonPossibleMatchState = {
-    selectedPersonId: ''
+    selectedPersonId: '',
+    index: null,
+    indexProjectId: '',
+    peopleLength: -1,
+    placesLength: -1,
+    refreshTimer: null,
+    lastHtml: ''
 };
 
-function findAddPersonPossibleMatches(options = {}, editPerson = null)
+function addPersonPossibleMatchIndex(fresh = false)
+{
+    const projectId = currentProjectId();
+    if (!projectId) return null;
+    if (fresh || !addPersonPossibleMatchState.index
+        || addPersonPossibleMatchState.indexProjectId !== projectId
+        || addPersonPossibleMatchState.peopleLength !== sampleData.people.length
+        || addPersonPossibleMatchState.placesLength !== sampleData.places.length)
+    {
+        addPersonPossibleMatchState.index = PersonMatchEngine.createIndex(
+            getPeople(projectId), sampleData.places, sampleData.families, projectId);
+        addPersonPossibleMatchState.indexProjectId = projectId;
+        addPersonPossibleMatchState.peopleLength = sampleData.people.length;
+        addPersonPossibleMatchState.placesLength = sampleData.places.length;
+    }
+    return addPersonPossibleMatchState.index;
+}
+
+function findAddPersonPossibleMatches(options = {}, editPerson = null, { fresh = false } = {})
 {
     const draft = collectAddPersonDraftForMatching();
-    if (!draft.hasSignal) return [];
-
-    const currentPersonId = editPerson?.id || '';
-    const connectionIntent = addPersonCreateConnectionIntent(options);
-    const anchorPersonId = connectionIntent.shouldConnect
-        ? connectionIntent.anchorPersonId : '';
-
-    return getPeople(currentProjectId())
-        .filter(person => person?.id && person.id !== currentPersonId && person.id !== anchorPersonId)
-        .filter(person => !person.deleted)
-        .map(person => ({
-            person,
-            score: scoreAddPersonPossibleMatch(person, draft, options)
-        }))
-        .filter(item => item.score >= 24)
-        .sort((a, b) => b.score - a.score || connectPersonName(a.person).localeCompare(connectPersonName(b.person)))
-        .slice(0, 2);
+    if (!Object.values(draft.names).some(value => value.trim().length >= 3)) return [];
+    const index = addPersonPossibleMatchIndex(fresh);
+    if (!index) return [];
+    const intent = addPersonCreateConnectionIntent(options);
+    return PersonMatchEngine.search(index, draft, {
+        excludeIds: [editPerson?.id || '', intent.shouldConnect ? intent.anchorPersonId : ''].filter(Boolean),
+        anchorPersonId: intent.shouldConnect ? intent.anchorPersonId : '',
+        relationshipType: intent.shouldConnect ? intent.relationshipType : '',
+        limit: 2
+    });
 }
 
 function addPersonPossibleMatchMeta(person)
@@ -2872,8 +2783,22 @@ function renderAddPersonPossibleMatchRow(
         <div>
           <strong>${escapeHtml(connectPersonName(person))}</strong><br>
           ${addPersonPossibleMatchMeta(person)}
+          ${renderAddPersonMatchEvidence(item)}
         </div>
       </button>`;
+}
+
+function renderAddPersonMatchEvidence(item)
+{
+    const evidence = new Set((item.reasons || []).map(reason =>
+        reason.kind === 'name' ? 'Names agree'
+            : reason.kind === 'date' ? 'Dates compatible'
+                : reason.kind === 'place' ? 'Places agree'
+                    : 'Family connection'));
+    return evidence.size
+        ? '<div class="panel-muted add-person-match-evidence">' + [...evidence]
+            .map(label => escapeHtml(t(label))).join(' · ') + '</div>'
+        : '';
 }
 
 function addPersonPossibleMatchActionLabel(options = {})
@@ -2893,7 +2818,7 @@ function renderAddPersonPossibleMatchesCard(options = {}, editPerson = null)
     {
         return `<div class="modal-side-card" data-add-person-possible-matches>
           <h3>Possible matches<br><span class="panel-muted">Similar people in this project</span></h3>
-          <div class="add-person-match-empty">Enter a name, date, or place to check for existing people.</div>
+          <div class="add-person-match-empty">Enter a name to check for existing people.</div>
         </div>`;
     }
 
@@ -2901,7 +2826,7 @@ function renderAddPersonPossibleMatchesCard(options = {}, editPerson = null)
     {
         return `<div class="modal-side-card" data-add-person-possible-matches>
           <h3>Possible matches<br><span class="panel-muted">Similar people in this project</span></h3>
-          <div class="add-person-match-empty">No strong matches found in this project.</div>
+          <div class="add-person-match-empty">No convincing matches yet. Add another name or corroborating details.</div>
         </div>`;
     }
 
@@ -3112,22 +3037,13 @@ function refreshAddPersonPossibleMatchesCard(options = {}, editPerson = null)
 {
     const container = modalBackdrop?.querySelector('[data-add-person-possible-matches]');
     if (!container) return;
+    const next = renderAddPersonPossibleMatchesCard(options, editPerson);
+    if (next === addPersonPossibleMatchState.lastHtml) return;
 
-    const previousSelection = addPersonPossibleMatchState.selectedPersonId;
-
-    container.outerHTML = renderAddPersonPossibleMatchesCard(options, editPerson);
-
-    const stillExists = modalBackdrop?.querySelector(
-        `[data-add-person-possible-match="${CSS.escape(previousSelection)}"]`
-    );
-
-    if (previousSelection && !stillExists)
-    {
-        addPersonPossibleMatchState.selectedPersonId = '';
-        const refreshed = modalBackdrop?.querySelector('[data-add-person-possible-matches]');
-        if (refreshed) refreshed.outerHTML = renderAddPersonPossibleMatchesCard(options, editPerson);
-    }
-
+    container.outerHTML = next;
+    addPersonPossibleMatchState.lastHtml = next;
+    const refreshed = modalBackdrop.querySelector('[data-add-person-possible-matches]');
+    if (refreshed) localizeUI(refreshed);
     bindAddPersonPossibleMatchRows(options, editPerson);
 }
 
@@ -3323,28 +3239,28 @@ function bindAddPersonSideCards(options = {}, editPerson = null)
 
     bindAddPersonPossibleMatchRows(options, editPerson);
 
-    const refresh = () =>
+    const scheduleRefresh = () =>
     {
-        addPersonPossibleMatchState.selectedPersonId = '';
-        refreshAddPersonPossibleMatchesCard(options, editPerson);
+        if (addPersonPossibleMatchState.refreshTimer)
+            clearTimeout(addPersonPossibleMatchState.refreshTimer);
+        addPersonPossibleMatchState.refreshTimer = setTimeout(() =>
+        {
+            addPersonPossibleMatchState.refreshTimer = null;
+            refreshAddPersonPossibleMatchesCard(options, editPerson);
+        }, 130);
     };
     const selectors = [
-        '#addPersonFirstName',
-        '#addPersonMiddleName',
-        '#addPersonLastName',
-        '#addPersonMaidenName',
-        '#addPersonBirthDate',
-        '#addPersonDeathDate',
-        '#addPersonBirthPlace',
-        '#addPersonDeathPlace'
+        '#addPersonFirstName', '#addPersonMiddleName', '#addPersonLastName', '#addPersonMaidenName',
+        '#addPersonBirthDate', '#addPersonDeathDate', '#addPersonBirthDateTo', '#addPersonDeathDateTo',
+        '#addPersonBirthDateType', '#addPersonDeathDateType',
+        '#addPersonBirthPlace', '#addPersonDeathPlace'
     ];
-
     selectors.forEach(selector =>
     {
         const input = modalBackdrop?.querySelector(selector);
         if (!input) return;
-        input.addEventListener('input', refresh);
-        input.addEventListener('change', refresh);
+        input.addEventListener('input', scheduleRefresh);
+        input.addEventListener('change', scheduleRefresh);
     });
 }
 

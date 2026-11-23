@@ -43,8 +43,16 @@ function openAddPersonModal(title, subtitle, options = {})
     initializeAddPersonAttachmentDraft(
         editPerson
     );
+    if (addPersonPossibleMatchState.refreshTimer)
+        clearTimeout(addPersonPossibleMatchState.refreshTimer);
     addPersonPossibleMatchState = {
-        selectedPersonId: ''
+        selectedPersonId: '',
+        index: null,
+        indexProjectId: '',
+        peopleLength: -1,
+        placesLength: -1,
+        refreshTimer: null,
+        lastHtml: ''
     };
     const editValues = editPersonFormValues(editPerson);
     const isPartnerMode = options.relativeType === 'partner';
@@ -325,6 +333,15 @@ function commitAddPersonPossibleMatchAction(options = {})
     if (!selectedPerson)
     {
         showToast('Select a possible match first.');
+        return;
+    }
+    if (selectedPerson.projectId !== currentProjectId() || selectedPerson.deleted
+        || !findAddPersonPossibleMatches(options, null, { fresh: true })
+            .some(item => item.personId === selectedPerson.id))
+    {
+        addPersonPossibleMatchState.selectedPersonId = '';
+        refreshAddPersonPossibleMatchesCard(options);
+        showToast('The selected match is no longer available. Review the suggestions.');
         return;
     }
 
