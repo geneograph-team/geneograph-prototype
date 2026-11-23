@@ -26,7 +26,7 @@ const files = [
     'modules/geneograph/geneograph-editor-core', 'modules/geneograph/geneograph-theme-board', 'modules/geneograph/geneograph-sidebar',
     'modules/geneograph/geneograph-board-files', 'modules/geneograph/geneograph-pickers', 'modules/geneograph/geneograph-shadow',
     'assets/boards/whiskerfield-tree-research', 'seed/seed-boards', 'core/validation',
-    'modules/people/relationship-editor', 'modules/people/controls'
+    'modules/people/relationship-editor', 'modules/people/controls', 'modules/publish/drafts-model'
 ];
 const sourceDirectory = path.join(__dirname, '../src');
 const indexHtml = fs.readFileSync(path.join(sourceDirectory, 'index.html'), 'utf8');
@@ -88,6 +88,16 @@ for (const person of withoutNameCaches.people)
 assert.deepEqual(context.buildSampleEvents(withoutNameCaches), context.buildSampleEvents(authored));
 
 const before = JSON.stringify(authored);
+const authoredBoardInput = JSON.parse(before);
+const authoredBoardAsset = context.window.GENEO_SEED_BOARD_ASSETS[0];
+const authoredBoardRecord = authoredBoardInput.boards.find(board => board.id === authoredBoardAsset.id);
+authoredBoardRecord.diagram = structuredClone(authoredBoardAsset.payload.board.diagram);
+const directlyAuthoredBoard = context.prepareProjectDraft(project, authoredBoardInput);
+assert.deepEqual(Array.from(directlyAuthoredBoard.errors), []);
+assert.equal(JSON.stringify(directlyAuthoredBoard.records.boards.find(board => board.id === authoredBoardAsset.id).diagram),
+    JSON.stringify(authoredBoardAsset.payload.board.diagram));
+context.geneoApplyThemeDefaultsToDiagram(authoredBoardRecord.diagram);
+assert.equal(JSON.stringify(authoredBoardRecord.diagram), JSON.stringify(seededDiagram));
 const normalizedBoardInput = JSON.parse(before);
 const boardForNormalization = normalizedBoardInput.boards[0];
 const membershipBeforeNormalization = JSON.stringify(boardForNormalization.diagram.families.map(family =>
@@ -101,9 +111,42 @@ assert.equal(JSON.stringify(boardForNormalization.diagram.families.map(family =>
 assert.equal(cardGeometry(boardForNormalization), geometryBeforeNormalization);
 assert.deepEqual(Array.from(context.prepareProjectDraft(project, normalizedBoardInput).errors), []);
 
-const prepared = context.prepareProjectDraft(project, JSON.parse(before));
+const draftInput = JSON.parse(before);
+const draftProject = structuredClone(project);
+const projectBeforePreparation = JSON.stringify(draftProject);
+const prepared = context.prepareProjectDraft(draftProject, draftInput);
 assert.deepEqual(Array.from(prepared.errors), []);
 assert.ok(prepared.records.events.length);
+const { events: preparedTimeline, ...preparedAuthored } = prepared.records;
+assert.equal(JSON.stringify(preparedAuthored), before);
+assert.equal(JSON.stringify(preparedTimeline), JSON.stringify(sample.events));
+assert.equal(JSON.stringify(draftInput), before);
+assert.equal(JSON.stringify(prepared.project), projectBeforePreparation);
+assert.equal(JSON.stringify(draftProject), projectBeforePreparation);
+assert.notEqual(prepared.project, draftProject);
+assert.notEqual(prepared.records.people[0], draftInput.people[0]);
+assert.notEqual(prepared.records.boards[0].diagram.nodes, draftInput.boards[0].diagram.nodes);
+const malformedVitalDateInput = JSON.parse(before);
+const badVitalPerson = malformedVitalDateInput.people[0];
+badVitalPerson.birth.first.aliasYear = 1998;
+badVitalPerson.birth.placeText = false;
+const malformedVitalDate = context.prepareProjectDraft(project, malformedVitalDateInput);
+for (const field of ['birth.first.aliasYear', 'birth.placeText'])
+    assert.ok(malformedVitalDate.errors.some(error => error.includes('people/' + badVitalPerson.id + '.' + field)));
+assert.equal(Object.hasOwn(malformedVitalDate, 'records'), false);
+const malformedNestedDateReference = JSON.parse(before);
+const datedPhoto = malformedNestedDateReference.media.find(photo => photo.date);
+datedPhoto.date.placeId = { toString: false };
+assert.ok(context.prepareProjectDraft(project, malformedNestedDateReference).errors.some(error =>
+    error.startsWith('media/' + datedPhoto.id + '.date.placeId must be a nonempty record ID')));
+const collectionShapeInput = JSON.parse(before);
+const collectionShapeCases = Object.entries(collectionShapeInput).filter(([, rows]) => rows.length);
+for (const [, rows] of collectionShapeCases)
+    rows[0].unexpectedContractField = true;
+const collectionShapeDraft = context.prepareProjectDraft(project, collectionShapeInput);
+for (const [collection, rows] of collectionShapeCases)
+    assert.ok(collectionShapeDraft.errors.includes(collection + '/' + rows[0].id + '.unexpectedContractField is unexpected.'), collection);
+assert.equal(Object.hasOwn(collectionShapeDraft, 'records'), false);
 const missingPersonShape = JSON.parse(before);
 for (const key of ['profile', 'attributes', 'birth']) delete missingPersonShape.people[0][key];
 missingPersonShape.people[0].livingStatus = 'unknown';
@@ -117,21 +160,46 @@ invalidFactIds.people[0].attributes.push({ ...education }, { ...education, id: '
 const invalidFactDraft = context.prepareProjectDraft(project, invalidFactIds);
 assert.equal(invalidFactDraft.errors.filter(error => error.includes('requires a unique nonempty fact ID')).length, 2);
 assert.equal(Object.hasOwn(invalidFactDraft, 'records'), false);
+const invalidFactPlace = JSON.parse(before);
+const factPlaceOwner = invalidFactPlace.people[0];
+factPlaceOwner.attributes[0].placeId = false;
+const invalidFactPlaceDraft = context.prepareProjectDraft(project, invalidFactPlace);
+assert.ok(invalidFactPlaceDraft.errors.some(error => error.includes('people/' + factPlaceOwner.id + '.attributes[0].placeId')));
+assert.equal(Object.hasOwn(invalidFactPlaceDraft, 'records'), false);
+
+const malformedFactFields = JSON.parse(before);
+const factOwner = malformedFactFields.people[0];
+Object.assign(factOwner.attributes[0], { notes: { text: 'Invalid' }, citations: false, unexpectedField: true });
+factOwner.events.push({ id: 'invalid-event-type', gedcomTag: 'BAPM', eventType: [] });
+const malformedFactDraft = context.prepareProjectDraft(project, malformedFactFields);
+for (const field of ['attributes[0].notes', 'attributes[0].citations', 'events[' + (factOwner.events.length - 1) + '].eventType'])
+    assert.ok(malformedFactDraft.errors.some(error => error.includes('people/' + factOwner.id + '.' + field)));
+assert.ok(malformedFactDraft.errors.some(error => error.includes('people/' + factOwner.id + '.attributes[0]') && error.includes('unexpectedField')));
+assert.equal(Object.hasOwn(malformedFactDraft, 'records'), false);
+
 const malformedResearch = JSON.parse(before);
 Object.assign(malformedResearch.notes[0], { title: 1, bodyFormat: 'quill-delta-v1', bodyDelta: null });
 Object.assign(malformedResearch.archiveFiles[0], { name: ' ', sizeBytes: -1, linkedSourceIds: [] });
 Object.assign(malformedResearch.sources[0], { title: '', category: 'invalid-category', placeId: 'missing-source-place' });
 malformedResearch.archiveFiles[0].personRegions = { silver: { x: -1, y: 0, width: 1, height: 1 } };
 const researchErrors = context.prepareProjectDraft(project, malformedResearch).errors;
-for (const diagnostic of ['.title must be text', 'matching note body format', '.name must be nonempty text',
+for (const diagnostic of ['.title must be text', 'matching rich-text format', '.name must be nonempty text',
     '.sizeBytes must be a nonnegative integer', 'retired field linkedSourceIds', 'category must be a supported Source category', 'placeId references missing places/missing-source-place', '.personRegions.silver must be within the Archive image'])
     assert.ok(researchErrors.some(error => error.includes(diagnostic)), diagnostic);
 const invalidEvidence = JSON.parse(before);
-invalidEvidence.archiveFiles[0].linkedEventIds.push('missing-event');
+invalidEvidence.archiveFiles[0].linkedEventIds.push('missing-archive-event');
+invalidEvidence.notes[0].linkedEventIds.push('missing-note-event');
+invalidEvidence.sourceLinks.push({ id: 'bad-source-timeline-link', projectId: project.id,
+    sourceId: invalidEvidence.sources[0].id, targetType: 'event', targetId: 'missing-source-event' });
+const invalidEvidenceBefore = JSON.stringify(invalidEvidence);
 const rejectedEvidence = context.prepareProjectDraft(project, invalidEvidence);
-assert.ok(rejectedEvidence.errors.some(error => error.includes('linkedEventIds references missing events/missing-event')));
+for (const diagnostic of [
+    'archiveFiles/' + invalidEvidence.archiveFiles[0].id + '.linkedEventIds references missing events/missing-archive-event',
+    'notes/' + invalidEvidence.notes[0].id + '.linkedEventIds references missing events/missing-note-event',
+    'sourceLinks/bad-source-timeline-link.targetId references missing events/missing-source-event'
+]) assert.ok(rejectedEvidence.errors.includes(diagnostic), diagnostic);
 assert.equal(Object.hasOwn(rejectedEvidence, 'records'), false);
-assert.ok(invalidEvidence.archiveFiles[0].linkedEventIds.includes('missing-event'));
+assert.equal(JSON.stringify(invalidEvidence), invalidEvidenceBefore);
 assert.equal(context.prepareProjectDraft(project, { events: [] }).errors.length, 1);
 for (const invalid of [new Map(), new Date(), new Set()])
 {
@@ -167,6 +235,13 @@ restored.events = rebuiltEvents;
 assert.deepEqual(Array.from(context.validateProjectDraft(project, restored)), []);
 assert.equal(JSON.stringify(authored), before);
 assert.ok(context.validateProjectDraft({ ...project, coverPhotoId: 'missing-cover' }, restored).some(error => error.includes('Project cover photo is missing')));
+const badCover = context.prepareProjectDraft({ ...project, cover: 'unknown', coverPosition: { x: '5', y: 101 },
+    coverImageSrc: false, thumb: 'unexpected' }, {});
+for (const field of ['project.cover must identify', 'project.coverPosition requires',
+    'project.coverImageSrc must be text', 'project.thumb is unexpected'])
+    assert.ok(badCover.errors.some(error => error.includes(field)), field);
+assert.deepEqual(Array.from(context.prepareProjectDraft(
+    { id: 'positioned', name: 'Positioned', cover: 'photo', coverPosition: { x: 0, y: 100 } }, {}).errors), []);
 const malformedProject = context.prepareProjectDraft({ ...project, defaultPersonId: false, desc: 42, files: 5, modifiedAt: 'invalid', created: 'old date' }, {});
 for (const message of ['defaultPersonId must be a record ID', 'desc must be text', 'retired counter files', 'modifiedAt must be a valid timestamp', 'retired display date created'])
     assert.ok(malformedProject.errors.some(error => error.includes(message)));
@@ -184,6 +259,103 @@ for (const collection of ['albums', 'archiveFolders', 'noteCollections', 'boardC
 for (const diagnostic of ['.name must be nonempty text', '.width has an invalid numeric value', 'contains retired photo range fields',
     'personRegions references missing people/missing-person', '.personRegions.missing-person must be within the photo'])
     assert.ok(mediaErrors.some(error => error.includes(diagnostic)), diagnostic);
+const invalidAncillary = JSON.parse(before);
+invalidAncillary.links.push({ id: 'bad-link', projectId: project.id, fromType: 'person',
+    fromId: 'missing-person', toType: 'unsupported', toId: 'missing-file', label: 6 });
+invalidAncillary.placeSavedFilters[0].filters.mapped = false;
+invalidAncillary.placeSavedFilters[0].filters.extra = 'unexpected';
+invalidAncillary.placeIssues.push({ id: 'bad-place-issue', projectId: project.id, placeId: 'place-pawford',
+    otherPlaceId: 'place-pawford', type: 'possible_duplicate', status: 'pending', fingerprints: {} });
+invalidAncillary.publishDrafts[0].details = [false];
+invalidAncillary.publishDrafts[0].legacyScope = 'old scope';
+invalidAncillary.publishDrafts[0].focusPersonId = 'missing-person';
+const ancillaryErrors = context.prepareProjectDraft(project, invalidAncillary).errors;
+for (const field of ['links/bad-link.fromId', 'links/bad-link.toType', 'links/bad-link.label',
+    '.filters.mapped', '.filters.extra', '.details must be an array of text', 'legacyScope', '.focusPersonId references missing',
+    'bad-place-issue.otherPlaceId', 'bad-place-issue.status', 'bad-place-issue.fingerprints'])
+    assert.ok(ancillaryErrors.some(error => error.includes(field)), field);
+const invalidNestedEvidence = JSON.parse(before);
+invalidNestedEvidence.sourceLinks[0].extra = true;
+invalidNestedEvidence.notes[0].checklist = [
+    { id: 'same', text: 'Check record', done: true },
+    { id: 'same', text: 10, done: 'false', obsolete: true }
+];
+const nestedEvidenceErrors = context.prepareProjectDraft(project, invalidNestedEvidence).errors;
+for (const field of ['.extra is unexpected', '.checklist[1].id', '.checklist[1].text', '.checklist[1].done', '.checklist[1].obsolete'])
+    assert.ok(nestedEvidenceErrors.some(error => error.includes(field)), field);
+const malformedNoteRecord = JSON.parse(before);
+const invalidNote = malformedNoteRecord.notes[0];
+delete invalidNote.linkedPlaceIds;
+invalidNote.tags = [null];
+invalidNote.extra = 'unexpected';
+const noteShapeErrors = context.prepareProjectDraft(project, malformedNoteRecord).errors;
+for (const diagnostic of ['.linkedPlaceIds is required', '.tags must be an array of nonempty text', '.extra is unexpected'])
+    assert.ok(noteShapeErrors.some(error => error.includes('notes/' + invalidNote.id + diagnostic)), diagnostic);
+const malformedRichText = JSON.parse(before);
+Object.assign(malformedRichText.notes[0], { bodyFormat: 'quill-delta-v1', bodyDelta: { ops: [
+    { retain: 2 }, { insert: 'Text', attributes: { header: '3', background: 'red' } }
+] } });
+const richTextNode = malformedRichText.boards[0].diagram.nodes.find(node => node.textDelta?.ops.length);
+richTextNode.textDelta.ops.push({ insert: { image: 'data' } });
+const richTextErrors = context.prepareProjectDraft(project, malformedRichText).errors;
+for (const field of ['.ops[0].retain', '.ops[1].attributes.header', '.ops[1].attributes.background',
+    richTextNode.id + '.textDelta.ops['])
+    assert.ok(richTextErrors.some(error => error.includes(field)), field);
+const invalidArchiveShape = JSON.parse(before);
+const wrongArchive = invalidArchiveShape.archiveFiles[0];
+Object.assign(wrongArchive, { kind: 'folder', favorite: 1, previewUrl: null, anotherSize: '1 KB' });
+delete wrongArchive.linkedNoteIds;
+const archiveShapeErrors = context.prepareProjectDraft(project, invalidArchiveShape).errors;
+for (const field of ['.kind is unsupported', '.favorite must be boolean', '.previewUrl must be text',
+    '.linkedNoteIds is required', '.anotherSize is unexpected'])
+    assert.ok(archiveShapeErrors.some(error => error.includes('archiveFiles/' + wrongArchive.id + field)), field);
+const invalidPhotoShape = JSON.parse(before);
+const malformedPhoto = invalidPhotoShape.media[0];
+Object.assign(malformedPhoto, { caption: false, favorite: 0, src: {}, updatedAt: null, unknown: 1 });
+delete malformedPhoto.albumIds;
+const photoShapeErrors = context.prepareProjectDraft(project, invalidPhotoShape).errors;
+for (const field of ['.caption must be text', '.favorite must be boolean', '.src must be text',
+    '.updatedAt must be a valid timestamp', '.albumIds is required', '.unknown is unexpected'])
+    assert.ok(photoShapeErrors.some(error => error.includes('media/' + malformedPhoto.id + field)), field);
+const malformedPlaceShape = JSON.parse(before);
+const badPlace = malformedPlaceShape.places.find(place => place.coordinates);
+badPlace.coordinates.altitude = 5;
+badPlace.createdAt = false;
+badPlace.legacyName = 'Retired';
+const placeShapeErrors = context.prepareProjectDraft(project, malformedPlaceShape).errors;
+for (const field of ['.coordinates.altitude is unexpected', '.createdAt must be a valid timestamp', '.legacyName is unexpected'])
+    assert.ok(placeShapeErrors.some(error => error.includes('places/' + badPlace.id + field)), field);
+const unknownPersonFields = JSON.parse(before);
+const malformedPerson = unknownPersonFields.people[0];
+malformedPerson.counts = { notes: 1 };
+malformedPerson.avatarClass = true;
+malformedPerson.names.nickname = 'Unexpected';
+malformedPerson.primaryPhotoId = false;
+malformedPerson.primaryPhotoCrop = { centerX: 0.5, centerY: 0.5, zoom: 7, rotation: 0 };
+malformedPerson.meta.placeholderRole = 'cousin';
+malformedPerson.profile.alternativeNames = ['Name'];
+const personShapeErrors = context.prepareProjectDraft(project, unknownPersonFields).errors;
+for (const field of ['.counts is unexpected', '.avatarClass must be text', '.profile.alternativeNames must be text or null', '.names.nickname is unexpected', '.primaryPhotoId must be a nonempty record ID',
+    '.primaryPhotoCrop requires valid', '.meta.placeholderRole must be mother or father'])
+    assert.ok(personShapeErrors.some(error => error.includes('people/' + malformedPerson.id + field)), field);
+const malformedFamilyShape = JSON.parse(before);
+const malformedFamily = malformedFamilyShape.families[0];
+Object.assign(malformedFamily, { relationshipType: true, relationshipStatus: 'pending', updatedAt: 'Just now', gedcomXref: 1, citations: false, importedPartner: 'unexpected' });
+const familyShapeErrors = context.prepareProjectDraft(project, malformedFamilyShape).errors;
+for (const field of ['.relationshipType is unsupported', '.relationshipStatus is unsupported',
+    '.updatedAt must be a valid timestamp', '.gedcomXref must be text', '.citations must be an array', '.importedPartner is unexpected'])
+    assert.ok(familyShapeErrors.some(error => error.includes('families/' + malformedFamily.id + field)), field);
+const malformedContainers = JSON.parse(before);
+malformedContainers.albums[0].description = false;
+malformedContainers.archiveFolders[0].favorite = 'false';
+delete malformedContainers.archiveFolders[0].parentId;
+malformedContainers.noteCollections[0].outside = true;
+malformedContainers.boardCollections[0].description = null;
+Object.assign(malformedContainers.sources[0], { providedBy: {}, accessedDate: false, titleAlias: 'Retired' });
+const containerErrors = context.prepareProjectDraft(project, malformedContainers).errors;
+for (const field of ['.description must be text', '.favorite must be boolean', '.parentId is required',
+    '.outside is unexpected', '.providedBy must be text', '.accessedDate', '.titleAlias is unexpected'])
+    assert.ok(containerErrors.some(error => error.includes(field)), field);
 const invalidTimestamps = JSON.parse(before);
 delete invalidTimestamps.notes[0].createdAt;
 invalidTimestamps.notes[0].updated = 'Just now';
@@ -202,6 +374,13 @@ for (const file of metadataOnly.archiveFiles)
 }
 for (const board of metadataOnly.boards)
     for (const asset of board.diagram.assets) delete asset.src;
+const invalidBoardAssetInput = structuredClone(metadataOnly);
+const invalidBoardAsset = invalidBoardAssetInput.boards[0].diagram.assets[0];
+Object.assign(invalidBoardAsset, { mimeType: 'text/plain', width: -1, src: false });
+const invalidBoardAssetDraft = context.prepareProjectDraft(project, invalidBoardAssetInput);
+for (const field of ['mimeType', 'width', 'src'])
+    assert.ok(invalidBoardAssetDraft.errors.some(error => error.includes('.diagram.assets/' + invalidBoardAsset.id + '.' + field)));
+assert.equal(Object.hasOwn(invalidBoardAssetDraft, 'records'), false);
 const restoredMetadata = context.prepareProjectDraft(project, metadataOnly);
 const coverPhotoId = metadataOnly.media[0].id;
 const coverProject = { ...project, cover: 'photo', coverPhotoId };
@@ -391,6 +570,20 @@ roleBoardFamily.events.push({ ...roleFamily.events[0], id: 'wrong-event-role', r
 const roleErrors = context.prepareProjectDraft(project, ambiguousFamilyEvents).errors;
 assert.ok(roleErrors.some(error => error.includes('duplicates the current start event')));
 assert.ok(roleErrors.some(error => error.includes('relationshipManagedRole must be start or end')));
+const malformedBoardEvent = JSON.parse(before);
+const boardEventFamily = malformedBoardEvent.boards[0].diagram.families.find(family => family.events.length);
+boardEventFamily.events[0].placeId = { toString: false };
+boardEventFamily.events[0].eventType = false;
+boardEventFamily.relationshipStatus = 'invented';
+const malformedBoardFamilyErrors = context.prepareProjectDraft(project, malformedBoardEvent).errors;
+for (const field of ['events[0].placeId', 'events[0].eventType', 'relationshipStatus'])
+    assert.ok(malformedBoardFamilyErrors.some(error => error.includes('/' + boardEventFamily.id + '.' + field)));
+const invalidBoardMembership = JSON.parse(before);
+const boardMembershipFamily = invalidBoardMembership.boards[0].diagram.families.find(family => family.children.length);
+Object.assign(boardMembershipFamily.children[0], { parentageType: 'invented', legacyType: 'biological' });
+const boardMembershipErrors = context.prepareProjectDraft(project, invalidBoardMembership).errors;
+for (const field of ['parentageType', 'legacyType'])
+    assert.ok(boardMembershipErrors.some(error => error.includes('/' + boardMembershipFamily.id + '.children[0].' + field)));
 const invalidUnionDraft = JSON.parse(before);
 const invalidUnion = invalidUnionDraft.families.find(family => family.id === union.id);
 invalidUnion.startPlaceId = 'place-pawford';
@@ -436,7 +629,7 @@ restored.boards[0].diagram.nodes.push(panel);
 assert.ok(context.validateProjectDraft(project, restored).some(error => error.includes('panel nesting cycle')));
 restored.boards[0].diagram.nodes.pop();
 restored.boards[0].diagram.connections[0].source = { nodeId: 'missing', port: 'bottom' };
-assert.ok(context.validateProjectDraft(project, restored).some(error => error.includes('.source references missing ID missing')));
+assert.ok(context.validateProjectDraft(project, restored).some(error => error.includes('.source.nodeId references missing ID missing')));
 const syncModel = fs.readFileSync(path.join(__dirname, '../src/modules/geneograph/geneograph-tree-review-model.js'), 'utf8');
 vm.runInContext(syncModel, context);
 vm.runInContext(fs.readFileSync(path.join(__dirname, '../src/modules/geneograph/geneograph-relationships.js'), 'utf8'), context);
@@ -466,18 +659,63 @@ for (const field of ['people', 'evidence', 'questions'])
 Object.assign(malformedBoard.boards[0], { title: '', description: 'a'.repeat(501), favorite: 'false', modifiedAt: 'invalid', modified: 'Just now' });
 delete malformedBoard.boards[0].collectionIds;
 delete malformedBoard.boards[0].archived;
-malformedBoard.boards[0].diagram.canvas.gridVisible = true;
-(malformedBoard.boards[0].diagram.nodes[0].appearance ||= {}).strokeColor = '#FFFFFF';
+Object.assign(malformedBoard.boards[0].diagram.canvas, { gridVisible: true, snapToGrid: 1, extraCanvasField: true });
+Object.assign(malformedBoard.boards[0].diagram.nodes[0].appearance, { strokeColor: '#FFFFFF', strokePattern: true, shadowEnabled: 'inherit', extraAppearanceField: true });
+malformedBoard.boards[0].diagram.canvas.backgroundPaint.legacyOpacity = 5;
 malformedBoard.boards[0].diagram.connectionDefaults.color = '#FFFFFF';
-malformedBoard.boards[0].diagram.nodes[0].width = 0;
+Object.assign(malformedBoard.boards[0].diagram.nodes[0], { width: 0, locked: 'false', name: 8, order: false, extraNodeField: true });
 malformedBoard.boards[0].diagram.connections[0].route.waypoints.push({ x: 1000001, y: 0 });
 malformedBoard.boards[0].diagram.nodes.push({
     id: 'bad-drawing', type: 'drawing', x: 0, y: 0, width: 100, height: 100,
     points: [{ x: 0, y: 0 }, { x: 1000001, y: 0 }]
 });
+malformedBoard.boards[0].thumb = false;
+malformedBoard.boards[0].extraBoardField = true;
+malformedBoard.boards[0].diagram.extraDiagramField = true;
 const boardMetadataErrors = context.prepareProjectDraft(project, malformedBoard).errors;
-for (const diagnostic of ['.title must be nonempty text', '.description must be text', '.favorite must be boolean', '.archived must be boolean', '.collectionIds must be an array', '.modifiedAt must be a valid timestamp', 'retired display date modified', 'canvas contains retired field gridVisible', 'retired paint field strokeColor', 'retired paint field color', 'unsupported type or invalid geometry', 'invalid connection route', 'invalid drawing points'])
+for (const diagnostic of ['.thumb must be text', '.extraBoardField is unexpected', '.diagram.extraDiagramField is unexpected', '.title must be nonempty text', '.description must be text', '.favorite must be boolean', '.archived must be boolean', '.collectionIds must be an array', '.modifiedAt must be a valid timestamp', 'retired display date modified', 'canvas contains retired field gridVisible', '.canvas.snapToGrid must be boolean', '.canvas.extraCanvasField is unexpected', 'retired paint field strokeColor', '.appearance.strokePattern must be solid or dashed', '.appearance.shadowEnabled must be boolean or null', '.appearance.extraAppearanceField is unexpected', '.backgroundPaint.legacyOpacity is unexpected', 'retired paint field color', 'unsupported type or invalid geometry', '.locked must be boolean', '.name must be text of at most 80', '.order must be numeric', '.extraNodeField is unexpected', 'invalid connection route', 'invalid drawing points'])
     assert.ok(boardMetadataErrors.some(error => error.includes(diagnostic)), diagnostic);
+const malformedCollectionRows = JSON.parse(before);
+malformedCollectionRows.places[0] = null;
+malformedCollectionRows.boards[0].diagram.nodes[0] = { id: false };
+const malformedCollectionDraft = context.prepareProjectDraft(project, malformedCollectionRows);
+assert.ok(malformedCollectionDraft.errors.some(error => error.startsWith('places[0]')));
+assert.ok(malformedCollectionDraft.errors.some(error =>
+    error.startsWith('boards/' + malformedCollectionRows.boards[0].id + '.diagram.nodes[0]')));
+assert.equal(Object.hasOwn(malformedCollectionDraft, 'records'), false);
+const malformedDiagramCollections = JSON.parse(before);
+const malformedDiagramBoard = malformedDiagramCollections.boards[0];
+malformedDiagramBoard.diagram.assets = null;
+malformedDiagramBoard.diagram.connections = {};
+const malformedDiagramErrors = context.prepareProjectDraft(project, malformedDiagramCollections).errors;
+for (const collection of ['assets', 'connections'])
+    assert.ok(malformedDiagramErrors.includes('boards/' + malformedDiagramBoard.id + '.diagram.' + collection + ' must be an array.'));
+const malformedConnectionInput = JSON.parse(before);
+const malformedConnection = malformedConnectionInput.boards[0].diagram.connections[0];
+malformedConnection.kind = 'invented';
+Object.assign(malformedConnection.style, { pattern: false, cornerRadius: 33, legacyWidth: 4 });
+malformedConnection.source.port = 'center';
+const malformedConnectionErrors = context.prepareProjectDraft(project, malformedConnectionInput).errors;
+for (const field of ['kind', 'style.pattern', 'style.cornerRadius', 'style.legacyWidth', 'source.port'])
+    assert.ok(malformedConnectionErrors.some(error => error.includes('/' + malformedConnection.id + '.' + field)));
+const invalidNodeDetailsInput = JSON.parse(before);
+const detailNodes = invalidNodeDetailsInput.boards[0].diagram.nodes;
+const badImage = detailNodes.find(node => node.type === 'image');
+const badPlaceNode = detailNodes.find(node => node.type === 'place');
+badImage.imageRef.legacyId = badImage.imageRef.id;
+badImage.imageCrop = { zoom: 0, x: 0, y: 0 };
+badPlaceNode.placeSizeMode = false;
+badPlaceNode.placeRef.legacyName = 'Old place';
+const invalidNodeDetails = context.prepareProjectDraft(project, invalidNodeDetailsInput);
+for (const [node, field] of [[badImage, 'imageRef.legacyId'], [badImage, 'imageCrop'],
+    [badPlaceNode, 'placeSizeMode'], [badPlaceNode, 'placeRef.legacyName']])
+    assert.ok(invalidNodeDetails.errors.some(error => error.includes('/' + node.id + '.' + field)));
+const badCardInput = JSON.parse(before);
+const badCardNode = badCardInput.boards[0].diagram.nodes.find(node => node.type === 'person');
+badCardNode.personCard.styleSettings.standard = { nameFontSize: 1000, photoSize: 0, nameFormat: 'invalid', fields: { unexpectedFlag: true } };
+const badCardErrors = context.prepareProjectDraft(project, badCardInput).errors;
+for (const key of ['nameFontSize', 'photoSize', 'nameFormat', 'fields.unexpectedFlag'])
+    assert.ok(badCardErrors.some(error => error.includes('/' + badCardNode.id + '.personCard.styleSettings.standard.' + key)));
 const invalidBoardDiagram = JSON.parse(before);
 invalidBoardDiagram.boards[0].diagram = [];
 assert.ok(context.prepareProjectDraft(project, invalidBoardDiagram).errors.some(error =>
@@ -603,6 +841,15 @@ assert.ok(context.prepareProjectDraft(project, invalidBoardDraft).errors.some(er
     error.includes('endpoints must match the recorded family members')));
 invalidEdge.target = originalEdgeTarget;
 const invalidBoardPerson = invalidBoardDraft.boards[0].diagram.people[0];
+const invalidBoardIdentity = JSON.parse(before);
+const boardIdentity = invalidBoardIdentity.boards[0].diagram.people[0];
+boardIdentity.syncState = 'unrecognized';
+boardIdentity.names.middle = false;
+boardIdentity.names.display = 'Derived name';
+boardIdentity.photoRegion = { x: 0.8, y: 0, width: 0.4, height: 1 };
+const boardIdentityErrors = context.prepareProjectDraft(project, invalidBoardIdentity).errors;
+for (const field of ['syncState', 'names.middle', 'names.display', 'photoRegion'])
+    assert.ok(boardIdentityErrors.some(error => error.includes('/' + boardIdentity.id + '.' + field)));
 const boardLivingStatus = invalidBoardPerson.livingStatus;
 delete invalidBoardPerson.livingStatus;
 invalidBoardPerson.sex = invalidBoardPerson.gender;
@@ -617,7 +864,7 @@ delete invalidBoardPerson.displayName;
 const originalBoardBirth = invalidBoardPerson.birth;
 invalidBoardPerson.birth = { ...originalBoardBirth, placeId: 'missing-board-birthplace' };
 assert.ok(context.prepareProjectDraft(project, invalidBoardDraft).errors.some(error =>
-    error.includes('.birth.placeId references missing ID missing-board-birthplace')));
+    error.includes('.birth.placeId references missing places/missing-board-birthplace')));
 invalidBoardPerson.birth = '1900';
 assert.ok(context.prepareProjectDraft(project, invalidBoardDraft).errors.some(error =>
     error.includes('.birth must contain a structured genealogy date')));

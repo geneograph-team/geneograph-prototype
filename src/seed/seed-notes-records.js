@@ -822,58 +822,38 @@ sampleData.notes = (() =>
 
 sampleData.sourceLinks = [
     // Source → People
-    ['as1', 'person', 'barnaby'],
-    ['as1', 'person', 'daisy'],
-    ['as2', 'person', 'silver'],
-    ['as3', 'person', 'barnaby'],
-    ['as3', 'person', 'luna'],
-    ['as4', 'person', 'luna'],
-    ['as5', 'person', 'silver'],
+    { id: 'source-link-seed-1', projectId: 'p1', sourceId: 'as1', targetType: 'person', targetId: 'barnaby' },
+    { id: 'source-link-seed-2', projectId: 'p1', sourceId: 'as1', targetType: 'person', targetId: 'daisy' },
+    { id: 'source-link-seed-3', projectId: 'p1', sourceId: 'as2', targetType: 'person', targetId: 'silver' },
+    { id: 'source-link-seed-4', projectId: 'p1', sourceId: 'as3', targetType: 'person', targetId: 'barnaby' },
+    { id: 'source-link-seed-5', projectId: 'p1', sourceId: 'as3', targetType: 'person', targetId: 'luna' },
+    { id: 'source-link-seed-6', projectId: 'p1', sourceId: 'as4', targetType: 'person', targetId: 'luna' },
+    { id: 'source-link-seed-7', projectId: 'p1', sourceId: 'as5', targetType: 'person', targetId: 'silver' },
 
     // Source → Places
-    ['as1', 'place', 'place-archive'],
-    ['as1', 'place', 'place-pawford'],
-    ['as2', 'place', 'place-pawford'],
-    ['as3', 'place', 'place-meowbridge'],
-    ['as5', 'place', 'place-pawford'],
-    ['as6', 'place', 'place-pawford'],
+    { id: 'source-link-seed-8', projectId: 'p1', sourceId: 'as1', targetType: 'place', targetId: 'place-archive' },
+    { id: 'source-link-seed-9', projectId: 'p1', sourceId: 'as1', targetType: 'place', targetId: 'place-pawford' },
+    { id: 'source-link-seed-10', projectId: 'p1', sourceId: 'as2', targetType: 'place', targetId: 'place-pawford' },
+    { id: 'source-link-seed-11', projectId: 'p1', sourceId: 'as3', targetType: 'place', targetId: 'place-meowbridge' },
+    { id: 'source-link-seed-12', projectId: 'p1', sourceId: 'as5', targetType: 'place', targetId: 'place-pawford' },
+    { id: 'source-link-seed-13', projectId: 'p1', sourceId: 'as6', targetType: 'place', targetId: 'place-pawford' },
 
     // Source → Archive files
-    ['as1', 'file', 'af1'],
-    ['as1', 'file', 'af3'],
-    ['as1', 'file', 'af-birth-sample'],
-    ['as2', 'file', 'af7'],
-    ['as3', 'file', 'af5'],
-    ['as5', 'file', 'af4'],
+    { id: 'source-link-seed-14', projectId: 'p1', sourceId: 'as1', targetType: 'file', targetId: 'af1' },
+    { id: 'source-link-seed-15', projectId: 'p1', sourceId: 'as1', targetType: 'file', targetId: 'af3' },
+    { id: 'source-link-seed-16', projectId: 'p1', sourceId: 'as1', targetType: 'file', targetId: 'af-birth-sample' },
+    { id: 'source-link-seed-17', projectId: 'p1', sourceId: 'as2', targetType: 'file', targetId: 'af7' },
+    { id: 'source-link-seed-18', projectId: 'p1', sourceId: 'as3', targetType: 'file', targetId: 'af5' },
+    { id: 'source-link-seed-19', projectId: 'p1', sourceId: 'as5', targetType: 'file', targetId: 'af4' },
 
     // Source → Notes
-    ['as1', 'note', 'note-daisy-parentage'],
-    ['as1', 'note', 'note-pawford-household'],
-    ['as1', 'note', 'note-pawford-archive-visit'],
-    ['as1', 'note', 'note-whiskerfield-surname'],
-    ['as3', 'note', 'note-meowbridge-transcription'],
-    ['as3', 'note', 'note-silver-luna-marriage'],
-    ['as3', 'note', 'note-purrington-surname'],
-    ['as4', 'note', 'note-luna-interview'],
-    ['as5', 'note', 'note-whiskerfield-album']
-].map(
-    (
-        [
-            sourceId,
-            targetType,
-            targetId
-        ],
-        index
-    ) => ({
-        id:
-          `source-link-seed-${index + 1}`,
-
-        projectId:
-          'p1',
-
-        sourceId,
-        targetType,
-        targetId
-    })
-);
-
+    { id: 'source-link-seed-20', projectId: 'p1', sourceId: 'as1', targetType: 'note', targetId: 'note-daisy-parentage' },
+    { id: 'source-link-seed-21', projectId: 'p1', sourceId: 'as1', targetType: 'note', targetId: 'note-pawford-household' },
+    { id: 'source-link-seed-22', projectId: 'p1', sourceId: 'as1', targetType: 'note', targetId: 'note-pawford-archive-visit' },
+    { id: 'source-link-seed-23', projectId: 'p1', sourceId: 'as1', targetType: 'note', targetId: 'note-whiskerfield-surname' },
+    { id: 'source-link-seed-24', projectId: 'p1', sourceId: 'as3', targetType: 'note', targetId: 'note-meowbridge-transcription' },
+    { id: 'source-link-seed-25', projectId: 'p1', sourceId: 'as3', targetType: 'note', targetId: 'note-silver-luna-marriage' },
+    { id: 'source-link-seed-26', projectId: 'p1', sourceId: 'as3', targetType: 'note', targetId: 'note-purrington-surname' },
+    { id: 'source-link-seed-27', projectId: 'p1', sourceId: 'as4', targetType: 'note', targetId: 'note-luna-interview' },
+    { id: 'source-link-seed-28', projectId: 'p1', sourceId: 'as5', targetType: 'note', targetId: 'note-whiskerfield-album' }
+];

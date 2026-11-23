@@ -632,7 +632,7 @@ function savePersonRelationshipBlock(personId, collected)
         if (!relationship) return;
 
         upsertPartnerRelationshipEvents(relationship, values);
-        relationship.updatedAt = 'Just now';
+        relationship.updatedAt = new Date().toISOString();
     });
 }
 
@@ -713,7 +713,6 @@ function createPersonFromAddPersonModal(options = {}, additionalFacts = {}, date
         events: [],
         notes: [],
         citations: [],
-        counts: { files: 0, notes: 0 },
         meta: { updated: 'Just now', sourceStatus: 'Unsourced' }
     };
 
@@ -744,7 +743,6 @@ function createUnknownParent(childPersonId, role)
         events: [],
         notes: [],
         citations: [],
-        counts: { files: 0, notes: 0 },
         meta: { updated: 'Just now', sourceStatus: 'Unsourced',
             placeholderRole: isMother ? 'mother' : 'father' }
     };
@@ -1656,8 +1654,8 @@ function createParentChildFamily(parentId, childId)
         notes: [],
         citations: [],
         mediaIds: [],
-        createdAt: 'Just now',
-        updatedAt: 'Just now'
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
     };
 
     assignParentToFamily(family, parentId);
@@ -1690,8 +1688,8 @@ function findOrCreateSingleParentFamily(parentId)
         notes: [],
         citations: [],
         mediaIds: [],
-        createdAt: 'Just now',
-        updatedAt: 'Just now'
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
     };
 
     assignParentToFamily(family, parentId);
@@ -1727,7 +1725,7 @@ function addChildToFamily(family, parentId, childId)
     if (!validation.ok) return validation;
 
     unlinkSetFamilyChildren(family, [...existingChildren, childId]);
-    family.updatedAt = 'Just now';
+    family.updatedAt = new Date().toISOString();
 
     return {
         ok: true,
@@ -1886,7 +1884,7 @@ function connectSiblingsThroughFamily(anchorPersonId, siblingPersonId, familyId,
     {
         setParentChildRelationshipType(family, parentId, targetPersonId, detailType);
     });
-    family.updatedAt = 'Just now';
+    family.updatedAt = new Date().toISOString();
 
     return {
         ok: true,
@@ -1921,7 +1919,7 @@ function connectParentToChild(parentId, childId)
         family.childIds = [...new Set([...(family.childIds || []), childId])];
 
         assignParentToFamily(family, parentId);
-        family.updatedAt = 'Just now';
+        family.updatedAt = new Date().toISOString();
     }
 
     return {
@@ -1985,7 +1983,7 @@ function connectPartners(personAId, personBId, options = {})
             };
         }
 
-        existingChildrenFamily.updatedAt = 'Just now';
+        existingChildrenFamily.updatedAt = new Date().toISOString();
 
 
         return {
@@ -2026,8 +2024,8 @@ function connectPartners(personAId, personBId, options = {})
         notes: [],
         citations: [],
         mediaIds: [],
-        createdAt: 'Just now',
-        updatedAt: 'Just now'
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
     };
 
     centralFamilyRecords().push(family);
@@ -4549,7 +4547,7 @@ function saveRelationshipEdit(context)
             [key]: modalBackdrop.querySelector('#relationshipEditParentChildType').value
         };
     }
-    family.updatedAt = 'Just now';
+    family.updatedAt = new Date().toISOString();
     markPrototypeSessionEdited();
     return true;
 }

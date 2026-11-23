@@ -5,16 +5,13 @@ const publishTypes = [
 ];
 
 sampleData.publishDrafts = [
-    { id: 'pub1', title: 'Who was Luna Purrington-s father?', type: 'report', preview: 'report', scope: 'Research case report', updated: 'Just now', privacy: 'Draft', sources: '8 sources', format: 'PDF', status: 'draft', details: ['18 pages', '3 people', '8 sources', '6 notes'] },
-    { id: 'pub2', title: 'The Whiskerfield Family - Our Story', type: 'report', preview: 'book', scope: 'Book project', updated: '2 days ago', privacy: 'In progress', sources: '116 sources', format: 'PDF', status: 'draft', details: ['12 chapters', '42 photos', '116 sources', '78% complete'] },
-    { id: 'pub3', title: 'Maternal Line - Geneograph Board', type: 'chart', preview: 'chart', scope: 'Geneograph poster', updated: '3 days ago', privacy: 'Ready to export', sources: '1 board', format: 'PNG', status: 'draft', details: ['A3 landscape', 'Includes 1 board', 'High resolution'] },
-    { id: 'pub4', title: 'Migration of the Whiskerfield Family', type: 'chart', preview: 'map', scope: 'Migration map', updated: '6 days ago', privacy: 'Ready to export', sources: 'Places and events included', format: 'PDF', status: 'draft', details: ['Places: 14', 'Events: 32', 'Time range: 1860-1970'] },
-    { id: 'pub5', title: 'Metric Book 1887 - Index', type: 'export', preview: 'index', scope: 'Archive index', updated: '1 week ago', privacy: 'Published', sources: 'Archive files included', format: 'CSV', status: 'exported', details: ['Pages: 248', 'Extracted entries: 381', 'People: 192', 'Places: 37'] },
-    { id: 'pub6', title: 'Barnaby Whiskerfield - Biography', type: 'report', preview: 'biography', scope: 'Person biography', updated: '1 week ago', privacy: 'Draft', sources: '46 sources', format: 'PDF', status: 'draft', details: ['24 pages', '27 photos', '46 sources', '2 maps'] }
-].map(draft => ({
-    ...draft,
-    projectId: 'p1'
-}));
+    { id: 'pub1', projectId: 'p1', title: 'Who was Luna Purrington-s father?', type: 'report', preview: 'report', scope: 'Research case report', updated: 'Just now', privacy: 'Draft', sources: '8 sources', format: 'PDF', status: 'draft', details: ['18 pages', '3 people', '8 sources', '6 notes'] },
+    { id: 'pub2', projectId: 'p1', title: 'The Whiskerfield Family - Our Story', type: 'report', preview: 'book', scope: 'Book project', updated: '2 days ago', privacy: 'In progress', sources: '116 sources', format: 'PDF', status: 'draft', details: ['12 chapters', '42 photos', '116 sources', '78% complete'] },
+    { id: 'pub3', projectId: 'p1', title: 'Maternal Line - Geneograph Board', type: 'chart', preview: 'chart', scope: 'Geneograph poster', updated: '3 days ago', privacy: 'Ready to export', sources: '1 board', format: 'PNG', status: 'draft', details: ['A3 landscape', 'Includes 1 board', 'High resolution'] },
+    { id: 'pub4', projectId: 'p1', title: 'Migration of the Whiskerfield Family', type: 'chart', preview: 'map', scope: 'Migration map', updated: '6 days ago', privacy: 'Ready to export', sources: 'Places and events included', format: 'PDF', status: 'draft', details: ['Places: 14', 'Events: 32', 'Time range: 1860-1970'] },
+    { id: 'pub5', projectId: 'p1', title: 'Metric Book 1887 - Index', type: 'export', preview: 'index', scope: 'Archive index', updated: '1 week ago', privacy: 'Published', sources: 'Archive files included', format: 'CSV', status: 'exported', details: ['Pages: 248', 'Extracted entries: 381', 'People: 192', 'Places: 37'] },
+    { id: 'pub6', projectId: 'p1', title: 'Barnaby Whiskerfield - Biography', type: 'report', preview: 'biography', scope: 'Person biography', updated: '1 week ago', privacy: 'Draft', sources: '46 sources', format: 'PDF', status: 'draft', details: ['24 pages', '27 photos', '46 sources', '2 maps'] }
+];
 
 function getProjectPublishDrafts(projectId = currentProjectId())
 {
