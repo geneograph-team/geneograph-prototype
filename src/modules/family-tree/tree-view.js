@@ -1183,6 +1183,9 @@ function treeConnectorPath(points)
     }, `M${normalized[0].x} ${normalized[0].y}`);
 }
 
+// Keep the dash length in sync with the first value of stroke-dasharray in tree-refinements.css.
+const TREE_PARTNER_DASH_LENGTH = 10;
+
 function treePartnerConnectorClass(family)
 {
     const type = String(family?.relationshipType || '').trim().toLowerCase();
@@ -1298,11 +1301,21 @@ function buildTreeConnectorDescriptors(
             + last.centerY
             ) / 2
         );
+        const className = treePartnerConnectorClass(familyById.get(familyId));
+        const junctionX = Math.round((first.rightX + last.leftX) / 2);
+        const distanceToJunction = Math.abs(Math.round(first.centerY) - partnerY)
+            + Math.abs(Math.round(first.rightX) - junctionX);
+
+        // Center a complete dash where the descendant stem meets the partner line.
+        const dashOffset = className.includes('is-separated-or-divorced')
+            ? TREE_PARTNER_DASH_LENGTH / 2 - distanceToJunction
+            : null;
 
         addDescriptor({
             familyId,
             role: 'partner',
-            className: treePartnerConnectorClass(familyById.get(familyId)),
+            className,
+            dashOffset,
             points: [
                 {
                     x: first.rightX,
@@ -1756,7 +1769,7 @@ function buildTreeConnectorDescriptors(
 function renderTreeLines(layout)
 {
     const descriptors = layout.connectorDescriptors || buildTreeConnectorDescriptors(layout);
-    const paths = descriptors.map(descriptor => `<path class="${descriptor.className}" data-tree-family-id="${escapeHtml(String(descriptor.familyId || ''))}" data-tree-connection-role="${escapeHtml(descriptor.role)}" ${descriptor.childId ? `data-tree-child-id="${escapeHtml(descriptor.childId)}"` : ''} d="${descriptor.d}"/>`);
+    const paths = descriptors.map(descriptor => `<path class="${descriptor.className}" data-tree-family-id="${escapeHtml(String(descriptor.familyId || ''))}" data-tree-connection-role="${escapeHtml(descriptor.role)}" ${descriptor.childId ? `data-tree-child-id="${escapeHtml(descriptor.childId)}"` : ''} ${Number.isFinite(descriptor.dashOffset) ? `stroke-dashoffset="${descriptor.dashOffset}"` : ''} d="${descriptor.d}"/>`);
     return `<svg class="tree-lines" viewBox="0 0 ${layout.stageWidth} ${layout.stageHeight}" width="${layout.stageWidth}" height="${layout.stageHeight}" aria-hidden="true">
         ${paths.join('\n        ')}
       </svg>`;

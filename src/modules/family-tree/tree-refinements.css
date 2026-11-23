@@ -381,7 +381,7 @@ html.tree-fullscreen .tree-shell {
 }
 
 .tree-line.partner.is-separated-or-divorced {
-    stroke-dasharray: 10 12;
+    stroke-dasharray: 10 8;
 }
 
 .tree-person-card {
