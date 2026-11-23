@@ -2372,7 +2372,8 @@ function geneoPossibleMatchScoreOptions(options = {})
 function findGeneographPersonPossibleMatches(options = {}, { fresh = false } = {})
 {
     const draft = collectGeneographPersonDraftForMatching();
-    if (!Object.values(draft.names).some(value => value.trim().length >= 3)) return [];
+    const context = geneoPossibleMatchScoreOptions(options);
+    if (!addPersonDraftHasSearchEvidence(draft, Boolean(context.connectToPersonId))) return [];
 
     const projectId = selectedGeneographBoard()?.projectId || currentProjectId();
     if (!projectId) return [];
@@ -2387,7 +2388,6 @@ function findGeneographPersonPossibleMatches(options = {}, { fresh = false } = {
         state.peopleLength = sampleData.people.length;
         state.placesLength = sampleData.places.length;
     }
-    const context = geneoPossibleMatchScoreOptions(options);
     return PersonMatchEngine.search(state.index, draft, {
         excludeIds: [context.connectToPersonId].filter(Boolean),
         anchorPersonId: context.connectToPersonId,
