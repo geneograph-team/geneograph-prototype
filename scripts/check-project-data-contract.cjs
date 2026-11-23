@@ -66,9 +66,7 @@ for (const photo of sample.media)
 {
     const filename = path.join(sourceDirectory, photo.src);
     assert.equal(fs.statSync(filename).size, photo.sizeBytes, photo.id + ' file size');
-    // The >1 MiB grandparents image's dimensions require separate verification.
-    if (photo.id !== 'photo-grandparents-garden')
-        assert.deepEqual(readJpegDimensions(filename), { width: photo.width, height: photo.height }, photo.id);
+    assert.deepEqual(readJpegDimensions(filename), { width: photo.width, height: photo.height }, photo.id);
 }
 assert.equal(fs.statSync(path.join(sourceDirectory, 'assets/documents/silver_luna_marriage_packet.pdf')).size, 6723);
 assert.equal(sample.media.find(photo => photo.id === 'photo-family-table').date.first.year, 2010);
