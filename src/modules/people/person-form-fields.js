@@ -278,12 +278,13 @@ function educationInstitutionTypeOptions(selected = '')
         'Other'
     ];
 
-    const current = cleanEditFieldValue(selected || 'Unknown');
-    if (!options.includes(current)) options.push(current);
+    const current = String(selected || '').trim();
+    if (current && !options.includes(current)) options.push(current);
 
-    return options
-        .map(value => `<option value="${escapeHtml(value)}" ${value === current ? 'selected' : ''}>${escapeHtml(value)}</option>`)
-        .join('');
+    return `<option value="" disabled ${current ? '' : 'selected'}>${escapeHtml(t('Select institution type'))}</option>`
+        + options
+            .map(value => `<option value="${escapeHtml(value)}" ${value === current ? 'selected' : ''}>${escapeHtml(t(value))}</option>`)
+            .join('');
 }
 
 function educationValueLabel(attribute)

@@ -14,14 +14,14 @@ function renderRepeatableFactEntry(tag, record = null)
 {
     const prefix = createRuntimeId('fact-field');
     const value = record || {};
-    const text = (key, label, multiline = false) => `<div class="field ${multiline ? 'full' : ''}"><label for="${prefix}-${key}">${escapeHtml(t(label))}</label>${multiline
+    const text = (key, label, multiline = false, placeholder = '') => `<div class="field ${multiline ? 'full' : ''}"><label for="${prefix}-${key}">${escapeHtml(t(label))}</label>${multiline
         ? `<textarea id="${prefix}-${key}" data-repeat-field="${key}" data-source-value="${escapeHtml(value[key] || '')}">${escapeHtml(localizedDataFieldValue(value[key] || ''))}</textarea>`
-        : `<input id="${prefix}-${key}" data-repeat-field="${key}" data-source-value="${escapeHtml(value[key] || '')}" value="${escapeHtml(localizedDataFieldValue(value[key] || ''))}">`}</div>`;
+        : `<input id="${prefix}-${key}" data-repeat-field="${key}" data-source-value="${escapeHtml(value[key] || '')}" value="${escapeHtml(localizedDataFieldValue(value[key] || ''))}"${placeholder ? ` placeholder="${escapeHtml(t(placeholder))}"` : ''}>`}</div>`;
     const date = (key, label) => renderGenealogyDateField(`${prefix}-${key}`, label, value[key] || (key === 'fromDate' ? value.date : null) || emptyGenealogyDate('Exact date'), { className: 'genealogy-date-inline-range', defaultDateType: 'Exact date' });
     const place = renderPlaceCombobox({ id: `${prefix}-place`, label: 'Place', value: editPlaceValue(value.placeId, value.placeText), selectedPlaceId: value.placeId || '', addressValue: value.address || '', placeholder: 'Search or type a place', className: 'full' });
     const dates = `<div class="add-person-fact-date-row repeatable-fact-dates full"><div class="profile-edit-date-cell">${date('fromDate', 'Start date')}</div><div class="profile-edit-date-cell">${date('toDate', 'End date')}</div></div>`;
     const fields = tag === 'FACT' ? renderCustomFactFields(prefix, value)
-        : `${tag === 'EDUC' ? `${text('institutionName', 'Institution name')}<div class="field"><label for="${prefix}-institutionType">${escapeHtml(t('Institution type'))}</label><div class="common-select-shell"><select class="compact-select common-select" id="${prefix}-institutionType" data-repeat-field="institutionType">${educationInstitutionTypeOptions(value.institutionType || 'Unknown')}</select><span class="common-select-chevron" aria-hidden="true">${icon.chevron}</span></div></div>${text('value', 'Education or credential')}` : `${text('company', 'Company name')}${text('value', 'Occupation')}`}
+        : `${tag === 'EDUC' ? `${text('institutionName', 'Institution name', false, 'e.g. Pawford Grammar School')}<div class="field"><label for="${prefix}-institutionType">${escapeHtml(t('Institution type'))}</label><div class="common-select-shell"><select class="compact-select common-select" id="${prefix}-institutionType" data-repeat-field="institutionType">${educationInstitutionTypeOptions(value.institutionType || '')}</select><span class="common-select-chevron" aria-hidden="true">${icon.chevron}</span></div></div>${text('value', 'Education or credential', false, 'e.g. Secondary education, BA, apprenticeship')}` : `${text('company', 'Company name', false, 'e.g. Pawford School')}${text('value', 'Occupation', false, 'e.g. Teacher')}`}
           ${tag === 'EDUC' ? dates + place : place + dates}${text('notes', 'Notes', true)}`;
     const title = `<div class="add-person-fact-card-title"><span class="fact-button-icon" aria-hidden="true">${addPersonFactDefinition(repeatableFactKind(tag)).icon}</span><span>${escapeHtml(t(repeatableFactLabel(tag)))}</span></div>`;
     return `<section class="repeatable-fact-entry add-person-fact-card" data-repeat-entry data-repeat-id="${escapeHtml(record?.id || '')}" data-repeat-prefix="${prefix}" data-repeat-tag="${tag}">
@@ -95,7 +95,7 @@ function collectRepeatableFacts(root, tag)
         const values = recordTag === 'FACT'
             ? { type: customRead('Type'), value: customRead('Value'), notes: customRead('Notes'), date: date(`${prefix}Date`), place }
             : { value: read('value'), notes: read('notes'),
-                ...(recordTag === 'EDUC' ? { institutionName: read('institutionName'), institutionType: read('institutionType') || 'Unknown' } : { company: read('company') }),
+                ...(recordTag === 'EDUC' ? { institutionName: read('institutionName'), institutionType: read('institutionType') } : { company: read('company') }),
                 fromDate: date(`${prefix}-fromDate`), toDate: date(`${prefix}-toDate`), place };
         const textContent = [values.value, values.notes, values.company, values.institutionName, values.type, place.text, place.address].some(Boolean)
             || (values.institutionType && values.institutionType !== 'Unknown');

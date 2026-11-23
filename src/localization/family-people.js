@@ -377,6 +377,7 @@ const RU_UI_PEOPLE = {
     'Optional': 'Необязательно',
     'Institution name': 'Название учреждения',
     'Institution type': 'Тип учреждения',
+    'Select institution type': 'Выберите тип учреждения',
     'Education or credential': 'Образование или квалификация',
     'Start date': 'Дата начала',
     'End date': 'Дата окончания',
