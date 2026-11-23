@@ -21,14 +21,14 @@ const context = vm.createContext({
     getPersonPhotoCount: () => 0,
     getArchiveFilesForPerson: () => [],
     getNotesForPerson: () => [],
-    document: { documentElement: { lang: 'en' } },
-    cleanEditFieldValue: text => String(text ?? ''),
-    currentProjectId: () => null,
-    // Browser dependencies outside this data-only smoke test.
     sourceIdsForTarget: () => [],
     timelineYearFromValue: date => date?.first?.year || '',
-    treeDefaultPersonId: projectId => projectId === 'p1' ? 'silver' : 'stress-person-0349'
+    treeDefaultPersonId: projectId => projectId === 'p1' ? 'silver' : 'stress-person-0001',
+    document: { documentElement: { lang: 'en' } },
+    cleanEditFieldValue: text => String(text ?? ''),
+    currentProjectId: () => null
 });
+
 for (const file of [
     'seed/sample-data',
     'shared/genealogy-dates',
@@ -44,9 +44,13 @@ for (const file of [
 
 const run = code => vm.runInContext(code, context);
 const projectId = 'p-family-tree-stress';
+const id = n => 'stress-person-' + String(n).padStart(4, '0');
+const familyId = n => 'stress-family-' + String(n).padStart(4, '0');
 const p1Before = run('JSON.stringify([sampleData.people, sampleData.families])');
+
 assert.equal(run('sampleData.projects.length'), 2);
-assert.equal(run('getProjectPeopleCount("' + projectId + '")'), 1200);
+assert.equal(run('sampleData.projects[1].defaultPersonId'), id(1));
+assert.equal(run('getProjectPeopleCount("' + projectId + '")'), 1023);
 assert.equal(run('sampleData.people.filter(p => p.projectId === "' + projectId + '").length'), 0);
 assert.equal(run('sampleData.families.filter(f => f.projectId === "' + projectId + '").length'), 0);
 assert.equal(run('ensureFamilyTreeStressTestProjectLoaded("p1")'), true);
@@ -55,128 +59,142 @@ assert.equal(run('sampleData.people.length'), 24);
 const buildStarted = performance.now();
 const fixture = run('buildFamilyTreeStressTestFixture()');
 const buildMs = performance.now() - buildStarted;
-assert.equal(fixture.people.length, 1200);
-assert.equal(fixture.families.length, 442);
+assert.equal(fixture.people.length, 1023);
+assert.equal(fixture.families.length, 511);
 assert.equal(JSON.stringify(fixture), JSON.stringify(run('buildFamilyTreeStressTestFixture()')));
-assert.equal(fixture.people[0].birth.first.year, 1740);
-assert.equal(fixture.people.at(-1).birth.first.year, 2010);
-assert.equal(new Set(fixture.people.map(person => person.id)).size, 1200);
-assert.equal(new Set(fixture.families.map(family => family.id)).size, fixture.families.length);
-assert.equal(run('sampleData.projects[1].defaultPersonId'), 'stress-person-0349');
+assert.equal(new Set(fixture.people.map(person => person.id)).size, 1023);
+assert.equal(new Set(fixture.families.map(family => family.id)).size, 511);
 
-const cohorts = new Map();
 const peopleById = new Map(fixture.people.map(person => [person.id, person]));
 const parentFamilyById = new Map();
 const partnerFamilyById = new Map();
-
-// A bipartite person-family membership graph must be a connected TREE.
-// Connectedness alone is insufficient: cycles allow one person to be
-// encountered more than once through different visible pedigree branches.
+const cohortCounts = new Map();
 const membership = new Map([
     ...fixture.people.map(person => ['person:' + person.id, new Set()]),
     ...fixture.families.map(family => ['family:' + family.id, new Set()])
 ]);
 let membershipEdges = 0;
-let wideFamilyCount = 0;
-for (const person of fixture.people)
-    cohorts.set(person.birth.first.year, (cohorts.get(person.birth.first.year) || 0) + 1);
-assert.deepEqual([...cohorts.entries()], [
-    [1740, 2], [1770, 10], [1800, 22], [1830, 40], [1860, 64],
-    [1890, 96], [1920, 150], [1950, 220], [1980, 280], [2010, 316]
+
+// Every ancestor level is COMPLETE: Person 0001 at generation 0,
+// Person 0002/0003 at 1, Person 0004–0007 at 2, ...,
+// Person 0512–1023 at generation 9. Parent generations are 30 years older.
+for (let n = 1; n <= fixture.people.length; n += 1)
+{
+    const person = peopleById.get(id(n));
+    assert.ok(person, 'missing numbered ancestor ' + n);
+    const generation = Math.floor(Math.log2(n));
+    const year = 2000 - generation * 30;
+    assert.equal(person.birth.first.year, year);
+    assert.equal(person.names.first, 'Person');
+    assert.equal(person.names.last, String(n).padStart(4, '0'));
+    assert.equal(person.gender, n % 2 === 0 ? 'male' : 'female');
+    cohortCounts.set(year, (cohortCounts.get(year) || 0) + 1);
+}
+assert.deepEqual([...cohortCounts.entries()], [
+    [2000, 1], [1970, 2], [1940, 4], [1910, 8], [1880, 16],
+    [1850, 32], [1820, 64], [1790, 128], [1760, 256], [1730, 512]
 ]);
 
-for (const family of fixture.families)
+for (let n = 1; n <= fixture.families.length; n += 1)
 {
+    const family = fixture.families[n - 1];
+    const child = id(n);
+    const father = id(2 * n);
+    const mother = id(2 * n + 1);
+    assert.equal(family.id, familyId(n));
     assert.equal(family.projectId, projectId);
-    assert.ok(family.partnerAId && family.partnerBId, 'every family is a complete pair');
-    assert.ok(family.childIds.length >= 1 && family.childIds.length <= 10);
-    const members = [family.partnerAId, family.partnerBId, ...family.childIds];
-    assert.equal(new Set(members).size, members.length, 'duplicate family membership');
-    if (family.childIds.length >= 8) wideFamilyCount += 1;
-
-    for (const id of members)
+    assert.equal(family.partnerAId, father);
+    assert.equal(family.partnerBId, mother);
+    assert.deepEqual(Array.from(family.childIds), [child]);
+    assert.equal(family.parentChildTypes[father + '|' + child], 'Biological');
+    assert.equal(family.parentChildTypes[mother + '|' + child], 'Biological');
+    assert.ok(!parentFamilyById.has(child), 'repeated parent family: ' + child);
+    parentFamilyById.set(child, family.id);
+    for (const parentId of [father, mother])
     {
-        assert.ok(peopleById.has(id), 'missing member ' + id);
-        const personKey = 'person:' + id;
-        const familyKey = 'family:' + family.id;
+        assert.ok(!partnerFamilyById.has(parentId), 'repeated partner family: ' + parentId);
+        partnerFamilyById.set(parentId, family.id);
+        assert.equal(peopleById.get(child).birth.first.year -
+            peopleById.get(parentId).birth.first.year, 30);
+    }
+    const familyKey = 'family:' + family.id;
+    for (const personId of [father, mother, child])
+    {
+        const personKey = 'person:' + personId;
         membership.get(personKey).add(familyKey);
         membership.get(familyKey).add(personKey);
         membershipEdges += 1;
     }
-    for (const id of [family.partnerAId, family.partnerBId])
-    {
-        assert.ok(!partnerFamilyById.has(id), 'repeated partner context: ' + id);
-        partnerFamilyById.set(id, family.id);
-    }
-    for (const childId of family.childIds)
-    {
-        assert.ok(!parentFamilyById.has(childId), 'repeated parent context: ' + childId);
-        parentFamilyById.set(childId, family.id);
-        for (const parentId of [family.partnerAId, family.partnerBId])
-            assert.equal(peopleById.get(childId).birth.first.year -
-                peopleById.get(parentId).birth.first.year, 30);
-    }
 }
-assert.ok(wideFamilyCount >= 5, 'several wide sibling groups must remain');
-assert.equal(partnerFamilyById.size, fixture.families.length * 2);
-assert.equal(parentFamilyById.size, fixture.people.length - 2 - (fixture.families.length - 1));
 
-for (const family of fixture.families)
+assert.equal(parentFamilyById.size, 511);
+assert.equal(partnerFamilyById.size, 1022);
+assert.ok(!partnerFamilyById.has(id(1)), 'proband must be at bottom with no descendants');
+for (let n = 1; n <= 511; n += 1)
+    assert.ok(parentFamilyById.has(id(n)), 'missing parents for ' + n);
+for (let n = 512; n <= 1023; n += 1)
+    assert.ok(!parentFamilyById.has(id(n)), 'oldest ancestor must be a leaf');
+
+let frontier = [id(1)];
+for (let level = 1; level <= 9; level += 1)
 {
-    if (family.id === 'stress-family-0001')
+    frontier = frontier.flatMap(personId =>
     {
-        assert.ok(!parentFamilyById.has(family.partnerAId));
-        assert.ok(!parentFamilyById.has(family.partnerBId));
-    }
-    else
-    {
-        assert.ok(parentFamilyById.has(family.partnerAId), 'continuing descendant needs a parent family');
-        assert.ok(!parentFamilyById.has(family.partnerBId), 'married-in spouse may not reconnect another branch');
-    }
+        const family = fixture.families[Number(personId.slice(-4)) - 1];
+        assert.ok(family, 'incomplete ancestry above ' + personId);
+        return [family.partnerAId, family.partnerBId];
+    });
+    assert.equal(frontier.length, 2 ** level, 'ancestor row must be completely filled');
+    assert.equal(new Set(frontier).size, frontier.length, 'ancestor row repeats a person');
+    assert.equal(frontier[0], id(2 ** level));
+    assert.equal(frontier.at(-1), id(2 ** (level + 1) - 1));
 }
-for (const person of fixture.people)
-    assert.ok(parentFamilyById.has(person.id) || partnerFamilyById.has(person.id),
-        'disconnected record: ' + person.id);
 
-const discovered = new Set(['person:' + fixture.people[0].id]);
+// Connected and acyclic PERSON–FAMILY graph prevents two visual paths
+// to the same person, rather than merely checking for no ancestry cycles.
+const discovered = new Set(['person:' + id(1)]);
 const queue = [...discovered];
 for (let i = 0; i < queue.length; i += 1)
-    for (const id of membership.get(queue[i]))
-        if (!discovered.has(id)) { discovered.add(id); queue.push(id); }
-assert.equal(discovered.size, membership.size, 'all persons and families must be connected');
-assert.equal(membershipEdges, membership.size - 1, 'pedigree must have no reconverging branches');
+    for (const node of membership.get(queue[i]))
+        if (!discovered.has(node))
+        {
+            discovered.add(node);
+            queue.push(node);
+        }
+assert.equal(discovered.size, membership.size, 'entire fixture must be connected');
+assert.equal(membership.size, 1023 + 511);
+assert.equal(membershipEdges, membership.size - 1, 'family graph must contain no loops');
 
 assert.equal(run('validateProjectDraft(sampleData.projects[1], buildFamilyTreeStressTestFixture()).length'), 0);
+
 const openedAt = performance.now();
 assert.equal(run('ensureFamilyTreeStressTestProjectLoaded("' + projectId + '")'), true);
 const openMs = performance.now() - openedAt;
-assert.equal(run('sampleData.people.filter(p => p.projectId === "' + projectId + '").length'), 1200);
-assert.equal(run('sampleData.families.filter(f => f.projectId === "' + projectId + '").length'), 442);
-assert.ok(run('sampleData.events.filter(e => e.projectId === "' + projectId + '").length') >= 1200);
-assert.equal(run('getProjectPeopleCount("' + projectId + '")'), 1200);
+assert.equal(run('sampleData.people.filter(p => p.projectId === "' + projectId + '").length'), 1023);
+assert.equal(run('sampleData.families.filter(f => f.projectId === "' + projectId + '").length'), 511);
+assert.ok(run('sampleData.events.filter(e => e.projectId === "' + projectId + '").length') >= 1023);
+assert.equal(run('getProjectPeopleCount("' + projectId + '")'), 1023);
+
 const treePeople = run('getTreePeopleFromSampleData("' + projectId + '")');
 const treeFamilies = run('getTreeFamiliesFromSampleData("' + projectId + '")');
-assert.equal(treePeople.length, 1200);
-assert.equal(new Set(treePeople.map(person => person.id)).size, 1200,
-    'Tree input must not contain repeated person IDs');
-assert.equal(treeFamilies.length, 442);
-assert.equal(new Set(treeFamilies.map(family => family.id)).size, 442);
-assert.ok(treeFamilies.every(family => family.left && family.right && family.children.length),
-    'all visual family contexts must have two partners and children');
+assert.equal(treePeople.length, 1023);
+assert.equal(new Set(treePeople.map(person => person.id)).size, 1023);
+assert.equal(treeFamilies.length, 511);
+assert.equal(new Set(treeFamilies.map(family => family.id)).size, 511);
+assert.ok(treeFamilies.every(family => family.left && family.right && family.children.length === 1));
 
-// Exercise the same projection used when opening People. Canonical person.meta
-// is optional, so its absence must not crash the directory.
+// People directory must handle person records whose optional meta is absent.
 const peopleDirectoryRecords = run('getPeopleRecordsFromSampleData("' + projectId + '")');
-assert.equal(peopleDirectoryRecords.length, 1200);
-assert.equal(new Set(peopleDirectoryRecords.map(person => person.id)).size, 1200);
-assert.ok(peopleDirectoryRecords.every(person => person.updated === ''),
-    'missing optional metadata should produce a blank updated label');
+assert.equal(peopleDirectoryRecords.length, 1023);
+assert.equal(new Set(peopleDirectoryRecords.map(person => person.id)).size, 1023);
+assert.ok(peopleDirectoryRecords.every(person => person.updated === ''));
 assert.equal(peopleDirectoryRecords[0].name, 'Person 0001');
 run('sampleData.people.find(p => p.id === "stress-person-0001").meta = { updated: "Changed" }');
 assert.equal(run('getPeopleRecordsFromSampleData("' + projectId + '")[0].updated'), 'Changed');
 run('delete sampleData.people.find(p => p.id === "stress-person-0001").meta');
+
 assert.equal(run('JSON.stringify([sampleData.people.filter(p => p.projectId === "p1"), sampleData.families.filter(f => f.projectId === "p1")])'), p1Before);
-run('sampleData.people.find(p => p.id === "stress-person-0349").names.first = "Edited"');
+run('sampleData.people.find(p => p.id === "stress-person-0001").names.first = "Edited"');
 const peopleCount = run('sampleData.people.length');
 const familyCount = run('sampleData.families.length');
 const eventCount = run('sampleData.events.length');
@@ -184,12 +202,12 @@ assert.equal(run('ensureFamilyTreeStressTestProjectLoaded("' + projectId + '")')
 assert.equal(run('sampleData.people.length'), peopleCount);
 assert.equal(run('sampleData.families.length'), familyCount);
 assert.equal(run('sampleData.events.length'), eventCount);
-assert.equal(run('sampleData.people.find(p => p.id === "stress-person-0349").names.first'), 'Edited');
+assert.equal(run('sampleData.people.find(p => p.id === "stress-person-0001").names.first'), 'Edited');
 
 console.log(JSON.stringify({
     ok: true, people: fixture.people.length, families: fixture.families.length,
-    connectedMembershipNodes: discovered.size, noPedigreeCycles: true,
-    generations: cohorts.size, wideFamilies: wideFamilyCount,
-    buildMs: Math.round(buildMs), firstOpenMs: Math.round(openMs),
-    note: 'Synthetic Node timings, not browser render/layout measurements'
+    ancestorLevelsAboveProband: 9, connectedMembershipNodes: discovered.size,
+    noPedigreeCycles: true, buildMs: Math.round(buildMs),
+    firstOpenMs: Math.round(openMs),
+    note: 'Node timings are not browser render/layout measurements'
 }, null, 2));
