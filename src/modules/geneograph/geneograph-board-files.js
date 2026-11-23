@@ -233,6 +233,9 @@ function validateGeneographBoardFile(payload)
     if (diagram.assets.length > 200 || diagram.people.length > 2000 || diagram.families.length > 2000
         || diagram.nodes.length > 2000 || diagram.connections.length > 4000)
         throw geneoBoardFileError('The board file contains too many objects.');
+    if (diagram.themeProvenanceVersion !== undefined
+        && diagram.themeProvenanceVersion !== 0 && diagram.themeProvenanceVersion !== 1)
+        throw geneoBoardFileError('The board has invalid theme color settings.');
     if (diagram.themeProvenanceVersion === 1)
     {
         const validOverrides = value => value && ['fill', 'stroke', 'text'].every(key =>
@@ -292,7 +295,8 @@ function validateGeneographBoardFile(payload)
     for (const family of diagram.families)
     {
         if (!Array.isArray(family.partnerIds) || !Array.isArray(family.children)
-            || (family.events || []).some(event => !validDate(event.date))
+            || (family.events !== undefined && (!Array.isArray(family.events)
+                || family.events.some(event => !event || !validDate(event.date))))
             || new Set(family.partnerIds).size !== family.partnerIds.length
             || family.partnerIds.some(id => !people.has(id))
             || family.children.some(child => !people.has(child?.personId))
@@ -345,11 +349,44 @@ function validateGeneographBoardFile(payload)
     return payload;
 }
 
+function geneoImportBoardTheme(diagram)
+{
+    if (diagram.themeProvenanceVersion === 1) return;
+    // Older external board files treated their saved colors as fixed.
+    diagram.themeProvenanceVersion = 1;
+    diagram.canvas.backgroundOverride = Boolean(diagram.canvas.backgroundPaint);
+    diagram.connectionDefaults ||= {};
+    diagram.connectionDefaults.lineOverride = Boolean(diagram.connectionDefaults.line);
+    const markSavedColors = appearance =>
+    {
+        appearance.paintOverrides = Object.fromEntries(['fill', 'stroke', 'text'].map(key =>
+            [key, Boolean(appearance[key])]));
+    };
+    for (const appearance of Object.values(diagram.cardAppearanceDefaults || {}))
+        if (appearance && typeof appearance === 'object') markSavedColors(appearance);
+    for (const node of diagram.nodes)
+        markSavedColors(node.appearance ||= {});
+}
+
 function importGeneographBoardPayload(payload, projectId = currentProjectId())
 {
     if (!validProjectById(projectId)) throw geneoBoardFileError('Open a project before importing a board.');
     validateGeneographBoardFile(payload);
     const diagram = structuredClone(payload.board.diagram);
+    geneoImportBoardTheme(diagram);
+    for (const family of diagram.families)
+    {
+        if (typeof family.marriageType !== 'string' || !family.marriageType) continue;
+        family.events ||= [];
+        const start = partnerRelationshipStartEvent(family);
+        if (start.gedcomTag !== 'MARR' || start.typeLabel) continue;
+        start.typeLabel = family.marriageType;
+        if (!family.events.includes(start))
+        {
+            start.relationshipManagedRole = 'start';
+            family.events.push(start);
+        }
+    }
     for (const person of diagram.people)
     {
         const linked = person.treePersonId ? getPerson(person.treePersonId) : null;
@@ -361,17 +398,26 @@ function importGeneographBoardPayload(payload, projectId = currentProjectId())
         }
         person.photoId = null;
     }
+    const assetsById = new Map(diagram.assets.map(asset => [asset.id, asset]));
     for (const node of diagram.nodes)
     {
+        if (node.type === 'image')
+        {
+            const title = String(node.title || '').trim();
+            const asset = assetsById.get(node.imageRef.id);
+            const implicitNames = [asset?.title, asset?.displayName, asset?.filename, geneoFilenameStem(asset?.filename)]
+                .map(value => String(value || '').trim());
+            if (!String(node.name || '').trim() && title && !implicitNames.includes(title))
+                node.name = title.slice(0, 80);
+            delete node.title;
+            delete node.photoId;
+        }
         if (node.type !== 'place' || node.placeRef?.scope !== 'project') continue;
         const place = getPlace(node.placeRef.id);
         if (!place || place.projectId !== projectId
             || (placePrimaryName(place) || place.name) !== node.placeRef.fallbackName)
             node.placeRef = { scope: 'board', name: node.placeRef.fallbackName || 'Place' };
     }
-    const projectPeople = new Map([[projectId, new Set(
-        (sampleData.people || []).filter(person => person.projectId === projectId).map(person => person.id)
-    )]]);
     const now = new Date().toISOString();
     const board = normalizeGeneographBoardRecord({
         id: createRuntimeId('board'), projectId,
@@ -379,7 +425,7 @@ function importGeneographBoardPayload(payload, projectId = currentProjectId())
         collectionIds: [], favorite: false, archived: false,
         modifiedAt: now, createdAt: now,
         thumb: 'theory', diagram
-    }, projectPeople);
+    });
     // Commit only after normalization has succeeded.
     sampleData.boards.unshift(board);
     markPrototypeSessionEdited();

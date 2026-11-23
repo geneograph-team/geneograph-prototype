@@ -68,7 +68,7 @@ function placeInspectorEventLabel(
 {
     if (event?.title)
     {
-        return event.title;
+        return translateText(event.title);
     }
 
     if (event?.eventType)
@@ -280,8 +280,7 @@ function placeInspectorEventPresentation(
 
         return {
             title:
-            event.title
-            || 'Marriage',
+            translateText(event.title || 'Marriage'),
 
             date,
 

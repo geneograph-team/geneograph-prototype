@@ -1844,7 +1844,7 @@ function createEmptyGeneographDiagram({ colorPersonCardsByGender = false } = {})
             colorPersonCardsByGender
         },
         personCardDefaults:
-          geneoDefaultPersonCardSettings(),
+          normalizeGeneographPersonCardSettings(),
         cardAppearanceDefaults: geneoDefaultCardAppearances(),
         connectionDefaults: geneoDefaultConnectionStyle(),
         assets: [],

@@ -1790,7 +1790,7 @@ function renderArchiveFileTableRow(
 
           <td>
             <span class="archive-mobile-cell-label">${escapeHtml(t('Size / Items'))}: </span>${escapeHtml(
-                file.size
+                formatMediaBytes(file.sizeBytes)
               || '—'
             )}
           </td>
@@ -1798,9 +1798,7 @@ function renderArchiveFileTableRow(
           <td>
             <span class="archive-mobile-cell-label">${escapeHtml(t('Modified'))}: </span>${escapeHtml(
                 archiveFormatDate(
-                    file.updatedAt,
-                    file.updated
-                || 'Unknown'
+                    file.updatedAt
                 )
             )}
           </td>
@@ -2018,7 +2016,7 @@ function renderArchiveMobileItems(files, folders, showPaths)
     const fileRows = files.map(file => {
         const checked = state.archiveSelectedFileIds.includes(file.id);
         const metadata = showPaths ? archiveFolderPath(file.folderId)
-            : [file.size, archiveFormatDate(file.updatedAt || file.createdAt)].filter(Boolean).join(' · ');
+            : [formatMediaBytes(file.sizeBytes), archiveFormatDate(file.updatedAt || file.createdAt)].filter(Boolean).join(' · ');
         return `<li class="archive-mobile-item archive-mobile-file ${checked ? 'is-checked' : ''}">
             ${selecting ? `<input class="albums-select-checkbox" type="checkbox" data-archive-file-checkbox="${escapeHtml(file.id)}" ${checked ? 'checked' : ''} aria-label="${escapeHtml(t('Select'))}: ${escapeHtml(file.name)}">` : ''}
             <button type="button" class="archive-mobile-item-main" data-archive-mobile-file="${escapeHtml(file.id)}" title="${escapeHtml(file.name)}">

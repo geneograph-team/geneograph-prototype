@@ -41,7 +41,7 @@ function createGeneographSiblingRelationship(firstPersonId, secondPersonId, sour
             children: [],
             relationshipType: 'Sibling relationship',
             relationshipStatus: 'active',
-            marriageType: '',
+           
             events: []
         };
         diagram.families.push(family);
@@ -160,7 +160,9 @@ function createGeneographPartnerRelationship(firstPersonId, secondPersonId, sour
     let family = findGeneographFamilyForPartners(firstPersonId, secondPersonId);
     if (!family)
     {
-        family = { id: createRuntimeId('geneo-family'), partnerIds: [firstPersonId, secondPersonId], children: [], relationshipType: 'Married', relationshipStatus: 'active', marriageType: 'Civil', events: [] }; diagram.families.push(family);
+        family = { id: createRuntimeId('geneo-family'), partnerIds: [firstPersonId, secondPersonId], children: [], relationshipType: 'Married', relationshipStatus: 'active', events: [] };
+        family.events.push(createRelationshipEvent('MARR', 'Marriage', { id: family.id + '-start', typeLabel: 'Civil' }));
+        diagram.families.push(family);
     }
     if (!diagram.connections.some(item => item.kind === 'family-partner' && item.familyId === family.id)) diagram.connections.push(geneoCreateConnection('family-partner', source, target, family.id));
     return family;
@@ -185,7 +187,7 @@ function createGeneographParentChildRelationship(parentPersonId, childPersonId, 
     let family = diagram.families.find(item => item.partnerIds.length === 1 && item.partnerIds[0] === parentPersonId);
     if (!family)
     {
-        family = { id: createRuntimeId('geneo-family'), partnerIds: [parentPersonId], children: [], relationshipType: 'Unknown relationship', relationshipStatus: 'active', marriageType: '', events: [] }; diagram.families.push(family);
+        family = { id: createRuntimeId('geneo-family'), partnerIds: [parentPersonId], children: [], relationshipType: 'Unknown relationship', relationshipStatus: 'active', events: [] }; diagram.families.push(family);
     }
     addGeneographChildToFamily(family.id, childPersonId, target);
     const connection = diagram.connections.find(item => item.kind === 'family-child' && item.familyId === family.id && item.target.nodeId === target.nodeId);
@@ -258,7 +260,7 @@ function openGeneoMakeVisualConfirmation(connection)
             {
                 const parentNode = diagram.nodes.find(node => node.type === 'person' && node.personId === parentId);
                 const single = { id: createRuntimeId('geneo-family'), partnerIds: [parentId], children: [],
-                    relationshipType: 'Unknown relationship', relationshipStatus: 'active', marriageType: '', events: [] };
+                    relationshipType: 'Unknown relationship', relationshipStatus: 'active', events: [] };
                 diagram.families.push(single);
                 family.children.forEach(child =>
                 {

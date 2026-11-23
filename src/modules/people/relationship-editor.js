@@ -47,10 +47,10 @@ function partnerRelationshipManagedEvent(family, tag, typeLabel = '')
 function partnerRelationshipStartEvent(family, type = familyRelationshipType(family))
 {
     const definition = partnerRelationshipDefinition(type);
-    const exact = partnerRelationshipManagedEvent(family, definition.startTag, definition.startTypeLabel);
-    if (exact) return exact;
-    const legacy = ['MARR', 'ENGA'].map(tag => relationshipEventByTag(family, tag)).find(Boolean);
-    if (legacy) return legacy;
+    const recorded = partnerRelationshipDefinition(familyRelationshipType(family));
+    const event = family?.events?.find(item => item.relationshipManagedRole === 'start')
+        || partnerRelationshipManagedEvent(family, recorded.startTag, recorded.startTypeLabel);
+    if (event) return event;
     return createRelationshipEvent(definition.startTag, definition.startEventType, {
         id: `${family?.id || 'new-relationship'}-start`,
         typeLabel: definition.startTypeLabel,
@@ -62,10 +62,14 @@ function partnerRelationshipEndEvent(family, type = familyRelationshipType(famil
 {
     const definition = partnerRelationshipDefinition(type);
     if (!definition.hasEnd) return null;
-    const exact = partnerRelationshipManagedEvent(family, definition.endTag, definition.endTypeLabel);
-    if (exact) return exact;
-    const legacy = ['DIV', 'ANUL'].map(tag => relationshipEventByTag(family, tag)).find(Boolean);
-    if (legacy) return legacy;
+    const managed = family?.events?.find(event => event.relationshipManagedRole === 'end');
+    if (managed) return managed;
+    const recorded = partnerRelationshipDefinition(familyRelationshipType(family));
+    if (recorded.hasEnd)
+    {
+        const event = partnerRelationshipManagedEvent(family, recorded.endTag, recorded.endTypeLabel);
+        if (event) return event;
+    }
     return createRelationshipEvent(definition.endTag, definition.endEventType, {
         id: `${family?.id || 'new-relationship'}-end`,
         typeLabel: definition.endTypeLabel,
@@ -120,7 +124,7 @@ function renderAddPersonRelationshipCard({
     const partnerName = formatPersonFullName(partner) || (mode === 'addPartner' ? 'Selected person' : 'Unknown person');
     const fieldPrefix = `addPersonRelationship${index}`;
     const startEvent = partnerRelationshipStartEvent(relationship, relationshipType);
-    const marriageType = startEvent?.typeLabel || relationship?.marriageType || 'Civil';
+    const marriageType = startEvent?.typeLabel || 'Civil';
     const showMarriageType = addPersonRelationshipShowsMarriageType(relationshipType);
     const showPartnerUnlinkToast = Boolean(mode === 'edit' && relationship?.id && personId && partner?.id);
 
@@ -540,7 +544,7 @@ function relationshipIdForPartners(personAId, personBId)
     return `rel-${left}-${right}-family`;
 }
 
-function upsertManagedRelationshipEvent(relationship, role, definition, dateInput, placeInput, marriageType = '', options = {})
+function upsertManagedRelationshipEvent(relationship, role, definition, dateInput, placeInput, marriageType, options, previous)
 {
     relationship.events = Array.isArray(relationship.events) ? relationship.events : [];
     const isStart = role === 'start';
@@ -548,14 +552,23 @@ function upsertManagedRelationshipEvent(relationship, role, definition, dateInpu
     const eventType = isStart ? definition.startEventType : definition.endEventType;
     const managedTypeLabel = isStart ? definition.startTypeLabel : definition.endTypeLabel;
     const typeLabel = tag === 'MARR' ? marriageType : managedTypeLabel;
-    let event = partnerRelationshipManagedEvent(relationship, tag, managedTypeLabel);
+    const previousTag = isStart ? previous?.startTag : previous?.endTag;
+    const previousLabel = isStart ? previous?.startTypeLabel : previous?.endTypeLabel;
+    let event = relationship.events.find(item => item.relationshipManagedRole === role)
+        || (previousTag && partnerRelationshipManagedEvent(relationship, previousTag, previousLabel))
+        || ((isStart || !previous || previous.hasEnd)
+            && partnerRelationshipManagedEvent(relationship, tag, managedTypeLabel));
     const date = normalizeGenealogyDateInput(dateInput || {}, 'Exact date');
     const resolvedPlace = (options.resolvePlace || resolvePlaceAssignment)(placeInput, event?.placeId || '');
 
     if (!event)
     {
+        const idBase = `${relationship.id}-${role}`;
+        let id = idBase;
+        for (let suffix = 2; relationship.events.some(item => item.id === id); suffix++)
+            id = `${idBase}-${suffix}`;
         event = createRelationshipEvent(tag, eventType, {
-            id: `${relationship.id}-${role}`,
+            id,
             typeLabel,
             date,
             placeId: resolvedPlace.placeId,
@@ -580,40 +593,32 @@ function upsertManagedRelationshipEvent(relationship, role, definition, dateInpu
     return event;
 }
 
-function removeManagedRelationshipEndEvents(relationship)
-{
-    relationship.events = (relationship.events || []).filter(event =>
-    {
-        if (event.relationshipManagedRole === 'end') return false;
-        const tag = event.gedcomTag;
-        const type = cleanEditFieldValue(event.typeLabel).toLowerCase();
-        return !(['DIV', 'ANUL'].includes(tag) || (tag === 'EVEN' && ['partnership ended', 'separation'].includes(type)));
-    });
-}
-
 function upsertPartnerRelationshipEvents(relationship, values, options = {})
 {
     const relationshipType = ADD_PERSON_RELATIONSHIP_TYPES.includes(values.relationshipType)
         ? values.relationshipType
         : 'Unknown relationship';
     const definition = partnerRelationshipDefinition(relationshipType);
+    const currentStart = partnerRelationshipStartEvent(relationship);
     const marriageType = definition.showsMarriageType
-        ? values.marriageType || relationship.marriageType || 'Civil'
+        ? values.marriageType || (currentStart?.gedcomTag === 'MARR' && currentStart.typeLabel) || 'Civil'
         : '';
 
+    const previous = PARTNER_RELATIONSHIP_DEFINITIONS[relationship.relationshipType];
     relationship.relationshipType = relationshipType;
     relationship.relationshipStatus = definition.status;
-    relationship.marriageType = marriageType;
 
-    upsertManagedRelationshipEvent(relationship, 'start', definition, values.startDate, values.startPlace, marriageType, options);
+    upsertManagedRelationshipEvent(relationship, 'start', definition, values.startDate, values.startPlace, marriageType, options, previous);
 
     if (definition.hasEnd)
     {
-        upsertManagedRelationshipEvent(relationship, 'end', definition, values.endDate, values.endPlace, marriageType, options);
+        upsertManagedRelationshipEvent(relationship, 'end', definition, values.endDate, values.endPlace, marriageType, options, previous);
     }
     else
     {
-        removeManagedRelationshipEndEvents(relationship);
+        // Keep historical end events available to their evidence links.
+        for (const event of relationship.events)
+            if (event.relationshipManagedRole === 'end') delete event.relationshipManagedRole;
     }
 }
 
@@ -4328,7 +4333,6 @@ function renderPartnerRelationshipEditFields(
 
     const marriageType =
         startEvent.typeLabel
-        || family.marriageType
         || 'Civil';
 
     const showMarriageType =

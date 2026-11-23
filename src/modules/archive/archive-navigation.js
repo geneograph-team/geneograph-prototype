@@ -51,7 +51,6 @@ function archiveSetFilePlaces(file, placeIds, { resolveLegacy = false } = {})
         : ((resolveLegacy && ids.length) || matchedLegacy) ? '' : legacyText;
     archiveApplyDocumentPlace(file, documentPlaceId, documentPlaceText, ids);
     file.updatedAt = new Date().toISOString();
-    file.updated = 'Just now';
     return true;
 }
 
@@ -1448,7 +1447,7 @@ function connectedFileMeta(
         ),
 
         String(
-            file.size || ''
+            formatMediaBytes(file.sizeBytes) || ''
         ).trim()
     ]
         .filter(Boolean)

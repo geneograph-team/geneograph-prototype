@@ -1959,7 +1959,7 @@ function connectGeneographCreatedRelative(
         if (!family) family = selectedGeneographDiagram().families.find(item => item.partnerIds.length === parents.length && parents.every(id => item.partnerIds.includes(id)));
         if (!family)
         {
-            family = { id: createRuntimeId('geneo-family'), partnerIds: [...parents], children: [], relationshipType: 'Unknown relationship', relationshipStatus: 'active', marriageType: '', events: [] };
+            family = { id: createRuntimeId('geneo-family'), partnerIds: [...parents], children: [], relationshipType: 'Unknown relationship', relationshipStatus: 'active', events: [] };
             selectedGeneographDiagram().families.push(family);
         }
         if (configuration.value === 'unknown-father') addGeneographChildToFamily(family.id, anchorPersonId, { nodeId: anchorNode.id, port: 'top' });
@@ -2077,13 +2077,8 @@ function connectGeneographCreatedRelative(
     );
     if (configuration)
     {
-        const definition = partnerRelationshipDefinition(configuration.relationshipType);
-        partnerFamily.relationshipType = configuration.relationshipType;
-        partnerFamily.relationshipStatus = definition.status;
-        partnerFamily.marriageType = configuration.marriageType;
         const resolvePlace = input => geneoResolveBoardPersonPlace(input, '');
-        upsertManagedRelationshipEvent(partnerFamily, 'start', definition, configuration.startDate, configuration.startPlace, configuration.marriageType, { resolvePlace });
-        if (definition.hasEnd) upsertManagedRelationshipEvent(partnerFamily, 'end', definition, configuration.endDate, configuration.endPlace, configuration.marriageType, { resolvePlace });
+        upsertPartnerRelationshipEvents(partnerFamily, configuration, { resolvePlace });
         if (configuration.addChildren)
         {
             const diagram = selectedGeneographDiagram();

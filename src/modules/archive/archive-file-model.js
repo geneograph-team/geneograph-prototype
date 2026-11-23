@@ -71,16 +71,16 @@ function restoreModalChoiceFocus({
 
 function archiveEventLabel(event)
 {
-    if (!event) return 'Event';
+    if (!event) return t('Event');
     const people = (event.personIds || []).map(id => formatPersonFullName(getPerson(id))).filter(Boolean);
-    return [event.title || event.type || 'Event', people.join(' & ')].filter(Boolean).join(' · ');
+    return [translateText(event.title || event.type || 'Event'), people.join(' & ')].filter(Boolean).join(' · ');
 }
 
 function archiveEventMeta(event)
 {
-    const date = event?.dateLabel || event?.dateText || event?.sortDate || event?.date || '';
+    const date = event ? formatGenealogyDateLabel(event) : '';
     const place = getPlaceDisplay(event?.placeId) || event?.placeText || '';
-    return [date, place].filter(Boolean).join(' · ') || event?.description || 'Genealogy event';
+    return [date, place].filter(Boolean).join(' · ') || translateText(event?.description || 'Genealogy event');
 }
 
 function archiveNoteIdsForFile(file)
@@ -600,8 +600,6 @@ function archiveSetConnection(
     file.updatedAt =
         new Date().toISOString();
 
-    file.updated =
-        'Just now';
 
     const savedIds =
         archiveConnectionIds(
@@ -707,8 +705,7 @@ function archiveSetConnectionsAtomically(
                     linkedPlaceIds: [...(archiveFileById(write.ownerId)?.linkedPlaceIds || [])],
                     documentPlaceId: archiveFileById(write.ownerId)?.documentPlaceId,
                     documentPlaceText: archiveFileById(write.ownerId)?.documentPlaceText,
-                    updatedAt: archiveFileById(write.ownerId)?.updatedAt,
-                    updated: archiveFileById(write.ownerId)?.updated
+                    updatedAt: archiveFileById(write.ownerId)?.updatedAt
                 }
                 : null;
 
@@ -759,7 +756,6 @@ function archiveSetConnectionsAtomically(
                             file.documentPlaceId = previous.previousPlace?.documentPlaceId || null;
                             file.documentPlaceText = previous.previousPlace?.documentPlaceText || '';
                             file.updatedAt = previous.previousPlace?.updatedAt;
-                            file.updated = previous.previousPlace?.updated;
                         }
                     }
                     else
@@ -1091,8 +1087,6 @@ function saveArchiveFileEdit()
         new Date()
             .toISOString();
 
-    file.updated =
-        'Just now';
     markPrototypeSessionEdited();
 
     resetArchiveFileEditState();
@@ -1239,7 +1233,6 @@ function saveArchiveFileRename()
     }
     file.name = name;
     file.updatedAt = new Date().toISOString();
-    file.updated = 'Just now';
     markPrototypeSessionEdited();
     state.archiveFileNameEditingId = '';
     state.archiveFileNameOriginal = '';

@@ -298,7 +298,7 @@ async function archiveImportFiles(selected, { projectId = currentProjectId(), fo
             const image = archiveImageExtensions.has(extension);
             const kind = image ? 'img' : extension === 'pdf' ? 'pdf' : extension === 'csv' ? 'sheet' : 'doc';
             const previewUrl = image ? URL.createObjectURL(source) : '';
-            sampleData.archiveFiles.push({ id, projectId, folderId, name: source.name, kind, type: image ? 'Image' : extension.toUpperCase(), mimeType: source.type, size: `${Math.max(1, Math.ceil(source.size / 1024))} KB`, sizeBytes: source.size, favorite: false, description: '', previewUrl, linkedPersonIds: [], linkedEventIds: [], linkedNoteIds: [], documentPlaceId: null, linkedPlaceIds: [], addedAt: now, updatedAt: now });
+            sampleData.archiveFiles.push({ id, projectId, folderId, name: source.name, kind, type: image ? 'Image' : extension.toUpperCase(), mimeType: source.type, sizeBytes: source.size, favorite: false, description: '', previewUrl, linkedPersonIds: [], linkedEventIds: [], linkedNoteIds: [], documentPlaceId: null, linkedPlaceIds: [], addedAt: now, updatedAt: now });
             markPrototypeSessionEdited();
             archiveDocumentBytes.set(id, source);
             if (image) archiveUploadedImageUrls.set(id, previewUrl);

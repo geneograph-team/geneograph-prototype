@@ -1264,6 +1264,7 @@ function timelineEventIcon(event)
         birth: icon.birth,
         childBirth: icon.birth,
         marriage: icon.marriage,
+        relationship: icon.marriage,
         education: icon.education,
         occupation: icon.work,
         baptism: icon.baptism,
@@ -1279,6 +1280,7 @@ function timelineEventColor(event)
 {
     const map = {
         marriage: 'amber',
+        relationship: 'amber',
         education: 'blue',
         occupation: 'blue',
         baptism: 'blue',
@@ -1398,7 +1400,7 @@ function timelineEventDetail(event, personId)
         return timelineDetailLines(event.description, datePlaceLines);
     }
 
-    if (event.type === 'marriage')
+    if (event.type === 'marriage' || event.type === 'relationship')
     {
         const otherNames = timelineOtherPersonNames(event, personId);
         const withLine = otherNames.length
@@ -1504,7 +1506,7 @@ function renderTimelineItem(
               data-timeline-evidence-toggle="${escapeHtml(event.id)}"
               data-event-project="${escapeHtml(event.projectId)}"
               aria-expanded="${expanded}" aria-controls="${panelId}">
-              <strong>${escapeHtml(event.title)}</strong>
+              <strong>${escapeHtml(translateText(event.title))}</strong>
               <span class="timeline-evidence-chevron" aria-hidden="true">${icon.chevron}</span>
             </button>
 

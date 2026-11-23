@@ -1305,8 +1305,6 @@ function openArchiveRenameItemModal(
                 file.updatedAt =
                     now;
 
-                file.updated =
-                    'Just now';
             }
 
             if (folder)

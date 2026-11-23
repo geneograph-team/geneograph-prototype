@@ -4,7 +4,7 @@
 
 A project owns the records listed by PROJECT_OWNED_COLLECTIONS in src/core/validation.js. Record IDs are stable within each collection. projectId identifies the owning project. References must resolve within that project. A board-local person ID is scoped to its board and is distinct from a Family Tree person ID.
 
-A Family Tree family is identified by its own ID. partnerAId and partnerBId identify its members, with an empty slot for a one-parent family. childIds records memberships. parentChildTypes records the type of each parent-child link. Partner role hints support display and placement. A pair of partners can belong to more than one family record. A child can belong to several families, and neither case implies that records should be merged. Family events carry relationship dates and places. Timeline rows display recorded events and facts.
+A Family Tree family is identified by its own ID. partnerAId and partnerBId identify its members, with an empty slot for a one-parent family. childIds records memberships. parentChildTypes records the type of each parent-child link. Partner role hints support display and placement. A pair of partners can belong to more than one family record. A child can belong to several families, and neither case implies that records should be merged. Family events carry relationship dates and places. The recorded marriage event stores the marriage type in its typeLabel. Timeline rows display recorded events and facts.
 
 ## Stored records and derived views
 
@@ -19,21 +19,27 @@ A Family Tree family is identified by its own ID. partnerAId and partnerBId iden
 | Source link | A source ID, target type and target ID. The source and target must exist in the same project. The same source-to-target triple can occur only once. |
 | Media and albums | Person and album references belong to the media record. Its optional place points to a project Place. A person's primary photo references project media. Album names and photo filenames are nonempty text. Image regions use normalized coordinates and a key for the referenced person. |
 | Archive and Notes | An Archive file references its folder, document place and related project records. A note references its collections and related records. Both can point to derived event IDs, which are resolved after reconstruction. Note text has a title and body. Rich-text notes pair the quill-delta-v1 format with a delta containing an ops array. |
-| Geneograph | Board collections are project references. A board diagram owns its assets, people, families, nodes and connections. Board-local IDs resolve within the diagram. References explicitly scoped to the project resolve against project collections. Board vital and family events use structured dates. Partner and child edges must agree with the family membership and the parent graph must be acyclic. |
+| Geneograph | Board collections are project references. A board diagram owns its assets, people, families, nodes and connections. Board-local IDs resolve within the diagram. References explicitly scoped to the project resolve against project collections. Board vital and family events use structured dates. Board diagrams have theme provenance version 1, explicit canvas and connection override flags, and boolean fill, stroke and text override flags on card appearances and nodes. Standalone board-file import converts older theme settings at the file boundary. The sample board authors its defaults directly. Partner and child edges must agree with the family membership and the parent graph must be acyclic. |
 
-Display names, initials, timeline rows and UI counters are derived presentation. A link to a derived event ID is an authored relationship. Preserve that link and regenerate its target from the underlying person, family or fact identity.
+Display names, initials, timeline rows and UI counters are derived presentation. A link to a derived event ID is an authored relationship. Preserve that link and regenerate its target from the underlying person, family or fact identity. A relationship timeline ID combines the family ID and its recorded event ID. Changing the event type retains both IDs, and the timeline reflects the new type.
 
-## V1 backup boundary — proposed, not yet validated
+## V1 backup boundary
 
-The matrix is the intended candidate boundary for #332, subject to #330's completed canonical model and meaningful reference-closed round trips. Include media/Archive metadata and Geneograph boards **only if they remain coherent without excluded binaries**; otherwise exclude the affected subset and disclose omissions. The matrix is not evidence that backup or restore is available today.
+V1 retains project metadata and the collections below. The metadata-only Whiskerfield round trip exercises this boundary with photo, Archive, and board image bytes removed. Backup serialization and restore remain follow-up work in #332.
 
-| Include | Exclude |
+| Data | Included collections |
 | --- | --- |
-| Project metadata, people and names, recorded facts and dates, families and memberships, places, research records and their references | Active selection, filters currently applied, scroll and viewport session state, generated counters and timeline rows |
-| Album and archive metadata, citations, notes, board records and their content | Media binaries. Keep metadata and valid record IDs so references still resolve, and represent unavailable content explicitly. |
-| References to records owned by the exported project | Activity, notifications and other session history |
+| Genealogy | `people`, `families` |
+| Places | `places`, `placeSavedFilters`, `placeIssues` |
+| Photos | `media`, `albums` |
+| Evidence | `archiveFolders`, `archiveFiles`, `sources`, `sourceLinks`, `links` |
+| Notes | `noteCollections`, `notes` |
+| Geneograph | `boardCollections`, `boards` |
+| Publishing | `publishDrafts` |
 
-The detached input collections are people, families, places, placeSavedFilters, placeIssues, media, albums, archiveFolders, archiveFiles, sources, sourceLinks, noteCollections, notes, boardCollections, boards, links and publishDrafts. Project metadata is passed separately. Missing collections are empty. Draft input must be JSON-compatible and is limited to 1,000,000 values across metadata and collections, with at most 64 nested levels. Input containing events, activity or notifications is rejected. Saved filters are project records. Active filter controls and viewport state are session data.
+Exclude generated timeline rows and counters, activity, notifications, active filters and selections, scroll and viewport state, and media bytes and session locators. Saved Places filters are project records.
+
+`prepareProjectDraft(project, records)` accepts project metadata separately from the collections. Missing collections are treated as empty. Unknown collections and input containing `events`, `activity`, or `notifications` are rejected. The input must be JSON-compatible and is limited to 1,000,000 values across metadata and collections, with at most 64 nested levels. The function validates on a detached copy and returns either diagnostics or the detached project and records with regenerated events. It does not commit the project. The backup serializer is responsible for excluding binary locators before producing the backup.
 
 ### Media references without binaries
 

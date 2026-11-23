@@ -162,6 +162,7 @@ const placeEventTypeLabels =
         birth: 'Birth',
         childBirth: 'Birth of child',
         marriage: 'Marriage',
+        relationship: 'Relationship',
         death: 'Death',
         baptism: 'Baptism',
         burial: 'Burial',

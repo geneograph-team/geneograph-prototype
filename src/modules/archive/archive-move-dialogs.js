@@ -257,7 +257,7 @@ function renderArchiveMoveItemSummary({
                     file
                 ),
 
-                file.size
+                formatMediaBytes(file.sizeBytes)
             || ''
             ]
                 .filter(Boolean)
@@ -1582,10 +1582,7 @@ function openArchiveMoveModal({
                   ),
 
                         updatedAt:
-                  file.updatedAt,
-
-                        updated:
-                  file.updated
+                  file.updatedAt
                     }));
 
             if (movingFolder)
@@ -1614,8 +1611,6 @@ function openArchiveMoveModal({
                         file.updatedAt =
                             now;
 
-                        file.updated =
-                            'Just now';
                     });
 
                 state.archiveSelectedFileIds =
@@ -1711,8 +1706,6 @@ function openArchiveMoveModal({
                               file.updatedAt =
                                   snapshot.updatedAt;
 
-                              file.updated =
-                                  snapshot.updated;
                           });
 
                       renderArchive();

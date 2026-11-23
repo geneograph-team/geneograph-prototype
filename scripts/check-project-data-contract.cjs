@@ -24,7 +24,7 @@ const files = [
     'modules/albums/photo-layout-and-crop', 'modules/albums/person-photo',
     'modules/geneograph/geneograph-runtime', 'modules/geneograph/geneograph-model',
     'modules/geneograph/geneograph-editor-core', 'modules/geneograph/geneograph-theme-board', 'modules/geneograph/geneograph-sidebar',
-    'modules/geneograph/geneograph-board-files', 'modules/geneograph/geneograph-shadow',
+    'modules/geneograph/geneograph-board-files', 'modules/geneograph/geneograph-pickers', 'modules/geneograph/geneograph-shadow',
     'assets/boards/whiskerfield-tree-research', 'seed/seed-boards', 'core/validation',
     'modules/people/relationship-editor', 'modules/people/controls'
 ];
@@ -48,6 +48,14 @@ assert.equal(JSON.stringify([sample.sourceLinks, sample.archiveFiles, sample.not
 assert.ok(sample.events.length > 0);
 const project = sample.projects[0];
 const seededBoard = sample.boards[0];
+const seededCollections = sample.boardCollections;
+const seededDiagram = seededBoard.diagram;
+const seededBoardBeforeRefresh = JSON.stringify(seededBoard);
+context.normalizeGeneographRuntimeData();
+assert.equal(sample.boardCollections, seededCollections);
+assert.equal(sample.boards[0], seededBoard);
+assert.equal(seededBoard.diagram, seededDiagram);
+assert.equal(JSON.stringify(seededBoard), seededBoardBeforeRefresh);
 const paint = { color: '#336699', enabled: false, opacity: 60 };
 const canvasAppearance = context.geneoAppearance({ stroke: paint, strokeColor: '#FFFFFF', strokeType: 'dashed' },
     { strokePattern: 'solid' }, 'shape');
@@ -87,9 +95,7 @@ const membershipBeforeNormalization = JSON.stringify(boardForNormalization.diagr
 const cardGeometry = board => JSON.stringify(board.diagram.nodes.filter(node => node.type === 'person')
     .map(node => [node.id, node.x, node.y, node.width, node.height]));
 const geometryBeforeNormalization = cardGeometry(boardForNormalization);
-context.normalizeGeneographBoardRecord(boardForNormalization, new Map([
-    [project.id, new Set(normalizedBoardInput.people.map(person => person.id))]
-]));
+context.normalizeGeneographBoardRecord(boardForNormalization);
 assert.equal(JSON.stringify(boardForNormalization.diagram.families.map(family =>
     [family.id, family.partnerIds, family.children])), membershipBeforeNormalization);
 assert.equal(cardGeometry(boardForNormalization), geometryBeforeNormalization);
@@ -149,6 +155,11 @@ assert.ok(context.prepareProjectDraft(Object.assign(new InvalidProject(), projec
 assert.ok(context.prepareProjectDraft(project, { activity: [] }).errors.includes('Project input must exclude activity.'));
 assert.ok(context.prepareProjectDraft({ id: 'blank', name: 'Blank' }, { people: {} }).errors.includes('people must be an array.'));
 assert.equal(context.prepareProjectDraft({ id: 'blank', name: 'Blank' }, {}).records.events.length, 0);
+const blankBoardProject = { id: 'blank-board-project', name: 'Blank board project' };
+const blankBoard = { id: 'blank-board', projectId: blankBoardProject.id, title: 'Blank board', description: '',
+    createdAt: project.createdAt, modifiedAt: project.modifiedAt, collectionIds: [], favorite: false, archived: false,
+    diagram: context.createEmptyGeneographDiagram() };
+assert.deepEqual(Array.from(context.prepareProjectDraft(blankBoardProject, { boards: [blankBoard] }).errors), []);
 const restored = JSON.parse(before);
 const rebuiltEvents = context.buildSampleEvents(restored);
 assert.equal(JSON.stringify(restored), before, "Timeline reconstruction must not modify canonical records.");
@@ -159,17 +170,29 @@ assert.ok(context.validateProjectDraft({ ...project, coverPhotoId: 'missing-cove
 const malformedProject = context.prepareProjectDraft({ ...project, defaultPersonId: false, desc: 42, files: 5, modifiedAt: 'invalid', created: 'old date' }, {});
 for (const message of ['defaultPersonId must be a record ID', 'desc must be text', 'retired counter files', 'modifiedAt must be a valid timestamp', 'retired display date created'])
     assert.ok(malformedProject.errors.some(error => error.includes(message)));
+const gardenPhoto = authored.media.find(photo => photo.id === 'photo-grandparents-garden');
+assert.equal(context.formatGenealogyDateLabel(gardenPhoto.date), 'Between 1970 and 1975');
 const malformedMedia = JSON.parse(before);
 for (const collection of ['albums', 'archiveFolders', 'noteCollections', 'boardCollections'])
     malformedMedia[collection][0].name = '';
 malformedMedia.media[0].width = -1;
+malformedMedia.media[0].date.fromDate = '1998';
 malformedMedia.media[0].personRegions['missing-person'] = { x: 0, y: 0, width: 2, height: 1 };
 const mediaErrors = context.prepareProjectDraft(project, malformedMedia).errors;
 for (const collection of ['albums', 'archiveFolders', 'noteCollections', 'boardCollections'])
     assert.ok(mediaErrors.includes(collection + '/' + malformedMedia[collection][0].id + '.name must be nonempty text.'));
-for (const diagnostic of ['.name must be nonempty text', '.width has an invalid numeric value',
+for (const diagnostic of ['.name must be nonempty text', '.width has an invalid numeric value', 'contains retired photo range fields',
     'personRegions references missing people/missing-person', '.personRegions.missing-person must be within the photo'])
     assert.ok(mediaErrors.some(error => error.includes(diagnostic)), diagnostic);
+const invalidTimestamps = JSON.parse(before);
+delete invalidTimestamps.notes[0].createdAt;
+invalidTimestamps.notes[0].updated = 'Just now';
+invalidTimestamps.archiveFiles[0].updatedAt = 'invalid';
+invalidTimestamps.archiveFiles[0].added = 'Just now';
+const timestampErrors = context.prepareProjectDraft(project, invalidTimestamps).errors;
+for (const message of ['.createdAt must be a valid timestamp', 'retired display date updated',
+    '.updatedAt must be a valid timestamp', 'retired display date added'])
+    assert.ok(timestampErrors.some(error => error.includes(message)), message);
 const metadataOnly = JSON.parse(before);
 for (const photo of metadataOnly.media) delete photo.src;
 for (const file of metadataOnly.archiveFiles)
@@ -217,6 +240,13 @@ const savedImageRef = metadataNode.imageRef;
 metadataNode.imageRef = { scope: 'board' };
 assert.ok(context.validateProjectDraft(project, restoredMetadata.records).some(error => error.includes('.imageRef requires')));
 metadataNode.imageRef = savedImageRef;
+metadataNode.photoId = 'duplicate-image-reference';
+metadataNode.title = 'Duplicate image title';
+const legacyImageErrors = context.validateProjectDraft(project, restoredMetadata.records);
+for (const field of ['photoId', 'title'])
+    assert.ok(legacyImageErrors.some(error => error.includes('retired image field ' + field)), field);
+delete metadataNode.photoId;
+delete metadataNode.title;
 const imageReference = metadataOnly.boards[0].diagram.nodes.find(node => node.imageRef?.scope === "board").imageRef;
 metadataOnly.boards[0].diagram.assets = metadataOnly.boards[0].diagram.assets.filter(asset => asset.id !== imageReference.id);
 assert.ok(context.prepareProjectDraft(project, metadataOnly).errors.some(error => error.includes(".imageRef references missing ID")));
@@ -285,6 +315,12 @@ person.birth = '1998';
 assert.ok(context.validateProjectDraft(project, restored).some(error => error.includes('.birth must be a record')));
 person.birth = { ...originalBirth, first: { ...originalBirth.first, year: String(originalBirth.first.year) } };
 assert.ok(context.validateProjectDraft(project, restored).some(error => error.includes('.birth must contain a structured genealogy date')));
+person.birth = { ...originalBirth, state: 'empty' };
+assert.ok(context.validateProjectDraft(project, restored).some(error =>
+    error.includes('.birth must contain a structured genealogy date')));
+person.birth = { ...originalBirth, second: { ...originalBirth.first } };
+assert.ok(context.validateProjectDraft(project, restored).some(error =>
+    error.includes('.birth must contain a structured genealogy date')));
 person.birth = originalBirth;
 
 const marriage = restored.families.find(family => family.id === 'rel-silver-luna-partner').events[0];
@@ -336,6 +372,25 @@ context.upsertPartnerRelationshipEvents(editedUnion, {
 assert.equal(editedUnion.events[0].id, editedEventId);
 assert.equal(editedUnion.events[0].placeId, 'place-pawford');
 assert.equal(Object.hasOwn(editedUnion, 'startPlaceId'), false);
+const originalEventCount = editedUnion.events.length;
+for (const relationshipType of ['Partner', 'Engaged', 'Married'])
+{
+    context.upsertPartnerRelationshipEvents(editedUnion, { relationshipType,
+        startDate: editedUnion.events[0].date, startPlace: {}
+    }, { resolvePlace: () => ({ placeId: 'place-pawford', placeText: 'Pawford', address: '' }) });
+    assert.equal(editedUnion.events.length, originalEventCount);
+    assert.equal(editedUnion.events[0].id, editedEventId);
+    assert.equal(editedUnion.events[0].gedcomTag, context.partnerRelationshipDefinition(relationshipType).startTag);
+}
+const ambiguousFamilyEvents = JSON.parse(before);
+const roleFamily = ambiguousFamilyEvents.families.find(family => family.id === union.id);
+roleFamily.events[0].relationshipManagedRole = 'start';
+roleFamily.events.push({ ...roleFamily.events[0], id: 'second-current-start' });
+const roleBoardFamily = ambiguousFamilyEvents.boards[0].diagram.families[0];
+roleBoardFamily.events.push({ ...roleFamily.events[0], id: 'wrong-event-role', relationshipManagedRole: 'current' });
+const roleErrors = context.prepareProjectDraft(project, ambiguousFamilyEvents).errors;
+assert.ok(roleErrors.some(error => error.includes('duplicates the current start event')));
+assert.ok(roleErrors.some(error => error.includes('relationshipManagedRole must be start or end')));
 const invalidUnionDraft = JSON.parse(before);
 const invalidUnion = invalidUnionDraft.families.find(family => family.id === union.id);
 invalidUnion.startPlaceId = 'place-pawford';
@@ -404,13 +459,117 @@ assert.deepEqual(Array.from(cutDiagram.families[0].partnerIds), ['board-luna']);
 assert.equal(cutDiagram.families[0].children[0].parentageType, 'guardian');
 assert.equal(Object.hasOwn(cutDiagram.families[0].children[0], 'parentChildTypes'), false);
 const malformedBoard = JSON.parse(before);
-Object.assign(malformedBoard.boards[0], { title: '', modifiedAt: 'invalid', modified: 'Just now' });
+for (const field of ['people', 'evidence', 'questions']) malformedBoard.boards[0][field] = [];
+const retiredBoardErrors = context.prepareProjectDraft(project, malformedBoard).errors;
+for (const field of ['people', 'evidence', 'questions'])
+    assert.ok(retiredBoardErrors.some(error => error.includes('retired board field ' + field)), field);
+Object.assign(malformedBoard.boards[0], { title: '', description: 'a'.repeat(501), favorite: 'false', modifiedAt: 'invalid', modified: 'Just now' });
+delete malformedBoard.boards[0].collectionIds;
+delete malformedBoard.boards[0].archived;
 malformedBoard.boards[0].diagram.canvas.gridVisible = true;
 (malformedBoard.boards[0].diagram.nodes[0].appearance ||= {}).strokeColor = '#FFFFFF';
 malformedBoard.boards[0].diagram.connectionDefaults.color = '#FFFFFF';
+malformedBoard.boards[0].diagram.nodes[0].width = 0;
+malformedBoard.boards[0].diagram.connections[0].route.waypoints.push({ x: 1000001, y: 0 });
+malformedBoard.boards[0].diagram.nodes.push({
+    id: 'bad-drawing', type: 'drawing', x: 0, y: 0, width: 100, height: 100,
+    points: [{ x: 0, y: 0 }, { x: 1000001, y: 0 }]
+});
 const boardMetadataErrors = context.prepareProjectDraft(project, malformedBoard).errors;
-for (const diagnostic of ['.title must be nonempty text', '.modifiedAt must be a valid timestamp', 'retired display date modified', 'canvas contains retired field gridVisible', 'retired paint field strokeColor', 'retired paint field color'])
+for (const diagnostic of ['.title must be nonempty text', '.description must be text', '.favorite must be boolean', '.archived must be boolean', '.collectionIds must be an array', '.modifiedAt must be a valid timestamp', 'retired display date modified', 'canvas contains retired field gridVisible', 'retired paint field strokeColor', 'retired paint field color', 'unsupported type or invalid geometry', 'invalid connection route', 'invalid drawing points'])
     assert.ok(boardMetadataErrors.some(error => error.includes(diagnostic)), diagnostic);
+const invalidBoardDiagram = JSON.parse(before);
+invalidBoardDiagram.boards[0].diagram = [];
+assert.ok(context.prepareProjectDraft(project, invalidBoardDiagram).errors.some(error =>
+    error.includes('.diagram must be a record.')));
+const invalidBoardReference = JSON.parse(before);
+invalidBoardReference.boards[0].diagram.people[0].treePersonId = false;
+assert.ok(context.prepareProjectDraft(project, invalidBoardReference).errors.some(error =>
+    error.includes('treePersonId must be a nonempty ID when set.')));
+const invalidBoardDefaults = JSON.parse(before);
+const invalidDefaultsDiagram = invalidBoardDefaults.boards[0].diagram;
+invalidDefaultsDiagram.personCardDefaults.styleSettings.portrait.photoSize = 13;
+delete invalidDefaultsDiagram.cardAppearanceDefaults.neutral;
+invalidDefaultsDiagram.connectionDefaults.width = 0;
+const defaultErrors = context.prepareProjectDraft(project, invalidBoardDefaults).errors;
+for (const field of ['styleSettings.portrait', 'cardAppearanceDefaults.neutral', 'connectionDefaults requires'])
+    assert.ok(defaultErrors.some(error => error.includes(field)), field);
+const invalidPaintDraft = JSON.parse(before);
+const paintDiagram = invalidPaintDraft.boards[0].diagram;
+paintDiagram.canvas.backgroundPaint.color = 'red';
+paintDiagram.connectionDefaults.line.opacity = 101;
+paintDiagram.cardAppearanceDefaults.neutral.stroke.enabled = 1;
+paintDiagram.nodes[0].appearance.stroke.opacity = 5.5;
+paintDiagram.connections[0].style.line.enabled = null;
+const paintErrors = context.prepareProjectDraft(project, invalidPaintDraft).errors;
+for (const field of ['canvas.backgroundPaint', 'connectionDefaults.line', 'neutral.stroke', 'appearance.stroke', 'style.line'])
+    assert.ok(paintErrors.some(error => error.includes(field + ' must contain a hex color')), field);
+const invalidBoardTheme = JSON.parse(before);
+const invalidThemeDiagram = invalidBoardTheme.boards[0].diagram;
+delete invalidThemeDiagram.canvas.backgroundOverride;
+invalidThemeDiagram.connectionDefaults.lineOverride = 'false';
+invalidThemeDiagram.cardAppearanceDefaults.neutral.paintOverrides.fill = 1;
+delete invalidThemeDiagram.nodes[0].appearance.paintOverrides.text;
+const themeErrors = context.prepareProjectDraft(project, invalidBoardTheme).errors;
+for (const field of ['canvas.backgroundOverride', 'connectionDefaults.lineOverride',
+    'cardAppearanceDefaults.neutral.paintOverrides', 'nodes[0].appearance.paintOverrides'])
+    assert.ok(themeErrors.some(error => error.includes(field)), field);
+invalidThemeDiagram.themeProvenanceVersion = 2;
+assert.ok(context.prepareProjectDraft(project, invalidBoardTheme).errors.some(error =>
+    error.includes('themeProvenanceVersion is unsupported')));
+const imageOnlyLegacyFile = structuredClone(context.window.GENEO_SEED_BOARD_ASSETS[0].payload);
+const imageOnlyLegacyNode = imageOnlyLegacyFile.board.diagram.nodes.find(node => node.type === 'image');
+imageOnlyLegacyNode.photoId = imageOnlyLegacyNode.imageRef.id;
+delete imageOnlyLegacyNode.imageRef;
+assert.throws(() => context.validateGeneographBoardFile(imageOnlyLegacyFile), /board image reference is invalid/);
+const oldBoardFile = structuredClone(context.window.GENEO_SEED_BOARD_ASSETS[0].payload);
+oldBoardFile.board.diagram.themeProvenanceVersion = 0;
+delete oldBoardFile.board.diagram.canvas.backgroundOverride;
+const [legacyMarriage, eventMarriage] = oldBoardFile.board.diagram.families
+    .filter(family => family.events.some(event => event.gedcomTag === 'MARR'));
+legacyMarriage.marriageType = 'Religious';
+delete legacyMarriage.events;
+eventMarriage.marriageType = 'Religious';
+const titledImage = oldBoardFile.board.diagram.nodes.find(node => node.type === 'image');
+titledImage.name = '';
+titledImage.title = 'Annotated family photograph';
+const oldBoardFileBefore = JSON.stringify(oldBoardFile);
+let openedBoardId;
+Object.assign(context, {
+    validProjectById: id => id === project.id ? project : null,
+    createRuntimeId: () => 'test-imported-board',
+    markPrototypeSessionEdited() {},
+    openGeneographBoard: id => { openedBoardId = id; }
+});
+const unsupportedBoardFile = { ...oldBoardFile, board: { ...oldBoardFile.board,
+    diagram: { ...oldBoardFile.board.diagram, themeProvenanceVersion: 2 } } };
+assert.throws(() => context.importGeneographBoardPayload(unsupportedBoardFile, project.id), /invalid theme color settings/);
+assert.equal(sample.boards[0], seededBoard);
+const importedBoard = context.importGeneographBoardPayload(oldBoardFile, project.id);
+const oldBoardFileDiagram = importedBoard.diagram;
+const importedImage = oldBoardFileDiagram.nodes.find(node => node.id === titledImage.id);
+assert.equal(importedImage.name, titledImage.title);
+assert.equal(Object.hasOwn(importedImage, 'title'), false);
+const importedFamily = id => oldBoardFileDiagram.families.find(family => family.id === id);
+assert.equal(context.partnerRelationshipStartEvent(importedFamily(legacyMarriage.id)).typeLabel, 'Religious');
+assert.equal(context.partnerRelationshipStartEvent(importedFamily(eventMarriage.id)).typeLabel, 'Civil');
+assert.ok(oldBoardFileDiagram.families.every(family => !Object.hasOwn(family, 'marriageType')));
+assert.equal(openedBoardId, importedBoard.id);
+assert.equal(sample.boards[0], importedBoard);
+assert.equal(JSON.stringify(oldBoardFile), oldBoardFileBefore);
+assert.deepEqual(Array.from(context.validateProjectDraft(project,
+    Object.fromEntries(collections.map(key => [key, sample[key] || []])))), []);
+sample.boards.shift();
+delete context.state.geneoBoardViewports[importedBoard.id];
+assert.equal(oldBoardFileDiagram.themeProvenanceVersion, 1);
+assert.equal(oldBoardFileDiagram.canvas.backgroundOverride, true);
+assert.equal(oldBoardFileDiagram.nodes[0].appearance.paintOverrides.stroke, true);
+const importedCanvasColor = oldBoardFileDiagram.canvas.backgroundPaint.color;
+context.geneoApplyThemeDefaultsToDiagram(oldBoardFileDiagram);
+assert.equal(oldBoardFileDiagram.canvas.backgroundPaint.color, importedCanvasColor);
+invalidThemeDiagram.themeProvenanceVersion = 0;
+assert.ok(context.prepareProjectDraft(project, invalidBoardTheme).errors.some(error =>
+    error.includes('themeProvenanceVersion is unsupported')));
 const invalidBoardDraft = JSON.parse(before);
 const cyclicDiagram = invalidBoardDraft.boards[0].diagram;
 const [cycleParent, cycleChild] = cyclicDiagram.people;
@@ -482,6 +641,19 @@ const blankSource = { ...union, events: [] };
 const blankDestination = context.geneoReviewNewFamily('blank-sync-union', project.id, ['silver', 'luna']);
 context.geneoReviewCopyRelationship(blankSource, blankDestination);
 assert.equal(blankDestination.events.length, 0);
+const marriageDestination = { ...structuredClone(union), events: [] };
+const marriageRows = context.geneoReviewRelationshipFields({ type: 'partner' }, marriageDestination, union, []);
+for (const label of ['Marriage type', 'Date', 'Place'])
+{
+    const row = marriageRows.find(item => item.label === label);
+    assert.ok(row && !row.treeBlocked, label);
+    row.write(marriageDestination, row.tree, 'tree');
+}
+assert.equal(marriageDestination.events.length, 1);
+assert.equal(marriageDestination.events[0].typeLabel, union.events[0].typeLabel);
+assert.equal(marriageDestination.events[0].placeId, union.events[0].placeId);
+assert.equal(marriageDestination.events[0].date.sortDate, union.events[0].date.sortDate);
+assert.equal(Object.hasOwn(marriageDestination, 'marriageType'), false);
 const flattened = { ...union.events[0], date: null, dateLabel: '18 Aug 2023', sortDate: '20230818' };
 const flattenedCopy = context.geneoReviewRelationshipData({ ...union, events: [flattened] });
 assert.equal(flattenedCopy.events[0].date.state, 'empty');
@@ -526,6 +698,54 @@ for (let pass = 0; pass < 2; pass++)
     createdUnion.events.reverse();
 }
 assert.deepEqual(Array.from(context.prepareProjectDraft(project, syncDraftInput).errors), []);
+const changingEvent = createdUnion.events.find(event => 'event-' + createdUnion.id + '-' + event.id === marriageIds[0]);
+changingEvent.relationshipManagedRole = 'start';
+context.upsertPartnerRelationshipEvents(createdUnion, { relationshipType: 'Engaged', startDate: changingEvent.date, startPlace: {} },
+    { resolvePlace: () => ({ placeId: null, placeText: '', address: '' }) });
+syncDraftInput.notes[0].linkedEventIds.push(marriageIds[0]);
+const afterRelationshipChange = context.prepareProjectDraft(project, syncDraftInput);
+assert.deepEqual(Array.from(afterRelationshipChange.errors), []);
+assert.equal(afterRelationshipChange.records.events.find(event => event.id === marriageIds[0]).title, 'Engagement');
+assert.ok(afterRelationshipChange.records.archiveFiles[0].linkedEventIds.includes(marriageIds[0]));
+assert.ok(afterRelationshipChange.records.sourceLinks.some(link => link.targetId === marriageIds[0]));
+assert.ok(afterRelationshipChange.records.notes[0].linkedEventIds.includes(marriageIds[0]));
+const resolveUnionPlace = () => ({ placeId: null, placeText: '', address: '' });
+const updateUnionType = relationshipType => context.upsertPartnerRelationshipEvents(createdUnion, {
+    relationshipType, startDate: changingEvent.date, startPlace: {}, endDate: changingEvent.date, endPlace: {}
+}, { resolvePlace: resolveUnionPlace });
+updateUnionType('Divorced');
+const endEvent = createdUnion.events.find(event => event.relationshipManagedRole === 'end');
+const endTimelineId = 'event-' + createdUnion.id + '-' + endEvent.id;
+syncDraftInput.notes[0].linkedEventIds.push(endTimelineId);
+updateUnionType('Married');
+const reopenedUnion = context.prepareProjectDraft(project, syncDraftInput);
+assert.deepEqual(Array.from(reopenedUnion.errors), []);
+assert.equal(endEvent.relationshipManagedRole, undefined);
+assert.equal(reopenedUnion.records.events.find(event => event.id === endTimelineId).title, 'Divorce');
+assert.ok(reopenedUnion.records.notes[0].linkedEventIds.includes(endTimelineId));
+assert.notEqual(context.partnerRelationshipEndEvent(createdUnion, 'Divorced'), endEvent);
+const historicalEnd = JSON.stringify(endEvent);
+updateUnionType('Divorced');
+const newEndEvent = createdUnion.events.find(event => event.relationshipManagedRole === 'end');
+assert.notEqual(newEndEvent.id, endEvent.id);
+assert.equal(context.partnerRelationshipEndEvent(createdUnion), newEndEvent);
+assert.equal(JSON.stringify(endEvent), historicalEnd);
+assert.deepEqual(Array.from(context.prepareProjectDraft(project, syncDraftInput).errors), []);
+const syncEndTarget = structuredClone(createdUnion);
+const syncEndSource = structuredClone(createdUnion);
+const syncManagedEnd = syncEndSource.events.find(event => event.relationshipManagedRole === 'end');
+Object.assign(syncManagedEnd, { gedcomTag: 'ANUL', eventType: 'Annulment' });
+context.geneoReviewCopyRelationship(syncEndSource, syncEndTarget);
+const syncedEnd = syncEndTarget.events.find(event => event.relationshipManagedRole === 'end');
+assert.equal(syncedEnd.id, newEndEvent.id);
+assert.equal(syncedEnd.gedcomTag, 'ANUL');
+assert.equal(JSON.stringify(syncEndTarget.events.find(event => event.id === endEvent.id).date), JSON.stringify(endEvent.date));
+assert.equal(syncEndTarget.events.length, createdUnion.events.length);
+updateUnionType('Married');
+context.geneoReviewCopyRelationship(createdUnion, syncEndTarget);
+assert.ok(syncEndTarget.events.every(event => event.relationshipManagedRole !== 'end'));
+assert.ok(syncEndTarget.events.some(event => event.id === endEvent.id));
+assert.ok(syncEndTarget.events.some(event => event.id === newEndEvent.id));
 createdUnion.nonEvents = [];
 assert.ok(context.prepareProjectDraft(project, syncDraftInput).errors.some(error => error.includes('retired field nonEvents')));
 const parentChoice = { type: 'child', treeIds: ['silver', 'oliver'] };
@@ -562,6 +782,84 @@ Object.assign(context, {
 });
 Object.assign(sample, JSON.parse(before));
 sample.events = context.buildSampleEvents(sample);
+let nextReviewId = 0;
+context.createRuntimeId = prefix => prefix + '-test-' + ++nextReviewId;
+const reviewBoard = sample.boards[0];
+const reviewAnchor = reviewBoard.diagram.people.find(person => person.treePersonId === 'silver');
+const beforeReview = JSON.stringify(sample);
+const emptyReview = context.geneoReviewDraft(reviewBoard, reviewAnchor.id);
+const placementDiagram = structuredClone(reviewBoard.diagram);
+const placementPerson = { ...structuredClone(reviewAnchor), id: 'placement-person' };
+placementDiagram.people.push(placementPerson);
+const placementBefore = JSON.stringify(placementDiagram);
+const personBeforePlacement = JSON.stringify(placementPerson);
+const placementDraft = { activePersonId: reviewAnchor.id, treeNodeIds: new Map([['silver', 'placement-node']]) };
+assert.equal(context.geneoReviewPlaceTreeCard(placementDraft, placementDiagram, placementPerson,
+    { type: 'partner', ids: [reviewAnchor.id, placementPerson.id] }, 'silver'), true);
+const placedCard = placementDiagram.nodes.pop();
+assert.equal(placedCard.id, 'placement-node');
+assert.equal(placedCard.personId, placementPerson.id);
+assert.equal(placedCard.personCard.heightMode, 'auto');
+assert.equal(JSON.stringify(placementPerson), personBeforePlacement);
+assert.equal(JSON.stringify(placementDiagram), placementBefore);
+const emptyPlan = context.geneoTreeImportPreview(emptyReview);
+assert.equal(emptyPlan.error || '', '');
+assert.equal(emptyPlan.patches.length, 0);
+assert.equal(JSON.stringify(sample), beforeReview);
+const currentFirstName = reviewAnchor.names.first;
+reviewAnchor.names.first = 'Silver revised';
+const selectedReview = context.geneoReviewDraft(reviewBoard, reviewAnchor.id);
+selectedReview.fields.set(reviewAnchor.id, new Map([['names.first', 'board']]));
+const beforeSelectedReview = JSON.stringify(sample);
+const selectedPlan = context.geneoTreeImportPreview(selectedReview);
+assert.equal(selectedPlan.error || '', '');
+assert.ok(selectedPlan.patches.some(patch => patch.key === 'people' && patch.id === 'silver'));
+assert.equal(JSON.stringify(sample), beforeSelectedReview);
+context.geneoReviewWritePatches(reviewBoard, selectedPlan.patches, 'after');
+assert.equal(sample.people.find(person => person.id === 'silver').names.first, 'Silver revised');
+const afterSync = Object.fromEntries(collections.map(key => [key, sample[key] || []]));
+assert.deepEqual(Array.from(context.validateProjectDraft(project, afterSync)), []);
+context.geneoReviewWritePatches(reviewBoard, selectedPlan.patches, 'before');
+assert.equal(JSON.stringify(sample), beforeSelectedReview);
+const reverseReview = context.geneoReviewDraft(reviewBoard, reviewAnchor.id);
+reverseReview.fields.set(reviewAnchor.id, new Map([['names.first', 'tree']]));
+const reversePlan = context.geneoTreeImportPreview(reverseReview);
+assert.equal(reversePlan.error || '', '');
+assert.ok(reversePlan.patches.some(patch => patch.key === 'board.people' && patch.id === reviewAnchor.id));
+assert.ok(reversePlan.patches.every(patch => patch.key.startsWith('board.')));
+assert.equal(JSON.stringify(sample), beforeSelectedReview);
+const treeBeforeReverse = JSON.stringify(collections.filter(key => key !== 'boards').map(key => sample[key]));
+context.geneoReviewWritePatches(reviewBoard, reversePlan.patches, 'after');
+assert.equal(reviewAnchor.names.first, currentFirstName);
+assert.equal(JSON.stringify(collections.filter(key => key !== 'boards').map(key => sample[key])), treeBeforeReverse);
+const afterReverse = Object.fromEntries(collections.map(key => [key, sample[key] || []]));
+assert.deepEqual(Array.from(context.validateProjectDraft(project, afterReverse)), []);
+context.geneoReviewWritePatches(reviewBoard, reversePlan.patches, 'before');
+assert.equal(JSON.stringify(sample), beforeSelectedReview);
+reviewAnchor.names.first = currentFirstName;
+assert.equal(JSON.stringify(sample), beforeReview);
+
+const reviewedPerson = { ...structuredClone(sample.people[0]), id: 'sync-undo-media-person' };
+sample.people.push(reviewedPerson);
+context.selectedGeneographBoard = () => reviewBoard;
+const undoPersonCreation = {
+    boardId: reviewBoard.id, side: 'before',
+    patches: [{ key: 'people', id: reviewedPerson.id, before: null, after: structuredClone(reviewedPerson) }]
+};
+assert.equal(context.geneoReviewHistoryCanRestore(undoPersonCreation), true);
+const taggedPhoto = sample.media[0];
+const originalRegions = taggedPhoto.personRegions;
+taggedPhoto.personRegions = { ...originalRegions, [reviewedPerson.id]: { x: 0.1, y: 0.1, width: 0.3, height: 0.3 } };
+assert.equal(context.geneoReviewHistoryCanRestore(undoPersonCreation), false);
+taggedPhoto.personRegions = originalRegions;
+assert.equal(context.geneoReviewHistoryCanRestore(undoPersonCreation), true);
+sample.placeSavedFilters.push({
+    id: 'sync-undo-place-filter', projectId: project.id, filters: { personId: reviewedPerson.id }
+});
+assert.equal(context.geneoReviewHistoryCanRestore(undoPersonCreation), false);
+sample.placeSavedFilters.pop();
+sample.people.pop();
+
 const extraParent = { ...structuredClone(sample.people[0]), id: 'test-additional-parent' };
 sample.people.push(extraParent);
 const outsidePerson = { ...extraParent, id: 'outside-person', projectId: 'another-project' };

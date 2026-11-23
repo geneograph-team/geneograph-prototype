@@ -2487,7 +2487,6 @@ function renderGeneographConnectionInspector(
 
     const marriageType =
         startEvent?.typeLabel
-        || relationship?.marriageType
         || 'Civil';
 
     const relationshipSection =

@@ -2561,10 +2561,10 @@ function archiveMoveBulkItems(items, destinationId)
     const folderSnapshots = items.folders.map(folder => ({ id: folder.id,
         parentId: archiveFolderParentId(folder), updatedAt: folder.updatedAt }));
     const fileSnapshots = items.files.map(file => ({ id: file.id,
-        folderId: archiveFileFolderId(file), updatedAt: file.updatedAt, updated: file.updated }));
+        folderId: archiveFileFolderId(file), updatedAt: file.updatedAt }));
     const now = new Date().toISOString();
     items.folders.forEach(folder => { folder.parentId = destinationId; folder.updatedAt = now; });
-    items.files.forEach(file => { file.folderId = destinationId; file.updatedAt = now; file.updated = 'Just now'; });
+    items.files.forEach(file => { file.folderId = destinationId; file.updatedAt = now; });
     markPrototypeSessionEdited();
     state.archiveSelectedFolderIds = [];
     state.archiveSelectedFileIds = [];
@@ -2580,7 +2580,7 @@ function archiveMoveBulkItems(items, destinationId)
             });
             fileSnapshots.forEach(snapshot => {
                 const file = archiveFileById(snapshot.id);
-                if (file) { file.folderId = snapshot.folderId; file.updatedAt = snapshot.updatedAt; file.updated = snapshot.updated; }
+                if (file) { file.folderId = snapshot.folderId; file.updatedAt = snapshot.updatedAt; }
             });
             renderArchive();
             showToast('Move undone.');

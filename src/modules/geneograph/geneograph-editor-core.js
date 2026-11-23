@@ -3028,15 +3028,6 @@ function normalizeGeneographImageRef(node)
         };
     }
 
-    // One-time migration for the previous Geneograph image model.
-    if (String(node?.photoId || '').trim())
-    {
-        return {
-            scope: 'project',
-            id: String(node.photoId).trim()
-        };
-    }
-
     return null;
 }
 
@@ -3399,21 +3390,6 @@ function geneoImageNodeSize(source)
 function normalizeGeneographRuntimeData()
 {
     state.geneoShapeKind = normalizeGeneographShapeKind(state.geneoShapeKind);
-    const projects = new Set((sampleData.projects || []).map(project => project.id));
-    const projectPeople = new Map();
-    (sampleData.people || []).forEach(person =>
-    {
-        if (!projectPeople.has(person.projectId)) projectPeople.set(person.projectId, new Set());
-        projectPeople.get(person.projectId).add(person.id);
-    });
-    sampleData.boardCollections = (sampleData.boardCollections || []).filter(Boolean).map(collection => ({
-        id: String(collection.id || '').trim(),
-        projectId: String(collection.projectId || ''),
-        name: String(collection.name || 'Untitled collection').trim(),
-        description: String(collection.description || '').trim()
-    })).filter(collection => collection.id && projects.has(collection.projectId));
-    sampleData.boards = (sampleData.boards || []).filter(Boolean).map(board =>
-        normalizeGeneographBoardRecord(board, projectPeople));
     sampleData.boards.forEach(board => geneoApplyThemeDefaultsToDiagram(board.diagram));
     const boardIds = new Set(sampleData.boards.map(board => board.id));
     Object.keys(state.geneoBoardViewports || {}).forEach(boardId =>
@@ -3422,7 +3398,7 @@ function normalizeGeneographRuntimeData()
     });
 }
 
-function normalizeGeneographBoardRecord(board, projectPeople)
+function normalizeGeneographBoardRecord(board)
 {
         board.id = String(board.id || createRuntimeId('board'));
         board.projectId = String(board.projectId || '');
@@ -3438,7 +3414,7 @@ function normalizeGeneographBoardRecord(board, projectPeople)
             ? canvas.backgroundPattern
             : 'dots';
         const diagram = {
-            themeProvenanceVersion: source.themeProvenanceVersion === 1 ? 1 : 0,
+            themeProvenanceVersion: 1,
             canvas: {
                 backgroundPaint: normalizeGeneoPaint(
                     canvas.backgroundPaint,
@@ -3664,51 +3640,8 @@ function normalizeGeneographBoardRecord(board, projectPeople)
 
                 if (node.type === 'image')
                 {
-                    const imageRef = normalizeGeneographImageRef(node);
-                    normalizedNode.imageRef = imageRef;
+                    normalizedNode.imageRef = normalizeGeneographImageRef(node);
                     normalizedNode.imageCrop = geneoNormalizeImageCrop(node.imageCrop);
-
-                    // Preserve a genuinely custom legacy title as the new layer
-                    // name, but do not retain duplicated media titles.
-                    const legacyTitle = String(node.title || '').trim();
-
-                    let referencedRecord = null;
-
-                    if (imageRef?.scope === 'project')
-                    {
-                        referencedRecord = getPhoto(imageRef.id, {
-                            projectId: board.projectId
-                        });
-                    }
-                    else if (imageRef?.scope === 'board')
-                    {
-                        referencedRecord = diagram.assets.find(
-                            asset => asset.id === imageRef.id
-                        ) || null;
-                    }
-
-                    const implicitNames = new Set(
-                        [
-                            referencedRecord?.title,
-                            referencedRecord?.displayName,
-                            referencedRecord?.filename,
-                            geneoFilenameStem(referencedRecord?.filename)
-                        ]
-                            .map(value => String(value || '').trim())
-                            .filter(Boolean)
-                    );
-
-                    if (
-                        !normalizedNode.name
-                && legacyTitle
-                && !implicitNames.has(legacyTitle)
-                    )
-                    {
-                        normalizedNode.name = legacyTitle.slice(0, 80);
-                    }
-
-                    delete normalizedNode.photoId;
-                    delete normalizedNode.title;
                 }
 
                 diagram.nodes.push(normalizedNode);
@@ -3742,7 +3675,6 @@ function normalizeGeneographBoardRecord(board, projectPeople)
                 children,
                 relationshipType: String(family.relationshipType || 'Married'),
                 relationshipStatus: String(family.relationshipStatus || 'active'),
-                marriageType: String(family.marriageType || ''),
                 events: Array.isArray(family.events) ? family.events.map(event => ({ ...event, date: normalizeGenealogyDateInput(event.date) })) : []
             });
         });
@@ -3780,9 +3712,6 @@ function normalizeGeneographBoardRecord(board, projectPeople)
             });
         });
         board.diagram = diagram;
-        delete board.people;
-        delete board.evidence;
-        delete board.questions;
     return board;
 }
 

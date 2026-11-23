@@ -13,8 +13,9 @@ their owning modules.
 - **WHEN** `src/index.html` opens on HTTP(S) or `file://`
 - **THEN** ordered classic scripts initialize sample records before
   consumers without duplicate setup
-- **AND** startup derives timeline events without changing authored
+- **AND** the genealogy seed derives timeline events once without changing authored
   Source, Archive or Notes links
+- **AND** later startup validates the authored collections and evidence links
 
 ### Requirement: Stable prototype graph
 Sample IDs, linked evidence, board assets, and references SHALL be

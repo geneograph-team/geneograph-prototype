@@ -430,11 +430,6 @@ function timelineDatePayload(dateInput, fallbackType = 'Exact date')
     return eventDateFields(dateInput || timelineUnknownGenealogyDate(fallbackType));
 }
 
-function familyMarriageEventsForTimeline(family)
-{
-    return family.events.filter(event => event.gedcomTag === 'MARR');
-}
-
 function timelineAttributeHasContent(attribute, fields = [])
 {
     return fields.some(field => cleanEditFieldValue(attribute?.[field]))
@@ -491,8 +486,10 @@ function buildSampleEvents(context = null)
         const personB = eventPerson(familyPartnerBId(family));
         if (personA && personB)
         {
-            familyMarriageEventsForTimeline(family).forEach(event =>
+            family.events.forEach(event =>
             {
+                const marriage = event.gedcomTag === 'MARR';
+                const title = marriage ? 'Marriage' : event.eventType;
                 const eventDate = timelineDatePayload(event.date, 'Exact date');
                 const partnerAId = familyPartnerAId(family);
                 const partnerBId = familyPartnerBId(family);
@@ -501,7 +498,7 @@ function buildSampleEvents(context = null)
                 events.push({
                     id: `event-${family.id}-${event.id}`,
                     projectId: family.projectId || personA.projectId || personB.projectId,
-                    type: 'marriage',
+                    type: marriage ? 'marriage' : 'relationship',
                     editTarget: { kind: 'relationship', personId: personA.id, recordId: family.id },
                     dateKind: 'point',
                     familyId: family.id,
@@ -511,9 +508,9 @@ function buildSampleEvents(context = null)
                     placeId,
                     placeText: event.placeText || eventPlaceName(placeId),
                     address: event.address || '',
-                    title: 'Marriage',
-                    description: `Marriage of ${formatPersonFullName(personA)} and ${formatPersonFullName(personB)}`,
-                    marriageType: event.typeLabel || family.marriageType || ''
+                    title,
+                    description: marriage ? `Marriage of ${formatPersonFullName(personA)} and ${formatPersonFullName(personB)}` : title,
+                    ...(marriage ? { marriageType: event.typeLabel || '' } : {})
                 });
             });
         }

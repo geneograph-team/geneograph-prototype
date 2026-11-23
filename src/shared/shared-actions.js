@@ -4057,57 +4057,7 @@ function normalizeCentralNoteRecord(
 
 function normalizeCentralRuntimeData()
 {
-    sampleData.projects = Array.isArray(sampleData.projects) ? sampleData.projects : [];
-    sampleData.people = Array.isArray(sampleData.people) ? sampleData.people : [];
-    sampleData.places = Array.isArray(sampleData.places) ? sampleData.places : [];
-    sampleData.placeSavedFilters =
-        Array.isArray(
-            sampleData.placeSavedFilters
-        )
-            ? sampleData.placeSavedFilters
-            : [];
-    sampleData.placeIssues = Array.isArray(sampleData.placeIssues) ? sampleData.placeIssues : [];
-    sampleData.sources = Array.isArray(sampleData.sources) ? sampleData.sources : [];
-    sampleData.sourceLinks =
-        Array.isArray(
-            sampleData.sourceLinks
-        )
-            ? sampleData.sourceLinks
-            : [];
-    sampleData.archiveFiles = Array.isArray(sampleData.archiveFiles) ? sampleData.archiveFiles : [];
-    sampleData.notes =
-        Array.isArray(
-            sampleData.notes
-        )
-            ? sampleData.notes
-            : [];
-
-    sampleData.noteCollections =
-        Array.isArray(
-            sampleData.noteCollections
-        )
-            ? sampleData.noteCollections
-            : [];
-
-    sampleData.boardCollections =
-        Array.isArray(
-            sampleData.boardCollections
-        )
-            ? sampleData.boardCollections
-            : [];
-
-    sampleData.boards =
-        Array.isArray(
-            sampleData.boards
-        )
-            ? sampleData.boards
-            : [];
-
     normalizeGeneographRuntimeData();
-    sampleData.publishDrafts = Array.isArray(sampleData.publishDrafts) ? sampleData.publishDrafts : [];
-    sampleData.notifications = Array.isArray(sampleData.notifications) ? sampleData.notifications : [];
-    sampleData.activity = Array.isArray(sampleData.activity) ? sampleData.activity : [];
-    rebuildSampleEventsAndPruneSourceLinks();
     validateSampleData();
 }
 

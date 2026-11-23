@@ -181,7 +181,7 @@ function validateProjectDraft(project, records, { deferEventReferences = false }
         errors.push('Project cover photo is missing: ' + project.coverPhotoId);
     for (const family of indexes.get('families').values())
     {
-        for (const field of ['partner1Id', 'partner2Id', 'personAId', 'personBId', 'fatherId', 'motherId', 'husbandId', 'wifeId', 'childrenIds', 'nonEvents', 'partner1RoleHint', 'partner2RoleHint', 'personARoleHint', 'personBRoleHint'])
+        for (const field of ['partner1Id', 'partner2Id', 'personAId', 'personBId', 'fatherId', 'motherId', 'husbandId', 'wifeId', 'childrenIds', 'nonEvents', 'marriageType', 'partner1RoleHint', 'partner2RoleHint', 'personARoleHint', 'personBRoleHint'])
             if (Object.hasOwn(family, field)) errors.push('Family ' + family.id + ' contains retired field ' + field);
         for (const role of ['start', 'end'])
             for (const suffix of ['Date', 'DateLabel', 'DateType', 'SortDate', 'Calendar', 'OriginalText', 'PlaceId', 'PlaceText', 'Address'])
@@ -306,7 +306,10 @@ function validateProjectDraft(project, records, { deferEventReferences = false }
             || !['empty', 'unknown', 'known', 'unparsed'].includes(date.state)
             || typeof date.originalText !== 'string' || !validParts(date.first)
             || (date.second !== null && !validParts(date.second))
-            || (date.state === 'known' && normalizeGenealogyDateInput(date).state !== 'known'))
+            || (date.state === 'known'
+                ? (date.dateType === 'Between') !== (date.second !== null)
+                    || normalizeGenealogyDateInput(date).state !== 'known'
+                : date.first.year !== null || date.second !== null))
             errors.push(owner + ' must contain a structured genealogy date.');
     }
     function validatePersonRegions(path, regions, surface)
@@ -336,7 +339,12 @@ function validateProjectDraft(project, records, { deferEventReferences = false }
         for (const field of ['width', 'height', 'sizeBytes'])
             if (photo[field] != null && (!Number.isSafeInteger(photo[field]) || photo[field] < (field === 'sizeBytes' ? 0 : 1)))
                 errors.push(path + '.' + field + ' has an invalid numeric value.');
-        if (photo.date != null) validateDate(path + '.date', photo.date);
+        if (photo.date != null)
+        {
+            validateDate(path + '.date', photo.date);
+            if (Object.hasOwn(photo.date, 'fromDate') || Object.hasOwn(photo.date, 'toDate'))
+                errors.push(path + '.date contains retired photo range fields.');
+        }
         validatePersonRegions(path, photo.personRegions, 'photo');
     }
     for (const file of indexes.get('archiveFiles').values())
@@ -413,6 +421,8 @@ function validateProjectDraft(project, records, { deferEventReferences = false }
                     errors.push(owner + '.' + field + ' must be an array.');
                     continue;
                 }
+                if (collection === 'families' && field === 'events')
+                    validateProjectFamilyEventRoles(facts, owner + '.events', errors);
                 const factIds = new Set();
                 for (const [index, fact] of facts.entries())
                 {
@@ -466,6 +476,11 @@ function validateProjectDraft(project, records, { deferEventReferences = false }
     for (const note of notes.values())
     {
         const path = 'notes/' + note.id;
+        for (const field of ['createdAt', 'updatedAt'])
+            if (typeof note[field] !== 'string' || !Number.isFinite(Date.parse(note[field])))
+                errors.push(path + '.' + field + ' must be a valid timestamp.');
+        for (const field of ['created', 'updated', 'modified'])
+            if (Object.hasOwn(note, field)) errors.push(path + ' contains retired display date ' + field + '.');
         for (const field of ['title', 'body'])
             if (typeof note[field] !== 'string') errors.push(path + '.' + field + ' must be text.');
         if ((note.bodyFormat !== '' && note.bodyFormat !== 'quill-delta-v1')
@@ -482,6 +497,14 @@ function validateProjectDraft(project, records, { deferEventReferences = false }
     for (const file of indexes.get('archiveFiles').values())
     {
         const owner = 'archiveFiles/' + file.id;
+        if (!Number.isSafeInteger(file.sizeBytes) || file.sizeBytes < 0)
+            errors.push(owner + '.sizeBytes must be a nonnegative integer.');
+        if (Object.hasOwn(file, 'size')) errors.push(owner + ' contains retired file size label.');
+        for (const field of ['addedAt', 'updatedAt'])
+            if (typeof file[field] !== 'string' || !Number.isFinite(Date.parse(file[field])))
+                errors.push(owner + '.' + field + ' must be a valid timestamp.');
+        for (const field of ['added', 'updated'])
+            if (Object.hasOwn(file, field)) errors.push(owner + ' contains retired display date ' + field + '.');
         if (typeof file.name !== 'string' || !file.name.trim())
             errors.push(owner + '.name must be nonempty text.');
         if (Object.hasOwn(file, 'linkedSourceIds'))
@@ -519,23 +542,115 @@ function validateProjectPersonIdentity(person, path, errors)
         errors.push(path + ' requires a canonical gender and cannot contain sex.');
 }
 
+function validateProjectFamilyEventRoles(events, path, errors)
+{
+    if (!Array.isArray(events)) return;
+    const roles = new Set();
+    for (const [index, event] of events.entries())
+    {
+        const role = event?.relationshipManagedRole;
+        if (role === undefined || role === '') continue;
+        const field = path + '[' + index + '].relationshipManagedRole';
+        if (!['start', 'end'].includes(role))
+            errors.push(field + ' must be start or end when set.');
+        else if (roles.has(role))
+            errors.push(field + ' duplicates the current ' + role + ' event.');
+        roles.add(role);
+    }
+}
+
 function validateProjectBoard(board, indexes, errors, validateDate)
 {
     const owner = 'boards/' + board.id;
-    if (typeof board.title !== 'string' || !board.title.trim())
-        errors.push(owner + '.title must be nonempty text.');
+    for (const field of ['people', 'evidence', 'questions'])
+        if (Object.hasOwn(board, field))
+            errors.push(owner + ' contains retired board field ' + field + '.');
+    if (typeof board.title !== 'string' || !board.title.trim() || board.title.length > 160)
+        errors.push(owner + '.title must be nonempty text of at most 160 characters.');
+    if (typeof board.description !== 'string' || board.description.length > 500)
+        errors.push(owner + '.description must be text of at most 500 characters.');
+    if (!Array.isArray(board.collectionIds))
+        errors.push(owner + '.collectionIds must be an array.');
+    for (const field of ['favorite', 'archived'])
+        if (typeof board[field] !== 'boolean') errors.push(owner + '.' + field + ' must be boolean.');
     for (const field of ['createdAt', 'modifiedAt'])
         if (typeof board[field] !== 'string' || !Number.isFinite(Date.parse(board[field])))
             errors.push(owner + '.' + field + ' must be a valid timestamp.');
     if (Object.hasOwn(board, 'modified'))
         errors.push(owner + ' contains retired display date modified.');
     const diagram = board.diagram;
+    if (!isProjectDataRecord(diagram))
+    {
+        errors.push(owner + '.diagram must be a record.');
+        return;
+    }
+    function validatePaint(path, paint)
+    {
+        if (!isProjectDataRecord(paint) || typeof paint.color !== 'string' || !/^#[0-9a-f]{6}$/i.test(paint.color)
+            || !Number.isInteger(paint.opacity) || paint.opacity < 0 || paint.opacity > 100
+            || typeof paint.enabled !== 'boolean')
+            errors.push(path + ' must contain a hex color, integer opacity from 0 to 100, and boolean enabled flag.');
+    }
+    function validateAppearancePaints(path, appearance)
+    {
+        for (const field of ['fill', 'stroke', 'text'])
+            if (appearance && Object.hasOwn(appearance, field))
+                validatePaint(path + '.' + field, appearance[field]);
+    }
+    validatePaint(owner + '.diagram.canvas.backgroundPaint', diagram?.canvas?.backgroundPaint);
+    validatePaint(owner + '.diagram.connectionDefaults.line', diagram?.connectionDefaults?.line);
     if (!isProjectDataRecord(diagram?.canvas) || !['clear', 'dots', 'grid'].includes(diagram.canvas.backgroundPattern)
         || !isProjectDataRecord(diagram.canvas.backgroundPaint))
         errors.push(owner + '.diagram.canvas requires a background pattern and paint.');
     else for (const field of ['gridVisible', 'backgroundColor'])
         if (Object.hasOwn(diagram.canvas, field))
             errors.push(owner + '.diagram.canvas contains retired field ' + field + '.');
+    if (diagram?.themeProvenanceVersion === 1)
+    {
+        const validateOverrides = (path, overrides) =>
+        {
+            if (!isProjectDataRecord(overrides)
+                || !['fill', 'stroke', 'text'].every(key => typeof overrides[key] === 'boolean'))
+                errors.push(path + '.paintOverrides must contain boolean fill, stroke and text flags.');
+        };
+        if (typeof diagram.canvas?.backgroundOverride !== 'boolean')
+            errors.push(owner + '.diagram.canvas.backgroundOverride must be boolean.');
+        if (typeof diagram.connectionDefaults?.lineOverride !== 'boolean')
+            errors.push(owner + '.diagram.connectionDefaults.lineOverride must be boolean.');
+        for (const [key, appearance] of Object.entries(diagram.cardAppearanceDefaults || {}))
+            validateOverrides(owner + '.diagram.cardAppearanceDefaults.' + key, appearance?.paintOverrides);
+        if (Array.isArray(diagram.nodes))
+            for (const [index, node] of diagram.nodes.entries())
+                validateOverrides(owner + '.diagram.nodes[' + index + '].appearance', node?.appearance?.paintOverrides);
+    }
+    else
+        errors.push(owner + '.diagram.themeProvenanceVersion is unsupported.');
+    const cardDefaults = diagram.personCardDefaults;
+    if (!isProjectDataRecord(cardDefaults) || !GENEO_PERSON_CARD_STYLES.includes(cardDefaults.style))
+        errors.push(owner + '.diagram.personCardDefaults requires a supported card style.');
+    for (const style of GENEO_PERSON_CARD_STYLES)
+    {
+        const settings = cardDefaults?.styleSettings?.[style];
+        if (!isProjectDataRecord(settings) || !GENEO_PERSON_CARD_PHOTO_SIZES.includes(settings.photoSize)
+            || !Object.keys(GENEO_PERSON_CARD_FONT_RANGES).every(key => geneoValidPersonCardFontSize(key, settings[key])))
+            errors.push(owner + '.diagram.personCardDefaults.styleSettings.' + style + ' has invalid font or photo sizes.');
+    }
+    for (const gender of ['neutral', 'male', 'female', 'unknown'])
+    {
+        const appearance = diagram.cardAppearanceDefaults?.[gender];
+        const path = owner + '.diagram.cardAppearanceDefaults.' + gender;
+        for (const field of ['fill', 'stroke', 'text'])
+            if (!appearance || !Object.hasOwn(appearance, field))
+                errors.push(path + '.' + field + ' is required.');
+    }
+    const connectionDefaults = diagram.connectionDefaults;
+    if (!Number.isInteger(connectionDefaults?.width) || connectionDefaults.width < GENEO_STROKE_WIDTH_MIN
+        || connectionDefaults.width > GENEO_STROKE_WIDTH_MAX
+        || !GENEO_CONNECTION_PATTERNS.includes(connectionDefaults.pattern)
+        || !GENEO_CONNECTION_ARROWS.includes(connectionDefaults.arrows)
+        || !Number.isInteger(connectionDefaults.cornerRadius) || connectionDefaults.cornerRadius < 0 || connectionDefaults.cornerRadius > 32
+        || typeof connectionDefaults.showRelationshipDates !== 'boolean')
+        errors.push(owner + '.diagram.connectionDefaults requires valid width, pattern, arrows, radius and date visibility.');
     const local = new Map();
     for (const key of ['assets', 'people', 'families', 'nodes', 'connections'])
     {
@@ -547,7 +662,7 @@ function validateProjectBoard(board, indexes, errors, validateDate)
         const records = new Map();
         for (const item of diagram[key])
         {
-            if (typeof item?.id !== 'string' || !item.id.trim() || records.has(item.id))
+            if (!isProjectDataRecord(item) || typeof item.id !== 'string' || !item.id.trim() || records.has(item.id))
                 errors.push(owner + '.diagram.' + key + ' contains a missing or duplicate record ID.');
             else records.set(item.id, item);
         }
@@ -555,7 +670,10 @@ function validateProjectBoard(board, indexes, errors, validateDate)
     }
     function check(record, field, target, id)
     {
-        if (id && !target?.has(id)) errors.push(owner + '/' + record.id + '.' + field + ' references missing ID ' + id);
+        if (id == null || id === '') return;
+        const path = owner + '/' + record.id + '.' + field;
+        if (typeof id !== 'string' || !id.trim()) errors.push(path + ' must be a nonempty ID when set.');
+        else if (!target?.has(id)) errors.push(path + ' references missing ID ' + id);
     }
     for (const person of local.get('people').values())
     {
@@ -585,6 +703,9 @@ function validateProjectBoard(board, indexes, errors, validateDate)
             continue;
         }
         const familyPath = owner + '/' + family.id;
+        if (Object.hasOwn(family, 'marriageType'))
+            errors.push(familyPath + ' contains retired field marriageType.');
+        validateProjectFamilyEventRoles(family.events, familyPath + '.events', errors);
         if (!Array.isArray(family.events))
             errors.push(familyPath + '.events must be an array.');
         else
@@ -645,22 +766,39 @@ function validateProjectBoard(board, indexes, errors, validateDate)
     }
     const appearanceFields = ['backgroundColor', 'strokeColor', 'textColor', 'strokeType'];
     for (const [key, appearance] of Object.entries(diagram.cardAppearanceDefaults || {}))
-        rejectFlatPaint(owner + '.diagram.cardAppearanceDefaults.' + key, appearance, appearanceFields);
+    {
+        const path = owner + '.diagram.cardAppearanceDefaults.' + key;
+        rejectFlatPaint(path, appearance, appearanceFields);
+        validateAppearancePaints(path, appearance);
+    }
     rejectFlatPaint(owner + '.diagram.connectionDefaults', diagram.connectionDefaults, ['color']);
+    const inWorld = coordinate => Number.isFinite(coordinate) && Math.abs(coordinate) <= GENEO_WORLD_LIMIT;
     for (const node of local.get('nodes').values())
     {
         rejectFlatPaint(owner + '/' + node.id + '.appearance', node.appearance, appearanceFields);
+        validateAppearancePaints(owner + '/' + node.id + '.appearance', node.appearance);
         if (node.type === 'shape' && node.shapeKind === 'rounded-rectangle')
             errors.push(owner + '/' + node.id + ' contains retired rounded-rectangle shape kind.');
         for (const field of ['chartCardLayoutVersion', 'portraitCardLayoutVersion'])
             if (Object.hasOwn(node, field))
                 errors.push(owner + '/' + node.id + ' contains retired layout field ' + field + '.');
+        if (!GENEO_NODE_TYPES.has(node.type) || !['x', 'y', 'width', 'height'].every(key => Number.isFinite(node[key]))
+            || Math.abs(node.x) > GENEO_WORLD_LIMIT || Math.abs(node.y) > GENEO_WORLD_LIMIT
+            || node.width <= 0 || node.height <= 0 || node.width > 10000 || node.height > 10000)
+            errors.push(owner + '/' + node.id + ' has an unsupported type or invalid geometry.');
+        if (node.type === 'drawing' && (!Array.isArray(node.points) || node.points.length < 2
+            || node.points.some(point => !inWorld(point?.x) || !inWorld(point?.y))))
+            errors.push(owner + '/' + node.id + ' has invalid drawing points.');
         if (node.type === 'person' && !node.personId) errors.push(owner + '/' + node.id + ' requires a person ID.');
         check(node, 'personId', local.get('people'), node.personId);
         check(node, 'parentPanelId', local.get('nodes'), node.parentPanelId);
         if (node.type === 'image')
             for (const field of ['photoId', 'title'])
                 if (Object.hasOwn(node, field)) errors.push(owner + '/' + node.id + ' contains retired image field ' + field);
+        if (node.type === 'image')
+            for (const field of ['photoId', 'title'])
+                if (Object.hasOwn(node, field))
+                    errors.push(owner + '/' + node.id + ' contains retired image field ' + field + '.');
         if (node.type === 'image' && (!['board', 'project'].includes(node.imageRef?.scope)
             || typeof node.imageRef.id !== 'string' || !node.imageRef.id.trim()))
             errors.push(owner + '/' + node.id + '.imageRef requires a project photo or board asset ID.');
@@ -702,6 +840,13 @@ function validateProjectBoard(board, indexes, errors, validateDate)
     for (const connection of local.get('connections').values())
     {
         rejectFlatPaint(owner + '/' + connection.id + '.style', connection.style, ['color']);
+        if (connection.style && Object.hasOwn(connection.style, 'line'))
+            validatePaint(owner + '/' + connection.id + '.style.line', connection.style.line);
+        const route = connection.route;
+        if (!['auto', 'manual'].includes(route?.mode) || !Array.isArray(route.waypoints)
+            || route.waypoints.some(point => !inWorld(point?.x) || !inWorld(point?.y))
+            || (Object.hasOwn(route, 'railY') && !inWorld(route.railY)))
+            errors.push(owner + '/' + connection.id + ' has an invalid connection route.');
         check(connection, 'familyId', local.get('families'), connection.familyId);
         for (const field of ['source', 'target'])
         {
@@ -1964,7 +2109,7 @@ function validateSampleData()
         {
             const normalizedType = normalizeGenealogyDateType(photo.date.dateType || 'Exact date');
             if (normalizedType !== photo.date.dateType) warn(`Media ${photo.id} has invalid date type ${photo.date.dateType}`);
-            if (normalizedType === 'Between' && (!photo.date.fromDate || !photo.date.toDate)) warn(`Media ${photo.id} has an incomplete Between date`);
+            if (normalizedType === 'Between' && (photo.date.first?.year == null || photo.date.second?.year == null)) warn(`Media ${photo.id} has an incomplete Between date`);
         }
         if (photo.placeId && !placeIds.has(photo.placeId)) warn(`Media ${photo.id} points to missing place ${photo.placeId}`);
         if (!Number.isFinite(photo.width) || photo.width <= 0) warn(`Media ${photo.id} has invalid width`);

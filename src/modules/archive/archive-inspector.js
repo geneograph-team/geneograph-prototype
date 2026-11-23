@@ -612,22 +612,11 @@ function renderArchiveFileIdentity(
                 file
             ),
 
-            file.size
-          || (
-              Number.isFinite(
-                  Number(
-                      file.sizeBytes
-                  )
-              )
-                  ? formatMediaBytes(
-                      file.sizeBytes
-                  )
-                  : ''
-          )
+            formatMediaBytes(file.sizeBytes)
         ]
             .filter(Boolean)
             .join(' · ');
-    const summaryHtml = `<p class="archive-file-summary" ${archiveFileKind(file) === 'img' ? `data-archive-image-summary data-size="${escapeHtml(file.size || (Number.isFinite(Number(file.sizeBytes)) ? formatMediaBytes(file.sizeBytes) : ''))}"` : ''} title="${escapeHtml(summary || 'File')}">${escapeHtml(summary || 'File')}</p>`;
+    const summaryHtml = `<p class="archive-file-summary" ${archiveFileKind(file) === 'img' ? `data-archive-image-summary data-size="${escapeHtml(formatMediaBytes(file.sizeBytes))}"` : ''} title="${escapeHtml(summary || 'File')}">${escapeHtml(summary || 'File')}</p>`;
 
     return `
         <div
@@ -1215,16 +1204,14 @@ function renderArchiveFileMetadata(
         [
             'Date added',
             archiveFormatDate(
-                file.addedAt,
-                file.added
+                file.addedAt
             )
         ],
 
         [
             'Date modified',
             archiveFormatDate(
-                file.updatedAt,
-                file.updated
+                file.updatedAt
             )
         ],
 
