@@ -182,6 +182,15 @@ assert.equal(new Set(treePeople.map(person => person.id)).size, 1023);
 assert.equal(treeFamilies.length, 511);
 assert.equal(new Set(treeFamilies.map(family => family.id)).size, 511);
 assert.ok(treeFamilies.every(family => family.left && family.right && family.children.length === 1));
+for (let n = 1; n <= treeFamilies.length; n += 1)
+{
+    const family = treeFamilies[n - 1];
+    assert.equal(family.fatherId, id(2 * n), 'Tree father must match numbered ancestry');
+    assert.equal(family.motherId, id(2 * n + 1), 'Tree mother must match numbered ancestry');
+    assert.deepEqual(Array.from(family.children), [id(n)]);
+    assert.equal(family.missingFather, false, 'full ancestry must not display missing father');
+    assert.equal(family.missingMother, false, 'full ancestry must not display missing mother');
+}
 
 // People directory must handle person records whose optional meta is absent.
 const peopleDirectoryRecords = run('getPeopleRecordsFromSampleData("' + projectId + '")');
