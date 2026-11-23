@@ -28,10 +28,10 @@ for (const file of [
     'modules/family-tree/relationships',
     'shared/tree-seed-model',
     'core/validation',
-    'seed/family-tree-stress-test'
+    'seed/family-tree-stress-test',
+    'modules/people/relationship-editor'
 ])
     vm.runInContext(source(file), context, { filename: file + '.js' });
-vm.runInContext('const ADD_PERSON_RELATIONSHIP_TYPES = Object.keys(PARTNER_RELATIONSHIP_DEFINITIONS);', context);
 
 const run = code => vm.runInContext(code, context);
 const projectId = 'p-family-tree-stress';
