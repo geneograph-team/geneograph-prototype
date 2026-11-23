@@ -318,6 +318,8 @@ const PersonMatchEngine = (() =>
     // this evaluator without the in-memory retrieval index.
     function rankCandidates(entries, draft, options = {})
     {
+        // A SQL-backed candidate source must always supply the project scope.
+        if (!options.projectId) return [];
         const names = NAME_ROLES.filter(role => meaningful(draft.names?.[role]));
         if (!names.length) return [];
         const context = {
@@ -331,7 +333,7 @@ const PersonMatchEngine = (() =>
         for (const entry of entries)
         {
             if (!entry || excluded.has(entry.id) || entry.person.deleted
-                || (options.projectId && entry.person.projectId !== options.projectId)) continue;
+                || entry.person.projectId !== options.projectId) continue;
             const match = evaluate(entry, draft, context);
             if (match) results.push(match);
         }
