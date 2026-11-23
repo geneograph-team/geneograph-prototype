@@ -2826,7 +2826,8 @@ function renderAddPersonPossibleMatchesCard(options = {}, editPerson = null)
     const selectedPerson = getPerson(addPersonPossibleMatchState.selectedPersonId);
     const actionLabel = addPersonPossibleMatchActionLabel(options);
 
-    if (!draft.hasSignal)
+    if (!draft.hasSignal || !Object.values(draft.names || {})
+        .some(value => value.trim().length >= 3))
     {
         return `<div class="modal-side-card" data-add-person-possible-matches>
           <h3>Possible matches<br><span class="panel-muted">Similar people in this project</span></h3>
