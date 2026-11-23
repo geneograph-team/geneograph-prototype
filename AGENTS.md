@@ -36,7 +36,14 @@ When adding, moving or revising documentation, follow `doc/documentation-archite
 - Review/report requests do not authorize edits. Implement only on explicit instruction.
 - Inspect the current pushed `default` and affected source before editing; local unpushed Codex changes are not visible through GitHub. Search related issues and PRs.
 - Create a focused `feature/<short-name>` or `fix/<short-name>` branch from `default`; never commit directly to `default`, force-push, overwrite unrelated changes or merge without explicit authorization.
-- Follow the Git guides: prefer one commit per complete logical change, with a capitalized imperative header of at most 72 characters and no conventional-commit prefix.
+- **Make one commit per logical change, never one per file.** Include
+  implementation, tests, localization, documentation, and OpenSpec edits
+  in the same commit when they serve one change. Use a batched Git tree,
+  one commit, and one branch-ref update; do **not** use sequential GitHub
+  Contents API writes as a per-file commit loop. Separate commits are for
+  genuinely independent changes or review follow-ups, not individual
+  files. Follow the Git guides' capitalized imperative header (at most
+  72 characters, no conventional-commit prefix).
 - Review the final changed-file list and diff, run appropriate available checks, and create a PR targeting `default`. Link the issue when applicable; explain root cause, scope, tests, limitations and manual QA. Leave it unmerged. Revise the existing PR branch when feasible.
 
 ### Issue scoping

@@ -2,6 +2,12 @@
 
 <!-- Describe the intended user outcome and root cause of a fix. -->
 
+### Commit grouping
+
+- [ ] Commits represent complete logical changes, not individual files.
+      Related code, tests, translations, and documentation are in the
+      same commit; independent changes or review follow-ups are separate.
+
 ### Affected behavior and records
 
 <!-- Relevant module entry points, shared consumers and invariants. -->

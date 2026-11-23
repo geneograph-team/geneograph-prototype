@@ -80,9 +80,14 @@ For example: `feature/user-authentication`
 Changes are made according to this workflow:
 
 1. Create a branch from `default`.
-2. Work on the current task and commit the changes.
+2. Complete and verify a **logical change**, then commit its code, tests,
+   translations, specifications, and documentation **together in one commit**.
+   Never make a separate commit merely because a different file was edited.
+   See [Git commit style](git-commit-style.md) for independent changes and
+   follow-up corrections.
 3. Create a merge or pull request.
-4. Review changes and available checks; record any unperformed CI or browser QA.
+4. Review changes, **commit grouping**, and available checks; record any
+   unperformed CI or browser QA.
 5. Safely reconcile with the latest `default` when needed.
 6. Obtain explicit maintainer authorization to merge.
 7. The authorized maintainer chooses a repository-supported merge method consistent with the linear-history preference. Agents must not merge without explicit authorization.

@@ -1,6 +1,6 @@
 ---
 title: git commit style
-version: v0.1.1
+version: v0.1.2
 ---
 
 <!-- markdownlint-disable MD025 -->
@@ -23,8 +23,9 @@ The described commit message format is necessary for:
 ## Commit granularity
 
 - Make **one commit per logical change**, including all affected files in
-  that same commit. Never create separate commits merely because the change
-  touches multiple files.
+  that same commit. File boundaries, directories, and the number of changed
+  files do **not** define commit boundaries. Never create one commit per
+  edited file.
 - For a focused issue or pull request, aim for **one complete commit** after
   implementation and verification, rather than a stream of per-file or
   intermediate fixup commits.
@@ -32,9 +33,17 @@ The described commit message format is necessary for:
   reviewable logical changes or when a later review requires a follow-up.
   Squash incidental fixups before merging when the repository workflow
   permits it; do not force-push or rewrite shared history without approval.
-- With connected GitHub tools, batch file contents into a single Git tree
-  and commit. Repeated per-file Contents API updates each create a commit
-  and should not be used for a multi-file logical change.
+- With connected GitHub tools, put **all files for one logical change**
+  into one Git tree, create **one commit** from that tree, and advance
+  the branch reference once. Repeated per-file Contents API writes each
+  create a commit and must not be used as a multi-file change workflow.
+  If atomic multi-file updates are unavailable, report the limitation
+  rather than creating one commit per file.
+
+**Example:** A People module bug fix modifies JavaScript, a regression test,
+Russian translations, and documentation. Those files belong to **one fix
+commit**, not four file-specific commits. An unrelated enhancement or a
+later independently reviewable correction may warrant a separate commit.
 
 ## Commit message structure
 
