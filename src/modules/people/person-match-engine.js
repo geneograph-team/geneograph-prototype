@@ -138,6 +138,19 @@ const PersonMatchEngine = (() =>
         return related;
     }
 
+    function preparePerson(person, places)
+    {
+        return {
+            id: person.id,
+            person,
+            names: nameValues(person),
+            birth: person.birth,
+            death: person.death,
+            birthPlaces: placeValues(person.birth, places),
+            deathPlaces: placeValues(person.death, places)
+        };
+    }
+
     function createIndex(people, places, families, projectId)
     {
         const placeMap = new Map((places || []).filter(place => place.projectId === projectId).map(place => [place.id, place]));
@@ -152,18 +165,9 @@ const PersonMatchEngine = (() =>
         for (const person of people || [])
         {
             if (!person?.id || person.projectId !== projectId || person.deleted) continue;
-            const names = nameValues(person);
-            const entry = {
-                id: person.id,
-                person,
-                names,
-                birth: person.birth,
-                death: person.death,
-                birthPlaces: placeValues(person.birth, placeMap),
-                deathPlaces: placeValues(person.death, placeMap)
-            };
+            const entry = preparePerson(person, placeMap);
             entries.set(person.id, entry);
-            const tokens = new Set(Object.values(names).flat().flatMap(keys).filter(meaningful));
+            const tokens = new Set(Object.values(entry.names).flat().flatMap(keys).filter(meaningful));
             for (const token of tokens)
             {
                 add(byName, token, person.id);
@@ -174,19 +178,50 @@ const PersonMatchEngine = (() =>
             relationships: relationshipIndex((families || []).filter(family => family.projectId === projectId)) };
     }
 
+    function yearWindow(event)
+    {
+        const first = event?.first?.year;
+        if (!first) return null;
+        if (event.dateType === 'Before') return { min: -Infinity, max: first };
+        if (event.dateType === 'After') return { min: first, max: Infinity };
+        if (event.dateType === 'Between')
+            return { min: first, max: event.second?.year || first };
+        if (event.dateType === 'About / Circa')
+            return { min: first - SOFT_YEAR_TOLERANCE, max: first + SOFT_YEAR_TOLERANCE };
+        return { min: first, max: first };
+    }
+
+    // Same civil-day conversion used by the structured genealogy date model.
+    function dayNumber(parts, calendar)
+    {
+        const { year, month, day } = parts || {};
+        if (!year || !month || !day) return null;
+        const a = Math.floor((14 - month) / 12);
+        const y = year + 4800 - a;
+        const m = month + 12 * a - 3;
+        return day + Math.floor((153 * m + 2) / 5) + 365 * y + Math.floor(y / 4)
+            + (calendar === 'Julian' ? -32083 : -Math.floor(y / 100) + Math.floor(y / 400) - 32045);
+    }
+
     function dateEvidence(left, right)
     {
-        if (left?.state !== 'known' || right?.state !== 'known') return { strength: 0, conflict: false, yearGap: null };
+        if (left?.state !== 'known' || right?.state !== 'known')
+            return { strength: 0, conflict: false, yearGap: null };
         const a = left.first || {}, b = right.first || {};
+        const leftWindow = yearWindow(left), rightWindow = yearWindow(right);
+        const gap = leftWindow && rightWindow ? Math.max(0,
+            leftWindow.min - rightWindow.max, rightWindow.min - leftWindow.max) : null;
+        const conflict = gap !== null && gap > SOFT_YEAR_TOLERANCE;
         const years = a.year && b.year ? Math.abs(a.year - b.year) : null;
-        const uncertain = ['About / Circa', 'Between', 'Before', 'After'].includes(left.dateType)
-            || ['About / Circa', 'Between', 'Before', 'After'].includes(right.dateType);
-        const conflict = years !== null && years > SOFT_YEAR_TOLERANCE && !uncertain;
-        const compatibleYear = years === null || years <= SOFT_YEAR_TOLERANCE;
+        const exact = (left.dateType || 'Exact date') === 'Exact date'
+            && (right.dateType || 'Exact date') === 'Exact date';
         const sameCalendar = (left.calendar || 'Gregorian') === (right.calendar || 'Gregorian');
-        const sameMonthDay = a.month && a.day && b.month && b.day
+        const sameParts = a.month && a.day && b.month && b.day
             && a.month === b.month && a.day === b.day && sameCalendar;
-        const strength = conflict ? 0 : sameMonthDay && compatibleYear && !uncertain ? 2 : years === 0 ? 1 : 0;
+        const leftDay = dayNumber(a, left.calendar), rightDay = dayNumber(b, right.calendar);
+        const sameCivilDay = leftDay !== null && rightDay !== null && leftDay === rightDay;
+        const precise = exact && (sameCivilDay || (sameParts && (gap === null || gap <= SOFT_YEAR_TOLERANCE)));
+        const strength = conflict ? 0 : precise ? 2 : gap === 0 ? 1 : 0;
         return { strength, conflict, yearGap: years };
     }
 
@@ -232,7 +267,7 @@ const PersonMatchEngine = (() =>
             || a[0].localeCompare(b[0])).slice(0, MAX_EVALUATED).map(item => item[0]);
     }
 
-    function evaluate(entry, draft, index, context)
+    function evaluate(entry, draft, context)
     {
         let nameMatches = 0;
         let score = 0;
@@ -262,7 +297,7 @@ const PersonMatchEngine = (() =>
         const deathPlace = placeEvidence(draft.death, entry.death, draftDeathPlaces, entry.deathPlaces);
         const hasStrongDate = birth.strength === 2 || death.strength === 2;
         const hasPlace = Boolean(birthPlace || deathPlace);
-        const related = index.relationships.get(entry.id);
+        const related = context.relationships.get(entry.id);
         const inverse = { parent: 'child', child: 'parent', partner: 'partner', sibling: 'sibling' };
         const family = Boolean(context.anchorPersonId && context.relationshipType
             && related?.[inverse[context.relationshipType]]?.has(context.anchorPersonId));
@@ -279,25 +314,41 @@ const PersonMatchEngine = (() =>
             tier: nameMatches >= 2 && strongSecondary >= 2 && score >= 65 ? 'strong' : 'moderate', reasons };
     }
 
-    function search(index, draft, options = {})
+    // A future SQL adapter can prepare candidate projections, then reuse
+    // this evaluator without the in-memory retrieval index.
+    function rankCandidates(entries, draft, options = {})
     {
         const names = NAME_ROLES.filter(role => meaningful(draft.names?.[role]));
         if (!names.length) return [];
-        const context = { places: index.places, anchorPersonId: options.anchorPersonId || '',
-            relationshipType: options.relationshipType || '' };
-        const results = [];
+        const context = {
+            places: options.places || new Map(),
+            relationships: options.relationships || new Map(),
+            anchorPersonId: options.anchorPersonId || '',
+            relationshipType: options.relationshipType || ''
+        };
         const excluded = new Set(options.excludeIds || []);
-        for (const id of candidateIds(index, draft))
+        const results = [];
+        for (const entry of entries)
         {
-            if (excluded.has(id)) continue;
-            const entry = index.entries.get(id);
-            if (!entry || entry.person.deleted || entry.person.projectId !== index.projectId) continue;
-            const match = evaluate(entry, draft, index, context);
+            if (!entry || excluded.has(entry.id) || entry.person.deleted
+                || (options.projectId && entry.person.projectId !== options.projectId)) continue;
+            const match = evaluate(entry, draft, context);
             if (match) results.push(match);
         }
         return results.sort((a, b) => b.score - a.score || a.personId.localeCompare(b.personId))
             .slice(0, Math.max(1, options.limit || 2));
     }
 
-    return { createIndex, search, dateEvidence, nameQuality, SOFT_YEAR_TOLERANCE };
+    function search(index, draft, options = {})
+    {
+        return rankCandidates(candidateIds(index, draft).map(id => index.entries.get(id)), draft, {
+            ...options,
+            projectId: index.projectId,
+            places: index.places,
+            relationships: index.relationships
+        });
+    }
+
+    return { preparePerson, createIndex, rankCandidates, search, dateEvidence,
+        nameQuality, SOFT_YEAR_TOLERANCE };
 })();
