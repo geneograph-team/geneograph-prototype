@@ -225,9 +225,22 @@ const PersonMatchEngine = (() =>
         return { strength, conflict, yearGap: years };
     }
 
-    function placeEvidence(left, right, leftValues, rightValues)
+    function placeEvidence(left, right, leftValues, rightValues, places)
     {
-        if (left?.placeId && right?.placeId && left.placeId === right.placeId) return 2;
+        if (left?.placeId && right?.placeId)
+        {
+            if (left.placeId === right.placeId) return 2;
+            // Different saved Places can share a short city name. Compare
+            // complete recorded names/aliases, not truncated display labels.
+            const a = places.get(left.placeId);
+            const b = places.get(right.placeId);
+            if (!a || !b) return 0;
+            const fullNames = place => [place.name, ...(place.alternativeNames || [])]
+                .map(normalized).filter(Boolean);
+            const otherNames = new Set(fullNames(b));
+            return fullNames(a).some(name => otherNames.has(name)) ? 2 : 0;
+        }
+        // When one side is unlinked text, partial locality labels are useful.
         return leftValues.some(value => rightValues.includes(value)) ? 2 : 0;
     }
 
@@ -293,8 +306,8 @@ const PersonMatchEngine = (() =>
         if (birth.conflict || death.conflict) return null;
         const draftBirthPlaces = placeValues(draft.birth, context.places);
         const draftDeathPlaces = placeValues(draft.death, context.places);
-        const birthPlace = placeEvidence(draft.birth, entry.birth, draftBirthPlaces, entry.birthPlaces);
-        const deathPlace = placeEvidence(draft.death, entry.death, draftDeathPlaces, entry.deathPlaces);
+        const birthPlace = placeEvidence(draft.birth, entry.birth, draftBirthPlaces, entry.birthPlaces, context.places);
+        const deathPlace = placeEvidence(draft.death, entry.death, draftDeathPlaces, entry.deathPlaces, context.places);
         const hasStrongDate = birth.strength === 2 || death.strength === 2;
         const hasPlace = Boolean(birthPlace || deathPlace);
         const related = context.relationships.get(entry.id);
