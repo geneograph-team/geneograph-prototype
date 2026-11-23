@@ -729,7 +729,7 @@ const RU_UI_SHARED = Object.freeze({
 const RU_UI_PROJECTS = Object.freeze({
     // Temporary internal QA fixture (#381); remove these strings before open testing.
     'Family Tree Stress Test [TEST ONLY]': 'Нагрузочный тест дерева [ТОЛЬКО ДЛЯ ТЕСТИРОВАНИЯ]',
-    'INTERNAL TECHNICAL FIXTURE: 1,200 synthetic connected people, 10 generations. Remove before open user testing.': 'ВНУТРЕННИЙ ТЕСТОВЫЙ НАБОР: 1 200 связанных вымышленных персон, 10 поколений. Удалить до открытого пользовательского тестирования.',
+    'INTERNAL TECHNICAL FIXTURE: 1,023 synthetic people, 9 fully populated ancestor levels. Remove before open user testing.': 'ВНУТРЕННИЙ ТЕСТОВЫЙ НАБОР: 1 023 вымышленные персоны, 9 полностью заполненных уровней предков. Удалить до открытого пользовательского тестирования.',
     'Projects home': 'Главная проектов',
     'Project modules': 'Модули проекта',
     'Family history workspace': 'Ваша семейная история',
