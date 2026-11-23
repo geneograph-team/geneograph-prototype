@@ -14,7 +14,7 @@ function renderStartup()
         </div>
         <div class="button-stack">
           <button class="button primary full" type="button" id="createProject">${icon.plus} Create family tree</button>
-          <button class="button secondary full project-file-unavailable" type="button" id="importGedcom" disabled title="${escapeHtml(t('File import is unavailable in this prototype.'))}">${icon.import} Import GEDCOM</button>
+          <button class="button secondary full" type="button" id="importGedcom">${icon.import} Import GEDCOM</button>
           <button class="button secondary full project-file-unavailable" type="button" disabled title="${escapeHtml(t('File import is unavailable in this prototype.'))}">${icon.folder} Open project</button>
         </div>
         <div class="sidebar-spacer"></div>
@@ -28,6 +28,7 @@ function renderStartup()
         </div>
       `;
     sidebar.querySelector('#createProject').addEventListener('click', openCreateModal);
+    sidebar.querySelector('#importGedcom').addEventListener('click', () => openImportModal());
     bindToasts(sidebar);
 
     main.innerHTML = `
@@ -174,7 +175,7 @@ function renderStartupProjectEmpty(searchQuery, totalProjects)
                 <button
                   class="button secondary"
                   type="button"
-                  data-startup-empty-import disabled title="${escapeHtml(t('File import is unavailable in this prototype.'))}">
+                  id="startupEmptyGedcom" data-startup-empty-import>
                   ${icon.import}
                   ${escapeHtml(
                         t('Import GEDCOM')
@@ -541,6 +542,7 @@ function renderOpenProject()
                   </div>
                 </div>
                 <div class="project-hero-actions" aria-label="Project actions">
+                  ${gedcomImportReports.has(project.id) ? '<button class="project-hero-action-button" type="button" id="heroGedcomReport">' + icon.file + '<span>' + escapeHtml(t('GEDCOM import report')) + '</span></button>' : ''}
                   <button class="project-hero-action-button" type="button" id="heroImportGedcom">${icon.import}<span>Import GEDCOM</span></button>
                   <button class="project-hero-action-button" type="button" data-toast="Export project options will be defined in the Publish module.">${icon.export}<span>Export project</span></button>
                   <button class="project-hero-action-button danger" type="button" id="deleteProject">${icon.trash}<span>Delete project</span></button>
@@ -559,8 +561,9 @@ function renderOpenProject()
     const hero = main.querySelector('.project-hero');
     if (hero?.clientWidth && hero?.clientHeight)
         projectCoverPreviewRatio = hero.clientWidth / hero.clientHeight;
-    document.getElementById('heroImportGedcom')?.addEventListener('click', openImportModal);
-    document.getElementById('openDropzone')?.addEventListener('click', openImportModal);
+    document.getElementById('heroImportGedcom')?.addEventListener('click', () => openImportModal());
+    bindGedcomDropzone(document.getElementById('openDropzone'));
+    document.getElementById('heroGedcomReport')?.addEventListener('click', () => showGedcomImportResult(gedcomImportReports.get(project.id)));
     document.getElementById('deleteProject')?.addEventListener('click', () => openDeleteProjectConfirm(project.id));
     document.getElementById('editProjectTitle')?.addEventListener('click', event => openProjectNameOverlay(event.currentTarget, project));
     bindOpenProjectRightColumn();
@@ -606,7 +609,7 @@ function renderOpenProjectBody()
 
 function renderProjectGedcomDropzone()
 {
-    return `<div class="dropzone" id="openDropzone">${icon.import}<div><strong>Drop a GEDCOM file here to import</strong><span>Supports .ged files</span></div></div>`;
+    return `<button type="button" class="dropzone" id="openDropzone">${icon.import}<div><strong>Drop a GEDCOM file here to import</strong><span>Supports .ged files</span></div></button>`;
 }
 
 let projectSettingsDraft = null;

@@ -1,6 +1,6 @@
 # Project data contract
 
-**Status: finalized V1 requirements.** The prototype implements the authored project model and detached draft preparation described here. [GEDCOM import #331](https://github.com/geneograph-team/geneograph-prototype/issues/331) and [project backup and restore #332](https://github.com/geneograph-team/geneograph-prototype/issues/332) are future implementations.
+**Status: finalized V1 requirements.** The prototype implements the authored project model and detached draft preparation described here. [GEDCOM import #331](https://github.com/geneograph-team/geneograph-prototype/issues/331) uses this detached boundary. [Project backup and restore #332](https://github.com/geneograph-team/geneograph-prototype/issues/332) remains future work.
 
 A project owns the records listed by PROJECT_OWNED_COLLECTIONS in src/core/validation.js. Record IDs are stable within each collection. projectId identifies the owning project. References must resolve within that project. A board-local person ID is scoped to its board and is distinct from a Family Tree person ID.
 

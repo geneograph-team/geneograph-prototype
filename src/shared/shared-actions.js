@@ -1204,6 +1204,7 @@ function bindProjectControls()
         restoreSearchInputFocus('#projectSearch');
     });
     main.querySelector('[data-startup-empty-create]')?.addEventListener('click', openCreateModal);
+    main.querySelector('[data-startup-empty-import]')?.addEventListener('click', () => openImportModal());
     bindStartupCreateTile();
     bindToasts(main);
 }
@@ -2094,16 +2095,6 @@ function openCreateModal()
         nameInput.setCustomValidity('');
     });
 }
-
-function openImportModal()
-{
-    openModal(`
-        <div class="modal" role="dialog" aria-modal="true" aria-labelledby="importTitle">
-          <div class="modal-header"><div><h2 id="importTitle">Import GEDCOM</h2><p>${escapeHtml(t('File import is unavailable in this prototype.'))}</p></div><button class="close-button" type="button" data-close>${icon.close}</button></div>
-          <div class="modal-footer"><button class="button secondary" type="button" data-close>Close</button><button class="button primary" type="button" disabled>Choose file</button></div>
-        </div>`);
-}
-
 
 let modalReturnFocus = null;
 

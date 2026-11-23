@@ -76,7 +76,7 @@ When removing or replacing a record, inspect all references to its ID and the ef
 
 ## 5. Shared application flows
 
-**Projects.** A user can navigate projects and create a blank project in the in-memory model. The GEDCOM import chooser remains simulated; it does not parse a `.ged` file into people and relationships. Project settings, deletion, and continuation UI should be evaluated against the current in-memory lifetime, not described as account-backed services.
+**Projects.** A user can navigate projects, create a blank tree, or import a UTF-8 GEDCOM 5.5.1 file locally. The preview shows supported records and warnings. A successful import creates a separate in-memory project and opens its Family Tree. The project overview retains the import report for the session. Reloading discards the import and later edits.
 
 **Search, sorting, and selection.** People and other collections provide module-specific search, filters, sorting, selected items, and batch actions. Keep filter logic on stable record fields, preserve selection context when opening detail views, and show mixed values explicitly rather than silently taking the first selected object's value.
 
@@ -102,7 +102,7 @@ Names include given, middle, surname, and where recorded a maiden surname. Livin
 
 Family Tree is the structured relationship view. It uses layout and connector logic to render people, partner groups, parents, children, and family junctions. Card actions open the established person and relationship workflows. The tree and People/Profile views refer to the same underlying records. Tree geometry and relationship constraints are implementation-owned in `src/modules/family-tree/`; do not copy dimensions from the 2026-08 snapshot.
 
-The Tree is not a GEDCOM engine. The existence of genealogical tags or import affordances does not mean round-trip GEDCOM parsing, validation, or export is complete.
+The GEDCOM importer builds a detached canonical project before opening Family Tree. GEDCOM export and round-trip interchange remain outside the import scope.
 
 ## 7. Geneograph
 
@@ -171,7 +171,7 @@ The hosted Places map uses OpenFreeMap Liberty in light mode and `src/assets/map
 Other important boundaries:
 
 - No durable project database, account authentication, permissions, or collaborative synchronization.
-- No real GEDCOM parser/import workflow or verified round-trip interchange.
+- GEDCOM import supports a selected set of 5.5.1 genealogy records. Export and round-trip interchange remain outside the prototype.
 - No production upload/storage service for photos and archive files.
 - No general server-side map/geocoding authority; map rendering and geocoding rely on browser configuration and external providers; there is no private geocoding proxy.
 - A local undo stack and a downloaded board file do not constitute project-wide persistence or backup.
@@ -181,7 +181,7 @@ Other important boundaries:
 | Workflow | Current result | Persistence boundary |
 | --- | --- | --- |
 | Create a blank project or edit sample records | Changes the browser's in-memory project graph | Reload restores the seeded state. |
-| Import GEDCOM | Opens a concept flow, not a parser | No imported genealogy is committed. |
+| Import GEDCOM | Parses and validates UTF-8 GEDCOM 5.5.1 locally | Commits supported genealogy as a separate session project and reports skipped data. |
 | Edit a Geneograph board | Interactive objects, settings, and undo/redo | Current session unless an editable board file is downloaded. |
 | Export/import a Geneograph `.ggboard` | Real validated board JSON download and current-project import | Explicit file transfer, not automatic save. |
 | Export Geneograph PNG | Real browser-side image download | Static image only; it is not an editable board. |

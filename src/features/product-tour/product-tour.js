@@ -4,7 +4,7 @@ const GENEO_TOUR_PROJECT_ID = 'p1';
 const geneoTourSteps = [
     { id: 'tour-navigation-intro', module: 'Projects', projectView: 'library', presentation: 'centered', title: 'Navigate the tour', body: 'Spotlights show app controls you can try after leaving the tour. Use Back and Next to move through the tour, or choose Browse modules to jump to a section. If you close the tour, open Help and choose Take the tour to start again.' },
     { id: 'projects-welcome', module: 'Projects', projectView: 'library', presentation: 'centered', title: "Welcome to Projects", body: "Projects bring your family tree, photographs, records, and notes into one workspace. This is where each family-history research begins." },
-    { id: 'projects-actions', module: 'Projects', projectView: 'library', title: "Create or open a project", body: "Create family tree starts a blank project. Import GEDCOM and Open project are not available in this demo." },
+    { id: 'projects-actions', module: 'Projects', projectView: 'library', title: "Create or open a project", body: "Create family tree starts a blank project. Import GEDCOM previews a local file and creates a separate project." },
     { id: 'projects-continue', module: 'Projects', projectView: 'library', title: "Continue your work", body: "Return to the last project and section you opened." },
     { id: 'projects-card', module: 'Projects', projectView: 'library', title: "Open the sample project", body: "The Whiskerfield Family Tree card introduces the sample project. Open it to explore the research inside." },
     { id: 'projects-hero', module: 'Projects', projectView: 'overview', title: "Your project at a glance", body: "The project overview shows its name, description, status, dates, and main actions." },
