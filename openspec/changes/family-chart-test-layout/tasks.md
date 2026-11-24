@@ -12,4 +12,8 @@
 - [x] Execute updated regression assertions in an isolated V8 harness: mixed and shared-ancestor fixtures have zero geometry diagnostics; shared fixture uses one additional occurrence; bridge split rejected; multi-partner, pedigree, placeholder and deterministic coverage checks pass.
 - [ ] Browser-verify repeated-card selection/edit/focus, multiple partners, actual founder examples and dense-tree performance.
 
+- [x] Restrict crossing-driven candidates to genuine shared ancestors; support branch-local contexts of one canonical parent family.
+- [x] Run isolated regression assertions for shared-ancestor identity and the same-family sibling convergence (only father repeats, no false Add father, connected graph, zero diagnostics); nonintersecting control retains one card.
+- [ ] Browser-confirm the founder's Marianna/Alexey example and other complex ancestry paths.
+
 This is an experimental view, not a completed architecture replacement. Keep the change active pending browser/evaluation evidence.

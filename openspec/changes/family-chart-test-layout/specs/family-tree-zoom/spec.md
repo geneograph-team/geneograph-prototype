@@ -27,6 +27,8 @@ The Family Tree SHALL provide a Test layout checkbox next to its existing view s
 
 - **WHEN** ordinary experimental routing reports intersecting distinct-family paths
 - **THEN** a bounded candidate search MAY repeat a visual occurrence only if routed intersections decrease without new collisions or lost relationships
+- **AND** ancestry repetition SHALL target the shared ancestor where distinct child paths converge, not split a descendant's parent and partner memberships
+- **AND** visual contexts MAY partition a canonical family across branches while retaining every canonical parent-child membership and any known other parent; no false missing-parent placeholder SHALL appear
 - **AND** all rendered occurrences SHALL remain reachable from the focus through actual relationship edges, not shared identity or badges
 - **AND** every repeated card SHALL resolve to the same canonical person and show its current occurrence count
 - **AND** an unsuccessful or disconnected candidate SHALL leave the connected baseline unchanged

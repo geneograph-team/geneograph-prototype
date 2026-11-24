@@ -35,8 +35,8 @@ function calculateTestTreeLayout(people, sourceFamilies, focusPersonId, options 
     let layout = buildTestTreeLayout(people, sourceFamilies, focusPersonId, options);
     if (options.allowRepetition === false) return layout;
 
-    // Start from the routed single-appearance graph. Only try splits for
-    // families involved in a real intersection; a long rail is not a trigger.
+    // Start from the routed single-appearance graph. Only try genuine
+    // shared-ancestor splits after an intersection; long rails alone do not qualify.
     let visualPeople = people;
     let visualFamilies = sourceFamilies;
     const crossingCount = candidate => candidate.testIssues.filter(issue => issue.type === 'edge-crossing').length;
@@ -48,72 +48,38 @@ function calculateTestTreeLayout(people, sourceFamilies, focusPersonId, options 
         const involvedFamilies = new Set(layout.testIssues
             .filter(issue => issue.type === 'edge-crossing')
             .flatMap(issue => [issue.leftFamilyId, issue.rightFamilyId]));
-        const memberships = new Map();
-        for (const family of visualFamilies)
-        {
-            for (const id of new Set([family.left, family.right, ...(family.children || [])].filter(Boolean)))
-            {
-                if (!memberships.has(id)) memberships.set(id, []);
-                memberships.get(id).push(family);
-            }
-        }
-        const placeholderOwners = new Set(layout.parentPlaceholders.map(node => node.personId));
-        // Prefer people directly joining two intersecting families. Also
-        // consider another incidence of a shared person on a crossing route.
-        const candidates = visualPeople.filter(person => {
-            const member = memberships.get(person.id) || [];
-            return member.length > 1 && member.some(family => involvedFamilies.has(family.id))
-                && !placeholderOwners.has(person.id);
-        }).sort((a, b) =>
-            memberships.get(b.id).filter(family => involvedFamilies.has(family.id)).length
-            - memberships.get(a.id).filter(family => involvedFamilies.has(family.id)).length);
-
+        const candidates = testTreeAncestorSplitCandidates(visualPeople, visualFamilies, focusPersonId, involvedFamilies);
         let best = null;
-        for (const person of candidates)
+        for (const split of candidates)
         {
-            for (const family of memberships.get(person.id))
+            if (remainingTrials <= 0) break;
+            const { people: nextPeople, families: nextFamilies } = split;
+            // Splitting a bridge would detach a household. Reject that
+            // before the expensive layout; identity badges are not edges.
+            if (!testTreeOccurrencesConnected(nextPeople, nextFamilies, focusPersonId)) continue;
+            remainingTrials--;
+            let candidate;
+            try
             {
-                if (!involvedFamilies.has(family.id) || remainingTrials <= 0) continue;
-                const canonicalId = person.canonicalPersonId || person.id;
-                let suffix = 2;
-                const ids = new Set(visualPeople.map(node => node.id));
-                while (ids.has(canonicalId + '--test-occurrence-' + suffix)) suffix++;
-                const occurrenceId = canonicalId + '--test-occurrence-' + suffix;
-                const nextPeople = [...visualPeople, { ...person, id: occurrenceId, canonicalPersonId: canonicalId }];
-                const nextFamilies = visualFamilies.map(record => record.id !== family.id ? record : ({
-                    ...record,
-                    left: record.left === person.id ? occurrenceId : record.left,
-                    right: record.right === person.id ? occurrenceId : record.right,
-                    children: (record.children || []).map(id => id === person.id ? occurrenceId : id)
-                }));
-                // Splitting a bridge would detach a household. Reject that
-                // before the expensive layout; identity badges are not edges.
-                if (!testTreeOccurrencesConnected(nextPeople, nextFamilies, focusPersonId)) continue;
-                remainingTrials--;
-                let candidate;
-                try
-                {
-                    candidate = buildTestTreeLayout(nextPeople, nextFamilies, focusPersonId, options);
-                }
-                catch (error)
-                {
-                    // A failed experimental candidate must never replace the
-                    // connected baseline.
-                    continue;
-                }
-                if (crossingCount(candidate) >= crossingCount(layout)) continue;
-                if (candidate.testIssues.some(issue => ['node-node', 'edge-node', 'missing-family-link'].includes(issue.type))) continue;
-                const otherIssues = ['edge-overlap', 'ancestor-order', 'routing-lane', 'rail-clearance', 'focus-clearance', 'placeholder-width'];
-                if (otherIssues.some(type => issueCount(candidate, type) > issueCount(layout, type))) continue;
-                if (!best || crossingCount(candidate) < crossingCount(best.layout)
-                    || (crossingCount(candidate) === crossingCount(best.layout)
-                        && candidate.testIssues.length < best.layout.testIssues.length))
-                {
-                    best = { layout: candidate, people: nextPeople, families: nextFamilies };
-                }
-                if (!crossingCount(candidate)) break;
+                candidate = buildTestTreeLayout(nextPeople, nextFamilies, focusPersonId, options);
             }
-            if ((best && !crossingCount(best.layout)) || remainingTrials <= 0) break;
+            catch (error)
+            {
+                // A failed experimental candidate must never replace the
+                // connected baseline.
+                continue;
+            }
+            if (crossingCount(candidate) >= crossingCount(layout)) continue;
+            if (candidate.testIssues.some(issue => ['node-node', 'edge-node', 'missing-family-link'].includes(issue.type))) continue;
+            const otherIssues = ['edge-overlap', 'ancestor-order', 'routing-lane', 'rail-clearance', 'focus-clearance', 'placeholder-width'];
+            if (otherIssues.some(type => issueCount(candidate, type) > issueCount(layout, type))) continue;
+            if (!best || crossingCount(candidate) < crossingCount(best.layout)
+                || (crossingCount(candidate) === crossingCount(best.layout)
+                    && candidate.testIssues.length < best.layout.testIssues.length))
+            {
+                best = { layout: candidate, people: nextPeople, families: nextFamilies };
+            }
+            if (!crossingCount(candidate)) break;
         }
         if (!best) break;
         layout = best.layout;
@@ -132,6 +98,92 @@ function calculateTestTreeLayout(people, sourceFamilies, focusPersonId, options 
         if (count > 1) person.occurrenceCount = count;
     }
     return layout;
+}
+
+// Identify genuine convergence of ancestry paths, rather than arbitrary
+// people incident to crossing rails. Traverse real parent families from
+// the focus and its visible partners. A shared ancestor has at least two
+// distinct children on those paths; being someone's child and spouse is
+// not sufficient. Never move a descendant's parent or partner membership.
+function* testTreeAncestorSplitCandidates(people, families, focusPersonId, involvedFamilies)
+{
+    const byId = new Map(people.map(person => [person.id, person]));
+    const parentFamilies = new Map();
+    for (const family of families)
+        for (const child of family.children || [])
+        {
+            if (!parentFamilies.has(child)) parentFamilies.set(child, []);
+            parentFamilies.get(child).push(family);
+        }
+    const roots = new Set([focusPersonId]);
+    for (const family of families)
+        if ([family.left, family.right].includes(focusPersonId))
+            for (const id of [family.left, family.right])
+                if (byId.has(id)) roots.add(id);
+    const ancestors = new Set(roots);
+    for (const id of ancestors)
+        for (const family of parentFamilies.get(id) || [])
+            for (const parent of [family.left, family.right])
+                if (byId.has(parent)) ancestors.add(parent);
+    const branches = new Map();
+    for (const family of families)
+        for (const parent of [family.left, family.right])
+        {
+            if (!byId.has(parent) || roots.has(parent)) continue;
+            for (const child of family.children || [])
+            {
+                if (!ancestors.has(child) || child === parent) continue;
+                if (!branches.has(parent)) branches.set(parent, []);
+                branches.get(parent).push({ family, child });
+            }
+        }
+    const shared = [...branches].filter(([, links]) => new Set(links.map(link => link.child)).size >= 2);
+    // Crossing-family incidence is a prioritization, not a requirement on
+    // the ancestor's own connector: a crossing may be lower on its paths.
+    shared.sort((a, b) => Number(b[1].some(link => involvedFamilies.has(link.family.id)))
+        - Number(a[1].some(link => involvedFamilies.has(link.family.id))));
+    for (const [id, links] of shared)
+    {
+        const person = byId.get(id);
+        const canonicalId = person.canonicalPersonId || id;
+        const ids = new Set(byId.keys());
+        let suffix = 2;
+        while (ids.has(canonicalId + '--test-occurrence-' + suffix)) suffix++;
+        const occurrenceId = canonicalId + '--test-occurrence-' + suffix;
+        const nextPeople = [...people, { ...person, id: occurrenceId, canonicalPersonId: canonicalId }];
+        const choices = [...links].sort((a, b) => Number(involvedFamilies.has(b.family.id))
+            - Number(involvedFamilies.has(a.family.id)));
+        const seen = new Set();
+        for (const { family, child } of choices)
+        {
+            // A visual family context may partition children of one canonical
+            // family. Keep all real parent/child memberships and the other
+            // parent, if known. No canonical family is created or changed.
+            const childGroups = [[child], (family.children || []).slice()];
+            for (const moving of childGroups)
+            {
+                const key = family.id + '|' + moving.join('|');
+                if (seen.has(key)) continue;
+                seen.add(key);
+                const remaining = (family.children || []).filter(value => !moving.includes(value));
+                const canonicalFamilyId = family.canonicalFamilyId || family.id;
+                let familySuffix = 2;
+                const familyIds = new Set(families.map(record => record.id));
+                while (familyIds.has(canonicalFamilyId + '--test-family-' + familySuffix)) familySuffix++;
+                const shifted = {
+                    ...family,
+                    left: family.left === id ? occurrenceId : family.left,
+                    right: family.right === id ? occurrenceId : family.right,
+                    children: moving
+                };
+                const nextFamilies = families.flatMap(record => record.id !== family.id ? [record]
+                    : remaining.length ? [{ ...record, children: remaining }, {
+                        ...shifted, id: canonicalFamilyId + '--test-family-' + familySuffix, canonicalFamilyId
+                    }] : [shifted]);
+                yield { people: nextPeople, families: nextFamilies };
+            }
+        }
+    }
 }
 
 // Connectivity is evaluated on distinct occurrences, without identity edges.

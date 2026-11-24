@@ -41,7 +41,9 @@ function verify(people, families, focus, branchRoles = {})
     assert.equal(JSON.stringify(layout.positionedPeople), JSON.stringify(second.positionedPeople));
     assert.equal(JSON.stringify(layout.connectorDescriptors), JSON.stringify(second.connectorDescriptors));
     assert.ok(!layout.testIssues.some(issue => ['node-node', 'missing-family-link'].includes(issue.type)));
-    assert.equal(layout.families.length, families.length);
+    assert.deepEqual(new Set(layout.families.map(family => family.canonicalFamilyId || family.id)),
+        new Set(families.map(family => family.id)));
+    assert.equal(new Set(layout.families.map(family => family.id)).size, layout.families.length);
     // Verify coverage and reachability using routed family memberships
     // and distinct occurrence IDs, never shared canonical IDs as edges.
     const connected = new Map(layout.positionedPeople.map(person => [person.id, new Set()]));
@@ -53,23 +55,27 @@ function verify(people, families, focus, branchRoles = {})
     }
     for (const family of families)
     {
-        const rendered = layout.families.find(item => item.id === family.id);
-        assert.ok(rendered);
-        assert.equal(canonical(rendered.left), family.left);
-        assert.equal(canonical(rendered.right), family.right);
-        assert.deepEqual(Array.from(rendered.children, canonical), family.children || []);
-        const edges = layout.connectorDescriptors.filter(edge => edge.familyId === family.id);
-        if (rendered.left && rendered.right)
+        const contexts = layout.families.filter(item => (item.canonicalFamilyId || item.id) === family.id);
+        assert.ok(contexts.length);
+        assert.deepEqual(Array.from(contexts.flatMap(item => item.children), canonical).sort(),
+            [...(family.children || [])].sort(), 'every canonical child membership is preserved exactly once');
+        for (const rendered of contexts)
         {
-            assert.ok(edges.some(edge => edge.role === 'partner'));
-            connect(rendered.left, rendered.right);
-        }
-        if (rendered.left || rendered.right)
-            for (const child of rendered.children)
+            assert.equal(canonical(rendered.left), family.left);
+            assert.equal(canonical(rendered.right), family.right);
+            const edges = layout.connectorDescriptors.filter(edge => edge.familyId === rendered.id);
+            if (rendered.left && rendered.right)
             {
-                assert.ok(edges.some(edge => edge.childId === child));
-                connect(rendered.left || rendered.right, child);
+                assert.ok(edges.some(edge => edge.role === 'partner'));
+                connect(rendered.left, rendered.right);
             }
+            if (rendered.left || rendered.right)
+                for (const child of rendered.children)
+                {
+                    assert.ok(edges.some(edge => edge.childId === child));
+                    connect(rendered.left || rendered.right, child);
+                }
+        }
     }
     const reached = new Set([focus]);
     for (const id of reached)
@@ -112,7 +118,10 @@ for (const sharedAncestor of [false, true])
         assert.ok(baseline.testIssues.some(issue => issue.type === 'edge-crossing'));
         assert.equal(layout.positionedPeople.length, people.length + 1, 'one connected split is sufficient');
         assert.equal(layout.testIssues.length, 0);
-        assert.equal(layout.positionedPeople.filter(person => person.occurrenceCount === 2).length, 2);
+        const repeated = layout.positionedPeople.filter(person => person.occurrenceCount === 2);
+        assert.equal(repeated.length, 2);
+        assert.ok(repeated.every(person => (person.canonicalPersonId || person.id) === 'focusLLLL'),
+            'repeat the true converging ancestor, not focusL or another descendant');
     }
     else
     {
@@ -120,6 +129,49 @@ for (const sharedAncestor of [false, true])
         assert.equal(layout.testIssues.length, 0);
     }
 }
+
+// Founder regression: Marianna and Stefan are siblings on different
+// ancestral paths. Their shared father, not either child, must repeat.
+// Both children belong to the same canonical family with unknown mother.
+const convergencePeople = ['focus', 'left', 'right', 'marianna', 'stefan',
+    'tomasz', 'stefanPartner', 'alexey', 'tomaszL', 'tomaszR'].map(id => ({ id }));
+const convergenceFamilies = [
+    { id: 'focus-parents', left: 'right', right: 'left', children: ['focus'] },
+    { id: 'left-parents', left: 'tomasz', right: 'marianna', children: ['left'] },
+    { id: 'right-parents', left: 'stefan', right: 'stefanPartner', children: ['right'] },
+    { id: 'shared-father', left: 'alexey', right: '', children: ['marianna', 'stefan'] },
+    { id: 'tomasz-parents', left: 'tomaszL', right: 'tomaszR', children: ['tomasz'] }
+];
+const convergenceRoles = {
+    ancestorGenerations: 5,
+    placeholderPersonIds: new Set(['marianna', 'stefan']),
+    parentPresenceByPerson: new Map([
+        ['marianna', { father: true, mother: false }],
+        ['stefan', { father: true, mother: false }]
+    ])
+};
+const convergenceBefore = context.calculateTestTreeLayout(convergencePeople, convergenceFamilies, 'focus',
+    { branchRoles: convergenceRoles, allowRepetition: false });
+assert.ok(convergenceBefore.testIssues.some(issue => issue.type === 'edge-crossing'));
+const convergence = verify(convergencePeople, convergenceFamilies, 'focus', convergenceRoles);
+assert.equal(convergence.testIssues.length, 0);
+assert.equal(convergence.positionedPeople.length, convergencePeople.length + 1);
+const repeatedFather = convergence.positionedPeople.filter(person => person.occurrenceCount === 2);
+assert.equal(repeatedFather.length, 2);
+assert.ok(repeatedFather.every(person => (person.canonicalPersonId || person.id) === 'alexey'));
+assert.ok(!convergence.peopleById.marianna.occurrenceCount && !convergence.peopleById.stefan.occurrenceCount);
+const fatherContexts = convergence.families.filter(family => (family.canonicalFamilyId || family.id) === 'shared-father');
+assert.equal(fatherContexts.length, 2);
+assert.deepEqual(new Set(fatherContexts.map(family => family.left)), new Set(repeatedFather.map(person => person.id)));
+assert.deepEqual(Array.from(convergence.parentPlaceholders, node => node.rel).sort(), ['mother', 'mother'],
+    'known father must never turn into an Add father placeholder');
+
+// The exact same shared ancestor need not repeat when paths do not intersect.
+const uncrossed = verify(convergencePeople.filter(person => !['tomaszL', 'tomaszR'].includes(person.id)),
+    [{ ...convergenceFamilies[0], left: 'left', right: 'right' }, ...convergenceFamilies.slice(1, 4)],
+    'focus', convergenceRoles);
+assert.equal(uncrossed.positionedPeople.length, convergencePeople.length - 2);
+assert.equal(uncrossed.testIssues.length, 0);
 
 // Two partners on opposite sides; keep distinct family junctions and
 // children in their own compact groups without unnecessary repetition.
