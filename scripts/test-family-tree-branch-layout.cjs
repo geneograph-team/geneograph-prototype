@@ -102,12 +102,57 @@ if (require.main === module)
     assert.ok(movement <= 16, 'adding an ancestor shifted the opposite branch');
     assert.ok(measures.railLength < 15021, 'six-generation fixture exceeds the previous rail length');
     const shared = run({ sharedAncestor: true });
-    assert.equal(shared.positionedPeople.filter(person => person.id === 'focusLLLL').length, 1);
+    const sharedAppearances = shared.positionedPeople.filter(person => (person.canonicalPersonId || person.id) === 'focusLLLL');
+    assert.equal(sharedAppearances.length, 2);
+    assert.ok(sharedAppearances.every(person => person.occurrenceCount === 2));
+    assert.deepEqual(new Set(shared.families
+        .filter(family => ['shared-ancestry', 'parents-focusLLL'].includes(family.id)).map(family => family.left)),
+        new Set(sharedAppearances.map(person => person.id)));
     assert.ok(shared.connectorDescriptors.some(edge => edge.familyId === 'shared-ancestry' && edge.childId === 'focusR'));
     assert.ok(!context.validateTreeLayout(shared).some(issue => ['missing-family-link', 'edge-node'].includes(issue.type)));
     const ancestorOnly = [checkAncestorOnly(3, 1504), checkAncestorOnly(4, 6016)];
     console.log(JSON.stringify({ ...measures, distantBranchMovement: movement, ancestorOnly }));
-    assert.equal(new Set(baseline.positionedPeople.map(person => person.id)).size, buildBranchFixture().people.length);
+    const fixture = buildBranchFixture();
+    const layoutIds = new Set(baseline.positionedPeople.map(person => person.id));
+    assert.equal(layoutIds.size, baseline.positionedPeople.length);
+    assert.deepEqual(new Set(baseline.positionedPeople.map(person => person.canonicalPersonId || person.id)),
+        new Set(fixture.people.map(person => person.id)));
+    fixture.people.push({ id: 'third-partner' }, { id: 'third-child' });
+    fixture.families.push({ id: 'third-household', left: 'focus', right: 'third-partner', children: ['third-child'] });
+    const snapshot = JSON.stringify(fixture);
+    const triple = context.calculateTreeLayout(fixture.people, fixture.families, fixture.focus, { branchRoles: fixture.branchRoles });
+    const focusAppearances = triple.positionedPeople.filter(person => (person.canonicalPersonId || person.id) === 'focus');
+    assert.equal(focusAppearances.length, 3);
+    assert.ok(focusAppearances.every(person => person.occurrenceCount === 3));
+    const households = triple.families.filter(family => ['household', 'other-household', 'third-household'].includes(family.id));
+    assert.equal(new Set(households.map(family => family.left)).size, 3);
+    for (const family of households)
+    {
+        assert.ok(triple.connectorDescriptors.some(edge => edge.familyId === family.id && edge.childId === family.children[0]));
+    }
+    assert.equal(JSON.stringify(fixture), snapshot);
+
+    const singleParent = context.calculateTreeLayout(
+        [{ id: 'parent' }, { id: 'child' }, { id: 'sibling' }],
+        [{ id: 'family', left: 'parent', right: '', children: ['child', 'sibling'] }],
+        'child',
+        { branchRoles: { placeholderPersonIds: new Set(['child', 'sibling']) } }
+    );
+    assert.equal(singleParent.parentPlaceholders.length, 1);
+    assert.equal(singleParent.parentPlaceholders[0].personId, 'child');
+    assert.ok(!context.validateTreeLayout(singleParent).some(issue =>
+        ['missing-family-link', 'edge-node', 'edge-overlap'].includes(issue.type)));
+    const boundaryPeople = ['focus', 'father', 'mother'].map(id => ({ id }));
+    const boundaryFamilies = [{ id: 'parents', left: 'father', right: 'mother', children: ['focus'] }];
+    const boundary = depth => context.calculateTreeLayout(boundaryPeople, boundaryFamilies, 'focus', {
+        branchRoles: { ancestorGenerations: depth, placeholderPersonIds: new Set(['father']) }
+    });
+    const hidden = boundary(1);
+    assert.equal(hidden.parentPlaceholders.length, 0);
+    assert.ok(hidden.connectorDescriptors.some(edge => edge.childId === 'focus' && edge.role === 'descendant-direct'));
+    const visible = boundary(2);
+    assert.equal(visible.parentPlaceholders.length, 2);
+    assert.ok(visible.connectorDescriptors.some(edge => edge.childId === 'father' && edge.role === 'placeholder-descendant-direct'));
     assert.deepEqual(measure(run()), measures);
     assert.equal(JSON.stringify(run().connectorDescriptors), JSON.stringify(baseline.connectorDescriptors));
 }

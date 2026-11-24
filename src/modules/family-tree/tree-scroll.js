@@ -1,5 +1,10 @@
 let treeCanvasScrollRestoreFrame = null;
 
+function treePrimaryPersonCard(personId)
+{
+    return main.querySelector(`.tree-person-card[data-tree-primary="true"][data-person-id="${CSS.escape(personId)}"]`);
+}
+
 function centerTreeOnPerson(personId = treeProjectViewState().focusPersonId)
 {
     if (treeCanvasScrollRestoreFrame !== null)
@@ -8,7 +13,7 @@ function centerTreeOnPerson(personId = treeProjectViewState().focusPersonId)
         treeCanvasScrollRestoreFrame = null;
     }
     const canvas = main.querySelector('.tree-canvas');
-    const card = main.querySelector(`.tree-person-card[data-person-id="${CSS.escape(personId)}"]`);
+    const card = treePrimaryPersonCard(personId);
     if (!canvas || !card) return;
     const zoom = state.treeZoom / 100;
     const cardX = Number.parseFloat(card.style.left) || 0;

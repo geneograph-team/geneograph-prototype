@@ -1110,7 +1110,7 @@ function buildFamilyTreeProjection(people, families, options = {})
         families: projectedFamilies,
         visiblePersonIds: coherentPersonIds,
         visibleFamilyIds,
-        branchRoles
+        branchRoles: { ...branchRoles, ancestorGenerations }
     };
 }
 

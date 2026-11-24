@@ -1005,6 +1005,8 @@ function renderFamilyTree()
         {
             const selectCard = () =>
             {
+                const occurrenceId = card.dataset.treeOccurrenceId;
+                const restoreFocus = document.activeElement === card;
                 navigateFamilyTreeToPerson(
                     card.dataset.personId,
                     {
@@ -1012,6 +1014,11 @@ function renderFamilyTree()
                         center: false
                     }
                 );
+                if (restoreFocus && !card.isConnected)
+                {
+                    const replacement = main.querySelector(`.tree-person-card[data-tree-occurrence-id="${CSS.escape(occurrenceId)}"]`);
+                    (replacement || treePrimaryPersonCard(card.dataset.personId))?.focus({ preventScroll: true });
+                }
             };
 
             card.addEventListener('click', event =>
@@ -1079,7 +1086,7 @@ function renderFamilyTree()
                             requestAnimationFrame(() =>
                             {
                                 const refreshedButton = main.querySelector(
-                                    `.tree-person-card[data-person-id="${CSS.escape(anchorPersonId)}"] [data-card-add="relative"]`
+                                    `.tree-person-card[data-tree-primary="true"][data-person-id="${CSS.escape(anchorPersonId)}"] [data-card-add="relative"]`
                                 );
                                 openRelativePopover(refreshedButton || button, anchorPersonId);
                             });
@@ -1924,7 +1931,7 @@ function renderTreeParentPlaceholder(placeholder)
 
 function renderTreeFocusControl(control)
 {
-    const person = personById(control.personId);
+    const person = personById(control.canonicalPersonId || control.personId);
     if (!person) return '';
     const localizedName = translateText(person.name);
     const accessibleLabel = state.language === 'ru'
@@ -1938,12 +1945,14 @@ function renderTreePersonCard(
     person
 )
 {
+    const personId = person.canonicalPersonId || person.id;
+    const repeated = person.occurrenceCount > 1;
     const selected =
-        person.id
+        personId
           === state.selectedPersonId;
 
     const focused =
-        person.id
+        personId
           === treeProjectViewState()
               .focusPersonId;
 
@@ -1953,6 +1962,9 @@ function renderTreePersonCard(
           || 'Unnamed person'
         );
     const givenName = String(person.first || displayName);
+    const label = repeated
+        ? `${translateText(displayName)} (${state.language === 'ru' ? 'карточек в дереве' : 'cards in tree'}: ${person.occurrenceCount})`
+        : displayName;
 
     return `
         <article
@@ -1961,28 +1973,32 @@ function renderTreePersonCard(
             ${treePersonGenderClass(person)}
             ${selected ? 'selected' : ''}
             ${focused ? 'is-focus-person' : ''}
+            ${repeated ? 'has-tree-occurrences' : ''}
           "
           style="
             left:${person.layoutX}px;
             top:${person.layoutY}px;
           "
-          data-person-id="${escapeHtml(person.id)}"
+          data-person-id="${escapeHtml(personId)}"
+          data-tree-occurrence-id="${escapeHtml(person.id)}"
+          data-tree-primary="${!person.canonicalPersonId}"
           tabindex="0"
-          aria-label="${escapeHtml(displayName)}"
+          aria-label="${escapeHtml(label)}"
           ${
-                focused
+                focused && !person.canonicalPersonId
                     ? 'aria-current="true"'
                     : ''
             }>
 
+          ${repeated ? `<span class="tree-occurrence-badge" aria-hidden="true">×${person.occurrenceCount}</span>` : ''}
           <div class="tree-card-avatar-stack">
             ${renderPersonAvatar(
-                person,
+                person.canonicalPersonId ? { ...person, id: personId } : person,
                 'tree-avatar'
             )}
 
             ${
-                focused
+                focused && !person.canonicalPersonId
                     ? `
                   <span class="tree-focus-badge">
                     ${icon.focus}
@@ -2011,7 +2027,7 @@ function renderTreePersonCard(
             <button
               class="card-action"
               type="button"
-              data-card-edit="${escapeHtml(person.id)}"
+              data-card-edit="${escapeHtml(personId)}"
               aria-label="Edit ${escapeHtml(displayName)}">
 
               ${icon.edit}

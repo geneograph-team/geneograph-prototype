@@ -434,6 +434,38 @@ html.tree-fullscreen .tree-shell {
     background: color-mix(in srgb, var(--tree-gender-fill) 84%, var(--tree-gender-border));
 }
 
+.tree-occurrence-badge {
+    position: absolute;
+    inset-block-start: 5px;
+    inset-inline-end: 5px;
+    padding: 1px 5px;
+    border: 1px solid var(--border-default);
+    border-radius: 5px;
+    background: var(--surface-card);
+    color: var(--text-primary);
+    font-size: 13px;
+    font-weight: 800;
+    line-height: 1.2;
+    pointer-events: none;
+}
+
+.has-tree-occurrences .tree-card-content {
+    padding-inline-end: 32px;
+}
+
+.tree-stage[data-detail-level="given"] .tree-occurrence-badge,
+.tree-stage[data-detail-level="marker"] .tree-occurrence-badge {
+    font-size: var(--tree-overview-name-size);
+}
+
+.tree-stage[data-detail-level="given"] .has-tree-occurrences .tree-card-content {
+    padding-inline: 54px;
+}
+
+.tree-stage[data-detail-level="marker"] .tree-occurrence-badge {
+    position: static;
+}
+
 .tree-stage[data-detail-level="name"] .tree-person-card .tree-dates,
 .tree-stage[data-detail-level="name"] .tree-person-card .card-actions,
 .tree-stage[data-detail-level="name"] .tree-focus-badge {
