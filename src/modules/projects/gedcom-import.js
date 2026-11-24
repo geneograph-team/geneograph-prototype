@@ -145,7 +145,15 @@ function parseGedcomDate(text)
         const marker = /^@#D([^@]+)@\s*/i.exec(date);
         return marker ? [date.slice(marker[0].length), marker[1].toUpperCase()] : [date, ''];
     };
-    const [value, outerCalendar] = splitCalendar(text);
+    const russianMonths = {
+        янв: 'JAN', фев: 'FEB', мар: 'MAR', апр: 'APR', май: 'MAY', мая: 'MAY', июн: 'JUN',
+        июл: 'JUL', авг: 'AUG', сен: 'SEP', сент: 'SEP', окт: 'OCT', ноя: 'NOV', дек: 'DEC'
+    };
+    const normalizeDate = value => value
+        .replace(/(^|\s)(?:приблизительно|примерно)(?:\s*:\s*|\s+)(?:в\s+)?(?=\d)/gi, '$1ABT ')
+        .replace(/(^|\s)(янв|фев|мар|апр|май|мая|июн|июл|авг|сент?|окт|ноя|дек)\.?(?=\s|$)/gi,
+            (_, prefix, month) => prefix + russianMonths[month.toLowerCase()]);
+    const [value, outerCalendar] = splitCalendar(normalizeDate(text));
     const range = /^BET\s+(.+?)\s+AND\s+(.+)$/i.exec(value);
     const qualified = /^(ABT|EST|BEF|AFT)\s+(.+)$/i.exec(value);
     const types = { ABT: 'About / Circa', EST: 'About / Circa', BEF: 'Before', AFT: 'After' };
@@ -563,7 +571,11 @@ function mapGedcomImport(parsed, project, matches = new Map(), references = gedc
         }
         else if (node.tag === 'FAM')
         {
-            if (myHeritage && !node.children.length) continue;
+            if (myHeritage && !node.children.length)
+            {
+                used.add(node);
+                continue;
+            }
             used.add(node);
             familiesByXref.set(node.xref, { id: projectId + '-family-' + (familiesByXref.size + 1),
                 projectId, type: 'family', gedcomXref: node.xref, partnerAId: '', partnerBId: '',

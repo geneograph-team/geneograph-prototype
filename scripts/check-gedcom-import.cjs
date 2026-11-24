@@ -140,6 +140,19 @@ assert.throws(() => map(file([
     '0 @I1@ INDI', '0 @I2@ INDI', '1 FAMC @F1@', '2 STAT disproven',
     '0 @F1@ FAM', '1 HUSB @I1@', '1 CHIL @I2@'
 ])), /child claims disagree/);
+const localizedDate = context.parseGedcomDate('11 ноя 1894');
+assert.equal(localizedDate.valid, true);
+assert.equal(localizedDate.value.first.month, 11);
+assert.equal(localizedDate.value.originalText, '11 ноя 1894');
+for (const text of ['Приблизительно: 1940', 'Приблизительно в 1845', 'Примерно в 1712'])
+{
+    const date = context.parseGedcomDate(text);
+    assert.equal(date.valid, true);
+    assert.equal(date.value.dateType, 'About / Circa');
+    assert.equal(date.value.originalText, text);
+}
+assert.equal(context.parseGedcomDate('16 фер 1832').valid, false);
+
 const approximateRange = context.parseGedcomDate('BET ABT 1974 AND ABT 1980');
 assert.equal(approximateRange.valid, true);
 assert.equal(approximateRange.value.dateType, 'Between');
@@ -186,7 +199,7 @@ assert.equal(heritage.records.sourceLinks.filter(link => link.targetType === 'pe
 assert.equal(heritage.records.sourceLinks.filter(link => link.targetType === 'note').length, 2);
 assert.ok(heritage.records.events.some(event => event.title === 'Departure' && event.placeText === 'Departure place'));
 assert.ok(heritage.records.notes.find(note => note.body === 'Education note').linkedEventIds.length);
-assert.deepEqual(Array.from(heritage.warnings, warning => warning.tag), ['FAM']);
+assert.equal(heritage.warnings.length, 0);
 const otherExporter = map(file(['1 SOUR AgelongTree', '0 @I1@ INDI',
     '1 NAME Ada /Birth/', '2 SURN Birth', '2 _MARNM Married']));
 assert.equal(otherExporter.records.people[0].names.last, 'Birth');
