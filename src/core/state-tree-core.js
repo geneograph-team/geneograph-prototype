@@ -466,6 +466,7 @@ function treeProjectViewState(projectId = currentFamilyTreeProjectId())
             descendantGenerations: 3,
             showCousins: true,
             colorFill: true,
+            testLayout: false,
             recentPersonIds:
             defaultPersonId
                 ? [defaultPersonId]

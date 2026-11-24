@@ -68,6 +68,37 @@
     min-width: 0;
 }
 
+.tree-test-layout-toggle {
+    display: inline-flex;
+    flex: 0 0 auto;
+    align-items: center;
+    gap: var(--space-2);
+    color: var(--text-secondary);
+    white-space: nowrap;
+    cursor: pointer;
+    font-size: 12px;
+}
+
+.tree-test-layout-toggle input {
+    margin: 0;
+    flex: none;
+}
+
+.tree-test-layout-status {
+    position: absolute;
+    z-index: 8;
+    top: 12px;
+    left: 16px;
+    width: fit-content;
+    max-width: calc(100% - 32px);
+    padding: 8px 12px;
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-sm);
+    background: var(--surface-card);
+    color: var(--text-primary);
+    font-size: 12px;
+}
+
 .tree-icon-button,
 .tree-control,
 .view-mode,

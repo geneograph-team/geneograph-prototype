@@ -5,6 +5,18 @@ const RU_UI_FAMILY_TREE = {
     'Tree view mode':
         'Режим отображения древа',
 
+    'Test layout':
+        'Тестовая схема',
+
+    'Try the experimental Family Chart layout':
+        'Попробовать экспериментальную схему Family Chart',
+
+    'Test layout: unresolved geometry or routing issues.':
+        'Тестовая схема: есть нерешённые проблемы размещения или связей.',
+
+    'Test layout could not display this tree. Turn it off to return to Classic.':
+        'Не удалось отобразить древо в тестовой схеме. Отключите её, чтобы вернуться к классическому виду.',
+
     'Classic':
         'Классический',
 

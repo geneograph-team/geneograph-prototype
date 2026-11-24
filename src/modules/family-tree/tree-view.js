@@ -902,12 +902,42 @@ function renderFamilyTree()
         );
     }
 
-    const treeLayout = calculateTreeLayout(
-        projection.people,
-        projection.families,
-        projection.focusPersonId,
-        { branchRoles: projection.branchRoles }
-    );
+    const testLayout = treeViewState.testLayout === true;
+    let treeLayout;
+    let testLayoutStatus = '';
+    if (testLayout)
+    {
+        try
+        {
+            treeLayout = calculateTestTreeLayout(
+                projection.people,
+                projection.families,
+                projection.focusPersonId,
+                { branchRoles: projection.branchRoles }
+            );
+            if (treeLayout.testIssues.length)
+                testLayoutStatus = t('Test layout: unresolved geometry or routing issues.');
+        }
+        catch (error)
+        {
+            console.warn('[Family Tree test layout]', error);
+            testLayoutStatus = t('Test layout could not display this tree. Turn it off to return to Classic.');
+            treeLayout = {
+                stageWidth: TREE_GEOMETRY.minimumStageWidth,
+                stageHeight: TREE_GEOMETRY.minimumStageHeight,
+                positionedPeople: [], parentPlaceholders: [], focusControls: [], connectorDescriptors: []
+            };
+        }
+    }
+    else
+    {
+        treeLayout = calculateTreeLayout(
+            projection.people,
+            projection.families,
+            projection.focusPersonId,
+            { branchRoles: projection.branchRoles }
+        );
+    }
     main.innerHTML = `
         <div
           class="tree-shell"
@@ -950,6 +980,10 @@ function renderFamilyTree()
               <div class="view-modes" role="tablist" aria-label="${escapeHtml(t('Tree view mode'))}">
                 ${['Classic','Pedigree','Fan'].map((view, index) => `<button class="view-mode ${state.treeView === view ? 'active' : ''}" type="button" role="tab" aria-label="${escapeHtml(t(view))}" aria-selected="${state.treeView === view ? 'true' : 'false'}" ${view === 'Classic' ? '' : 'disabled'} data-tree-view="${view}" title="${escapeHtml(t(view === 'Classic' ? 'Classic view' : view + ' view will be added later.'))}">${[icon.tree, icon.pedigreeView, icon.fanView][index]}<span>${escapeHtml(t(view))}</span></button>`).join('')}
               </div>
+              <label class="tree-test-layout-toggle" title="${escapeHtml(t('Try the experimental Family Chart layout'))}">
+                <input type="checkbox" data-tree-test-layout ${testLayout ? 'checked' : ''}>
+                <span>${escapeHtml(t('Test layout'))}</span>
+              </label>
             </div>
             <div class="tree-toolbar-right">
               <label class="tree-view-mobile">${icon.tree}<select aria-label="${escapeHtml(t('Tree view mode'))}"><option value="Classic">${escapeHtml(t('Classic'))}</option><option value="Pedigree" disabled>${escapeHtml(t('Pedigree'))}</option><option value="Fan" disabled>${escapeHtml(t('Fan'))}</option></select>${icon.chevron}</label>
@@ -958,7 +992,8 @@ function renderFamilyTree()
             </div>
           </div>
 
-            <section class="tree-canvas" aria-label="Family tree canvas">
+            <section class="tree-canvas" aria-label="Family tree canvas" data-test-layout="${testLayout}">
+              ${testLayoutStatus ? `<div class="tree-test-layout-status" role="status">${escapeHtml(testLayoutStatus)}</div>` : ''}
               <div class="tree-stage-space" style="width:${treeLayout.stageWidth * state.treeZoom / 100}px;height:${treeLayout.stageHeight * state.treeZoom / 100}px;">
                 <div class="tree-stage" data-detail-level="${treeDetailLevel()}" data-compact-parent="${treeDisplayZoom() < 70}" data-hide-focus="${treeDisplayZoom() <= 50}" style="width:${treeLayout.stageWidth}px;height:${treeLayout.stageHeight}px;transform: scale(${state.treeZoom / 100});--tree-overview-connection-width:${150 / state.treeZoom}px;--tree-overview-parent-border-width:${100 / state.treeZoom}px;--tree-overview-plus-size:${Math.min(70, 1500 / state.treeZoom)}px;--tree-overview-name-size:${Math.min(40, Math.max(22, 1100 / state.treeZoom))}px;">
                   ${renderTreeLines(treeLayout)}
@@ -1120,6 +1155,33 @@ function renderFamilyTree()
         if (target?.id) focusTreeBranchForRelative(target.id);
         openAddPersonModal(`Add ${button.dataset.addRelative}`, `Create a new person and add as ${target.name.split(' ')[0]}'s ${button.dataset.addRelative}`, { relativeType: button.dataset.addRelative, personId: target.id });
     }));
+    main.querySelector('[data-tree-test-layout]')?.addEventListener('change', event =>
+    {
+        const enabled = event.currentTarget.checked;
+        if (enabled === testLayout) return;
+        treeCardLastClick = null;
+        if (enabled)
+        {
+            treeViewState.classicLayoutViewport = {
+                scroll: getTreeCanvasScroll(),
+                focusPersonId: projection.focusPersonId,
+                zoom: state.treeZoom
+            };
+            treeViewState.testLayout = true;
+            state.treeCenterTargetId = selected.id;
+        }
+        else
+        {
+            treeViewState.testLayout = false;
+            const viewport = treeViewState.classicLayoutViewport;
+            treeViewState.canvasScroll = viewport?.focusPersonId === projection.focusPersonId
+                && viewport.zoom === state.treeZoom ? viewport.scroll : null;
+            delete treeViewState.classicLayoutViewport;
+            state.treeCenterTargetId = treeViewState.canvasScroll ? '' : selected.id;
+        }
+        renderFamilyTree();
+        main.querySelector('[data-tree-test-layout]')?.focus({ preventScroll: true });
+    });
     main.querySelectorAll('[data-tree-view]').forEach(button => button.addEventListener('click', () =>
     {
         if (button.dataset.treeView !== 'Classic') return;

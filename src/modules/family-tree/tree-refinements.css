@@ -1175,6 +1175,13 @@ html.tree-fullscreen .tree-shell {
         height: 42px;
     }
 
+    .tree-test-layout-toggle {
+        position: absolute;
+        right: 8px;
+        bottom: 5px;
+        line-height: 18px;
+    }
+
     .tree-toolbar .tree-control-name {
         overflow: hidden;
         text-overflow: ellipsis;
