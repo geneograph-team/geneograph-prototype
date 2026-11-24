@@ -3103,6 +3103,23 @@ button.app-chip:disabled,
     font-variant-numeric: tabular-nums;
 }
 
+.gedcom-import-footer {
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.gedcom-import-footer .gedcom-session-note {
+    flex: 1 1 15rem;
+    margin: 0;
+}
+
+.gedcom-import-footer-actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: var(--space-3);
+}
+
 [data-gedcom-import] button[type="submit"]:disabled {
     opacity: 0.5;
     cursor: default;

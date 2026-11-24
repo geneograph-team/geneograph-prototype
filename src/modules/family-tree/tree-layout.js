@@ -807,6 +807,7 @@ function layoutFamilyTreeHorizontally({
                         )
                 || [];
 
+                    if (parentFamilyByChild.get(child.id)?.id !== family.id) return;
                     placeholderMembers.forEach(member =>
                     {
                         parentEntries.push({
@@ -1917,7 +1918,8 @@ function layoutFamilyTreeHorizontally({
       */
     function relaxGeneration(
         generation,
-        direction
+        direction,
+        followBranch = false
     )
     {
         const row =
@@ -1939,8 +1941,8 @@ function layoutFamilyTreeHorizontally({
 
             models.forEach(model =>
             {
-                const junctionX =
-                    familyJunctionX(model);
+                const related = direction === 'down' ? model.parents : model.children;
+                const junctionX = followBranch ? median(related.map(entryX)) : familyJunctionX(model);
 
                 if (!Number.isFinite(junctionX))
                 {
@@ -1999,7 +2001,7 @@ function layoutFamilyTreeHorizontally({
         });
     }
 
-    function solveCandidate(order)
+    function solveCandidate(order, followBranch = false)
     {
         order.forEach(
             (ids, generation) =>
@@ -2029,7 +2031,8 @@ function layoutFamilyTreeHorizontally({
                 {
                     relaxGeneration(
                         generation,
-                        'down'
+                        'down',
+                        followBranch
                     );
                 });
 
@@ -2040,7 +2043,8 @@ function layoutFamilyTreeHorizontally({
                 {
                     relaxGeneration(
                         generation,
-                        'up'
+                        'up',
+                        followBranch
                     );
                 });
         }
@@ -2050,7 +2054,21 @@ function layoutFamilyTreeHorizontally({
 
     // Validate the actual routed geometry, including each partner's attachment,
     // before accepting an ordering produced by the inexpensive crossing heuristic.
-    function routedCandidateIssues()
+    function solveAnchoredBranches(order)
+    {
+        for (const [generation, ids] of order)
+            rows.set(generation, ids.map(id => blockById.get(id)));
+        initializePositions();
+
+        // Pack the reserved ancestor rows first. Then place each younger
+        // family under its own incoming branches. Pulling older rows back
+        // towards the focus at this point would spread the same long run
+        // through several generations.
+        for (const generation of generations.slice(1))
+            relaxGeneration(generation, 'down', true);
+    }
+
+    function measureRoutedCandidate()
     {
         const clones = new Map();
         blocks.forEach(block => block.members.forEach(member =>
@@ -2078,24 +2096,63 @@ function layoutFamilyTreeHorizontally({
             }))
         };
         candidate.connectorDescriptors = buildTreeConnectorDescriptors(candidate, { arrangeBands: true });
-        return validateTreeLayout(candidate).length;
+        const issues = validateTreeLayout(candidate);
+        const horizontalLength = candidate.connectorDescriptors.reduce((sum, descriptor) =>
+            sum + descriptor.points.slice(1).reduce((length, point, index) =>
+                length + Math.abs(point.x - descriptor.points[index].x), 0), 0);
+        const focusGeneration = peopleById.get(focalPersonId)?.generation ?? Infinity;
+        const ancestorRails = candidate.connectorBands
+            .filter(band => band.generation < focusGeneration - 1)
+            .flatMap(band => band.families.map(family => family.maxX - family.minX));
+        return {
+            issues: issues.length,
+            obstructions: issues.filter(issue => ['edge-node', 'edge-overlap', 'node-node', 'focus-clearance', 'missing-family-link'].includes(issue.type)).length,
+            crossings: issues.filter(issue => issue.type === 'edge-crossing').length,
+            ancestorLength: ancestorRails.reduce((sum, length) => sum + length, 0),
+            horizontalLength
+        };
     }
     solveCandidate(bestOrder);
-    let routedIssues = routedCandidateIssues();
+    let routed = measureRoutedCandidate();
     let acceptedPositions = new Map(positionByBlockId);
-    if (routedIssues)
+    if (routed.issues)
     {
         for (const order of candidateOrders.values())
         {
             solveCandidate(order);
-            const issues = routedCandidateIssues();
+            const score = measureRoutedCandidate();
             const displacement = positions => blocks.reduce((sum, block) => sum + Math.abs(positions.get(block.id) - block.currentCenter), 0);
-            if (issues < routedIssues || (issues === routedIssues && displacement(positionByBlockId) < displacement(acceptedPositions)))
+            if (score.issues < routed.issues || (score.issues === routed.issues && displacement(positionByBlockId) < displacement(acceptedPositions)))
             {
-                routedIssues = issues;
+                routed = score;
                 acceptedPositions = new Map(positionByBlockId);
             }
-            if (!routedIssues) break;
+            if (!routed.issues) break;
+        }
+    }
+    if ((peopleById.get(focalPersonId)?.generation ?? 0) >= 3)
+    {
+        // Try the stable ancestry order with stronger attachment to the
+        // opposite side of each family. Take it only when it improves the
+        // routed tree, so the layout does not trade clearance for short rails.
+        solveCandidate(candidateOrders.values().next().value, true);
+        const branchAligned = measureRoutedCandidate();
+        if (branchAligned.issues < routed.issues
+            || (branchAligned.issues === routed.issues && branchAligned.horizontalLength < routed.horizontalLength))
+        {
+            routed = branchAligned;
+            acceptedPositions = new Map(positionByBlockId);
+        }
+        for (const order of [candidateOrders.values().next().value, bestOrder])
+        {
+            solveAnchoredBranches(order);
+            const anchored = measureRoutedCandidate();
+            if (anchored.obstructions > routed.obstructions || anchored.crossings > routed.crossings) continue;
+            if (anchored.ancestorLength < routed.ancestorLength)
+            {
+                routed = anchored;
+                acceptedPositions = new Map(positionByBlockId);
+            }
         }
     }
     acceptedPositions.forEach((position, id) => positionByBlockId.set(id, position));
@@ -2158,6 +2215,21 @@ function layoutFamilyTreeHorizontally({
 function validateTreeLayout(layout)
 {
     const issues = [];
+
+    const linkedChildrenByFamily = new Map();
+    for (const descriptor of layout.connectorDescriptors || [])
+    {
+        if (!descriptor.childId) continue;
+        if (!linkedChildrenByFamily.has(descriptor.familyId)) linkedChildrenByFamily.set(descriptor.familyId, new Set());
+        linkedChildrenByFamily.get(descriptor.familyId).add(descriptor.childId);
+    }
+    for (const family of layout.families || [])
+    {
+        if (!layout.peopleById?.[family.left] && !layout.peopleById?.[family.right]) continue;
+        for (const id of family.children || [])
+            if (layout.peopleById[id] && !linkedChildrenByFamily.get(family.id)?.has(id))
+                issues.push({ type: 'missing-family-link', familyId: family.id, childId: id });
+    }
 
     const rectangles = [
         ...(layout.positionedPeople || [])
@@ -2587,19 +2659,22 @@ function calculateTreeLayout(people, families, focusPersonId = '', options = {})
     const peopleByRawId = new Map(people.map((person, index) => [person.id, { ...person, sourceIndex: index }]));
 
     // --- Indexes ---
-    const parentFamilyByChild = new Map(); // childId -> family (first parent-child family found)
-    const childFamiliesByParent = new Map(); // parentId -> [family]
+    const parentFamiliesByChild = new Map();
+    const parentFamilyByChild = new Map();
+    const childFamiliesByParent = new Map();
     families.forEach(family =>
     {
-        [family.left, family.right].filter(Boolean).forEach(pid =>
+        for (const id of [family.left, family.right].filter(Boolean))
         {
-            if (!childFamiliesByParent.has(pid)) childFamiliesByParent.set(pid, []);
-            childFamiliesByParent.get(pid).push(family);
-        });
-        (family.children || []).forEach(cid =>
+            if (!childFamiliesByParent.has(id)) childFamiliesByParent.set(id, []);
+            childFamiliesByParent.get(id).push(family);
+        }
+        for (const id of family.children || [])
         {
-            if (!parentFamilyByChild.has(cid)) parentFamilyByChild.set(cid, family);
-        });
+            if (!parentFamiliesByChild.has(id)) parentFamiliesByChild.set(id, []);
+            parentFamiliesByChild.get(id).push(family);
+            if (!parentFamilyByChild.has(id)) parentFamilyByChild.set(id, family);
+        }
     });
 
     const layoutFamilyForPerson = personId =>
@@ -2624,15 +2699,17 @@ function calculateTreeLayout(people, families, focusPersonId = '', options = {})
         visitGenQueue.push(id);
     };
     seedGen(focalPersonId, 0);
-    while (visitGenQueue.length)
+    for (let index = 0; index < visitGenQueue.length; index++)
     {
-        const id = visitGenQueue.shift();
+        const id = visitGenQueue[index];
         const gen = generationByPerson.get(id);
-        const parentFam = parentFamilyByChild.get(id);
-        if (parentFam)
+        for (const family of parentFamiliesByChild.get(id) || [])
         {
-            if (parentFam.left) seedGen(parentFam.left, gen - 1);
-            if (parentFam.right) seedGen(parentFam.right, gen - 1);
+            seedGen(family.left, gen - 1);
+            seedGen(family.right, gen - 1);
+            // All visible siblings belong in the child's row, even when this
+            // family is reached up a different branch of the tree.
+            for (const sibling of family.children || []) seedGen(sibling, gen);
         }
         (childFamiliesByParent.get(id) || []).forEach(fam =>
         {
@@ -2666,48 +2743,74 @@ function calculateTreeLayout(people, families, focusPersonId = '', options = {})
         if (!fam.right) missing.push('mother');
         return missing;
     };
-    const parentPlaceholderWidth = pid =>
+    // Each branch reserves the span it actually occupies at each depth.
+    // Keep the immediate couple compact and separate only the older rows
+    // where both branches would otherwise compete for the same space.
+    const ancestryPlans = new Map();
+    const reserveBranches = generationByPerson.get(focalPersonId) >= 3;
+    function ancestryPlan(personId)
     {
-        const c = missingParentRoles(pid).length;
-        if (!c) return 0;
-        return TREE_CARD_W;
-    };
-    const personSlotWidth = pid => Math.max(TREE_CARD_W, parentPlaceholderWidth(pid));
+        if (ancestryPlans.has(personId)) return ancestryPlans.get(personId);
+        const plan = [[{ id: personId, x: 0, width: TREE_CARD_W }]];
+        ancestryPlans.set(personId, plan);
 
-    // --- Ancestor half-widths (Reingold-Tilford-style): for a person, how far its
-    // ancestor block extends to the left and right of the person's card center.
-    // This lets us keep left-side ancestors on the left and right-side on the right
-    // so branches never cross.
-    const ancestorHalvesMemo = new Map();
-    function ancestorHalves(personId)
-    {
-        if (ancestorHalvesMemo.has(personId)) return ancestorHalvesMemo.get(personId);
-        const selfHalf = personSlotWidth(personId) / 2;
-        // Cycle guard
-        ancestorHalvesMemo.set(personId, { left: selfHalf, right: selfHalf });
-        const fam = parentFamilyByChild.get(personId);
-        if (!fam)
+        const generation = generationByPerson.get(personId);
+        const families = parentFamiliesByChild.get(personId) || [];
+        const missing = missingParentRoles(personId);
+        const primary = families[0];
+        const branches = families.map(family =>
         {
-            const result = { left: selfHalf, right: selfHalf };
-            ancestorHalvesMemo.set(personId, result);
-            return result;
-        }
-        const fatherId = fam.left && peopleByRawId.has(fam.left) ? fam.left : null;
-        const motherId = fam.right && peopleByRawId.has(fam.right) ? fam.right : null;
-        const placeholderHalf = treeParentPlaceholderWidth(missingParentRoles(personId).length) / 2;
-        const fH = fatherId ? ancestorHalves(fatherId) : { left: placeholderHalf, right: placeholderHalf };
-        const mH = motherId ? ancestorHalves(motherId) : { left: placeholderHalf, right: placeholderHalf };
-        // Distance between father and mother card centers must fit both their inner ancestor extents
-        const dist = Math.max(
-            TREE_CARD_W + TREE_SPOUSE_GAP,
-            fH.right + TREE_SPOUSE_GAP + mH.left
-        );
-        // person is centered between father and mother
-        const left = Math.max(selfHalf, dist / 2 + fH.left);
-        const right = Math.max(selfHalf, dist / 2 + mH.right);
-        const result = { left, right, dist, fH, mH, fatherId, motherId, fam };
-        ancestorHalvesMemo.set(personId, result);
-        return result;
+            const shape = [family.left, family.right].map((id, index) =>
+            {
+                if (generationByPerson.get(id) === generation - 1) return ancestryPlan(id);
+                const role = index ? 'mother' : 'father';
+                return family === primary && missing.includes(role)
+                    ? [[{ x: 0, width: treeParentPlaceholderWidth(missing.length) }]]
+                    : [];
+            });
+            return joinAncestryPlans(shape[0], shape[1], TREE_SPOUSE_GAP);
+        });
+        if (!branches.length && missing.length)
+            branches.push([missing.map((_, index) => ({
+                x: (index - (missing.length - 1) / 2) * (treeParentPlaceholderWidth(missing.length) + TREE_PARENT_PLACEHOLDER_GAP),
+                width: treeParentPlaceholderWidth(missing.length)
+            }))]);
+
+        const parents = branches.reduce((combined, branch) => joinAncestryPlans(combined, branch, TREE_SUBTREE_GAP), []);
+        plan.push(...parents);
+        return plan;
+    }
+
+    function joinAncestryPlans(left, right, gap)
+    {
+        if (!left.length) return right;
+        if (!right.length) return left;
+        const rows = Array.from({ length: Math.max(left.length, right.length) }, (_, depth) =>
+        {
+            const leftRow = left[depth] || [];
+            const leftIds = new Set(leftRow.map(node => node.id).filter(Boolean));
+            const rightRow = (right[depth] || []).filter(node => !leftIds.has(node.id));
+            const separation = leftRow.length && rightRow.length
+                ? Math.max(...leftRow.map(node => node.x + node.width / 2))
+                    - Math.min(...rightRow.map(node => node.x - node.width / 2)) + (depth ? TREE_SUBTREE_GAP : gap)
+                : 0;
+            return { leftRow, rightRow, separation };
+        });
+
+        // Reserve the complete footprint before moving an ancestor branch.
+        // Carry that translation through its rows, keeping local connectors
+        // short. The immediate partners still share a compact junction.
+        const footprint = reserveBranches ? Math.max(0, ...rows.map(row => row.separation)) : 0;
+        let priorSeparation = 0;
+        return rows.map(({ leftRow, rightRow, separation }, depth) =>
+        {
+            priorSeparation = Math.max(priorSeparation, separation);
+            const offset = reserveBranches && (depth || gap !== TREE_SPOUSE_GAP) ? footprint : priorSeparation;
+            return [
+                ...leftRow.map(node => ({ ...node, x: node.x - offset / 2 })),
+                ...rightRow.map(node => ({ ...node, x: node.x + offset / 2 }))
+            ];
+        });
     }
 
     function descendantRowUnit(personId)
@@ -2744,79 +2847,26 @@ function calculateTreeLayout(people, families, focusPersonId = '', options = {})
         const person = peopleByRawId.get(personId);
         if (!person) return;
         placedIds.add(personId);
+        gen = generationByPerson.get(personId) ?? gen;
         const y = generationY(gen);
         const x = Math.round(centerX - TREE_CARD_W / 2);
         positionedById.set(personId, { ...person, x, y, w: TREE_CARD_W, h: TREE_CARD_H, generation: gen });
     }
 
-    // Keep each ancestor couple compact and expand its two branches outward.
-    // A column pair lets a parent couple line up with the household directly below.
-    function placeAncestors(personId, centerX, gen, branchSide = 'center', columns = null)
+    function placeAncestors(personId, centerX, generation)
     {
-        const h = ancestorHalves(personId);
-        if (!h.fam) return;
-        const parentGen = gen - 1;
-        const compactDistance = TREE_CARD_W + TREE_SPOUSE_GAP;
-        let fatherCenter;
-        let motherCenter;
-        if (columns)
+        ancestryPlan(personId).slice(1).forEach((row, index) =>
         {
-            fatherCenter = columns.left;
-            motherCenter = columns.right;
-        }
-        else if (branchSide === 'left')
-        {
-            fatherCenter = centerX - compactDistance;
-            motherCenter = centerX;
-        }
-        else if (branchSide === 'right')
-        {
-            fatherCenter = centerX;
-            motherCenter = centerX + compactDistance;
-        }
-        else
-        {
-            fatherCenter = centerX - compactDistance / 2;
-            motherCenter = centerX + compactDistance / 2;
-        }
-        if (h.fatherId && !placedIds.has(h.fatherId))
-        {
-            placePerson(h.fatherId, fatherCenter, parentGen);
-            placeAncestors(h.fatherId, fatherCenter, parentGen, 'left');
-        }
-        if (h.motherId && !placedIds.has(h.motherId))
-        {
-            placePerson(h.motherId, motherCenter, parentGen);
-            placeAncestors(h.motherId, motherCenter, parentGen, 'right');
-        }
-        familyAnchors[h.fam.id] = familyAnchors[h.fam.id] || { family: h.fam, generation: parentGen };
+            for (const node of row)
+                if (node.id) placePerson(node.id, centerX + node.x, generation - index - 1);
+        });
     }
 
-    function placeAncestorsSpread(personId, centerX, gen)
-    {
-        const h = ancestorHalves(personId);
-        if (!h.fam) return;
-        const parentGen = gen - 1;
-        const compactDistance = TREE_CARD_W + TREE_SPOUSE_GAP;
-        const requiredDistance = Math.max(compactDistance, h.dist || compactDistance);
-        const branchOffset = Math.max(0, requiredDistance - compactDistance) / 2;
-        const fatherCenter = centerX - compactDistance / 2;
-        const motherCenter = centerX + compactDistance / 2;
-        if (h.fatherId && !placedIds.has(h.fatherId))
-        {
-            placePerson(h.fatherId, fatherCenter, parentGen);
-            placeAncestorsSpread(h.fatherId, fatherCenter - branchOffset, parentGen);
-        }
-        if (h.motherId && !placedIds.has(h.motherId))
-        {
-            placePerson(h.motherId, motherCenter, parentGen);
-            placeAncestorsSpread(h.motherId, motherCenter + branchOffset, parentGen);
-        }
-        familyAnchors[h.fam.id] = familyAnchors[h.fam.id] || { family: h.fam, generation: parentGen };
-    }
-
+    const placedDescendants = new Set();
     function placeDescendants(personId, centerX, gen, options = {})
     {
+        if (placedDescendants.has(personId)) return;
+        placedDescendants.add(personId);
         const childFam = layoutFamilyForPerson(personId);
         if (!childFam)
         {
@@ -2836,10 +2886,15 @@ function calculateTreeLayout(people, families, focusPersonId = '', options = {})
             }
             if (!options.skipAncestors)
             {
-                const leftColumn = Math.min(centerX, spouseCenter);
-                const rightColumn = Math.max(centerX, spouseCenter);
-                placeAncestors(personId, centerX, gen, 'center', { left: leftColumn, right: rightColumn });
-                placeAncestors(spouseId, spouseCenter, gen, spouseIsLeft ? 'left' : 'right');
+                const leftId = spouseIsLeft ? spouseId : personId;
+                const rightId = spouseIsLeft ? personId : spouseId;
+                const branches = joinAncestryPlans(ancestryPlan(leftId), ancestryPlan(rightId), TREE_SPOUSE_GAP);
+                const pairX = (centerX + spouseCenter) / 2;
+                branches.slice(1).forEach((row, index) =>
+                {
+                    for (const node of row)
+                        if (node.id) placePerson(node.id, pairX + node.x, gen - index - 1);
+                });
             }
             pairCenter = (centerX + spouseCenter) / 2;
         }
@@ -2879,7 +2934,7 @@ function calculateTreeLayout(people, families, focusPersonId = '', options = {})
             placeDescendants(unit.id, siblingCenter, gen, { skipAncestors: true });
             cursor += unit.width + TREE_SIBLING_GAP;
         });
-        placeAncestorsSpread(personId, familyCenterX, gen);
+        placeAncestors(personId, familyCenterX, gen);
         return true;
     }
 
@@ -2888,15 +2943,18 @@ function calculateTreeLayout(people, families, focusPersonId = '', options = {})
     if (focalId)
     {
         const focalGen = generationByPerson.get(focalId) ?? 0;
-        // Enough left padding for focal's ancestor block
-        const focalH = ancestorHalves(focalId);
-        const focalX = TREE_PADDING_X + Math.max(focalH.left, TREE_CARD_W / 2);
+        const focalX = TREE_PADDING_X + TREE_CARD_W / 2;
         if (!placeFocusedSiblingRow(focalId, focalX, focalGen))
         {
             placePerson(focalId, focalX, focalGen);
             placeDescendants(focalId, focalX, focalGen);
         }
     }
+
+    // Siblings and collateral branches can have ancestry of their own. Seed
+    // it near the already placed person before assigning disconnected rows.
+    positionedById.forEach(person =>
+        placeAncestors(person.id, person.x + TREE_CARD_W / 2, person.generation));
 
     // Fallback: any unplaced person to the right, grouped by generation
     const unplacedByGen = new Map();

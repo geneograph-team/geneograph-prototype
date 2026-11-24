@@ -1261,10 +1261,13 @@ function openImportModal()
             </div>
             <div data-gedcom-attachment-status aria-live="polite"></div>
         </section>
-        <p class="gedcom-session-note">${escapeHtml(t('Imported projects stay in this session. Reloading discards them and any edits.'))}</p>
         <div class="gedcom-preview" data-gedcom-warnings></div>
-        </div><div class="modal-footer"><button class="button secondary" type="button" data-close>${escapeHtml(t('Cancel'))}</button>
-        <button class="button primary" type="submit" hidden disabled>${escapeHtml(t('Import to new project'))}</button></div></form></div>`);
+        </div><div class="modal-footer gedcom-import-footer">
+        <p class="gedcom-session-note">${escapeHtml(t('Imported projects stay in this session. Reloading discards them and any edits.'))}</p>
+        <div class="gedcom-import-footer-actions">
+            <button class="button secondary" type="button" data-close>${escapeHtml(t('Cancel'))}</button>
+            <button class="button primary" type="submit" hidden disabled>${escapeHtml(t('Import to new project'))}</button>
+        </div></div></form></div>`);
     const form = modalBackdrop.querySelector('[data-gedcom-import]');
     const find = selector => form.querySelector(selector);
     const input = find('#gedcomFile');

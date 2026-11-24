@@ -1202,6 +1202,7 @@ function buildTreeConnectorDescriptors(
 )
 {
     const descriptors = [];
+    const descriptorKeys = new Set();
     const drafts = [];
     const partnerKeys = new Set();
     const partnerGroups = [];
@@ -1249,14 +1250,8 @@ function buildTreeConnectorDescriptors(
           + `${descriptor.childId || ''}|`
           + d;
 
-        if (
-            descriptors.some(item =>
-                item.key === key
-            )
-        )
-        {
-            return;
-        }
+        if (descriptorKeys.has(key)) return;
+        descriptorKeys.add(key);
 
         descriptors.push({
             ...descriptor,
@@ -1283,6 +1278,29 @@ function buildTreeConnectorDescriptors(
         partnerGroups.push({ familyId, parentNodes });
     }
 
+    const routeObstacles = [...(layout.positionedPeople || []), ...(layout.parentPlaceholders || [])];
+
+    function sideRoute(source, destination, sourceX, destinationX)
+    {
+        const start = { x: sourceX, y: source.bottomY };
+        const goingDown = destination.topY > source.bottomY;
+        const end = { x: destinationX, y: goingDown ? destination.topY : destination.bottomY };
+        const startY = start.y + TREE_GEOMETRY.connectorLaneGap;
+        const endY = end.y + (goingDown ? -1 : 1) * (TREE_FOCUS_CONTROL_H + TREE_FOCUS_CONTROL_GAP + 4);
+        const obstacles = routeObstacles.filter(node =>
+            node.bottomY > Math.min(startY, endY) && node.topY < Math.max(startY, endY));
+        const clearance = TREE_GEOMETRY.connectorLaneGap;
+        const candidates = [sourceX, destinationX, ...obstacles.flatMap(node =>
+            [node.leftX - clearance, node.rightX + clearance])];
+        const corridor = candidates.filter(x => obstacles.every(node =>
+            x <= node.leftX - clearance || x >= node.rightX + clearance))
+            .sort((left, right) =>
+                Math.abs(left - sourceX) + Math.abs(left - destinationX)
+                - Math.abs(right - sourceX) - Math.abs(right - destinationX) || left - right)[0] ?? sourceX;
+        return [start, { x: sourceX, y: startY }, { x: corridor, y: startY },
+            { x: corridor, y: endY }, { x: destinationX, y: endY }, end];
+    }
+
     function renderPartnerConnector({ familyId, parentNodes })
     {
         const ordered =
@@ -1295,13 +1313,24 @@ function buildTreeConnectorDescriptors(
         const last =
             ordered[ordered.length - 1];
 
+        const className = treePartnerConnectorClass(familyById.get(familyId));
+        const blocked = routeObstacles.some(node => !ordered.includes(node)
+            && node.leftX < last.leftX && node.rightX > first.rightX
+            && node.topY < first.centerY && node.bottomY > first.centerY);
+        if (first.generation !== last.generation || blocked)
+        {
+            const [top, bottom] = first.topY <= last.topY ? [first, last] : [last, first];
+            addDescriptor({ familyId, role: 'partner', className,
+                points: sideRoute(top, bottom, top.centerX, bottom.centerX) });
+            return;
+        }
+
         const partnerY = Math.round(
             (
                 first.centerY
             + last.centerY
             ) / 2
         );
-        const className = treePartnerConnectorClass(familyById.get(familyId));
         const junctionX = Math.round((first.rightX + last.leftX) / 2);
         const distanceToJunction = Math.abs(Math.round(first.centerY) - partnerY)
             + Math.abs(Math.round(first.rightX) - junctionX);
@@ -1491,15 +1520,21 @@ function buildTreeConnectorDescriptors(
 
         if (!children.length) return;
 
-        // Use the same family grouping as the horizontal layout.
-        addDraft({
-            familyId: family.id,
-            role: placeholders.length
-                ? 'placeholder-descendant'
-                : 'descendant',
-            parentNodes,
-            children
-        });
+        const byGeneration = new Map();
+        for (const child of children)
+        {
+            if (!byGeneration.has(child.generation)) byGeneration.set(child.generation, []);
+            byGeneration.get(child.generation).push(child);
+        }
+        for (const group of byGeneration.values())
+        {
+            addDraft({
+                familyId: family.id,
+                role: placeholders.length ? 'placeholder-descendant' : 'descendant',
+                parentNodes,
+                children: group
+            });
+        }
     });
 
     // Preserve Add parents controls when no saved parent family exists.
@@ -1524,10 +1559,55 @@ function buildTreeConnectorDescriptors(
       * Allocate lanes per complete generation band. Placeholder
       * and normal families now compete for the same lanes.
       */
+    // Multiple families can point to the same card. Give each a separate
+    // attachment point, ordered by the side its parents approach from.
+    const incomingByChild = new Map();
+    const outgoingBySource = new Map();
+    for (const draft of drafts)
+    {
+        draft.childXById = new Map(draft.children.map(child => [child.id, child.centerX]));
+        for (const child of draft.children)
+        {
+            if (!incomingByChild.has(child.id)) incomingByChild.set(child.id, []);
+            incomingByChild.get(child.id).push({ draft, child });
+        }
+        const sourceKey = draft.sourceX + '|' + draft.sourceY;
+        if (!outgoingBySource.has(sourceKey)) outgoingBySource.set(sourceKey, []);
+        outgoingBySource.get(sourceKey).push(draft);
+    }
+    for (const entries of incomingByChild.values())
+    {
+        if (entries.length < 2) continue;
+        entries.sort((left, right) => left.draft.sourceX - right.draft.sourceX
+            || String(left.draft.familyId).localeCompare(String(right.draft.familyId)));
+        const step = Math.min(TREE_GEOMETRY.connectorLaneGap, TREE_CARD_W / (entries.length + 1));
+        entries.forEach(({ draft, child }, index) =>
+            draft.childXById.set(child.id, Math.round(child.centerX + (index - (entries.length - 1) / 2) * step)));
+    }
+    for (const group of outgoingBySource.values())
+    {
+        if (group.length < 2) continue;
+        group.sort((left, right) => left.children[0].centerX - right.children[0].centerX
+            || String(left.familyId).localeCompare(String(right.familyId)));
+        const span = group[0].parentNodes.length === 1 ? TREE_CARD_W : TREE_SPOUSE_GAP;
+        const step = Math.min(TREE_GEOMETRY.connectorLaneGap, span / (group.length + 1));
+        group.forEach((draft, index) =>
+            draft.sourceX = Math.round(draft.sourceX + (index - (group.length - 1) / 2) * step));
+    }
+    for (const draft of drafts)
+    {
+        draft.minX = Math.min(draft.sourceX, ...draft.childXById.values());
+        draft.maxX = Math.max(draft.sourceX, ...draft.childXById.values());
+    }
+
     const draftsByBand = new Map();
 
     drafts.forEach(draft =>
     {
+        draft.separateBand = draft.parentNodes.some(parent => parent.generation !== draft.childGeneration - 1)
+            || routeObstacles.some(node => !draft.parentNodes.includes(node) && node.generation === draft.childGeneration - 1
+                && draft.sourceX > node.leftX && draft.sourceX < node.rightX);
+        if (draft.separateBand) return;
         const bandKey =
             Number.isFinite(
                 draft.childGeneration
@@ -1568,7 +1648,7 @@ function buildTreeConnectorDescriptors(
             if (rail === other) return;
             // A trunk must finish above a rail it would cross; a child drop starts below it.
             if (insideRail(rail, other.sourceX)) predecessors.get(rail).add(other);
-            if (other.children.some(child => insideRail(rail, child.centerX))) predecessors.get(other).add(rail);
+            if (other.children.some(child => insideRail(rail, other.childXById.get(child.id)))) predecessors.get(other).add(rail);
         }));
 
         const pending = new Set(group);
@@ -1576,9 +1656,19 @@ function buildTreeConnectorDescriptors(
         const lanes = [];
         while (pending.size)
         {
-            const draft = [...pending].find(item => [...predecessors.get(item)].every(parent => assigned.has(parent)))
-            || [...pending][0];
-            draft.laneConflict = [...predecessors.get(draft)].some(parent => !assigned.has(parent));
+            // If constraints form a cycle, break it where the fewest
+            // pending routes are affected, then retain the stable row order.
+            let draft;
+            let blockedCount = Infinity;
+            for (const item of pending)
+            {
+                const unmet = [...predecessors.get(item)].filter(parent => pending.has(parent)).length;
+                if (unmet >= blockedCount) continue;
+                draft = item;
+                blockedCount = unmet;
+                if (!unmet) break;
+            }
+            draft.laneConflict = blockedCount > 0;
             let lane = Math.max(0, ...[...predecessors.get(draft)].filter(parent => assigned.has(parent)).map(parent => parent.laneIndex + 1));
             while ((lanes[lane] || []).some(other => draft.minX <= other.maxX + 8 && draft.maxX + 8 >= other.minX)) lane += 1;
             if (!lanes[lane]) lanes[lane] = [];
@@ -1646,7 +1736,7 @@ function buildTreeConnectorDescriptors(
             generation, parentBottomY, childTopY, laneCount: group.laneCount,
             families: group.map(draft => ({
                 familyId: draft.familyId, sourceX: draft.sourceX,
-                childXs: draft.children.map(child => child.centerX),
+                childXs: [...draft.childXById.values()],
                 minX: draft.minX, maxX: draft.maxX,
                 laneIndex: draft.laneIndex, railY: draft.railY, laneConflict: draft.laneConflict
             }))
@@ -1656,6 +1746,14 @@ function buildTreeConnectorDescriptors(
 
     drafts.forEach(draft =>
     {
+        if (draft.separateBand)
+        {
+            const parent = draft.parentNodes.reduce((best, node) => node.generation > best.generation ? node : best);
+            for (const child of draft.children)
+                addDescriptor({ familyId: draft.familyId, role: draft.role + '-child', childId: child.id,
+                    className: 'tree-line descendant', points: sideRoute(parent, child, parent.centerX, draft.childXById.get(child.id)) });
+            return;
+        }
         const directChild =
             draft.children.length === 1
                 ? draft.children[0]
@@ -1665,7 +1763,7 @@ function buildTreeConnectorDescriptors(
             directChild
           && Math.abs(
               Math.round(draft.sourceX)
-            - Math.round(directChild.centerX)
+            - draft.childXById.get(directChild.id)
           ) <= 1;
 
         if (hasDirectAlignment)
@@ -1748,11 +1846,11 @@ function buildTreeConnectorDescriptors(
               'tree-line descendant',
                 points: [
                     {
-                        x: child.centerX,
+                        x: draft.childXById.get(child.id),
                         y: draft.railY
                     },
                     {
-                        x: child.centerX,
+                        x: draft.childXById.get(child.id),
                         y: child.topY
                     }
                 ]
@@ -1769,7 +1867,49 @@ function buildTreeConnectorDescriptors(
 function renderTreeLines(layout)
 {
     const descriptors = layout.connectorDescriptors || buildTreeConnectorDescriptors(layout);
-    const paths = descriptors.map(descriptor => `<path class="${descriptor.className}" data-tree-family-id="${escapeHtml(String(descriptor.familyId || ''))}" data-tree-connection-role="${escapeHtml(descriptor.role)}" ${descriptor.childId ? `data-tree-child-id="${escapeHtml(descriptor.childId)}"` : ''} ${Number.isFinite(descriptor.dashOffset) ? `stroke-dashoffset="${descriptor.dashOffset}"` : ''} d="${descriptor.d}"/>`);
+    // A short gap in the horizontal route distinguishes a crossing
+    // from a junction. Keep the original geometry for diagnostics.
+    const vertical = descriptors.flatMap(descriptor => descriptor.points.slice(1).flatMap((end, index) =>
+    {
+        const start = descriptor.points[index];
+        return start.x === end.x && start.y !== end.y
+            ? [{ familyId: descriptor.familyId, x: start.x, top: Math.min(start.y, end.y), bottom: Math.max(start.y, end.y) }]
+            : [];
+    }));
+    const halfGap = TREE_GEOMETRY.connectorLaneGap / 2;
+    function displayPath(descriptor)
+    {
+        if (descriptor.role === 'partner') return descriptor.d;
+        let path = 'M' + descriptor.points[0].x + ' ' + descriptor.points[0].y;
+        for (let index = 1; index < descriptor.points.length; index++)
+        {
+            const start = descriptor.points[index - 1];
+            const end = descriptor.points[index];
+            if (start.x === end.x) { path += ' V' + end.y; continue; }
+            if (start.y !== end.y) { path += ' L' + end.x + ' ' + end.y; continue; }
+            const direction = Math.sign(end.x - start.x);
+            const length = Math.abs(end.x - start.x);
+            const crossings = vertical.filter(line => line.familyId !== descriptor.familyId
+                && start.y > line.top && start.y < line.bottom)
+                .map(line => (line.x - start.x) * direction)
+                .filter(distance => distance > halfGap && distance < length - halfGap)
+                .sort((left, right) => left - right);
+            let cursor = 0;
+            for (let index = 0; index < crossings.length; index++)
+            {
+                const before = crossings[index] - halfGap;
+                let after = crossings[index] + halfGap;
+                while (crossings[index + 1] - halfGap <= after)
+                    after = crossings[++index] + halfGap;
+                if (before > cursor) path += ' H' + (start.x + direction * before);
+                path += ' M' + (start.x + direction * after) + ' ' + end.y;
+                cursor = after;
+            }
+            path += ' H' + end.x;
+        }
+        return path;
+    }
+    const paths = descriptors.map(descriptor => `<path class="${descriptor.className}" data-tree-family-id="${escapeHtml(String(descriptor.familyId || ''))}" data-tree-connection-role="${escapeHtml(descriptor.role)}" ${descriptor.childId ? `data-tree-child-id="${escapeHtml(descriptor.childId)}"` : ''} ${Number.isFinite(descriptor.dashOffset) ? `stroke-dashoffset="${descriptor.dashOffset}"` : ''} d="${displayPath(descriptor)}"/>`);
     return `<svg class="tree-lines" viewBox="0 0 ${layout.stageWidth} ${layout.stageHeight}" width="${layout.stageWidth}" height="${layout.stageHeight}" aria-hidden="true">
         ${paths.join('\n        ')}
       </svg>`;
