@@ -239,7 +239,7 @@ function buildPartnerChain(extraPartners, ancestorMode = 'none')
             focusActionPersonIds: new Set(ids.filter(id => id !== 'M')) } };
 }
 
-for (const count of [1, 2, 3])
+for (const count of [1, 2, 3, 4])
 {
     for (const ancestorMode of ['none', 'main', 'all'])
     {
@@ -269,12 +269,33 @@ for (const count of [1, 2, 3])
             assert.ok(partner && stem);
             assert.equal(stem.points[0].x, route.junctionX);
             assert.ok(partner.points.some(point => point.x === stem.points[0].x && point.y === stem.points[0].y));
+            assert.ok(partner.visibleSegments.some(([start, end]) => stem.points[0].x >= start.x
+                && stem.points[0].x <= end.x && stem.points[0].y === start.y),
+                'descendant stem must meet the actual visible partner line');
         }
         assert.ok(chain.connectorDescriptors.find(edge => edge.familyId === 'center' && edge.role === 'partner')
             .className.includes('is-separated-or-divorced'));
-        if (ancestorMode !== 'all' || count === 1) assert.equal(chain.testIssues.length, 0);
-        else assert.ok(chain.testIssues.every(issue => issue.type === 'edge-crossing'),
-            'larger groups with all in-law ancestors may retain crossings, but no missing links or card collisions');
+        assert.equal(chain.testIssues.length, 0);
+        assert.ok(!chain.testPartnerExtraAbove);
+        for (const descriptor of chain.connectorDescriptors.filter(edge => edge.role === 'partner'))
+        {
+            const family = chain.families.find(item => item.id === descriptor.familyId);
+            const a = chain.peopleById[family.left];
+            const b = chain.peopleById[family.right];
+            assert.ok(descriptor.points.every(point => point.y === descriptor.points[0].y
+                && point.y > a.topY && point.y < a.bottomY && point.y > b.topY && point.y < b.bottomY));
+            if (!descriptor.visibleSegments) continue;
+            assert.ok(descriptor.visibleSegments.length >= 2);
+            assert.equal((descriptor.d.match(/M/g) || []).length, descriptor.visibleSegments.length);
+            assert.deepEqual(new Set(descriptor.partnerIds), new Set([family.left, family.right]));
+            const [first, last] = [a, b].sort((x, y) => x.leftX - y.leftX);
+            assert.equal(descriptor.visibleSegments[0][0].x, first.rightX);
+            assert.equal(descriptor.visibleSegments.at(-1).at(-1).x, last.leftX);
+            for (const [start, end] of descriptor.visibleSegments)
+                for (const node of chain.positionedPeople.filter(node => node.id !== a.id && node.id !== b.id
+                    && node.generation === a.generation))
+                    assert.ok(end.x < node.leftX || start.x > node.rightX, 'pass-through must not touch unrelated card');
+        }
         console.log(JSON.stringify({ extraPartnersPerSide: count, ancestorMode, people: fixture.people.length,
             diagnostics: Array.from(chain.testIssues, issue => issue.type) }));
     }

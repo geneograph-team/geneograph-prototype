@@ -511,34 +511,28 @@ function buildTestTreeLayout(people, sourceFamilies, focusPersonId, options = {}
                 + block.offsets.get(neighbor.id) - side * neighbor.width / 2) / 2;
             spans.push({ port, hubId, leafId, junction, side, span: Math.abs(ai - bi) });
         }
-        // Shorter arcs use the lower lanes; longer arcs clear them above.
+        // Each extended partnership gets a horizontal lane INSIDE the
+        // generation row. Nonoverlapping spans can share lanes; longer
+        // spans run above shorter ones, but never above the card tops.
         spans.sort((a, b) => a.span - b.span);
-        const byHub = new Map();
-        spans.forEach((entry, lane) =>
+        const lanes = [];
+        for (const entry of spans)
         {
+            const x1 = block.offsets.get(entry.hubId);
+            const x2 = block.offsets.get(entry.leafId);
+            const min = Math.min(x1, x2);
+            const max = Math.max(x1, x2);
+            let lane = 0;
+            while ((lanes[lane] || []).some(other => min < other.max && max > other.min)) lane++;
+            if (!lanes[lane]) lanes[lane] = [];
+            lanes[lane].push({ min, max });
             entry.lane = lane;
-            if (!byHub.has(entry.hubId)) byHub.set(entry.hubId, []);
-            byHub.get(entry.hubId).push(entry);
             extendedPartnerPorts.set(entry.port.id, entry);
-        });
-        for (const [hubId, entries] of byHub)
-        {
-            const hub = nodes.get(hubId);
-            // Keep the top attachments clear of the usual incoming parent
-            // stem (center) and the right-aligned Focus control. Nest longer
-            // links closer to the center, within the relevant half of the card.
-            for (const side of [-1, 1])
-            {
-                const group = entries.filter(entry => Math.sign(entry.junction
-                    - block.offsets.get(hubId)) === side).sort((a, b) => a.span - b.span);
-                const clearance = g.connectorLaneGap;
-                const max = Math.min(hub.width / 4, hub.width / 2 - g.focusControlWidth - 4);
-                group.forEach((entry, index) =>
-                {
-                    entry.hubOffset = side * (max - (max - clearance * 1.5) * index / Math.max(1, group.length));
-                });
-            }
         }
+        const step = Math.min(g.connectorLaneGap / 2,
+            (Math.min(...block.members.map(node => node.height)) / 2 - g.connectorLaneGap / 2)
+            / Math.max(1, lanes.length));
+        for (const entry of spans) entry.offsetY = -(entry.lane + 1) * step;
     }
     // Ancestor branches are ordered by their child's position in its couple.
     function junctionOffset(block, port)
@@ -781,8 +775,8 @@ function buildTestTreeLayout(people, sourceFamilies, focusPersonId, options = {}
         const hub = nodes.get(entry.hubId);
         const center = leaf.centerX - blockById.get(leaf.id).offsets.get(leaf.id);
         testPartnerRoutes.set(familyId, {
-            hubId: hub.id, leafId: leaf.id, hubX: hub.centerX + entry.hubOffset,
-            junctionX: Math.round(center + entry.junction), side: entry.side, lane: entry.lane
+            hubId: hub.id, leafId: leaf.id,
+            junctionX: Math.round(center + entry.junction), offsetY: entry.offsetY
         });
     }
     const layout = {

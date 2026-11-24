@@ -18,6 +18,10 @@
 
 - [x] Replace three-person special case with graph-based partnership-chain ordering; reserve explicit junctions and upper tracks for nonadjacent partners.
 - [x] Run isolated regressions: 4/6/8-person partner groups with descendants, both principal ancestors visible, all in-law ancestors visible; 5/8-person paths, asymmetric 1/3 and 3/1 extra partners, one-sided four extra partners, four extra on both sides, canonical edge coverage, deterministic ordering and actual child-to-partner junction attachment. Existing experimental assertions and Classic geometry snapshot comparisons pass.
-- [ ] Browser-verify four-person founder screenshot, additional partners on each side, upper track readability, focus controls, and remaining in-law ancestry crossings.
+- [ ] Browser-verify four-person founder screenshot, additional partners on each side, inline lane readability, focus controls, and all in-law ancestry connections.
+
+- [x] Replace the experimental upper tracks with inline parallel partner lanes; remove extra vertical band reservations, preserve explicit family endpoints, visible child junctions and divorce style.
+- [x] Run isolated regression assertions for up to four extra partners per former spouse, including all partners’ visible ancestors, no edge crossings or false card contacts; compare Classic geometry and inspect generated SVG paths.
+- [ ] Verify actual inline rendering at different zoom levels and themes on founder’s dataset; confirm the pass-through convention is clear for larger partner groups.
 
 This is an experimental view, not a completed architecture replacement. Keep the change active pending browser/evaluation evidence.

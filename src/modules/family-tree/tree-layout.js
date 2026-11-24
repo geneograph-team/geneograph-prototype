@@ -2376,7 +2376,7 @@ function validateTreeLayout(layout)
     {
         const rails = band.families.map(family => family.railY);
         if (Math.min(...rails) - band.parentBottomY !== TREE_CONNECTOR_RAIL_OFFSET
-          || band.childTopY - Math.max(...rails) !== TREE_CONNECTOR_RAIL_OFFSET + (band.testPartnerReserve || 0))
+          || band.childTopY - Math.max(...rails) !== TREE_CONNECTOR_RAIL_OFFSET)
         {
             issues.push({ type: 'rail-clearance', generation: band.generation, familyIds: band.families.map(family => family.familyId) });
         }
@@ -2449,9 +2449,10 @@ function validateTreeLayout(layout)
     (layout.connectorDescriptors || [])
         .forEach(descriptor =>
         {
-            const points =
-                descriptor.points || [];
-
+            // Inline experimental partner connectors have explicit visible
+            // segments separated by unrelated cards. Validate the drawn
+            // geometry, not the intentionally occluded logical span.
+            for (const points of descriptor.visibleSegments || [descriptor.points || []])
             for (
                 let index = 1;
                 index < points.length;

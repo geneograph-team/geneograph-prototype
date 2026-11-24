@@ -1308,8 +1308,10 @@ function buildTreeConnectorDescriptors(
                 descriptor.points
             );
 
-        const d =
-            treeConnectorPath(points);
+        const visibleSegments = descriptor.visibleSegments?.map(normalizePoints);
+        const d = visibleSegments
+            ? visibleSegments.map(treeConnectorPath).filter(Boolean).join(' ')
+            : treeConnectorPath(points);
 
         if (!d) return;
 
@@ -1324,6 +1326,7 @@ function buildTreeConnectorDescriptors(
 
         descriptors.push({
             ...descriptor,
+            ...(visibleSegments ? { visibleSegments } : {}),
             points,
             d,
             key
@@ -1377,13 +1380,35 @@ function buildTreeConnectorDescriptors(
         const hub = treeLayoutNode(layout, route.hubId);
         const leaf = treeLayoutNode(layout, route.leafId);
         if (!hub || !leaf) return null;
-        const railY = hub.topY - TREE_FOCUS_CONTROL_H - TREE_FOCUS_CONTROL_GAP
-            - (route.lane + 1) * TREE_GEOMETRY.connectorLaneGap;
+        const [first, last] = hub.leftX < leaf.leftX ? [hub, leaf] : [leaf, hub];
+        const y = Math.round(Math.min(hub.centerY, leaf.centerY) + route.offsetY);
+        const fromX = first.rightX;
+        const toX = last.leftX;
+        const clearance = Math.max(4, TREE_GEOMETRY.connectorLaneGap / 3);
+        // The semantic connector spans its real partners, but its visible
+        // portions stop short of unrelated cards. No line crosses their
+        // content or touches their borders. Other overlapping families have
+        // their own parallel lane, so a pass-through is not a partnership.
+        const intervening = routeObstacles.filter(node => node !== hub && node !== leaf
+            && node.generation === hub.generation && node.leftX < toX && node.rightX > fromX)
+            .sort((a, b) => a.leftX - b.leftX);
+        const visibleSegments = [];
+        let cursor = fromX;
+        function segment(end)
+        {
+            if (end > cursor) visibleSegments.push([{ x: cursor, y }, { x: end, y }]);
+        }
+        for (const node of intervening)
+        {
+            segment(Math.max(fromX, node.leftX - clearance));
+            cursor = Math.max(cursor, node.rightX + clearance);
+        }
+        segment(toX);
         return {
-            x: route.junctionX, y: leaf.centerY,
-            points: [{ x: route.hubX, y: hub.topY }, { x: route.hubX, y: railY },
-                { x: route.junctionX, y: railY }, { x: route.junctionX, y: leaf.centerY },
-                { x: route.side > 0 ? leaf.rightX : leaf.leftX, y: leaf.centerY }]
+            x: route.junctionX, y,
+            points: [{ x: fromX, y }, { x: route.junctionX, y }, { x: toX, y }],
+            visibleSegments,
+            partnerIds: [first.id, last.id]
         };
     }
 
@@ -1403,11 +1428,13 @@ function buildTreeConnectorDescriptors(
         const extended = testExtendedPartnerRoute(familyId);
         if (extended)
         {
-            const distanceToJunction = extended.points.slice(1, -1).reduce((sum, point, index) =>
-                sum + Math.abs(point.x - extended.points[index].x) + Math.abs(point.y - extended.points[index].y), 0);
+            const junctionSegment = extended.visibleSegments.find(([start, end]) =>
+                extended.x >= start.x && extended.x <= end.x);
+            const distanceToJunction = extended.x - (junctionSegment?.[0].x ?? extended.points[0].x);
             const dashOffset = className.includes('is-separated-or-divorced')
                 ? TREE_PARTNER_DASH_LENGTH / 2 - distanceToJunction : null;
-            addDescriptor({ familyId, role: 'partner', className, dashOffset, points: extended.points });
+            addDescriptor({ familyId, role: 'partner', className, dashOffset, points: extended.points,
+                visibleSegments: extended.visibleSegments, partnerIds: extended.partnerIds });
             return;
         }
         const blocked = routeObstacles.some(node => !ordered.includes(node)
@@ -1786,16 +1813,7 @@ function buildTreeConnectorDescriptors(
     if (arrangeBands && rows.size)
     {
         const generations = [...rows.keys()].sort((left, right) => left - right);
-        const extraAbove = new Map();
-        for (const route of layout.testPartnerRoutes?.values() || [])
-        {
-            const hub = treeLayoutNode(layout, route.hubId);
-            if (!hub) continue;
-            extraAbove.set(hub.generation, Math.max(extraAbove.get(hub.generation) || 0,
-                TREE_FOCUS_CONTROL_H + TREE_FOCUS_CONTROL_GAP + (route.lane + 2) * TREE_GEOMETRY.connectorLaneGap));
-        }
-        if (layout.testPartnerRoutes?.size) layout.testPartnerExtraAbove = extraAbove;
-        let nextTop = Math.min(...rows.get(generations[0]).map(node => node.y)) + (extraAbove.get(generations[0]) || 0);
+        let nextTop = Math.min(...rows.get(generations[0]).map(node => node.y));
         generations.forEach((generation, index) =>
         {
             const row = rows.get(generation);
@@ -1811,7 +1829,7 @@ function buildTreeConnectorDescriptors(
             const laneCount = draftsByBand.get(`generation:${nextGeneration}`)?.laneCount || 1;
             nextTop += Math.max(...row.map(node => node.height || node.h))
             + TREE_CONNECTOR_RAIL_OFFSET * 2
-            + (laneCount - 1) * TREE_GEOMETRY.connectorLaneGap + (extraAbove.get(nextGeneration) || 0);
+            + (laneCount - 1) * TREE_GEOMETRY.connectorLaneGap;
         });
         (layout.focusControls || []).forEach(control =>
         {
@@ -1841,8 +1859,6 @@ function buildTreeConnectorDescriptors(
         });
         layout.connectorBands.push({
             generation, parentBottomY, childTopY, laneCount: group.laneCount,
-            ...(layout.testPartnerExtraAbove?.has(generation)
-                ? { testPartnerReserve: layout.testPartnerExtraAbove.get(generation) } : {}),
             families: group.map(draft => ({
                 familyId: draft.familyId, sourceX: draft.sourceX,
                 childXs: [...draft.childXById.values()],
@@ -1988,7 +2004,7 @@ function renderTreeLines(layout)
     const halfGap = TREE_GEOMETRY.connectorLaneGap / 2;
     function displayPath(descriptor)
     {
-        if (descriptor.role === 'partner' && !layout.testPartnerRoutes?.has(descriptor.familyId)) return descriptor.d;
+        if (descriptor.role === 'partner') return descriptor.d;
         let path = 'M' + descriptor.points[0].x + ' ' + descriptor.points[0].y;
         for (let index = 1; index < descriptor.points.length; index++)
         {
@@ -2018,7 +2034,7 @@ function renderTreeLines(layout)
         }
         return path;
     }
-    const paths = descriptors.map(descriptor => `<path class="${descriptor.className}" data-tree-family-id="${escapeHtml(String(descriptor.familyId || ''))}" data-tree-connection-role="${escapeHtml(descriptor.role)}" ${descriptor.childId ? `data-tree-child-id="${escapeHtml(descriptor.childId)}"` : ''} ${Number.isFinite(descriptor.dashOffset) ? `stroke-dashoffset="${descriptor.dashOffset}"` : ''} d="${displayPath(descriptor)}"/>`);
+    const paths = descriptors.map(descriptor => `<path class="${descriptor.className}" data-tree-family-id="${escapeHtml(String(descriptor.familyId || ''))}" data-tree-connection-role="${escapeHtml(descriptor.role)}" ${descriptor.partnerIds ? `data-tree-partner-from="${escapeHtml(descriptor.partnerIds[0])}" data-tree-partner-to="${escapeHtml(descriptor.partnerIds[1])}"` : ''} ${descriptor.childId ? `data-tree-child-id="${escapeHtml(descriptor.childId)}"` : ''} ${Number.isFinite(descriptor.dashOffset) ? `stroke-dashoffset="${descriptor.dashOffset}"` : ''} d="${displayPath(descriptor)}"/>`);
     return `<svg class="tree-lines" viewBox="0 0 ${layout.stageWidth} ${layout.stageHeight}" width="${layout.stageWidth}" height="${layout.stageHeight}" aria-hidden="true">
         ${paths.join('\n        ')}
       </svg>`;
