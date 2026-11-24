@@ -2089,7 +2089,7 @@ button {
     flex: 0 0 auto;
 }
 
-.project-hero-action-button:hover {
+.project-hero-action-button:enabled:hover {
     background: var(--surface-card-hover);
     border-color: var(--border-strong);
     transform: translateY(-1px);
@@ -2426,8 +2426,8 @@ button {
     flex: 0 0 auto;
 }
 
-.project-hero-action-button:hover,
-.project-hero-action-button:focus-visible {
+.project-hero-action-button:enabled:hover,
+.project-hero-action-button:enabled:focus-visible {
     background: var(--surface-card-hover);
     color: var(--text-primary);
     border-color: var(--border-strong);
@@ -2438,6 +2438,11 @@ button {
     color: var(--gg-status-error-accent);
     border-color: color-mix(in srgb, var(--gg-status-error-accent) 34%, transparent);
     background: color-mix(in srgb, var(--gg-details) 85%, transparent);
+}
+
+.project-hero-action-button:disabled {
+    cursor: not-allowed;
+    opacity: .55;
 }
 
 .project-hero-action-button.danger:hover,

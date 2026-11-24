@@ -1104,10 +1104,22 @@ function gedcomDraftMetadata(name)
     return { id, name, desc: '', createdAt: now, modifiedAt: now, status: 'Local project', cover: 'paper' };
 }
 
-function commitGedcomImport(draft)
+function commitGedcomImport(draft, report = gedcomImportReport(draft))
 {
-    const previous = { projects: sampleData.projects };
-    const next = { projects: [...sampleData.projects, draft.project] };
+    const projectId = draft.project.id;
+    const previous = { projects: sampleData.projects, activity: sampleData.activity };
+    const next = {
+        projects: [...sampleData.projects, draft.project],
+        activity: [...(sampleData.activity || []), {
+            id: `gedcom-import:${projectId}`,
+            projectId,
+            type: 'gedcom-import',
+            module: 'Family Tree',
+            title: 'GEDCOM imported',
+            detail: 'View GEDCOM import report',
+            occurredAt: new Date().toISOString()
+        }]
+    };
     const previousState = { ...state, treeProjectViews: structuredClone(state.treeProjectViews) };
     let previousContinuation;
     try { previousContinuation = localStorage.getItem(PROJECT_CONTINUATION_STORAGE_KEY); }
@@ -1120,6 +1132,7 @@ function commitGedcomImport(draft)
     try
     {
         Object.assign(sampleData, next);
+        gedcomImportReports.set(projectId, report);
         for (const [id, blob] of draft.attachmentAssets) archiveDocumentBytes.set(id, blob);
         if (!activateProject(draft.project.id, { moduleName: 'Family Tree' }))
             throw new Error('Project activation failed');
@@ -1129,6 +1142,7 @@ function commitGedcomImport(draft)
         const viewChanged = state.currentProjectId !== previousState.currentProjectId
             || state.activeModule !== previousState.activeModule;
         for (const id of draft.attachmentAssets.keys()) archiveDocumentBytes.delete(id);
+        gedcomImportReports.delete(projectId);
         Object.assign(sampleData, previous);
         Object.assign(state, previousState);
         try
@@ -1494,7 +1508,7 @@ function openImportModal()
         {
             draft = buildDraft();
             report = gedcomImportReport(draft);
-            commitGedcomImport(draft);
+            commitGedcomImport(draft, report);
         }
         catch (failure)
         {
@@ -1503,7 +1517,7 @@ function openImportModal()
             return;
         }
         closeModal();
-        gedcomImportReports.set(draft.project.id, report);
+
         showGedcomImportResult(report);
     });
 }

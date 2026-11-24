@@ -1003,6 +1003,7 @@ const RU_DATA_PROJECT_ACTIVITY = Object.freeze({
     'Person updated': 'Данные человека обновлены',
     'Luna Purrington profile updated': 'Профиль Луны Пуррингтон обновлён',
     'GEDCOM imported': 'GEDCOM импортирован',
+    'View GEDCOM import report': 'Открыть отчёт об импорте GEDCOM',
     '24 people imported from GEDCOM': 'Из GEDCOM импортировано 24 человека',
     'Research note added': 'Добавлена исследовательская заметка',
     'Surname origin note updated': 'Заметка о происхождении фамилии обновлена',

@@ -542,8 +542,7 @@ function renderOpenProject()
                   </div>
                 </div>
                 <div class="project-hero-actions" aria-label="Project actions">
-                  ${gedcomImportReports.has(project.id) ? '<button class="project-hero-action-button" type="button" id="heroGedcomReport">' + icon.file + '<span>' + escapeHtml(t('GEDCOM import report')) + '</span></button>' : ''}
-                  <button class="project-hero-action-button" type="button" id="heroImportGedcom">${icon.import}<span>Import GEDCOM</span></button>
+                  <button class="project-hero-action-button" type="button" disabled>${icon.import}<span>Import GEDCOM</span></button>
                   <button class="project-hero-action-button" type="button" data-toast="Export project options will be defined in the Publish module.">${icon.export}<span>Export project</span></button>
                   <button class="project-hero-action-button danger" type="button" id="deleteProject">${icon.trash}<span>Delete project</span></button>
                 </div>
@@ -561,7 +560,6 @@ function renderOpenProject()
     const hero = main.querySelector('.project-hero');
     if (hero?.clientWidth && hero?.clientHeight)
         projectCoverPreviewRatio = hero.clientWidth / hero.clientHeight;
-    document.getElementById('heroImportGedcom')?.addEventListener('click', () => openImportModal());
     const gedcomDropzone = document.getElementById('openDropzone');
     gedcomDropzone?.addEventListener('dragover', event =>
     {
@@ -569,7 +567,8 @@ function renderOpenProject()
         event.dataTransfer.dropEffect = 'none';
     });
     gedcomDropzone?.addEventListener('drop', event => event.preventDefault());
-    document.getElementById('heroGedcomReport')?.addEventListener('click', () => showGedcomImportResult(gedcomImportReports.get(project.id)));
+    main.querySelectorAll('[data-gedcom-activity-report]').forEach(button =>
+        button.addEventListener('click', () => showGedcomImportResult(gedcomImportReports.get(project.id))));
     document.getElementById('deleteProject')?.addEventListener('click', () => openDeleteProjectConfirm(project.id));
     document.getElementById('editProjectTitle')?.addEventListener('click', event => openProjectNameOverlay(event.currentTarget, project));
     bindOpenProjectRightColumn();
@@ -1440,11 +1439,13 @@ function renderActivityRows(count)
     };
     return `<div class="project-activity-list">${rows.slice(0, count).map(row =>
     {
-        const isGedcomImport = row.id === 'activity-gedcom-imported'
+        const hasReport = row.type === 'gedcom-import' && gedcomImportReports.has(row.projectId);
+        const isGedcomImport = hasReport || row.id === 'activity-gedcom-imported'
             || (row.module === 'Family Tree' && /gedcom|import/i.test(row.title));
         const tone = isGedcomImport ? 'files' : (toneByModule[row.module] || 'people');
         const svg = isGedcomImport ? icon.importOutline : (activityIcons[row.module] || icon.clock);
-        return `<button class="project-activity-row" type="button" data-open-project-module="${row.module}">
+        const action = hasReport ? 'data-gedcom-activity-report' : `data-open-project-module="${row.module}"`;
+        return `<button class="project-activity-row" type="button" ${action}>
             <span class="project-activity-icon ${tone}">${svg}</span>
             <span class="project-activity-copy"><strong>${escapeHtml(row.title)}</strong><span>${escapeHtml(row.detail)}</span></span>
             <span class="project-activity-time">${escapeHtml(formatProjectDate(row.occurredAt))}</span>
