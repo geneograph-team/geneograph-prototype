@@ -489,7 +489,7 @@ function bindPersonSidebar(root, context = 'tree')
         if (!selected) return;
         event.stopPropagation();
         syncPersonSidebarSelection(selected.id, context);
-        openPeopleActionsMenu(selected.id, event.currentTarget, { includeProfile: true });
+        openPeopleActionsMenu(selected.id, event.currentTarget, { includeProfile: true, includeDefaultPerson: true });
     });
     root.querySelector('[data-manage-relationships]')?.addEventListener('click', () =>
     {

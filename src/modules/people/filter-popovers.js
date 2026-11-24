@@ -1172,7 +1172,7 @@ function openPeopleActionsMenu(
     personId,
     anchor,
     {
-        includeProfile = true
+        includeProfile = true, includeDefaultPerson = false
     } = {}
 )
 {
@@ -1189,6 +1189,8 @@ function openPeopleActionsMenu(
     const person = getPerson(personId);
 
     if (!person || !anchor) return;
+
+    const isDefaultPerson = includeDefaultPerson && treeDefaultPersonId(person.projectId) === person.id;
 
     const menu =
         document.createElement('div');
@@ -1230,6 +1232,10 @@ function openPeopleActionsMenu(
           Show in Family Tree
         </button>
 
+        ${includeDefaultPerson ? `
+        <button type="button" role="menuitem" data-people-action="default-person" ${isDefaultPerson ? 'disabled' : ''}>
+          ${escapeHtml(t(isDefaultPerson ? 'Default person' : 'Set as default person'))}
+        </button>` : ''}
         <button
           type="button"
           role="menuitem"
@@ -1288,6 +1294,17 @@ function openPeopleActionsMenu(
                 showPersonInFamilyTree(
                     person.id
                 );
+            }
+
+            if (action === 'default-person')
+            {
+                const project = currentProject();
+                const selected = getPerson(person.id);
+                if (!project || !selected || selected.deleted || selected.projectId !== project.id
+                    || treeDefaultPersonId(project.id) === selected.id) return;
+                project.defaultPersonId = selected.id;
+                touchProjectModified(project);
+                showToast(t('Default person updated'));
             }
 
             if (action === 'board')

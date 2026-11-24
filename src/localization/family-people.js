@@ -161,6 +161,9 @@ const RU_UI_FAMILY_TREE = {
     'Link someone already in this tree':
         'Присоединить из семейного древа',
 
+    'Default person': 'Человек по умолчанию',
+    'Set as default person': 'Сделать человеком по умолчанию',
+    'Default person updated': 'Человек по умолчанию обновлён',
     'Open profile':
         'Открыть профиль',
 

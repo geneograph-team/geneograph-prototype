@@ -140,6 +140,13 @@ assert.throws(() => map(file([
     '0 @I1@ INDI', '0 @I2@ INDI', '1 FAMC @F1@', '2 STAT disproven',
     '0 @F1@ FAM', '1 HUSB @I1@', '1 CHIL @I2@'
 ])), /child claims disagree/);
+const approximateRange = context.parseGedcomDate('BET ABT 1974 AND ABT 1980');
+assert.equal(approximateRange.valid, true);
+assert.equal(approximateRange.value.dateType, 'Between');
+assert.equal(approximateRange.value.first.year, 1974);
+assert.equal(approximateRange.value.second.year, 1980);
+assert.equal(approximateRange.value.originalText, 'BET ABT 1974 AND ABT 1980');
+
 const myHeritageRows = [
     '0 @I1@ INDI', '1 NAME Ada /Birth/', '2 SURN Birth', '2 _MARNM Married',
     '1 RESI', '2 EMAIL ada@example.test', '2 ADDR Private address', '3 CITY Private place',
@@ -184,6 +191,33 @@ const otherExporter = map(file(['1 SOUR AgelongTree', '0 @I1@ INDI',
     '1 NAME Ada /Birth/', '2 SURN Birth', '2 _MARNM Married']));
 assert.equal(otherExporter.records.people[0].names.last, 'Birth');
 assert.equal(otherExporter.records.people[0].names.maiden, undefined);
+
+const familio = map(file([
+    '1 SOUR FAMILIO', '0 @I1@ INDI', '1 NAME Ada /Birth/', '2 _MARNM Married',
+    '1 BIRT', '2 PLAC Village', '3 MAP', '4 LATI S12.5', '4 LONG W45.25',
+    '3 NOTE https://familio.org/settlements/12345678-1234-1234-1234-123456789abc',
+    '3 _FAMILIO_GUID 12345678-1234-1234-1234-123456789abc',
+    '3 NOTE Research note', '1 DEAT', '2 PLAC Village', '3 MAP', '4 LATI S12.5', '4 LONG W45.25'
+]));
+assert.deepEqual(Array.from(familio.errors), []);
+assert.equal(familio.records.people[0].names.last, 'Married');
+assert.equal(familio.records.people[0].names.maiden, 'Birth');
+assert.equal(familio.records.places.length, 1);
+assert.equal(familio.records.places[0].coordinates.lat, -12.5);
+assert.equal(familio.records.places[0].coordinates.lng, -45.25);
+assert.equal(familio.records.notes.length, 1);
+assert.equal(familio.records.notes[0].body, 'Research note');
+assert.equal(familio.records.notes[0].linkedPlaceIds[0], familio.records.places[0].id);
+assert.equal(familio.warnings.length, 0);
+const coordinateWarnings = map(file([
+    '0 @I1@ INDI', '1 BIRT', '2 PLAC Village', '3 MAP', '4 LATI N12', '4 LONG E30',
+    '1 DEAT', '2 PLAC Village', '3 MAP', '4 LATI N15', '4 LONG E30',
+    '0 @I2@ INDI', '1 BIRT', '2 PLAC Town', '3 MAP', '4 LATI N91', '4 LONG E30'
+]));
+assert.deepEqual(Array.from(coordinateWarnings.errors), []);
+assert.ok(coordinateWarnings.records.places.every(place => place.coordinates === null));
+assert.deepEqual(Array.from(coordinateWarnings.warnings, warning => warning.kind),
+    ['place-coordinates-conflict', 'place-coordinates-invalid']);
 
 async function verifyAttachments()
 {

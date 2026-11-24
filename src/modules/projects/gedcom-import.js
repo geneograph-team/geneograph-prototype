@@ -157,7 +157,9 @@ function parseGedcomDate(text)
     if (calendars.size > 1 || !['GREGORIAN', 'JULIAN'].includes(code) || !first || (range && !second))
         return { valid: false };
     const calendar = code === 'JULIAN' ? 'Julian' : 'Gregorian';
-    const result = parseGenealogyDateTextAsType(first, type, { calendar, date2: second });
+    const rangeEndpoint = date => date.replace(/^ABT\s+/i, '');
+    const result = parseGenealogyDateTextAsType(range ? rangeEndpoint(first) : first, type,
+        { calendar, date2: range ? rangeEndpoint(second) : second });
     if (result.valid) result.value.originalText = text;
     return result;
 }
@@ -306,6 +308,8 @@ function mapGedcomImport(parsed, project, matches = new Map(), references = gedc
     const notes = new Map();
     const importedAt = project.createdAt || new Date().toISOString();
     const myHeritage = parsed.exporter === 'MYHERITAGE';
+    const familio = parsed.exporter === 'FAMILIO';
+    const conflictingPlaces = new Set();
     const sources = new Map();
     const sourceLinks = new Map();
     const onlinePhotos = new Set();
@@ -334,11 +338,17 @@ function mapGedcomImport(parsed, project, matches = new Map(), references = gedc
         notes.set(key, note);
         return note;
     };
-    const importNotes = (owner, personIds, eventId) =>
+    const importNotes = (owner, personIds, eventId, placeId) =>
     {
         for (const link of owner.children.filter(child => child.tag === 'NOTE'))
         {
             checkDeadline();
+            if (familio && owner.tag === 'PLAC' && !link.children.length
+                && /^https?:\/\/(?:www\.)?familio\.org\/settlements\/[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}\/?$/i.test(link.value.trim()))
+            {
+                used.add(link);
+                continue;
+            }
             const pointer = /^@[^@]+@$/.test(link.value.trim());
             const source = pointer ? parsed.xrefs.get(link.value.trim()) : link;
             if (source?.tag !== 'NOTE') continue;
@@ -353,6 +363,7 @@ function mapGedcomImport(parsed, project, matches = new Map(), references = gedc
             for (const id of personIds)
                 if (!note.linkedPersonIds.includes(id)) note.linkedPersonIds.push(id);
             if (eventId && !note.linkedEventIds.includes(eventId)) note.linkedEventIds.push(eventId);
+            if (placeId && !note.linkedPlaceIds.includes(placeId)) note.linkedPlaceIds.push(placeId);
         }
     };
     const take = (node, tag) =>
@@ -387,13 +398,47 @@ function mapGedcomImport(parsed, project, matches = new Map(), references = gedc
         warn(node.tag, node.line);
         return false;
     };
+    const readCoordinate = (node, directions, validate) =>
+    {
+        const parsed = /^([NSEW])([0-9]+(?:\.[0-9]+)?)$/i.exec(node?.value.trim() || '');
+        if (!parsed || !directions.includes(parsed[1].toUpperCase())) return null;
+        const number = Number(parsed[2]) * (/[SW]/i.test(parsed[1]) ? -1 : 1);
+        return validate(number) ? number : null;
+    };
     const readPlace = node =>
     {
-        const placeText = read(node, 'PLAC');
-        if (placeText && !places.has(placeText))
+        const placeNode = take(node, 'PLAC');
+        const placeText = placeNode?.value.trim() || '';
+        if (!placeText) return { placeId: null, placeText };
+        if (!places.has(placeText))
             places.set(placeText, { id: projectId + '-place-' + (places.size + 1), projectId,
                 name: placeText, alternativeNames: [], coordinates: null });
-        return { placeId: places.get(placeText)?.id || null, placeText };
+        const place = places.get(placeText);
+        const maps = placeNode.children.filter(child => child.tag === 'MAP');
+        for (const map of maps)
+        {
+            used.add(map);
+            const latitudes = map.children.filter(child => child.tag === 'LATI');
+            const longitudes = map.children.filter(child => child.tag === 'LONG');
+            for (const coordinate of [...latitudes, ...longitudes]) used.add(coordinate);
+            const lat = readCoordinate(latitudes[0], 'NS', validLatitude);
+            const lng = readCoordinate(longitudes[0], 'EW', validLongitude);
+            if (latitudes.length !== 1 || longitudes.length !== 1 || lat === null || lng === null)
+            {
+                warn('MAP', map.line, 'place-coordinates-invalid');
+                continue;
+            }
+            if (conflictingPlaces.has(place)) continue;
+            if (place.coordinates && (place.coordinates.lat !== lat || place.coordinates.lng !== lng))
+            {
+                place.coordinates = null;
+                conflictingPlaces.add(place);
+                warn('MAP', map.line, 'place-coordinates-conflict');
+            }
+            else place.coordinates = { lat, lng };
+        }
+        importNotes(placeNode, [], null, place.id);
+        return { placeId: place.id, placeText };
     };
     const readDate = dateNode =>
     {
@@ -445,7 +490,7 @@ function mapGedcomImport(parsed, project, matches = new Map(), references = gedc
                     }
                 }
             }
-            if (myHeritage && name)
+            if ((myHeritage || familio) && name)
             {
                 const marriedNode = take(name, '_MARNM');
                 const married = marriedNode?.value.trim();
@@ -821,6 +866,7 @@ function mapGedcomImport(parsed, project, matches = new Map(), references = gedc
             return;
         }
         const technical = ['_UID', '_UPD', 'RIN', 'EMAIL', 'AGE', 'QUAY', '_FILESIZE', '_PHOTO_RIN'].includes(node.tag)
+            || (familio && node.tag === '_FAMILIO_GUID' && parent?.tag === 'PLAC')
             || (node.tag === 'FORM' && ['OBJE', 'FILE'].includes(parent?.tag));
         if (!used.has(node) && !technical) warn(node.tag, node.line);
         for (const child of node.children) account(child, node);
@@ -946,6 +992,8 @@ function gedcomImportWarnings(report)
     return (report.onlinePhotoCount ? '<p>' + escapeHtml(t('Online photo files not imported: {count}')
         .replace('{count}', report.onlinePhotoCount)) + '</p>' : '')
         + warningGroup('name-conflict', 'Conflicting maiden names')
+        + warningGroup('place-coordinates-invalid', 'Incomplete or invalid place coordinates skipped')
+        + warningGroup('place-coordinates-conflict', 'Conflicting place coordinates skipped')
         + warningGroup('skipped', 'Skipped or unsupported GEDCOM data')
         + warningGroup('date-text', 'Dates preserved as text')
         + (report.overBackupRecordLimit ? '<p>' + escapeHtml(t('This project exceeds the 50,000-record limit for project backups.')) + '</p>' : '')

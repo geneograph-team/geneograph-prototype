@@ -1557,7 +1557,7 @@ function bindPeopleProfileControls(person)
                     person.id,
                     event.currentTarget,
                     {
-                        includeProfile: false
+                        includeProfile: false, includeDefaultPerson: true
                     }
                 );
             }

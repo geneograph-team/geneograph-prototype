@@ -810,8 +810,6 @@ function resetProjectModuleState(projectId)
     const firstPlaceId = projectPlaces(projectId)[0]?.id || null;
 
     clearPeopleSelection();
-    state.selectedPersonId = firstPersonId;
-    state.treeCenterTargetId = firstPersonId;
     state.selectedPeopleId = firstPersonId;
     state.peopleView = 'directory';
     state.peopleSide = 'people';
@@ -830,11 +828,11 @@ function resetProjectModuleState(projectId)
     };
 
     const treeView = treeProjectViewState(projectId);
-    const validTreeFocus = people.some(person => person.id === treeView.focusPersonId)
-        ? treeView.focusPersonId
-        : treeDefaultPersonId(projectId);
-    treeView.focusPersonId = validTreeFocus;
-    treeView.recentPersonIds = validTreeFocus ? [validTreeFocus] : [];
+    const defaultPersonId = treeDefaultPersonId(projectId);
+    state.selectedPersonId = defaultPersonId;
+    state.treeCenterTargetId = defaultPersonId;
+    treeView.focusPersonId = defaultPersonId;
+    treeView.recentPersonIds = defaultPersonId ? [defaultPersonId] : [];
 
     cancelGeneographPencilStroke?.();
     clearGeneographConnectionClick?.();

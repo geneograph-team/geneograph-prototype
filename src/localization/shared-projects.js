@@ -922,6 +922,8 @@ const RU_UI_PROJECTS = Object.freeze({
     "Choose the GEDCOM file to match photos from this folder.": "Выберите файл GEDCOM, чтобы сопоставить фотографии из этой папки.",
     "Imported Archive files": "Импортированные файлы архива",
     "Online photo files not imported: {count}": "Не импортировано фотографий по интернет-ссылкам: {count}",
+    "Incomplete or invalid place coordinates skipped": "Неполные или неверные координаты мест пропущены",
+    "Conflicting place coordinates skipped": "Противоречивые координаты мест пропущены",
     "Conflicting maiden names": "Несовпадающие девичьи фамилии",
     "Source classification": "Категория источника",
     "Source medium": "Носитель источника",
