@@ -33,11 +33,50 @@ function styleNativeFamilyChartLinks(runtime)
     const tree = runtime.chart.store.getTree();
     const nodes = new Set(tree.data.map(node => node.tid));
     const households = new Map();
-    for (const path of runtime.host.querySelectorAll('.links_view path.link'))
+    const along = tree.is_horizontal ? 1 : 0;
+    const across = 1 - along;
+    const dimensions = node => node.data.addParent || { width: TREE_CARD_W, height: TREE_CARD_H };
+    const extent = (node, axis) => (axis === 0 ? dimensions(node).width : dimensions(node).height) / 2;
+    const pairKey = pair => JSON.stringify(pair.map(node => node.tid).sort());
+    const point = (position, level) => tree.is_horizontal ? [level, position] : [position, level];
+    const junctions = new Map();
+    const pathLinks = [...runtime.host.querySelectorAll('.links_view path.link')].map(path => ({ path, link: d3.select(path).datum() }));
+    const routedPartners = new Map();
+    const partnershipLanes = new Map();
+    for (const { link } of pathLinks)
     {
-        // Read the endpoints and points from the native SVG binding. Styling
-        // leaves their positions and Family Chart's routing decisions intact.
-        const link = d3.select(path).datum();
+        if (!link?.spouse || !nodes.has(link.source.tid) || !nodes.has(link.target.tid)) continue;
+        const [first, last] = [link.source, link.target].sort((a, b) => (along ? a.y - b.y : a.x - b.x));
+        const [a, b] = [[first.x, first.y], [last.x, last.y]];
+        if (a[across] !== b[across]) continue;
+        const blockers = tree.data.filter(node =>
+        {
+            if (node.tid === first.tid || node.tid === last.tid) return false;
+            const coordinates = [node.x, node.y];
+            return Math.abs(coordinates[across] - a[across]) < extent(node, across)
+                && coordinates[along] + extent(node, along) > a[along] + extent(first, along)
+                && coordinates[along] - extent(node, along) < b[along] - extent(last, along);
+        });
+        if (!blockers.length) continue;
+        const start = a[along];
+        const end = b[along];
+        const rowBottom = a[across] + Math.max(extent(first, across), extent(last, across),
+            ...blockers.map(node => extent(node, across)));
+        const lanes = partnershipLanes.get(a[across]) || [];
+        let lane = lanes.findIndex(intervals => intervals.every(([low, high]) => high < start || low > end));
+        if (lane < 0) lane = lanes.length;
+        (lanes[lane] ||= []).push([start, end]);
+        partnershipLanes.set(a[across], lanes);
+        const laneDepth = rowBottom + 6 + 16 * lane / (lane + 4);
+        // Exit through the card edges facing the next generation.
+        routedPartners.set(link, [
+            point(start, a[across] + extent(first, across)), point(start, laneDepth),
+            point(end, laneDepth), point(end, b[across] + extent(last, across))
+        ]);
+        junctions.set(pairKey([first, last]), point((start + end) / 2, laneDepth));
+    }
+    for (const { path, link } of pathLinks)
+    {
         if (!link) continue;
         path.classList.add('tree-line');
         path.classList.toggle('partner', Boolean(link.spouse));
@@ -54,7 +93,7 @@ function styleNativeFamilyChartLinks(runtime)
         }
         else path.style.removeProperty('stroke-dashoffset');
 
-        const points = nativeParentPlaceholderLinkPoints(link);
+        const points = routedPartners.get(link) || nativeParentPlaceholderLinkPoints(link);
         const connector = `M${points.map(point => point.join(' ')).join(' L')}`;
         path.style.setProperty('d', `path("${connector}")`);
         path.style.removeProperty('visibility');
@@ -63,16 +102,22 @@ function styleNativeFamilyChartLinks(runtime)
         const child = Array.isArray(link.source) ? link.target : link.source;
         const parents = Array.isArray(link.source) ? link.source : link.target;
         if (!nodes.has(child.tid) || !parents.every(parent => nodes.has(parent.tid))) continue;
+        const junction = junctions.get(pairKey(parents));
+        if (junction)
+        {
+            points[points.length - 1] = junction;
+            points[3][along] = points[4][along] = junction[along];
+            const railLevel = (junction[across] + points[0][across]) / 2;
+            for (let index = 1; index < 5; index++) points[index][across] = railLevel;
+        }
         const familyId = link.familyContextId || runtime.input.parentFamilyByChild.get(child.data.id)?.id;
         if (!familyId) continue;
-        const keyByHousehold = JSON.stringify([familyId, parents.map(parent => parent.tid).sort(), link.d.at(-1), link.d[1][tree.is_horizontal ? 0 : 1]]);
+        const keyByHousehold = JSON.stringify([familyId, parents.map(parent => parent.tid).sort(), points.at(-1), points[1][across]]);
         if (!households.has(keyByHousehold)) households.set(keyByHousehold, []);
         households.get(keyByHousehold).push({ path, points });
     }
 
     if (!CSS.supports('d', 'path("M0 0 L1 1")')) return;
-    const along = tree.is_horizontal ? 1 : 0;
-    const across = 1 - along;
     const bands = new Map();
     for (const siblings of households.values())
     {

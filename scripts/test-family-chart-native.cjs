@@ -84,3 +84,54 @@ for (const isHorizontal of [false, true])
     assert.equal(Array.from(biological.target, node => node.data.id).sort().join(','), 'father,mother');
     assert.equal(JSON.stringify([contextPeople, contexts]), untouched);
 }
+
+const householdPeople = [...people, ...['partner', 'stepParent', 'firstChild', 'secondChild', 'halfSibling'].map(id => ({ id }))];
+const householdFamilies = [
+    ...families,
+    { id: 'collateral', left: 'sibling', right: 'partner', children: ['firstChild', 'secondChild'] },
+    { id: 'second', left: 'father', right: 'stepParent', children: ['halfSibling'] }
+];
+for (const isHorizontal of [false, true])
+{
+    const input = context.buildNativeFamilyChartInput(householdPeople, householdFamilies, { contextual: true });
+    const tree = context.f3.CalculateTree({
+        data: input.data,
+        main_id: 'child',
+        is_horizontal: isHorizontal,
+        single_parent_empty_card: false,
+        show_siblings_of_main: true,
+        family_contexts: input.familyContexts
+    });
+    const across = isHorizontal ? 'y' : 'x';
+    const depth = isHorizontal ? 'x' : 'y';
+    const card = id => tree.data.find(node => node.data.id === id);
+    const [sibling, partner] = ['sibling', 'partner'].map(card);
+    const baseline = context.f3.CalculateTree({
+        data: context.buildNativeFamilyChartInput(people, families).data,
+        main_id: 'child',
+        is_horizontal: isHorizontal,
+        single_parent_empty_card: false,
+        show_siblings_of_main: true
+    });
+    const siblingOrder = nodes => Array.from(nodes)
+        .filter(node => ['child', 'sibling'].includes(node.data.id))
+        .sort((a, b) => a[across] - b[across]).map(node => node.data.id);
+    assert.deepEqual(siblingOrder(tree.data), siblingOrder(baseline.data));
+    const between = (coordinate, a, b) => coordinate > Math.min(a, b) && coordinate < Math.max(a, b);
+    assert.ok(!tree.data.some(node => node[depth] === sibling[depth] && between(node[across], sibling[across], partner[across])));
+    const childMidpoint = (card('firstChild')[across] + card('secondChild')[across]) / 2;
+    assert.equal(childMidpoint, (sibling[across] + partner[across]) / 2);
+    const halfSiblingLink = tree.contextLinks.find(link => link.familyContextId === 'second' && link.source.data.id === 'halfSibling');
+    assert.equal(Array.from(halfSiblingLink.target, parent => parent.data.id).sort().join(','), 'father,stepParent');
+
+    const reachable = new Set(['child']);
+    for (const id of reachable)
+    {
+        for (const link of tree.contextLinks)
+        {
+            const endpoints = [link.source, link.target].flat().map(node => node.data.id);
+            if (endpoints.includes(id)) endpoints.forEach(endpoint => reachable.add(endpoint));
+        }
+    }
+    assert.equal(reachable.size, householdPeople.length);
+}

@@ -622,7 +622,7 @@ function compactParentPlaceholders(tree) {
     }
 
     // GeneoGraph: extend the native focused tree with approved visible family
-    // contexts. Existing occurrences retain native positions and toggle state.
+    // contexts. Existing occurrences retain their native identity and toggle state.
     function extendFamilyContexts(tree, data, families, geometry) {
         const { is_horizontal, node_separation, level_separation } = geometry;
         const cross = is_horizontal ? "y" : "x";
@@ -630,29 +630,16 @@ function compactParentPlaceholders(tree) {
         const origin = tree[0][depth];
         const records = new Map(data.map(record => [record.id, record]));
         const occurrences = new Map();
-        const rows = new Map();
+        const nativeNodes = new Set(tree);
         for (const node of tree) {
             if (!occurrences.has(node.data.id)) occurrences.set(node.data.id, []);
             occurrences.get(node.data.id).push(node);
-            const level = Math.round((node[depth] - origin) / level_separation);
-            if (!rows.has(level)) rows.set(level, []);
-            rows.get(level).push(node[cross]);
         }
 
         function addOccurrence(id, level, preferred) {
-            const positions = rows.get(level) || [];
-            const free = position => positions.every(other => Math.abs(other - position) >= node_separation);
-            let position = preferred;
-            for (let offset = 1; !free(position); offset++) {
-                const right = preferred + offset * node_separation;
-                const left = preferred - offset * node_separation;
-                position = free(left) ? left : right;
-            }
-            positions.push(position);
-            rows.set(level, positions);
             const node = {
                 data: records.get(id), tid: id, added: true, depth: Math.abs(level),
-                [depth]: origin + level * level_separation, [cross]: position
+                [depth]: origin + level * level_separation, [cross]: preferred
             };
             node.psx = node.x;
             node.psy = node.y;
@@ -661,7 +648,7 @@ function compactParentPlaceholders(tree) {
             return node;
         }
 
-        const contextLinks = [];
+        const households = [];
         const pending = new Set(families);
         let previousSize;
         do {
@@ -685,27 +672,151 @@ function compactParentPlaceholders(tree) {
                     return existing?.reduce((best, node) => distance(node, anchor) < distance(best, anchor) ? node : best)
                         || addOccurrence(id, level, anchor[cross]);
                 });
+                const children = [];
                 for (const id of childIds) {
                     const existing = occurrences.get(id);
                     const target = existing?.reduce((best, node) => distance(node, parents[0]) < distance(best, parents[0]) ? node : best)
-                        || addOccurrence(id, level + 1, parents[0][cross]);
+                        || addOccurrence(id, level + 1, parents.reduce((sum, node) => sum + node[cross], 0) / parents.length);
                     if (Object.hasOwn(target, "_toggle") && !target.parents?.length
                         && target.data.rels.parents.some(parentId => parentIds.includes(parentId))) continue;
-                    const descriptors = createLinks({ ...target, children: undefined, spouses: undefined, coparent: undefined, parents }, is_horizontal);
-                    for (const link of descriptors) contextLinks.push({ ...link, id: family.id + ":child:" + target.tid, familyContextId: family.id });
+                    children.push(target);
                 }
-                if (parents.length === 2) {
-                    const [first, second] = parents;
-                    const descriptors = createLinks({ ...first, children: undefined, parents: undefined, spouses: undefined, coparent: second }, is_horizontal);
-                    for (const link of descriptors) contextLinks.push({ ...link, id: family.id + ":partner", familyContextId: family.id });
-                }
+                households.push({ family, parents, children });
                 pending.delete(family);
             }
         } while (pending.size < previousSize);
+
+        placeCollateralHouseholds(tree, households, nativeNodes, cross, depth, node_separation);
+
+        const contextLinks = [];
+        for (const { family, parents, children } of households) {
+            for (const target of children) {
+                const descriptors = createLinks({ ...target, children: undefined, spouses: undefined, coparent: undefined, parents }, is_horizontal);
+                for (const link of descriptors) contextLinks.push({ ...link, id: family.id + ":child:" + target.tid, familyContextId: family.id });
+            }
+            if (parents.length === 2) {
+                const [first, second] = parents;
+                const descriptors = createLinks({ ...first, children: undefined, parents: undefined, spouses: undefined, coparent: second }, is_horizontal);
+                for (const link of descriptors) contextLinks.push({ ...link, id: family.id + ":partner", familyContextId: family.id });
+            }
+        }
         return contextLinks;
 
         function distance(a, b) {
             return Math.abs(a[depth] - b[depth]) + Math.abs(a[cross] - b[cross]);
+        }
+    }
+
+    function placeCollateralHouseholds(tree, households, nativeNodes, cross, depth, spacing) {
+        const partners = new Map(tree.map(node => [node, new Set()]));
+        for (const node of tree) {
+            for (const partner of [...(node.spouses || []), node.coparent].filter(Boolean)) {
+                partners.get(node).add(partner);
+                partners.get(partner)?.add(node);
+            }
+        }
+        for (const { parents } of households) {
+            if (parents.length !== 2 || parents[0][depth] !== parents[1][depth]) continue;
+            partners.get(parents[0]).add(parents[1]);
+            partners.get(parents[1]).add(parents[0]);
+        }
+
+        const rows = new Map();
+        const unitByNode = new Map();
+        for (const node of tree) {
+            if (unitByNode.has(node)) continue;
+            const members = [node];
+            const seen = new Set(members);
+            for (const member of members) {
+                for (const partner of partners.get(member)) {
+                    if (partner[depth] !== node[depth] || seen.has(partner)) continue;
+                    seen.add(partner);
+                    members.push(partner);
+                }
+            }
+            const native = members.filter(member => nativeNodes.has(member)).sort((a, b) => a[cross] - b[cross]);
+            const added = members.some(member => !nativeNodes.has(member));
+            let order = [...members].sort((a, b) => a[cross] - b[cross]);
+            // Traverse a simple partnership chain from an endpoint. Retain
+            // the direction of the existing native members where possible.
+            if (added && members.every(member => [...partners.get(member)].filter(p => seen.has(p)).length <= 2)) {
+                const first = order.find(member => [...partners.get(member)].filter(p => seen.has(p)).length === 1);
+                if (first) {
+                    const chain = [first];
+                    for (const member of chain) {
+                        const next = [...partners.get(member)].find(p => seen.has(p) && !chain.includes(p));
+                        if (next) chain.push(next);
+                    }
+                    if (chain.length === members.length) {
+                        if (native.length > 1 && chain.indexOf(native[0]) > chain.indexOf(native.at(-1))) chain.reverse();
+                        const preserved = chain.filter(member => nativeNodes.has(member));
+                        if (preserved.every((member, index) => member === native[index])) order = chain;
+                    }
+                }
+            }
+            const anchor = native[0] || node;
+            const offset = order.indexOf(anchor);
+            const unit = {
+                order, native: native.length > 0, added, anchor: anchor[cross], target: anchor[cross] - (added ? offset * spacing : 0),
+                offsets: order.map((member, index) => added ? index * spacing : member[cross] - anchor[cross])
+            };
+            unit.span = Math.max(...unit.offsets);
+            for (const member of order) unitByNode.set(member, unit);
+            if (!rows.has(node[depth])) rows.set(node[depth], []);
+            rows.get(node[depth]).push(unit);
+        }
+
+        for (const [level, units] of [...rows].sort(([a], [b]) => a - b)) {
+            if (!units.some(unit => unit.added)) continue;
+            const groups = [];
+            const assigned = new Set();
+            for (const { parents, children } of households) {
+                const childUnits = [...new Set(children.filter(child => child[depth] === level).map(child => unitByNode.get(child)))];
+                if (!childUnits.length || childUnits.some(unit => unit.native || assigned.has(unit))) continue;
+                const junction = parents.reduce((sum, parent) => sum + parent[cross], 0) / parents.length;
+                let span = 0;
+                const offsets = childUnits.map(unit => {
+                    const start = span;
+                    span += unit.span + spacing;
+                    return start;
+                });
+                const points = children.filter(child => child[depth] === level).map(child => {
+                    const unit = unitByNode.get(child);
+                    return offsets[childUnits.indexOf(unit)] + unit.offsets[unit.order.indexOf(child)];
+                });
+                groups.push({ units: childUnits, offsets, span: span - spacing,
+                    target: junction - (Math.min(...points) + Math.max(...points)) / 2, orderAt: junction, native: false });
+                childUnits.forEach(unit => assigned.add(unit));
+            }
+            for (const unit of units) {
+                if (!assigned.has(unit))
+                    groups.push({ units: [unit], offsets: [0], span: unit.span, target: unit.target, orderAt: unit.native ? unit.anchor : unit.target, native: unit.native });
+            }
+
+            groups.sort((a, b) => a.orderAt - b.orderAt || Number(b.native) - Number(a.native));
+            const anchor = groups.reduce((best, group, index) =>
+                group.native && (!groups[best].native || Math.abs(group.target) < Math.abs(groups[best].target)) ? index : best, 0);
+            groups[anchor].position = groups[anchor].target;
+            for (let index = anchor + 1; index < groups.length; index++) {
+                const previous = groups[index - 1];
+                groups[index].position = Math.max(groups[index].target, previous.position + previous.span + spacing);
+            }
+            for (let index = anchor - 1; index >= 0; index--) {
+                const next = groups[index + 1];
+                groups[index].position = Math.min(groups[index].target, next.position - groups[index].span - spacing);
+            }
+            for (const group of groups) {
+                group.units.forEach((unit, index) => {
+                    unit.order.forEach((node, member) => {
+                        const next = group.position + group.offsets[index] + unit.offsets[member];
+                        const delta = next - node[cross];
+                        node[cross] = next;
+                        if (typeof node.sx === "number") node.sx += delta;
+                        if (typeof node[depth === "x" ? "psy" : "psx"] === "number")
+                            node[depth === "x" ? "psy" : "psx"] += delta;
+                    });
+                });
+            }
         }
     }
 
