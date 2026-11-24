@@ -1346,6 +1346,13 @@ const RU_TERMS_GENEALOGY = {
     'Year only':
         'Только год',
 
+    'Calculated': 'Вычислено',
+    'Marriage banns': 'Оглашение о браке',
+    'Marriage contract': 'Брачный договор',
+    'Marriage license': 'Разрешение на брак',
+    'Marriage settlement': 'Брачное соглашение',
+    'Divorce filing': 'Подача заявления о разводе',
+    'Census': 'Перепись населения',
     'About / Circa':
         'Около / приблизительно',
 

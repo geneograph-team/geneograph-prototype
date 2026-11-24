@@ -1,4 +1,4 @@
-const GENEALOGY_DATE_TYPES = ['Exact date', 'About / Circa', 'Before', 'After', 'Between'];
+const GENEALOGY_DATE_TYPES = ['Exact date', 'About / Circa', 'Calculated', 'Before', 'After', 'Between'];
 const GENEALOGY_CALENDARS = ['Gregorian', 'Julian'];
 const GENEALOGY_MONTHS = [
     ['01', 'Jan', 'January', 'янв.', 'январь', 'января'],
@@ -232,8 +232,8 @@ function genealogyDateDisplay(value, language = 'en')
     if (value.state === 'unparsed') return value.originalText;
     if (value.state !== 'known') return '';
     const label = dateLabelFromParts(value.first.year, value.first.month, value.first.day, language);
-    const prefixes = language === 'ru' ? { 'About / Circa': 'Около', Before: 'До', After: 'После' }
-        : { 'About / Circa': 'About', Before: 'Before', After: 'After' };
+    const prefixes = language === 'ru' ? { 'About / Circa': 'Около', Calculated: 'Вычислено:', Before: 'До', After: 'После' }
+        : { 'About / Circa': 'About', Calculated: 'Calculated', Before: 'Before', After: 'After' };
     if (value.dateType === 'Between')
     {
         const second = value.second || {};
@@ -252,6 +252,9 @@ function parseGenealogyDateTextAsType(text, type, options = {})
     const range = raw.match(/^(?:between|между)\s+(.+?)\s+(?:and|и)\s+(.+)$/i)
         || raw.match(/^(\d{4})\s*[–—-]\s*(\d{4})$/);
     if (range) return genealogyDateFromBase(parseBaseGenealogyDate(range[1], { calendar }), 'Between', raw, calendar, parseBaseGenealogyDate(range[2], { calendar }));
+    const calculated = /^(?:calculated|вычислено:?)\s+/i.exec(raw);
+    if (calculated) return genealogyDateFromBase(parseBaseGenealogyDate(raw.slice(calculated[0].length), { calendar }),
+        'Calculated', raw, calendar);
     const prefix = raw.match(/^(about|circa|ca\.?|before|after|около|примерно|приблизительно|до|после)\s+/i);
     if (prefix) normalizedType = /^(before|до)$/i.test(prefix[1]) ? 'Before' : /^(after|после)$/i.test(prefix[1]) ? 'After' : 'About / Circa';
     return genealogyDateFromBase(parseBaseGenealogyDate(raw.replace(/^(about|circa|ca\.?|before|after|около|примерно|приблизительно|до|после)\s+/i, ''), { calendar }), normalizedType, raw, calendar,

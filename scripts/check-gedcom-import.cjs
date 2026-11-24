@@ -79,10 +79,29 @@ assert.deepEqual([julian.first.year, julian.first.month, julian.first.day], [183
 assert.equal(julian.originalText, '@#DJULIAN@ 29 MAR 1836');
 assert.equal(context.parseGedcomDate('ABT @#DJULIAN@ 29 FEB 1900').value.calendar, 'Julian');
 assert.equal(context.parseGedcomDate('BET @#DJULIAN@ 1836 AND @#DGREGORIAN@ 1837').valid, false);
-const unparsed = map(source.replace('ABT 1970', 'INT 1970 (estimated from census)'));
-assert.equal(unparsed.records.people[0].birth.originalText, 'INT 1970 (estimated from census)');
-assert.equal(unparsed.records.people[0].birth.state, 'unparsed');
-assert.ok(unparsed.warnings.some(warning => warning.tag === 'DATE' && warning.kind === 'date-text'));
+const interpreted = map(source.replace('ABT 1970', 'INT 1970 (estimated from census)'));
+assert.equal(interpreted.records.people[0].birth.originalText, 'INT 1970 (estimated from census)');
+assert.equal(interpreted.records.people[0].birth.dateType, 'Calculated');
+assert.equal(interpreted.records.people[0].birth.first.year, 1970);
+assert.ok(!interpreted.warnings.some(warning => warning.kind === 'date-text'));
+assert.equal(context.parseGedcomDate('CAL 2 MAR 1870').value.dateType, 'Calculated');
+assert.equal(context.parseGedcomDate('FROM 1904 TO 1915').valid, false);
+assert.match(context.genealogyDateDisplay(interpreted.records.people[0].birth), /^Calculated /);
+
+const familyEventNotes = map(file([
+    '0 @I1@ INDI', '0 @I2@ INDI', '0 @F1@ FAM', '1 HUSB @I1@', '1 WIFE @I2@',
+    '1 MARR', '2 DATE 1890', '1 ENGA', '2 DATE 1889', '2 PLAC Hall',
+    '2 NOTE First', '3 CONC  detail', '2 RESN confidential'
+]));
+assert.deepEqual(Array.from(familyEventNotes.errors), []);
+assert.equal(familyEventNotes.warnings.length, 0);
+assert.equal(familyEventNotes.records.families[0].events.length, 1);
+const engagementNote = familyEventNotes.records.notes[0];
+assert.equal(engagementNote.title, 'Engagement');
+assert.equal(engagementNote.body, '1889\n\nHall\n\nFirst detail');
+assert.equal(engagementNote.linkedPersonIds.length, 2);
+assert.equal(engagementNote.linkedPlaceIds.length, 1);
+assert.equal(engagementNote.importedRestriction, 'confidential');
 
 const splitConc = Buffer.concat([
     Buffer.from('1 NOTE A'), Buffer.from([0xd0]), Buffer.from('\r\n2 CONC '),
@@ -109,7 +128,7 @@ assert.equal(deathNote.records.notes[0].linkedEventIds[0], deathNote.records.eve
 assert.ok(!deathNote.warnings.some(item => ['SUBM', 'NAME', '_UID', 'FORM', 'CAUS', 'NOTE', 'CONC', 'CONT'].includes(item.tag)));
 assert.throws(() => parse(file(['0 @I1@ INDI', '1 NOTE First line', '2 invalid tag'])), /Malformed/);
 assert.throws(() => context.decodeGedcomImport(Uint8Array.of(0xff)), /valid UTF-8/);
-assert.throws(() => context.decodeGedcomImport(new Uint8Array(8 * 1024 * 1024 + 1)), /8 MiB/);
+assert.throws(() => context.decodeGedcomImport(new Uint8Array(64 * 1024 * 1024 + 1)), /64 MiB/);
 for (const [invalid, diagnostic] of [
     [source.replace('5.5.1', '7.0'), /5.5.1/],
     [source.replace('UTF-8', 'ANSEL'), /UTF-8/],
@@ -239,6 +258,52 @@ assert.deepEqual(Array.from(coordinateWarnings.errors), []);
 assert.ok(coordinateWarnings.records.places.every(place => place.coordinates === null));
 assert.deepEqual(Array.from(coordinateWarnings.warnings, warning => warning.kind),
     ['place-coordinates-conflict', 'place-coordinates-invalid']);
+
+const additionalTags = map(file([
+    '1 SOUR MYHERITAGE',
+    '0 @I1@ INDI', '1 NAME Ada /Example/', '2 NICK A', '2 _FORMERNAME Old name', '2 _AKA Alias',
+    '1 DSCR Description', '2 CONC  continued', '1 DSCR', '1 NATI Origin', '2 NOTE Origin evidence',
+    '1 TITL Title text',
+    '0 @I2@ INDI', '1 NAME Robert /Example/',
+    '0 @I3@ INDI', '1 NAME Child /Example/',
+    '0 @F1@ FAM', '1 HUSB @I2@', '1 WIFE @I1@', '1 CHIL @I3@',
+    '1 MARR', '2 DATE 1990', '1 ANUL', '1 NCHI 3', '1 NOTE Family', '2 CONC  history'
+]));
+assert.deepEqual(Array.from(additionalTags.errors), []);
+assert.equal(additionalTags.warnings.length, 0);
+const additional = additionalTags.records;
+assert.equal(additional.people[0].profile.alternativeNames, 'A; Old name; Alias');
+assert.equal(additional.notes.find(note => note.title === 'Physical description').body, 'Description continued');
+assert.ok(additional.events.some(event => event.title === 'National origin' && event.description === 'Origin'));
+assert.ok(additional.events.some(event => event.title === 'Title' && event.description === 'Title text'));
+assert.ok(additional.notes.find(note => note.body === 'Origin evidence').linkedEventIds.length);
+assert.equal(additional.notes.find(note => note.body === 'Family history').linkedPersonIds.length, 2);
+assert.equal(additional.families[0].childIds.length, 1);
+assert.equal(additional.families[0].relationshipType, 'Annulled');
+assert.equal(additional.families[0].relationshipStatus, 'annulled');
+assert.ok(additional.events.some(event => event.title === 'Recorded child count' && event.description === '3'));
+assert.ok(additional.events.some(event => event.title === 'Annulment'));
+assert.ok(additional.events.some(event => event.title === 'Marriage'));
+
+const restricted = map(file([
+    '0 @I1@ INDI', '1 RESN privacy', '1 BIRT', '2 DATE 1990', '2 RESN confidential',
+    '1 CHR', '2 DATE 1991', '2 PLAC Chapel', '2 RESN locked',
+    '1 BAPM', '2 DATE 1992', '2 RESN privacy',
+    '0 @I2@ INDI',
+    '0 @F1@ FAM', '1 RESN confidential', '1 HUSB @I1@', '1 WIFE @I2@',
+    '1 MARR', '2 DATE 2010', '2 RESN locked'
+]));
+assert.deepEqual(Array.from(restricted.errors), []);
+assert.equal(restricted.warnings.length, 0);
+assert.equal(restricted.records.people[0].importedRestriction, 'privacy');
+assert.equal(restricted.records.people[0].birth.importedRestriction, 'confidential');
+assert.equal(restricted.records.people[0].attributes[0].importedRestriction, 'locked');
+assert.equal(restricted.records.people[0].events[0].importedRestriction, 'privacy');
+assert.equal(restricted.records.families[0].importedRestriction, 'confidential');
+assert.equal(restricted.records.families[0].events[0].importedRestriction, 'locked');
+assert.ok(restricted.records.events.some(event => event.type === 'customFact'
+    && event.title === 'Christening' && event.first.year === 1991 && event.placeText === 'Chapel'));
+assert.ok(restricted.records.events.some(event => event.type === 'baptism' && event.first.year === 1992));
 
 async function verifyAttachments()
 {

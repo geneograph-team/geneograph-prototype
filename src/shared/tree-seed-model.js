@@ -459,8 +459,10 @@ function buildSampleEvents(context = null)
     const events = [];
     const eventPeople = context?.people || sampleData.people;
     const eventFamilies = context?.families || centralFamilyRecords();
-    const eventPerson = id => context ? eventPeople.find(person => person.id === id) : getPerson(id);
-    const eventPlaceName = id => context ? context.places?.find(place => place.id === id)?.name || '' : getPlaceDisplay(id);
+    const peopleById = context ? new Map(eventPeople.map(person => [person.id, person])) : null;
+    const placesById = context ? new Map((context.places || []).map(place => [place.id, place])) : null;
+    const eventPerson = id => peopleById ? peopleById.get(id) : getPerson(id);
+    const eventPlaceName = id => placesById ? placesById.get(id)?.name || '' : getPlaceDisplay(id);
 
     eventPeople.forEach(person =>
     {
@@ -510,7 +512,7 @@ function buildSampleEvents(context = null)
                     placeText: event.placeText || eventPlaceName(placeId),
                     address: event.address || '',
                     title,
-                    description: marriage ? `Marriage of ${formatPersonFullName(personA)} and ${formatPersonFullName(personB)}` : title,
+                    description: marriage ? `Marriage of ${formatPersonFullName(personA)} and ${formatPersonFullName(personB)}` : event.description || title,
                     ...(marriage ? { marriageType: event.typeLabel || '' } : {})
                 });
             });

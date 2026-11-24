@@ -209,7 +209,7 @@ function validateProjectDraft(project, records, { deferEventReferences = false }
         for (const field of retiredFields)
             if (Object.hasOwn(family, field)) errors.push(familyPath + ' contains retired field ' + field);
         rejectUnknownFields(familyPath, family, ['id', 'projectId', 'type', 'gedcomXref', 'partnerAId', 'partnerBId',
-            'partnerARoleHint', 'partnerBRoleHint', 'relationshipType', 'relationshipStatus', 'childIds',
+            'partnerARoleHint', 'partnerBRoleHint', 'relationshipType', 'relationshipStatus', 'childIds', 'importedRestriction',
             'parentChildTypes', 'events', 'attributes', 'notes', 'citations', 'mediaIds', 'createdAt', 'updatedAt', ...retiredFields]);
         for (const field of ['attributes', 'notes', 'citations', 'mediaIds'])
             if (!Array.isArray(family[field])) errors.push(familyPath + '.' + field + ' must be an array.');
@@ -344,14 +344,14 @@ function validateProjectDraft(project, records, { deferEventReferences = false }
             }
         }
     }
-    function validateDate(owner, date)
+    function validateDate(owner, date, isVitalDate = false)
     {
         if (isProjectDataRecord(date))
         {
             rejectUnknownFields(owner, date, ['date', 'dateLabel', 'dateType', 'state', 'calendar',
                 'first', 'second', 'originalText', 'sortDate', 'date2', 'date2Label', 'sortDate2',
                 'placeId', 'burialPlaceId', 'placeText', 'address', 'reason', 'cause',
-                'burialPlaceText', 'burialAddress']);
+                'burialPlaceText', 'burialAddress', ...(isVitalDate ? ['importedRestriction'] : [])]);
             for (const field of ['date', 'dateLabel', 'sortDate', 'date2', 'date2Label', 'sortDate2',
                 'placeText', 'address', 'reason', 'cause', 'burialPlaceText', 'burialAddress'])
                 if (date[field] != null && typeof date[field] !== 'string')
@@ -471,7 +471,10 @@ function validateProjectDraft(project, records, { deferEventReferences = false }
             errors.push(owner + ' must be a record.');
             return;
         }
-        if (isVitalDate) validateDate(owner, fact);
+        if (Object.hasOwn(fact, 'importedRestriction')
+            && (typeof fact.importedRestriction !== 'string' || !fact.importedRestriction.trim()))
+            errors.push(owner + '.importedRestriction must be nonempty text when set.');
+        if (isVitalDate) validateDate(owner, fact, true);
         else for (const field of ['date', 'fromDate', 'toDate'])
             if (fact[field] != null) validateDate(owner + '.' + field, fact[field]);
         if (!isVitalDate)
@@ -494,7 +497,7 @@ function validateProjectDraft(project, records, { deferEventReferences = false }
             {
                 rejectUnknownFields(owner, record, ['id', 'projectId', 'createdAt', 'updatedAt', 'primaryPhotoId',
                     'primaryPhotoCrop', 'names', 'gender', 'sex', 'livingStatus', 'avatarClass', 'birth', 'death',
-                    'meta', 'profile', 'attributes', 'events', 'notes', 'citations', 'mediaIds', 'deleted']);
+                    'meta', 'profile', 'attributes', 'events', 'notes', 'citations', 'mediaIds', 'deleted', 'importedRestriction']);
                 for (const field of ['createdAt', 'updatedAt'])
                     if (Object.hasOwn(record, field) && (typeof record[field] !== 'string' || !Number.isFinite(Date.parse(record[field]))))
                         errors.push(owner + '.' + field + ' must be a valid timestamp when set.');
@@ -571,7 +574,7 @@ function validateProjectDraft(project, records, { deferEventReferences = false }
                         errors.push(factPath + ' must be a record.');
                         continue;
                     }
-                    const commonFields = ['id', 'date', 'placeId', 'placeText', 'address', 'notes', 'citations', 'mediaIds'];
+                    const commonFields = ['id', 'date', 'placeId', 'placeText', 'address', 'notes', 'citations', 'mediaIds', 'importedRestriction'];
                     const eventFields = ['gedcomTag', 'eventType', 'typeLabel', 'confidence', 'description'];
                     const attributeFields = ['tag', 'type', 'value', 'fromDate', 'toDate', 'company', 'institutionName', 'institutionType'];
                     if (collection === 'families') eventFields.push('relationshipManagedRole');
@@ -710,7 +713,7 @@ function validateProjectDraft(project, records, { deferEventReferences = false }
         const path = 'notes/' + note.id;
         const referenceFields = Object.keys(references.notes);
         rejectUnknownFields(path, note, ['id', 'projectId', 'title', 'body', 'bodyDelta', 'bodyFormat',
-            'favorite', 'archived', 'tags', 'checklist', 'createdAt', 'updatedAt',
+            'favorite', 'archived', 'tags', 'checklist', 'createdAt', 'updatedAt', 'importedRestriction',
             'created', 'updated', 'modified', ...referenceFields]);
         for (const field of referenceFields)
             if (!Object.hasOwn(note, field)) errors.push(path + '.' + field + ' is required.');
@@ -746,6 +749,9 @@ function validateProjectDraft(project, records, { deferEventReferences = false }
             if (Object.hasOwn(note, field)) errors.push(path + ' contains retired display date ' + field + '.');
         for (const field of ['title', 'body'])
             if (typeof note[field] !== 'string') errors.push(path + '.' + field + ' must be text.');
+        if (Object.hasOwn(note, 'importedRestriction')
+            && (typeof note.importedRestriction !== 'string' || !note.importedRestriction.trim()))
+            errors.push(path + '.importedRestriction must be nonempty text when set.');
         validateProjectRichText(note.bodyDelta, note.bodyFormat, path + '.bodyDelta', errors);
         if (!Array.isArray(note.relatedNoteIds)) continue;
         for (const id of note.relatedNoteIds)

@@ -27,6 +27,10 @@ A Family Tree family is identified by its own ID. partnerAId and partnerBId iden
 
 Display names, initials, timeline rows and UI counters are derived presentation. A link to a derived event ID is an authored relationship. Preserve that link and regenerate its target from the underlying person, family or fact identity. A relationship timeline ID combines the family ID and its recorded event ID. Changing the event type retains both IDs, and the timeline reflects the new type.
 
+People, families, vital facts, other supported events or attributes, and imported family-event Notes may carry an optional nonempty importedRestriction string. It preserves the restriction recorded by the exporting system and is stored without applying visibility or editing rules.
+
+Future review: additional GEDCOM family events currently import as Notes linked to the recorded partners and Place. Revisit retaining them as separate, editable family events when the UI can manage them without changing the relationship status.
+
 ## Implemented detached validation
 
 `prepareProjectDraft()` accepts project metadata and authored collections as JSON-compatible data. Collections may be omitted for an empty project. Supplied collections must be arrays. The input excludes derived events, activity, and notifications. Record IDs are unique within each collection, and project-owned records identify the input project.

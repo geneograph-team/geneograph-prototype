@@ -19,7 +19,7 @@ Distinct FAM records SHALL keep distinct identities. One-parent families and mul
 
 ### Requirement: Fail without partial imports
 
-Invalid encoding, unsupported versions, invalid graph references, and structural errors SHALL stop the import before commit. The local importer limits input to 8 MiB, 120,000 lines, 4,096 code units per line, 15,000 top-level records, and 32 nested levels, with parse and mapping time checks. Cancel and failed validation SHALL leave the existing project and view unchanged.
+Invalid encoding, unsupported versions, invalid graph references, and structural errors SHALL stop the import before commit. The local importer limits input to 64 MiB, 600,000 lines, 4,096 code units per line, 30,000 top-level records, and 32 nested levels, with five-second time checks for parsing and mapping. Cancel and failed validation SHALL leave the existing project and view unchanged.
 
 The project overview dropzone SHALL remain inactive until import into an existing project is supported.
 
@@ -38,3 +38,9 @@ Fatal errors SHALL stay visible in the dialog and explain the reason, recovery a
 Identify MyHeritage by the GEDCOM header source. When its married surname differs from its recorded surname, import the married surname as the last name and the recorded surname as the maiden name, while respecting an explicitly recorded maiden name. Other exporters retain the standard surname mapping.
 
 Preserve supported event and education details and import Source records with separate linked notes for individual citation excerpts and locators. Omit residence/contact details, recorded ages, citation quality flags, and export bookkeeping from the import report. Report online-only MyHeritage photos once per distinct file URL.
+
+### Requirement: Preserve additional family events and date qualifiers
+
+Import engagement, marriage banns, marriage contracts, marriage licenses, marriage settlements, divorce filings, and family census entries as linked Notes. Keep the event label, original date, place, and attached note text. Keep existing marriage, divorce, and annulment events as relationship events.
+
+Map GEDCOM CAL and INT to the Calculated date type when the date can be parsed, keeping the original GEDCOM text. Date periods remain unsupported.

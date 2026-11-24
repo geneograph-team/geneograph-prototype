@@ -1042,6 +1042,8 @@ function saveEditPersonModalValues(personId, initialRelationships = [])
 
     person.livingStatus = normalizeLivingStatus(livingStatus);
 
+    const birthRestriction = person.birth?.importedRestriction;
+    const deathRestriction = person.death?.importedRestriction;
     person.birth = {
         ...birthDate,
         placeId: birthPlace.placeId,
@@ -1065,6 +1067,9 @@ function saveEditPersonModalValues(personId, initialRelationships = [])
     {
         person.death = normalizeGenealogyDateInput(person.death);
     }
+
+    if (birthRestriction) person.birth.importedRestriction = birthRestriction;
+    if (deathRestriction) person.death.importedRestriction = deathRestriction;
 
     applyAddPersonAdditionalFacts(person, additionalFacts);
     const initialById = new Map(initialRelationships.map(values => [values.relationshipId, JSON.stringify(values)]));
