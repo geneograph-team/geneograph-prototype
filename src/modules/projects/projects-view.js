@@ -562,7 +562,13 @@ function renderOpenProject()
     if (hero?.clientWidth && hero?.clientHeight)
         projectCoverPreviewRatio = hero.clientWidth / hero.clientHeight;
     document.getElementById('heroImportGedcom')?.addEventListener('click', () => openImportModal());
-    bindGedcomDropzone(document.getElementById('openDropzone'));
+    const gedcomDropzone = document.getElementById('openDropzone');
+    gedcomDropzone?.addEventListener('dragover', event =>
+    {
+        event.preventDefault();
+        event.dataTransfer.dropEffect = 'none';
+    });
+    gedcomDropzone?.addEventListener('drop', event => event.preventDefault());
     document.getElementById('heroGedcomReport')?.addEventListener('click', () => showGedcomImportResult(gedcomImportReports.get(project.id)));
     document.getElementById('deleteProject')?.addEventListener('click', () => openDeleteProjectConfirm(project.id));
     document.getElementById('editProjectTitle')?.addEventListener('click', event => openProjectNameOverlay(event.currentTarget, project));
@@ -609,7 +615,7 @@ function renderOpenProjectBody()
 
 function renderProjectGedcomDropzone()
 {
-    return `<button type="button" class="dropzone" id="openDropzone">${icon.import}<div><strong>Drop a GEDCOM file here to import</strong><span>Supports .ged files</span></div></button>`;
+    return `<div class="dropzone project-gedcom-dropzone" id="openDropzone" aria-disabled="true">${icon.import}<div><strong>${escapeHtml(t('Import GEDCOM into this project'))}</strong><span>${escapeHtml(t('Coming soon'))}</span></div></div>`;
 }
 
 let projectSettingsDraft = null;

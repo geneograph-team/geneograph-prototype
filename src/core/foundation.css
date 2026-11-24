@@ -2240,6 +2240,16 @@ button {
     margin-top: 2px;
 }
 
+.project-gedcom-dropzone[aria-disabled="true"] {
+    border-color: var(--border-default);
+    color: var(--text-secondary);
+    cursor: not-allowed;
+}
+
+.project-gedcom-dropzone[aria-disabled="true"] svg {
+    color: var(--text-tertiary);
+}
+
 .create-gedcom-field {
     grid-column: 1 / -1;
 }
@@ -2954,18 +2964,109 @@ button.app-chip:disabled,
     display: none;
 }
 
-.gedcom-file-row {
-    display: flex;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: var(--space-3);
+.gedcom-import-modal form [hidden] {
+    display: none;
 }
 
-.gedcom-file-name {
+.gedcom-import-modal form {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+}
+
+.gedcom-import-body,
+.gedcom-preview,
+.gedcom-attachments {
     min-width: 0;
+    grid-template-columns: minmax(0, 1fr);
+}
+
+.gedcom-import-body {
+    overflow: auto;
+}
+
+.gedcom-attachments {
+    display: grid;
+    gap: var(--space-3);
+    padding-block: var(--space-4);
+    border-block: 1px solid var(--border-default);
+}
+
+.gedcom-attachments h3 {
+    margin: 0;
+}
+
+.gedcom-error-panel,
+.gedcom-attachment-warnings {
+    padding: var(--space-3);
+    border: 1px solid var(--border-default);
+    border-radius: 8px;
     overflow-wrap: anywhere;
 }
 
+.gedcom-error-panel {
+    display: grid;
+    gap: var(--space-2);
+    border-color: var(--text-danger, #c66b64);
+    background: color-mix(in srgb, var(--text-danger, #c66b64) 10%, transparent);
+}
+
+.gedcom-attachment-warnings {
+    margin-top: var(--space-2);
+    background: color-mix(in srgb, #b78b46 10%, transparent);
+}
+
+.gedcom-attachment-warnings ul {
+    max-height: 12rem;
+    overflow: auto;
+}
+
+.gedcom-file-row {
+    display: flex;
+    align-items: center;
+    min-width: 0;
+    gap: var(--space-3);
+}
+
+.gedcom-file-selector {
+    flex-wrap: wrap;
+}
+
+.gedcom-file-identity {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    flex: 1 1 10rem;
+    min-width: 0;
+}
+.gedcom-file-row > button,
+.gedcom-file-version {
+    flex: 0 0 auto;
+}
+
+.gedcom-file-version {
+    white-space: nowrap;
+    font-size: 0.875rem;
+}
+
+.gedcom-file-name {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.gedcom-folder-remove {
+    width: var(--control-icon-button-size);
+    padding-inline: 0;
+}
+
+.button.gedcom-folder-remove > svg {
+    width: 20px;
+    height: 20px;
+    flex: 0 0 20px;
+}
 .gedcom-file-name,
 .gedcom-file-version,
 .gedcom-session-note {
@@ -2979,11 +3080,16 @@ button.app-chip:disabled,
 }
 
 .gedcom-counts {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(94px, 1fr));
-    gap: var(--space-3);
+    display: flex;
+    gap: var(--space-4);
+    overflow-x: auto;
     padding-block: var(--space-3);
     border-block: 1px solid var(--border-default);
+}
+
+.gedcom-counts > div {
+    flex: 1 0 auto;
+    white-space: nowrap;
 }
 
 .gedcom-counts dt {

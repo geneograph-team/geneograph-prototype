@@ -6,7 +6,7 @@ const path = require('node:path');
 const vm = require('node:vm');
 
 const context = vm.createContext({
-    TextDecoder, performance, structuredClone,
+    TextDecoder, TextEncoder, Blob, performance, structuredClone,
     state: { language: 'en' },
     document: { documentElement: { lang: 'en' } },
     t: value => value,
@@ -16,7 +16,7 @@ for (const file of [
     'shared/genealogy-dates', 'shared/person-name-helpers', 'modules/places/place-record-helpers',
     'shared/relationships', 'modules/family-tree/relationships', 'shared/tree-seed-model',
     'modules/people/person-form-fields', 'modules/people/person-editor', 'modules/people/relationship-editor',
-    'core/validation', 'modules/projects/gedcom-import'
+    'core/validation', 'modules/archive/archive-documents', 'modules/projects/gedcom-import'
 ])
 {
     const filename = path.join(__dirname, '../src', file + '.js');
@@ -140,20 +140,72 @@ assert.throws(() => map(file([
     '0 @I1@ INDI', '0 @I2@ INDI', '1 FAMC @F1@', '2 STAT disproven',
     '0 @F1@ FAM', '1 HUSB @I1@', '1 CHIL @I2@'
 ])), /child claims disagree/);
-const mediaInput = parse(file([
-    '0 @I1@ INDI', '1 OBJE', '2 FILE tree.ged.files/portrait.jpg', '2 _PRIM Y',
-    '0 @I2@ INDI', '1 OBJE', '2 FILE tree.ged.files/portrait.jpg',
-    '1 OBJE', '2 FILE https://example.test/portrait.jpg'
-]));
-const mediaDraft = context.mapGedcomImport(mediaInput,
-    { ...project, createdAt: '2026-01-01T00:00:00Z', modifiedAt: '2026-01-01T00:00:00Z' },
-    new Map([['tree.ged.files/portrait.jpg', {
+async function verifyAttachments()
+{
+    const source = parse(file([
+        '0 @I1@ INDI', '1 OBJE @M1@', '2 _PRIM Y',
+        '1 OBJE @M2@', '1 DEAT', '2 OBJE @M2@',
+        '0 @I2@ INDI', '1 OBJE', '2 FILE TREE.GED.FILES\\portrait.jpg',
+        '1 OBJE', '2 FILE notes.csv', '1 OBJE', '2 FILE ../unsafe.txt',
+        '1 OBJE', '2 FILE ambiguous.txt', '1 OBJE', '2 FILE bad.exe',
+        '1 OBJE', '2 FILE unreadable.txt', '1 OBJE', '2 FILE huge.txt',
+        '1 OBJE', '2 FILE https://example.test/portrait.jpg',
+        '0 @M1@ OBJE', '1 FILE tree.ged.files/portrait.jpg',
+        '0 @M2@ OBJE', '1 FILE documents/report.txt'
+    ]));
+    const references = context.gedcomAttachmentReferences(source);
+    assert.equal(references.size, 8);
+    const selected = (name, relative, content = 'Readable') => ({
+        name, type: 'text/plain', size: content.length, webkitRelativePath: 'Root/' + relative,
+        async arrayBuffer() { return new TextEncoder().encode(content).buffer; }
+    });
+    const portrait = selected('portrait.jpg', 'tree.ged.files/portrait.jpg');
+    context.PHOTO_UPLOAD_MAX_BYTES = 10 * 1024 * 1024;
+    portrait.slice = () => portrait;
+    context.createPhotoUploadDraft = async () => ({
         filename: 'portrait.jpg', src: 'data:image/jpeg;base64,AA==', mimeType: 'image/jpeg', width: 1, height: 1, sizeBytes: 1
-    }]]));
-assert.deepEqual(Array.from(mediaDraft.errors), []);
-assert.equal(mediaDraft.records.media.length, 1);
-assert.equal(mediaDraft.records.media[0].personIds.length, 2);
-assert.equal(mediaDraft.records.people[0].primaryPhotoId, mediaDraft.records.media[0].id);
-assert.equal(mediaDraft.missingPhotos, 0);
-assert.ok(mediaDraft.warnings.some(warning => warning.tag === 'FILE' && warning.count === 1));
-console.log('GEDCOM decoding, canonical mapping, warnings, and invalid inputs passed.');
+    });
+    const unreadable = selected('unreadable.txt', 'unreadable.txt');
+    unreadable.arrayBuffer = async () => { throw Error('Unavailable'); };
+    const huge = selected('huge.txt', 'huge.txt');
+    huge.size = 30 * 1024 * 1024;
+    const folder = [portrait, selected('portrait.jpg', 'elsewhere/portrait.jpg'),
+        selected('report.txt', 'documents/report.txt'), selected('ambiguous.txt', 'one/ambiguous.txt'),
+        selected('ambiguous.txt', 'two/ambiguous.txt'), selected('bad.exe', 'bad.exe'), unreadable, huge];
+    const matches = await context.matchGedcomAttachments(references, folder, () => true);
+    assert.equal(matches.get('ambiguous.txt').status, 'More than one file matches');
+    assert.equal(matches.get('../unsafe.txt').status, 'Unsafe file path');
+    assert.equal(matches.get('notes.csv').status, 'File not found');
+    assert.equal(matches.get('bad.exe').status, 'Unsupported file type');
+    assert.equal(matches.get('unreadable.txt').status, 'File could not be read');
+    assert.equal(matches.get('huge.txt').status, 'Attachment size or count limit exceeded');
+    assert.equal((await context.matchGedcomAttachments(references, folder, () => false)).size, 0);
+    const draft = context.mapGedcomImport(source, project, matches, references);
+    assert.deepEqual(Array.from(draft.errors), []);
+    assert.equal(draft.records.media.length, 1);
+    assert.equal(draft.records.media[0].personIds.length, 2);
+    assert.equal(draft.records.people[0].primaryPhotoId, draft.records.media[0].id);
+    assert.equal(draft.records.archiveFiles.length, 1);
+    const document = draft.records.archiveFiles[0];
+    assert.equal(document.linkedPersonIds[0], draft.records.people[0].id);
+    assert.equal(document.linkedEventIds[0], draft.records.events.find(event => event.type === 'death').id);
+    assert.equal(await draft.attachmentAssets.get(document.id).text(), 'Readable');
+    assert.equal(draft.attachmentReport.filter(entry => entry.status === 'Imported').length, 2);
+    const report = context.gedcomImportReport(draft);
+    assert.equal(report.attachmentCount, 2);
+    assert.deepEqual(JSON.parse(JSON.stringify(report.rows)), [
+        ['People', 2], ['Facts', 1], ['Photos', 1], ['Imported Archive files', 1]
+    ]);
+    const emptyCounts = context.gedcomImportReport(map(file(['0 @I1@ INDI'])));
+    assert.deepEqual(JSON.parse(JSON.stringify(emptyCounts.rows)), [['People', 1]]);
+    assert.ok(draft.warnings.some(warning => warning.tag === 'FILE'));
+}
+
+verifyAttachments().then(() =>
+{
+    console.log('GEDCOM decoding, canonical mapping, warnings, attachment matching, and invalid inputs passed.');
+}).catch(error =>
+{
+    console.error(error);
+    process.exitCode = 1;
+});

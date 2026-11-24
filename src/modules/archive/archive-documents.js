@@ -267,6 +267,30 @@ async function renderArchiveDocumentContent(file, modal, { preview = false, onEr
     }
 }
 
+async function archiveValidateDocument(extension, buffer) {
+    const signature = new Uint8Array(buffer, 0, Math.min(buffer.byteLength, 5));
+    if (extension === 'pdf' && String.fromCharCode(...signature) !== '%PDF-') throw new Error('Invalid PDF');
+    if (extension === 'docx' && !(signature[0] === 80 && signature[1] === 75)) throw new Error('Invalid DOCX');
+    if (extension === 'pdf' && globalThis.location?.protocol === 'file:') {
+        // Local file pages cannot load PDF.js as a JavaScript module.
+        const tail = new TextDecoder().decode(buffer.slice(-1024));
+        if (!tail.includes('%%EOF')) throw new Error('Incomplete PDF');
+        return;
+    }
+    if (extension === 'pdf') {
+        const pdfjs = await import('../../vendor/pdfjs-5.6.205.min.mjs');
+        pdfjs.GlobalWorkerOptions.workerSrc = new URL('./vendor/pdfjs-worker-5.6.205.min.mjs', location.href).href;
+        const task = pdfjs.getDocument({ data: buffer, isEvalSupported: false });
+        try { await task.promise; }
+        finally { await task.destroy(); }
+    }
+    if (extension === 'csv') {
+        const parsed = Papa.parse(new TextDecoder().decode(buffer), { delimiter: ',', skipEmptyLines: true });
+        if (parsed.errors.length) throw new Error(parsed.errors[0].message);
+    }
+    if (extension === 'docx') await mammoth.convertToHtml({ arrayBuffer: buffer }, { externalFileAccess: false });
+}
+
 async function archiveImportFiles(selected, { projectId = currentProjectId(), folderId = null, onResult = () => {} } = {}) {
     const ids = [];
     if (!projectId || (folderId && !archiveFolderById(folderId, projectId))) return ids;
@@ -279,19 +303,7 @@ async function archiveImportFiles(selected, { projectId = currentProjectId(), fo
             continue;
         }
         try {
-            const signature = new Uint8Array(await source.slice(0, 5).arrayBuffer());
-            if (extension === 'pdf' && String.fromCharCode(...signature) !== '%PDF-') throw new Error('Invalid PDF');
-            if (extension === 'docx' && !(signature[0] === 80 && signature[1] === 75)) throw new Error('Invalid DOCX');
-            if (extension === 'pdf') {
-                const pdfjs = await import('../../vendor/pdfjs-5.6.205.min.mjs');
-                pdfjs.GlobalWorkerOptions.workerSrc = new URL('./vendor/pdfjs-worker-5.6.205.min.mjs', location.href).href;
-                await pdfjs.getDocument({ data: await source.arrayBuffer(), isEvalSupported: false }).promise;
-            }
-            if (extension === 'csv') {
-                const parsed = Papa.parse(await source.text(), { delimiter: ',', skipEmptyLines: true });
-                if (parsed.errors.length) throw new Error(parsed.errors[0].message);
-            }
-            if (extension === 'docx') await mammoth.convertToHtml({ arrayBuffer: await source.arrayBuffer() }, { externalFileAccess: false });
+            if (!archiveImageExtensions.has(extension)) await archiveValidateDocument(extension, await source.arrayBuffer());
             if (archiveImageExtensions.has(extension)) await archiveValidateImage(source, extension);
             const id = `af-upload-${crypto.randomUUID()}`;
             const now = new Date().toISOString();

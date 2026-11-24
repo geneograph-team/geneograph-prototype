@@ -8,7 +8,7 @@ The prototype SHALL read UTF-8 GEDCOM 5.5.1 locally and import all supported peo
 
 #### Scenario: Import a genealogy
 
-- **WHEN** a user selects or drops a valid file and confirms the preview
+- **WHEN** a user selects a valid file and confirms the preview
 - **THEN** the importer resolves project-local people and family references
 - **AND** the detached draft validates and regenerates timeline events before commit
 - **AND** Family Tree opens for the new project and the overview offers the import report
@@ -20,3 +20,15 @@ Distinct FAM records SHALL keep distinct identities. One-parent families and mul
 ### Requirement: Fail without partial imports
 
 Invalid encoding, unsupported versions, invalid graph references, and structural errors SHALL stop the import before commit. The local importer limits input to 8 MiB, 120,000 lines, 4,096 code units per line, 15,000 top-level records, and 32 nested levels, with parse and mapping time checks. Cancel and failed validation SHALL leave the existing project and view unchanged.
+
+The project overview dropzone SHALL remain inactive until import into an existing project is supported.
+
+### Requirement: Match optional local attachments
+
+The initial dialog SHALL offer GEDCOM selection as its single file action. After a valid preview, referenced local files SHALL reveal a separate optional folder picker. Selecting, changing or removing the folder SHALL preserve the selected genealogy and its project name.
+
+The importer SHALL match files only from the selected folder, including subfolders. It SHALL prefer a relative-path match and accept suffix or filename matches only when unambiguous. Shared files SHALL reuse one canonical Photos or Archive record. Files without a supported representation or link SHALL be reported separately from imported files. Folder errors and missing files SHALL allow the genealogy to proceed.
+
+### Requirement: Explain import outcomes
+
+Fatal errors SHALL stay visible in the dialog and explain the reason, recovery and that no project was created. The preview and result SHALL disclose the session-only lifetime. The result SHALL report actual imported records and attachment outcomes, and remain available in the imported project's overview.

@@ -161,59 +161,131 @@ function parseGedcomDate(text)
     return result;
 }
 
-function gedcomLocalPhotoPath(value)
+function gedcomLocalAttachmentPath(value)
 {
-    const parts = value.trim().replaceAll('\\', '/').split('/').filter(part => part !== '.');
-    return parts.every(part => part && part !== '..' && !part.includes(':')) ? parts.join('/') : '';
+    let path = value.trim().replaceAll(String.fromCharCode(92), '/');
+    if (/^file:\/\//i.test(path))
+    {
+        try { path = decodeURIComponent(path.slice(7)); }
+        catch { return ''; }
+    }
+    path = path.replace(/^\/*[a-z]:\//i, '').replace(/^\/+/, '');
+    const parts = path.split('/').filter(part => part && part !== '.');
+    return parts.every(part => part !== '..' && !/[:\u0000-\u001f]/.test(part)) ? parts.join('/') : '';
 }
 
-function gedcomPersonPhotoLinks(node, parsed)
+function gedcomObjectFileLinks(node, parsed)
 {
     return node.children.filter(child => child.tag === 'OBJE').flatMap(object =>
     {
         const record = parsed.xrefs.get(object.value.trim()) || object;
         if (record.tag !== 'OBJE') return [];
         return record.children.filter(child => child.tag === 'FILE').map(file => ({
-            object, record, file, path: gedcomLocalPhotoPath(file.value)
+            object, record, file, path: gedcomLocalAttachmentPath(file.value)
         }));
     });
 }
 
-async function readGedcomLocalPhotos(parsed, gedcomFile, folderFiles)
+function gedcomAttachmentReferences(parsed)
 {
-    const photos = new Map();
-    if (!folderFiles.length) return photos;
-    const selectedGedcom = folderFiles.find(file => /\.ged$/i.test(file.name) && file.name === gedcomFile.name
-        && file.size === gedcomFile.size);
-    const gedcomPath = selectedGedcom?.webkitRelativePath || '';
-    const base = gedcomPath.slice(0, gedcomPath.lastIndexOf('/') + 1);
-    const candidates = new Map();
-    for (const file of folderFiles)
+    const references = new Map();
+    function visit(node, owner)
     {
-        const path = file.webkitRelativePath;
-        if (!path || (base && !path.startsWith(base))) continue;
-        const relative = gedcomLocalPhotoPath(path.slice(base ? base.length : path.indexOf('/') + 1));
-        for (const key of base ? [relative] : [relative, gedcomLocalPhotoPath(path)])
-            if (key) candidates.set(key, file);
-    }
-    const paths = new Set(parsed.roots.filter(node => node.tag === 'INDI')
-        .flatMap(node => gedcomPersonPhotoLinks(node, parsed).map(link => link.path)).filter(Boolean));
-    let bytes = 0;
-    for (const path of paths)
-    {
-        const file = candidates.get(path);
-        if (!file || photos.size >= 500 || bytes + file.size > 80 * 1024 * 1024) continue;
-        try
+        for (const link of gedcomObjectFileLinks(node, parsed))
         {
-            photos.set(path, await createPhotoUploadDraft(file));
-            bytes += file.size;
+            const value = link.file.value.trim();
+            if (!value || /^[a-z][a-z\d+.-]*:\/\//i.test(value) && !/^file:/i.test(value)) continue;
+            const path = link.path;
+            const key = (path || value).normalize('NFC').toLowerCase();
+            const entry = references.get(key) || { path, value, links: [] };
+            entry.links.push({ ...link, owner, node });
+            references.set(key, entry);
         }
-        catch { /* Unsupported or unreadable images are counted as unavailable. */ }
+        for (const child of node.children)
+            if (child.tag !== 'OBJE') visit(child, owner);
     }
-    return photos;
+    for (const node of parsed.roots)
+        if (node.tag !== 'OBJE') visit(node, node);
+    return references;
 }
 
-function mapGedcomImport(parsed, project, localPhotos = new Map())
+async function matchGedcomAttachments(references, folderFiles, current)
+{
+    const normalize = value => value.normalize('NFC').toLowerCase();
+    const paths = new Map();
+    const names = new Map();
+    const index = (map, key, file) =>
+    {
+        if (!map.has(key)) map.set(key, []);
+        map.get(key).push(file);
+    };
+    for (const file of folderFiles)
+    {
+        const path = gedcomLocalAttachmentPath(file.webkitRelativePath || '');
+        if (!path.includes('/')) continue;
+        index(paths, normalize(path.slice(path.indexOf('/') + 1)), file);
+        index(names, normalize(file.name), file);
+    }
+    const matches = new Map();
+    const loaded = new Map();
+    let bytes = 0;
+    let importedCount = 0;
+    for (const [key, reference] of references)
+    {
+        if (!current()) break;
+        const path = normalize(reference.path);
+        const basename = path.split('/').at(-1);
+        const byName = names.get(basename) || [];
+        const suffix = byName.filter(file => normalize(file.webkitRelativePath).endsWith('/' + path));
+        const candidates = paths.get(path) || (suffix.length ? suffix : byName);
+        const file = candidates.length === 1 ? candidates[0] : null;
+        const extension = /\.([a-z0-9]{1,12})$/i.exec(reference.value)?.[1];
+        const entry = { ...reference, extension, found: Boolean(file), file };
+        matches.set(key, entry);
+        if (!path) entry.status = 'Unsafe file path';
+        else if (!candidates.length) entry.status = 'File not found';
+        else if (!file) entry.status = 'More than one file matches';
+        else if (loaded.has(file)) Object.assign(entry, loaded.get(file));
+        else
+        {
+            const format = archiveDocumentExtension(file.name);
+            try
+            {
+                if (!archiveImageExtensions.has(format) && !archiveDocumentExtensions.has(format))
+                    entry.status = 'Unsupported file type';
+                else if (!file.size) entry.status = 'File could not be read';
+                else if (file.size > (archiveImageExtensions.has(format) ? PHOTO_UPLOAD_MAX_BYTES : archiveDocumentMaxBytes)
+                    || importedCount >= 500 || bytes + file.size > 80 * 1024 * 1024)
+                    entry.status = 'Attachment size or count limit exceeded';
+                else
+                {
+                    const buffer = await file.arrayBuffer();
+                    if (!current()) break;
+                    if (archiveImageExtensions.has(format))
+                    {
+                        const mimeType = { jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png', webp: 'image/webp' }[format];
+                        entry.photo = await createPhotoUploadDraft(file.slice(0, file.size, mimeType));
+                        entry.photo.filename = file.name;
+                    }
+                    else
+                    {
+                        const blob = new Blob([buffer], { type: file.type });
+                        await archiveValidateDocument(format, buffer);
+                        entry.blob = blob;
+                    }
+                    entry.status = 'Ready to import';
+                    bytes += file.size;
+                    importedCount++;
+                }
+            }
+            catch { entry.status = 'File could not be read'; }
+            loaded.set(file, { status: entry.status, photo: entry.photo, blob: entry.blob });
+        }
+    }
+    return matches;
+}
+
+function mapGedcomImport(parsed, project, matches = new Map(), references = gedcomAttachmentReferences(parsed))
 {
     const { id: projectId } = project;
     const started = performance.now();
@@ -229,7 +301,7 @@ function mapGedcomImport(parsed, project, localPhotos = new Map())
     const familiesByXref = new Map();
     const places = new Map();
     const media = new Map();
-    const missingPhotos = new Set();
+    const eventOwners = new Map();
     const notes = new Map();
     const importedAt = project.createdAt || new Date().toISOString();
     const importNotes = (owner, personIds, eventId) =>
@@ -371,12 +443,17 @@ function mapGedcomImport(parsed, project, localPhotos = new Map())
                 profile: {}, events: [], attributes: [], notes: [], citations: [], mediaIds: []
             };
             importNotes(node, [record.id]);
-            if (hasBirth) importNotes(birth, [record.id], 'event-' + record.id + '-birth');
+            if (hasBirth)
+            {
+                eventOwners.set(birth, 'event-' + record.id + '-birth');
+                importNotes(birth, [record.id], eventOwners.get(birth));
+            }
             if (deceased)
             {
                 const cause = read(death, 'CAUS');
                 if (cause) record.death.cause = cause;
-                importNotes(death, [record.id], 'event-' + record.id + '-death');
+                eventOwners.set(death, 'event-' + record.id + '-death');
+                importNotes(death, [record.id], eventOwners.get(death));
             }
             for (const event of node.children.filter(child => ['BAPM', 'BURI'].includes(child.tag)))
             {
@@ -384,7 +461,8 @@ function mapGedcomImport(parsed, project, localPhotos = new Map())
                 const { placeId, placeText, ...date } = vital(event);
                 record.events.push({ id: record.id + '-event-' + (record.events.length + 1),
                     gedcomTag: event.tag, date, placeId, placeText });
-                importNotes(event, [record.id], 'event-' + record.events.at(-1).id);
+                eventOwners.set(event, 'event-' + record.events.at(-1).id);
+                importNotes(event, [record.id], eventOwners.get(event));
             }
             for (const fact of node.children.filter(child => ['EDUC', 'OCCU', 'RELI'].includes(child.tag)))
             {
@@ -394,38 +472,6 @@ function mapGedcomImport(parsed, project, localPhotos = new Map())
                 used.add(fact);
                 record.attributes.push({ id: record.id + '-attribute-' + (record.attributes.length + 1),
                     tag: fact.tag, value, ...place });
-            }
-            for (const link of gedcomPersonPhotoLinks(node, parsed))
-            {
-                const { path, object, file } = link;
-                if (!path) continue;
-                const photo = localPhotos.get(path);
-                if (!photo)
-                {
-                    missingPhotos.add(path);
-                    continue;
-                }
-                used.add(object);
-                used.add(link.record);
-                used.add(file);
-                const title = link.record.children.find(child => child.tag === 'TITL');
-                const primary = object.children.find(child => child.tag === '_PRIM');
-                if (title) used.add(title);
-                if (primary) used.add(primary);
-                if (!media.has(path))
-                {
-                    const { filename, src, mimeType, width, height, sizeBytes } = photo;
-                    media.set(path, {
-                        id: projectId + '-photo-' + (media.size + 1), projectId, kind: 'photo',
-                        title: title?.value.trim() || filename, filename, src, mimeType, width, height, sizeBytes,
-                        personIds: [], albumIds: [], placeId: null, placeText: '', caption: '', favorite: false,
-                        createdAt: project.createdAt, updatedAt: project.modifiedAt
-                    });
-                }
-                const linked = media.get(path);
-                if (!linked.personIds.includes(record.id)) linked.personIds.push(record.id);
-                if (primary?.value.trim().toUpperCase() === 'Y' && !record.primaryPhotoId)
-                    record.primaryPhotoId = linked.id;
             }
             peopleByXref.set(node.xref, record);
         }
@@ -463,6 +509,7 @@ function mapGedcomImport(parsed, project, localPhotos = new Map())
             family.events.push({ id: family.id + '-event-' + (family.events.length + 1), gedcomTag: event.tag,
                 eventType: married ? 'Marriage' : 'Divorce', date, placeId, placeText, typeLabel: read(event, 'TYPE') });
             const partnerIds = [family.partnerAId, family.partnerBId].filter(Boolean);
+            if (partnerIds.length === 2) eventOwners.set(event, 'event-' + family.id + '-' + family.events.at(-1).id);
             if (partnerIds.length)
                 importNotes(event, partnerIds, partnerIds.length === 2
                     ? 'event-' + family.id + '-' + family.events.at(-1).id : null);
@@ -549,6 +596,80 @@ function mapGedcomImport(parsed, project, localPhotos = new Map())
         for (const parent of parentId ? [parentId] : [family.partnerAId, family.partnerBId].filter(Boolean))
             family.parentChildTypes[parent + '|' + person.id] = type;
 
+    const archiveFiles = [];
+    const attachmentAssets = new Map();
+    const attachmentReport = [];
+    const byFile = new Map();
+    for (const [key, reference] of references)
+    {
+        checkDeadline();
+        const match = matches.get(key);
+        const entry = { name: reference.value, extension: match?.extension || /\.([a-z0-9]{1,12})$/i.exec(reference.value)?.[1],
+            found: match?.found ?? false, status: match?.status || 'File not selected' };
+        attachmentReport.push(entry);
+        if (match?.status !== 'Ready to import') continue;
+        const group = byFile.get(match.file) || [];
+        group.push({ reference, match, entry });
+        byFile.set(match.file, group);
+    }
+    for (const group of byFile.values())
+    {
+        checkDeadline();
+        const { photo, blob, file } = group[0].match;
+        const links = group.flatMap(item => item.reference.links);
+        const personFor = link => link.node === link.owner && link.owner.tag === 'INDI'
+            ? peopleByXref.get(link.owner.xref) : null;
+        const supported = link => personFor(link) || eventOwners.has(link.node);
+        const supportedLinks = links.filter(supported);
+        if (!supportedLinks.length)
+        {
+            for (const { entry } of group) entry.status = 'No supported record to link';
+            continue;
+        }
+        const personIds = [...new Set(supportedLinks.map(link => personFor(link)?.id).filter(Boolean))];
+        const eventIds = [...new Set(supportedLinks.map(link => eventOwners.get(link.node)).filter(Boolean))];
+        const title = links.flatMap(link => [link.file, link.record])
+            .flatMap(node => node.children).find(child => child.tag === 'TITL')?.value.trim();
+        if (photo && !eventIds.length)
+        {
+            const { filename, src, mimeType, width, height, sizeBytes } = photo;
+            const id = projectId + '-photo-' + (media.size + 1);
+            media.set(file, { id, projectId, kind: 'photo', title: title || filename, filename, src, mimeType,
+                width, height, sizeBytes, personIds, albumIds: [], placeId: null, placeText: '', caption: '',
+                favorite: false, createdAt: importedAt, updatedAt: importedAt });
+            for (const link of supportedLinks)
+            {
+                const person = personFor(link);
+                if (!person.primaryPhotoId && link.object.children.some(child =>
+                    child.tag === '_PRIM' && child.value.trim().toUpperCase() === 'Y')) person.primaryPhotoId = id;
+            }
+        }
+        else
+        {
+            const id = projectId + '-archive-' + (archiveFiles.length + 1);
+            const extension = archiveDocumentExtension(file.name);
+            const kind = photo ? 'img' : extension === 'pdf' ? 'pdf' : extension === 'csv' ? 'sheet' : 'doc';
+            archiveFiles.push({ id, projectId, folderId: null, name: file.name, kind,
+                type: photo ? 'Image' : extension.toUpperCase(), mimeType: photo?.mimeType || file.type, sizeBytes: file.size,
+                favorite: false, description: title || '', previewUrl: photo?.src || '',
+                linkedPersonIds: personIds, linkedEventIds: eventIds, linkedNoteIds: [],
+                documentPlaceId: null, linkedPlaceIds: [], addedAt: importedAt, updatedAt: importedAt });
+            attachmentAssets.set(id, blob || file);
+        }
+        for (const link of supportedLinks)
+        {
+            used.add(link.object);
+            used.add(link.record);
+            used.add(link.file);
+            for (const node of [link.object, link.record, link.file])
+                for (const child of node.children)
+                    if (['TITL', '_PRIM'].includes(child.tag)) used.add(child);
+        }
+        for (const { reference, entry } of group)
+            entry.status = reference.links.every(supported) ? 'Imported' : reference.links.some(supported)
+                ? 'Imported with some links skipped' : 'No supported record to link';
+    }
+
     function account(node, parent)
     {
         checkDeadline();
@@ -563,10 +684,11 @@ function mapGedcomImport(parsed, project, localPhotos = new Map())
     const people = [...peopleByXref.values()];
     const families = [...familiesByXref.values()];
     if (!people.length) throw new GedcomImportError('The GEDCOM file contains no people.');
-    const records = { people, families, places: [...places.values()], media: [...media.values()], notes: [...notes.values()] };
+    const records = { people, families, places: [...places.values()], media: [...media.values()], notes: [...notes.values()], archiveFiles };
     const draft = prepareProjectDraft({ ...project, defaultPersonId: people[0].id }, records);
     if (draft.errors.length) return { errors: draft.errors };
-    return { ...draft, warnings: [...warnings.values()], missingPhotos: missingPhotos.size };
+    const distinctFilesFound = new Set([...matches.values()].filter(match => match.found).map(match => match.file)).size;
+    return { ...draft, warnings: [...warnings.values()], attachmentReport, attachmentAssets, distinctFilesFound };
 }
 
 
@@ -599,6 +721,7 @@ function commitGedcomImport(draft)
     try
     {
         Object.assign(sampleData, next);
+        for (const [id, blob] of draft.attachmentAssets) archiveDocumentBytes.set(id, blob);
         if (!activateProject(draft.project.id, { moduleName: 'Family Tree' }))
             throw new Error('Project activation failed');
     }
@@ -606,6 +729,7 @@ function commitGedcomImport(draft)
     {
         const viewChanged = state.currentProjectId !== previousState.currentProjectId
             || state.activeModule !== previousState.activeModule;
+        for (const id of draft.attachmentAssets.keys()) archiveDocumentBytes.delete(id);
         Object.assign(sampleData, previous);
         Object.assign(state, previousState);
         try
@@ -632,30 +756,35 @@ const gedcomImportReports = new Map();
 function gedcomImportReport(draft)
 {
     const { people, families, places } = draft.records;
-    const relationships = families.reduce((count, family) =>
-        count + Number(Boolean(family.partnerAId && family.partnerBId))
-            + family.childIds.length * (Number(Boolean(family.partnerAId)) + Number(Boolean(family.partnerBId))), 0);
     const facts = people.reduce((count, person) => count + person.events.length + person.attributes.length
         + Number(person.birth.state !== 'empty' || Boolean(person.birth.placeId))
         + Number(person.livingStatus === 'Deceased'), 0)
         + families.reduce((count, family) => count + family.events.length, 0);
-    const rows = [['People', people.length], ['Families', families.length], ['Relationships', relationships],
+    const rows = [['People', people.length], ['Families', families.length],
         ['Places', places.length], ['Facts', facts]];
-    if (draft.records.media?.length || draft.missingPhotos) rows.push(['Photos', draft.records.media.length]);
-    if (draft.missingPhotos) rows.push(['Local photos unavailable', draft.missingPhotos]);
+    if (draft.records.media.length) rows.push(['Photos', draft.records.media.length]);
+    if (draft.records.archiveFiles.length) rows.push(['Imported Archive files', draft.records.archiveFiles.length]);
+    if (draft.records.notes.length) rows.push(['Notes', draft.records.notes.length]);
     const authored = Object.fromEntries(PROJECT_DRAFT_COLLECTIONS.filter(key => draft.records[key])
         .map(key => [key, draft.records[key]]));
     const authoredCount = Object.values(authored).reduce((count, records) => count + records.length, 0);
     const manifestBytes = new TextEncoder().encode(JSON.stringify({
         project: draft.project, records: authored
-    })).byteLength;
-    return { rows, warnings: draft.warnings, overBackupRecordLimit: authoredCount > 50000,
+    }, (key, value) => ['src', 'previewUrl'].includes(key) && typeof value === 'string' && value.startsWith('data:')
+        ? '' : value)).byteLength;
+    return { rows: rows.filter(([, count]) => count > 0), warnings: draft.warnings, attachments: draft.attachmentReport,
+        attachmentCount: draft.records.media.length + draft.records.archiveFiles.length, distinctFilesFound: draft.distinctFilesFound, overBackupRecordLimit: authoredCount > 50000,
         overBackupManifestLimit: manifestBytes > 32 * 1024 * 1024 };
 }
 
 function gedcomImportSummary(report)
 {
-    const { rows } = report;
+    return '<dl class="gedcom-counts" tabindex="0" aria-label="' + escapeHtml(t('Import summary')) + '">' + report.rows.map(([label, value]) => '<div><dt>' + escapeHtml(t(label)) + '</dt><dd>' + value + '</dd></div>').join('')
+        + '</dl>';
+}
+
+function gedcomImportWarnings(report)
+{
     const warningGroup = (kind, title) =>
     {
         const entries = report.warnings.filter(item => item.kind === kind);
@@ -666,149 +795,257 @@ function gedcomImportSummary(report)
         return '<details><summary>' + escapeHtml(t(title)) + ' (' + total + ')</summary><ul>' + examples + '</ul>'
             + (entries.length > 25 ? '<p>' + escapeHtml(t('Showing the first 25 tag types.')) + '</p>' : '') + '</details>';
     };
-    return '<dl class="gedcom-counts">' + rows.map(([label, value]) => '<div><dt>' + escapeHtml(t(label)) + '</dt><dd>' + value + '</dd></div>').join('')
-        + '</dl><p class="gedcom-session-note">' + escapeHtml(t('People without a recorded death are imported as living.')) + '</p>'
-        + warningGroup('skipped', 'Skipped or unsupported GEDCOM data')
+    return warningGroup('skipped', 'Skipped or unsupported GEDCOM data')
         + warningGroup('date-text', 'Dates preserved as text')
         + (report.overBackupRecordLimit ? '<p>' + escapeHtml(t('This project exceeds the 50,000-record limit for project backups.')) + '</p>' : '')
         + (report.overBackupManifestLimit ? '<p>' + escapeHtml(t('This project exceeds the 32 MiB metadata limit for project backups.')) + '</p>' : '');
 }
 
-function openImportModal(initialFile = null)
+function gedcomAttachmentSummary(report, committed = false)
 {
-    openModal(`<div class="modal" role="dialog" aria-modal="true" aria-labelledby="importTitle">
+    const { attachments: entries, attachmentCount, distinctFilesFound } = report;
+    if (!entries.length) return '';
+    const found = entries.filter(item => item.found).length;
+    const incomplete = entries.filter(item => item.status !== 'Imported');
+    const progressLabel = found === distinctFilesFound ? '{found} of {total} files found'
+        : '{found} of {total} file references matched';
+    const progress = t(progressLabel).replace('{found}', found).replace('{total}', entries.length);
+    const countLabel = committed ? '{count} attachments imported' : '{count} attachments ready to import';
+    return '<p>' + escapeHtml(progress) + ' · ' + escapeHtml(t(countLabel).replace('{count}', attachmentCount)) + '</p>'
+        + (incomplete.length ? '<details class="gedcom-attachment-warnings"><summary>'
+            + escapeHtml(t('Attachments that need attention')) + ' (' + incomplete.length + ')</summary><ul>'
+            + incomplete.map(item => '<li><bdi data-user-content>' + escapeHtml(item.name) + '</bdi> · '
+                + (item.extension ? escapeHtml(item.extension.toUpperCase()) + ' · ' : '')
+                + escapeHtml(t(item.status)) + '</li>').join('') + '</ul></details>' : '');
+}
+
+function openImportModal()
+{
+    openModal(`<div class="modal gedcom-import-modal" role="dialog" aria-modal="true" aria-labelledby="importTitle">
         <div class="modal-header"><h2 id="importTitle">${escapeHtml(t('Import GEDCOM'))}</h2>
         <button class="close-button" type="button" data-close aria-label="${escapeHtml(t('Close'))}">${icon.close}</button></div>
         <form data-gedcom-import><div class="modal-body gedcom-import-body">
-        <div class="gedcom-file-row">
-            <button type="button" class="button secondary" data-gedcom-choose data-modal-initial-focus>${icon.import}${escapeHtml(t('Choose file'))}</button>
-            <span class="gedcom-file-name" data-gedcom-file-name role="status" data-user-content>${escapeHtml(t('Supports .ged files'))}</span>
+        <div class="gedcom-file-row gedcom-file-selector">
+            <button type="button" class="button secondary" data-gedcom-choose data-modal-initial-focus>${icon.import}<span>${escapeHtml(t('Select GEDCOM file'))}</span></button>
+            <div class="gedcom-file-identity" hidden>
+                <span class="gedcom-file-name" data-gedcom-file-name data-user-content></span>
+                <span class="gedcom-file-version" data-gedcom-version hidden></span>
+            </div>
             <input id="gedcomFile" type="file" accept=".ged" hidden>
-            <button type="button" class="button secondary" data-gedcom-folder-choose>${escapeHtml(t('Choose folder'))}</button>
-            <input type="file" webkitdirectory multiple data-gedcom-folder hidden>
+        </div>
+        <div class="gedcom-error-panel" data-gedcom-error hidden role="alert" tabindex="-1">
+            <strong>${escapeHtml(t("Couldn't import GEDCOM"))}</strong>
+            <p data-gedcom-error-detail></p>
+            <p>${escapeHtml(t('No project was created. Check the file and try again, or select another GEDCOM file.'))}</p>
         </div>
         <div class="field full" data-gedcom-name hidden><label for="gedcomProjectName">${escapeHtml(t('Project name'))}</label><input id="gedcomProjectName" maxlength="120" required disabled></div>
         <div class="gedcom-preview" data-gedcom-preview aria-live="polite"></div>
-        <p class="gedcom-error" data-gedcom-error role="alert"></p>
+        <section class="gedcom-attachments" data-gedcom-attachments hidden aria-labelledby="gedcomAttachmentsTitle">
+            <h3 id="gedcomAttachmentsTitle">${escapeHtml(t('Attach referenced files'))}</h3>
+            <p data-gedcom-attachment-help></p>
+            <div class="gedcom-file-row">
+                <button type="button" class="button secondary" data-gedcom-folder-choose>${escapeHtml(t('Select folder'))}</button>
+                <span class="gedcom-file-name" data-gedcom-folder-name data-user-content hidden></span>
+                <button type="button" class="button secondary gedcom-folder-remove" data-gedcom-folder-remove hidden
+                    title="${escapeHtml(t('Remove selected folder'))}" aria-label="${escapeHtml(t('Remove selected folder'))}">${icon.trash}</button>
+                <input type="file" webkitdirectory multiple data-gedcom-folder hidden>
+            </div>
+            <div data-gedcom-attachment-status aria-live="polite"></div>
+        </section>
         <p class="gedcom-session-note">${escapeHtml(t('Imported projects stay in this session. Reloading discards them and any edits.'))}</p>
+        <div class="gedcom-preview" data-gedcom-warnings></div>
         </div><div class="modal-footer"><button class="button secondary" type="button" data-close>${escapeHtml(t('Cancel'))}</button>
-        <button class="button primary" type="submit" disabled>${escapeHtml(t('Import to new project'))}</button></div></form></div>`);
+        <button class="button primary" type="submit" hidden disabled>${escapeHtml(t('Import to new project'))}</button></div></form></div>`);
     const form = modalBackdrop.querySelector('[data-gedcom-import]');
-    const input = form.querySelector('#gedcomFile');
-    const fileName = form.querySelector('[data-gedcom-file-name]');
-    form.querySelector('[data-gedcom-choose]').addEventListener('click', () => input.click());
-    const name = form.querySelector('#gedcomProjectName');
-    const preview = form.querySelector('[data-gedcom-preview]');
-    const error = form.querySelector('[data-gedcom-error]');
-    const submit = form.querySelector('[type="submit"]');
-    let parsed = null;
-    let selectedFile = null;
-    let folderFiles = [];
-    let localPhotos = new Map();
-    const folderInput = form.querySelector('[data-gedcom-folder]');
-    form.querySelector('[data-gedcom-folder-choose]').addEventListener('click', () => folderInput.click());
-    let readSequence = 0;
-    const showError = failure =>
+    const find = selector => form.querySelector(selector);
+    const input = find('#gedcomFile');
+    const choose = find('[data-gedcom-choose]');
+    const fileName = find('[data-gedcom-file-name]');
+    const version = find('[data-gedcom-version]');
+    const name = find('#gedcomProjectName');
+    const preview = find('[data-gedcom-preview]');
+    const warnings = find('[data-gedcom-warnings]');
+    const error = find('[data-gedcom-error]');
+    const submit = find('[type="submit"]');
+    const attachments = find('[data-gedcom-attachments]');
+    const folderInput = find('[data-gedcom-folder]');
+    const folderChoose = find('[data-gedcom-folder-choose]');
+    const folderRemove = find('[data-gedcom-folder-remove]');
+    const folderName = find('[data-gedcom-folder-name]');
+    const attachmentHelp = find('[data-gedcom-attachment-help]');
+    const attachmentStatus = find('[data-gedcom-attachment-status]');
+    let parsed, project, references;
+    let matches = new Map();
+    let revision = 0;
+    const isCurrent = request => form.isConnected && request === revision;
+    function showError(failure)
     {
-        error.textContent = failure instanceof GedcomImportError
+        const detail = failure instanceof GedcomImportError
             ? t(failure.message) + (failure.line ? ' (' + t('Line') + ' ' + failure.line + ')' : '')
             : t('GEDCOM import failed. No project was created.');
-    };
+        find('[data-gedcom-error-detail]').textContent = detail + (failure.diagnostic ? ' ' + failure.diagnostic : '');
+        error.hidden = false;
+        error.focus();
+    }
+    function buildDraft(candidate = parsed, title = name.value.trim() || project.name)
+    {
+        const draft = mapGedcomImport(candidate, { ...project, name: title }, matches, references);
+        if (draft.errors.length)
+        {
+            const failure = new GedcomImportError('The GEDCOM records could not be validated.');
+            failure.diagnostic = draft.errors[0];
+            throw failure;
+        }
+        return draft;
+    }
+    function renderPreview(draft)
+    {
+        const report = gedcomImportReport(draft);
+        preview.innerHTML = gedcomImportSummary(report);
+        warnings.innerHTML = gedcomImportWarnings(report);
+        attachmentStatus.innerHTML = gedcomAttachmentSummary(report);
+    }
+    function clearFolder()
+    {
+        folderInput.value = '';
+        matches = new Map();
+        folderChoose.textContent = t('Select folder');
+        folderRemove.hidden = folderName.hidden = true;
+        folderName.textContent = folderName.title = '';
+        attachmentHelp.hidden = false;
+        attachmentStatus.replaceChildren();
+    }
     async function readFile(file)
     {
-        const sequence = ++readSequence;
-        selectedFile = file;
-        parsed = null;
-        preview.replaceChildren();
-        fileName.textContent = file?.name || t('Supports .ged files');
-        error.textContent = '';
-        submit.disabled = name.disabled = true;
-        name.closest('[data-gedcom-name]').hidden = true;
         if (!file) return;
+        const request = ++revision;
+        parsed = null;
+        clearFolder();
+        preview.replaceChildren();
+        warnings.replaceChildren();
+        choose.querySelector('span').textContent = t('Change file');
+        fileName.textContent = fileName.title = file.name;
+        version.hidden = true;
+        fileName.parentElement.hidden = false;
+        error.hidden = true;
+        submit.hidden = submit.disabled = name.disabled = attachments.hidden = true;
+        name.closest('[data-gedcom-name]').hidden = true;
         try
         {
             if (!/\.ged$/i.test(file.name)) throw new GedcomImportError('Choose a .ged file.');
             if (!file.size || file.size > GEDCOM_IMPORT_LIMITS.bytes)
                 throw new GedcomImportError('Choose a nonempty GEDCOM file up to 8 MiB.');
+            preview.textContent = t('Reading GEDCOM…');
             const bytes = await file.arrayBuffer();
-            if (!form.isConnected || sequence !== readSequence) return;
+            if (!isCurrent(request)) return;
             const candidate = parseGedcomImport(decodeGedcomImport(bytes));
             name.value = file.name.replace(/\.ged$/i, '').trim().slice(0, 120) || t('Imported family tree');
-            const matched = await readGedcomLocalPhotos(candidate, file, folderFiles);
-            if (!form.isConnected || sequence !== readSequence) return;
-            localPhotos = matched;
-            const draft = mapGedcomImport(candidate, gedcomDraftMetadata(name.value), localPhotos);
-            if (draft.errors.length)
-            {
-                error.textContent = t('The GEDCOM records could not be validated.') + ' ' + draft.errors[0];
-                return;
-            }
+            project = gedcomDraftMetadata(name.value);
+            references = gedcomAttachmentReferences(candidate);
+            const draft = buildDraft(candidate);
             parsed = candidate;
-            preview.innerHTML = '<p class="gedcom-file-version">GEDCOM ' + candidate.version + '</p>' + gedcomImportSummary(gedcomImportReport(draft));
+            version.textContent = 'GEDCOM ' + parsed.version;
+            version.hidden = false;
+            renderPreview(draft);
             name.closest('[data-gedcom-name]').hidden = false;
-            submit.disabled = name.disabled = false;
+            submit.hidden = submit.disabled = name.disabled = false;
+            if (references.size)
+            {
+                attachments.hidden = false;
+                attachmentHelp.textContent = t('Select the folder with the files for this GEDCOM.');
+                attachmentStatus.replaceChildren();
+            }
+            name.focus();
         }
         catch (failure)
         {
-            if (form.isConnected && sequence === readSequence) showError(failure);
+            if (!isCurrent(request)) return;
+            preview.replaceChildren();
+            showError(failure);
         }
     }
-    input.addEventListener('change', () => readFile(input.files[0]));
-    folderInput.addEventListener('change', () =>
+    choose.addEventListener('click', () => input.click());
+    input.addEventListener('change', () =>
     {
-        folderFiles = [...folderInput.files];
-        if (!folderFiles.length) return;
-        if (selectedFile) { readFile(selectedFile); return; }
-        const gedcomFiles = folderFiles.filter(file => /\.ged$/i.test(file.name));
-        if (gedcomFiles.length === 1) readFile(gedcomFiles[0]);
-        else error.textContent = t('Choose the GEDCOM file to match photos from this folder.');
+        const file = input.files[0];
+        input.value = '';
+        readFile(file);
     });
+    folderChoose.addEventListener('click', () => folderInput.click());
+    folderInput.addEventListener('change', async () =>
+    {
+        const files = [...folderInput.files];
+        folderInput.value = '';
+        if (!parsed || !files.length) return;
+        const request = ++revision;
+        error.hidden = true;
+        folderChoose.textContent = t('Change folder');
+        const roots = new Set(files.map(file => file.webkitRelativePath?.split('/')[0] || ''));
+        const root = roots.size === 1 ? roots.values().next().value : '';
+        folderName.textContent = folderName.title = root.trim() || t('Selected folder');
+        folderRemove.hidden = folderName.hidden = false;
+        attachmentHelp.hidden = true;
+        submit.disabled = true;
+        attachmentStatus.textContent = t('Looking for referenced files…');
+        try
+        {
+            const result = await matchGedcomAttachments(references, files, () => isCurrent(request));
+            if (!isCurrent(request)) return;
+            matches = result;
+            renderPreview(buildDraft());
+        }
+        catch
+        {
+            if (!isCurrent(request)) return;
+            matches = new Map();
+            renderPreview(buildDraft());
+            attachmentStatus.textContent = t('The folder could not be read. Select another folder or continue without attachments.');
+        }
+        finally { if (isCurrent(request)) submit.disabled = false; }
+    });
+    function removeFolder()
+    {
+        ++revision;
+        clearFolder();
+        const report = gedcomImportReport(buildDraft());
+        preview.innerHTML = gedcomImportSummary(report);
+        warnings.innerHTML = gedcomImportWarnings(report);
+        attachmentStatus.insertAdjacentHTML('afterbegin', '<p>' + escapeHtml(t('Attachments will be skipped.')) + '</p>');
+        submit.disabled = false;
+        folderChoose.focus();
+    }
+    folderRemove.addEventListener('click', removeFolder);
     form.addEventListener('submit', event =>
     {
         event.preventDefault();
-        const value = name.value.trim();
-        if (!parsed || !value || submit.disabled) return;
+        if (!parsed || !name.value.trim() || submit.disabled) return;
         submit.disabled = true;
-        error.textContent = '';
+        error.hidden = true;
+        let draft, report;
         try
         {
-            const draft = mapGedcomImport(parsed, gedcomDraftMetadata(value), localPhotos);
-            if (draft.errors.length)
-            {
-                error.textContent = t('The GEDCOM records could not be validated.') + ' ' + draft.errors[0];
-                return;
-            }
+            draft = buildDraft();
+            report = gedcomImportReport(draft);
             commitGedcomImport(draft);
-            closeModal();
-            const report = gedcomImportReport(draft);
-            gedcomImportReports.set(draft.project.id, report);
-            showGedcomImportResult(report);
         }
-        catch (failure) { showError(failure); }
-        finally { if (form.isConnected) submit.disabled = false; }
+        catch (failure)
+        {
+            showError(failure);
+            submit.disabled = false;
+            return;
+        }
+        closeModal();
+        gedcomImportReports.set(draft.project.id, report);
+        showGedcomImportResult(report);
     });
-    if (initialFile) readFile(initialFile);
 }
 
 function showGedcomImportResult(report)
 {
     openModal('<div class="modal" role="dialog" aria-modal="true" aria-labelledby="gedcomResultTitle">'
         + '<div class="modal-header"><h2 id="gedcomResultTitle">' + escapeHtml(t('GEDCOM imported')) + '</h2></div>'
-        + '<div class="modal-body">' + gedcomImportSummary(report)
-        + '<p>' + escapeHtml(t('Imported projects stay in this session. Reloading discards them and any edits.')) + '</p></div>'
+        + '<div class="modal-body">' + gedcomImportSummary(report) + gedcomAttachmentSummary(report, true)
+        + '<p>' + escapeHtml(t('Imported projects stay in this session. Reloading discards them and any edits.')) + '</p>' + gedcomImportWarnings(report) + '</div>'
         + '<div class="modal-footer"><button class="button primary" type="button" data-close>'
         + escapeHtml(t('Done')) + '</button></div></div>');
-}
-
-function bindGedcomDropzone(zone)
-{
-    if (!zone) return;
-    zone.addEventListener('click', () => openImportModal());
-    zone.addEventListener('dragover', event => event.preventDefault());
-    zone.addEventListener('drop', event =>
-    {
-        event.preventDefault();
-        const file = event.dataTransfer.files[0];
-        if (file) openImportModal(file);
-    });
 }
