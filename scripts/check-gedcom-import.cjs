@@ -27,7 +27,7 @@ const header = ['0 HEAD', '1 GEDC', '2 VERS 5.5.1', '1 CHAR UTF-8'];
 const file = rows => [...header, ...rows, '0 TRLR'].join('\n');
 const rows = [
     '0 @I1@ INDI', '1 NAME Мария /Иванова/', '1 BIRT', '2 DATE ABT 1970', '2 PLAC Москва',
-    '1 OCCU Archivist', '1 DEAT N', '1 NOTE Not imported',
+    '1 OCCU Archivist', '1 DEAT N', '1 NOTE Person note',
     '0 @I2@ INDI', '1 NAME Ada /Example/', '1 FAMC @F2@', '2 PEDI foster',
     '1 BIRT', '2 DATE BET 1995 AND 1997',
     '0 @I3@ INDI', '1 NAME Robert /Example/', '1 SEX M',
@@ -37,7 +37,7 @@ const rows = [
     '0 @F3@ FAM', '1 HUSB @I3@', '1 WIFE @I1@', '1 MARR N'
 ];
 const source = file(rows);
-const project = { id: 'ged-project', name: 'GEDCOM test' };
+const project = { id: 'ged-project', name: 'GEDCOM test', createdAt: '2026-01-01T00:00:00Z' };
 const parse = value => context.parseGedcomImport(value);
 const map = value => context.mapGedcomImport(parse(value), project);
 const decoded = context.decodeGedcomImport(Buffer.from('\uFEFF' + source));
@@ -63,7 +63,9 @@ assert.deepEqual(Object.keys(families[0].parentChildTypes), []);
 assert.equal(Object.values(families[1].parentChildTypes)[0], 'Foster');
 assert.equal(families[2].relationshipType, 'Unknown relationship');
 assert.ok(events.some(event => event.type === 'marriage'));
-assert.ok(mapped.warnings.some(warning => warning.tag === 'NOTE' && warning.count === 1));
+assert.equal(mapped.records.notes[0].body, 'Person note');
+assert.equal(mapped.records.notes[0].linkedPersonIds[0], people[0].id);
+assert.ok(!mapped.warnings.some(warning => warning.tag === 'NOTE'));
 assert.equal(JSON.stringify(map(decoded).records), JSON.stringify(mapped.records));
 const estimated = map(source.replace('ABT 1970', 'EST AUG 1970').replace('1 DEAT N', '1 DEAT Y'));
 assert.equal(estimated.records.people[0].birth.dateType, 'About / Circa');
@@ -91,7 +93,20 @@ assert.throws(() => context.decodeGedcomImport(Buffer.concat([splitConc, Buffer.
 assert.throws(() => context.decodeGedcomImport(Buffer.from(splitConc.toString('latin1').replace('CONC', 'CONT'), 'latin1')), /valid UTF-8/);
 const wrappedNote = map(file(['0 @I1@ INDI', '1 NOTE First line', 'Unprefixed note text', '2 CONC Last part']));
 assert.deepEqual(Array.from(wrappedNote.errors), []);
-assert.ok(wrappedNote.warnings.some(item => item.tag === 'CONT' && item.lines[0] === 7));
+assert.equal(wrappedNote.records.notes[0].body, 'First line\nUnprefixed note textLast part');
+assert.ok(!wrappedNote.warnings.some(item => ['NOTE', 'CONT', 'CONC'].includes(item.tag)));
+const deathNote = map(file([
+    '0 @S@ SUBM', '1 NAME Exporter',
+    '0 @I1@ INDI', '1 NAME Ada /Example/', '1 _UID external-id',
+    '1 DEAT', '2 CAUS Illness', '2 NOTE @N1@',
+    '1 OBJE', '2 FILE missing.jpg', '3 FORM jpg',
+    '0 @N1@ NOTE First', '1 CONC  part', '1 CONT Second line'
+]));
+assert.deepEqual(Array.from(deathNote.errors), []);
+assert.equal(deathNote.records.people[0].death.cause, 'Illness');
+assert.equal(deathNote.records.notes[0].body, 'First part\nSecond line');
+assert.equal(deathNote.records.notes[0].linkedEventIds[0], deathNote.records.events.find(event => event.type === 'death').id);
+assert.ok(!deathNote.warnings.some(item => ['SUBM', 'NAME', '_UID', 'FORM', 'CAUS', 'NOTE', 'CONC', 'CONT'].includes(item.tag)));
 assert.throws(() => parse(file(['0 @I1@ INDI', '1 NOTE First line', '2 invalid tag'])), /Malformed/);
 assert.throws(() => context.decodeGedcomImport(Uint8Array.of(0xff)), /valid UTF-8/);
 assert.throws(() => context.decodeGedcomImport(new Uint8Array(8 * 1024 * 1024 + 1)), /8 MiB/);
@@ -102,7 +117,7 @@ for (const [invalid, diagnostic] of [
     [source.replace('0 @I3@ INDI', '0 @I1@ INDI'), /Duplicate/],
     [source.replace('0 @I3@ INDI', '0 INDI'), /missing its GEDCOM ID/],
     [source.replace('1 CHIL @I2@', '1 CHIL @missing@'), /missing or incompatible/],
-    [source.replace('1 NOTE Not imported', '1 NOTE ' + 'x'.repeat(4100)), /too long/]
+    [source.replace('1 NOTE Person note', '1 NOTE ' + 'x'.repeat(4100)), /too long/]
 ])
     assert.throws(() => map(invalid), diagnostic);
 

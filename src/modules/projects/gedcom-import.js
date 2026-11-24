@@ -79,7 +79,7 @@ function parseGedcomImport(text)
         if (raw === '' && index === lines.length - 1) continue;
         if (raw.length > limits.lineLength)
             throw new GedcomImportError('A GEDCOM line is too long.', line);
-        const match = /^(0|[1-9][0-9]?) +(?:(@[^@\s]+@) +)?([A-Z_][A-Z0-9_]*)(?: +(.*))?$/.exec(raw);
+        const match = /^(0|[1-9][0-9]?) +(?:(@[^@\s]+@) +)?([A-Z_][A-Z0-9_]*)(?:( +)(.*))?$/.exec(raw);
         if (/[\u0000-\u0008\u000b\u000c\u000e-\u001f\ufeff]/.test(raw))
             throw new GedcomImportError('Malformed GEDCOM line.', line);
         if (!match)
@@ -94,7 +94,8 @@ function parseGedcomImport(text)
             continue;
         }
         const level = Number(match[1]);
-        const [, , xref, tag, value = ''] = match;
+        const [, , xref, tag, separator = '', payload = ''] = match;
+        const value = ['NOTE', 'CONT', 'CONC'].includes(tag) ? separator.slice(1) + payload : payload;
         if (level > limits.depth || level > stack.length || (level && xref))
             throw new GedcomImportError('Invalid GEDCOM hierarchy.', line);
         if (!level && roots.length >= limits.records)
@@ -229,6 +230,46 @@ function mapGedcomImport(parsed, project, localPhotos = new Map())
     const places = new Map();
     const media = new Map();
     const missingPhotos = new Set();
+    const notes = new Map();
+    const importedAt = project.createdAt || new Date().toISOString();
+    const importNotes = (owner, personIds, eventId) =>
+    {
+        for (const link of owner.children.filter(child => child.tag === 'NOTE'))
+        {
+            checkDeadline();
+            const pointer = /^@[^@]+@$/.test(link.value.trim());
+            const source = pointer ? parsed.xrefs.get(link.value.trim()) : link;
+            if (source?.tag !== 'NOTE') continue;
+            used.add(link);
+            used.add(source);
+            let note = notes.get(source);
+            if (!note)
+            {
+                const parts = [source.value.replace(/^@@/, '@')];
+                for (const part of source.children)
+                {
+                    checkDeadline();
+                    if (!['CONT', 'CONC'].includes(part.tag)) continue;
+                    parts.push(part.tag === 'CONT' ? '\n' : '', part.value);
+                    used.add(part);
+                }
+                const body = parts.join('');
+                if (!body.trim()) continue;
+                note = {
+                    id: projectId + '-note-' + (notes.size + 1), projectId,
+                    title: body.trim().split(/\r?\n/, 1)[0].slice(0, 100), body,
+                    bodyDelta: null, bodyFormat: '', favorite: false, archived: false, tags: [], checklist: [],
+                    createdAt: importedAt, updatedAt: importedAt,
+                    linkedPersonIds: [], linkedEventIds: [], linkedPlaceIds: [], linkedPhotoIds: [],
+                    linkedArchiveFileIds: [], collectionIds: [], relatedNoteIds: []
+                };
+                notes.set(source, note);
+            }
+            for (const id of personIds)
+                if (!note.linkedPersonIds.includes(id)) note.linkedPersonIds.push(id);
+            if (eventId && !note.linkedEventIds.includes(eventId)) note.linkedEventIds.push(eventId);
+        }
+    };
     const take = (node, tag) =>
     {
         const values = node.children.filter(child => child.tag === tag);
@@ -322,18 +363,28 @@ function mapGedcomImport(parsed, project, localPhotos = new Map())
             const birth = take(node, 'BIRT');
             const death = take(node, 'DEAT');
             const deceased = positiveEvent(death);
+            const hasBirth = positiveEvent(birth);
             const record = {
                 id: projectId + '-person-' + (peopleByXref.size + 1), projectId, names, gender,
                 livingStatus: deceased ? 'Deceased' : 'Living',
-                birth: vital(positiveEvent(birth) ? birth : null), death: vital(deceased ? death : null),
+                birth: vital(hasBirth ? birth : null), death: vital(deceased ? death : null),
                 profile: {}, events: [], attributes: [], notes: [], citations: [], mediaIds: []
             };
+            importNotes(node, [record.id]);
+            if (hasBirth) importNotes(birth, [record.id], 'event-' + record.id + '-birth');
+            if (deceased)
+            {
+                const cause = read(death, 'CAUS');
+                if (cause) record.death.cause = cause;
+                importNotes(death, [record.id], 'event-' + record.id + '-death');
+            }
             for (const event of node.children.filter(child => ['BAPM', 'BURI'].includes(child.tag)))
             {
                 if (!positiveEvent(event)) continue;
                 const { placeId, placeText, ...date } = vital(event);
                 record.events.push({ id: record.id + '-event-' + (record.events.length + 1),
                     gedcomTag: event.tag, date, placeId, placeText });
+                importNotes(event, [record.id], 'event-' + record.events.at(-1).id);
             }
             for (const fact of node.children.filter(child => ['EDUC', 'OCCU', 'RELI'].includes(child.tag)))
             {
@@ -411,6 +462,10 @@ function mapGedcomImport(parsed, project, localPhotos = new Map())
             const married = event.tag === 'MARR';
             family.events.push({ id: family.id + '-event-' + (family.events.length + 1), gedcomTag: event.tag,
                 eventType: married ? 'Marriage' : 'Divorce', date, placeId, placeText, typeLabel: read(event, 'TYPE') });
+            const partnerIds = [family.partnerAId, family.partnerBId].filter(Boolean);
+            if (partnerIds.length)
+                importNotes(event, partnerIds, partnerIds.length === 2
+                    ? 'event-' + family.id + '-' + family.events.at(-1).id : null);
         }
         if (family.events.some(event => event.gedcomTag === 'DIV'))
         {
@@ -494,18 +549,21 @@ function mapGedcomImport(parsed, project, localPhotos = new Map())
         for (const parent of parentId ? [parentId] : [family.partnerAId, family.partnerBId].filter(Boolean))
             family.parentChildTypes[parent + '|' + person.id] = type;
 
-    function account(node)
+    function account(node, parent)
     {
         checkDeadline();
-        if (!used.has(node)) warn(node.tag, node.line);
-        for (const child of node.children) account(child);
+        if (!parent && node.tag === 'SUBM') return;
+        const technical = node.tag === '_UID'
+            || (node.tag === 'FORM' && ['OBJE', 'FILE'].includes(parent?.tag));
+        if (!used.has(node) && !technical) warn(node.tag, node.line);
+        for (const child of node.children) account(child, node);
     }
     for (const node of parsed.roots) account(node);
 
     const people = [...peopleByXref.values()];
     const families = [...familiesByXref.values()];
     if (!people.length) throw new GedcomImportError('The GEDCOM file contains no people.');
-    const records = { people, families, places: [...places.values()], media: [...media.values()] };
+    const records = { people, families, places: [...places.values()], media: [...media.values()], notes: [...notes.values()] };
     const draft = prepareProjectDraft({ ...project, defaultPersonId: people[0].id }, records);
     if (draft.errors.length) return { errors: draft.errors };
     return { ...draft, warnings: [...warnings.values()], missingPhotos: missingPhotos.size };
