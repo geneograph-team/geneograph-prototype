@@ -212,17 +212,28 @@ function gedcomObjectFileLinks(node, parsed)
     });
 }
 
-function gedcomAttachmentReferences(parsed)
+function gedcomAttachmentReferences(parsed, online = false)
 {
     const references = new Map();
+    if (online && parsed.exporter !== 'MYHERITAGE') return references;
     function visit(node, owner)
     {
         for (const link of gedcomObjectFileLinks(node, parsed))
         {
             const value = link.file.value.trim();
-            if (!value || /^[a-z][a-z\d+.-]*:\/\//i.test(value) && !/^file:/i.test(value)) continue;
+            if (!value) continue;
+            const remote = /^[a-z][a-z\d+.-]*:\/\//i.test(value) && !/^file:/i.test(value);
+            if (online !== remote) continue;
+            if (online)
+            {
+                let url;
+                try { url = new URL(value); }
+                catch { continue; }
+                if (url.origin !== 'https://sites-cf.mhcache.com'
+                    || url.username || url.password) continue;
+            }
             const path = link.path;
-            const key = (path || value).normalize('NFC').toLowerCase();
+            const key = online ? value : (path || value).normalize('NFC').toLowerCase();
             const entry = references.get(key) || { path, value, links: [] };
             entry.links.push({ ...link, owner, node });
             references.set(key, entry);
@@ -235,7 +246,16 @@ function gedcomAttachmentReferences(parsed)
     return references;
 }
 
-async function matchGedcomAttachments(references, folderFiles, current)
+const GEDCOM_ATTACHMENT_LIMIT = 500;
+const GEDCOM_ATTACHMENT_BYTES = 80 * 1024 * 1024;
+
+function gedcomAttachmentUsage(matches)
+{
+    const files = new Set([...matches.values()].filter(item => item.status === 'Ready to import').map(item => item.file));
+    return { count: files.size, bytes: [...files].reduce((total, file) => total + file.size, 0) };
+}
+
+async function matchGedcomAttachments(references, folderFiles, current, reserved = new Map())
 {
     const normalize = value => value.normalize('NFC').toLowerCase();
     const paths = new Map();
@@ -254,8 +274,7 @@ async function matchGedcomAttachments(references, folderFiles, current)
     }
     const matches = new Map();
     const loaded = new Map();
-    let bytes = 0;
-    let importedCount = 0;
+    let { bytes, count: importedCount } = gedcomAttachmentUsage(reserved);
     for (const [key, reference] of references)
     {
         if (!current()) break;
@@ -281,7 +300,7 @@ async function matchGedcomAttachments(references, folderFiles, current)
                     entry.status = 'Unsupported file type';
                 else if (!file.size) entry.status = 'File could not be read';
                 else if (file.size > (archiveImageExtensions.has(format) ? PHOTO_UPLOAD_MAX_BYTES : archiveDocumentMaxBytes)
-                    || importedCount >= 500 || bytes + file.size > 80 * 1024 * 1024)
+                    || importedCount >= GEDCOM_ATTACHMENT_LIMIT || bytes + file.size > GEDCOM_ATTACHMENT_BYTES)
                     entry.status = 'Attachment size or count limit exceeded';
                 else
                 {
@@ -307,6 +326,72 @@ async function matchGedcomAttachments(references, folderFiles, current)
             catch { entry.status = 'File could not be read'; }
             loaded.set(file, { status: entry.status, photo: entry.photo, blob: entry.blob });
         }
+    }
+    return matches;
+}
+
+async function downloadGedcomPhotos(references, localMatches, signal, onProgress)
+{
+    const matches = new Map();
+    let { bytes, count } = gedcomAttachmentUsage(localMatches);
+    const extensions = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp' };
+    for (const [key, reference] of references)
+    {
+        if (signal.aborted) break;
+        const entry = { ...reference, found: false, status: 'Linked photo could not be downloaded' };
+        matches.set(key, entry);
+        try
+        {
+            const maxBytes = Math.min(PHOTO_UPLOAD_MAX_BYTES, GEDCOM_ATTACHMENT_BYTES - bytes);
+            if (count >= GEDCOM_ATTACHMENT_LIMIT || maxBytes <= 0)
+            {
+                entry.status = 'Attachment size or count limit exceeded';
+                continue;
+            }
+            const response = await fetch(key, { mode: 'cors', credentials: 'omit', redirect: 'error',
+                referrerPolicy: 'no-referrer', signal: AbortSignal.any([signal, AbortSignal.timeout(10000)]) });
+            if (!response.ok || !response.body) continue;
+            entry.found = true;
+            const type = response.headers.get('content-type')?.split(';')[0].trim().toLowerCase();
+            const extension = extensions[type];
+            const reader = response.body.getReader();
+            try
+            {
+                if (!Object.hasOwn(extensions, type))
+                {
+                    entry.status = 'Unsupported file type';
+                    continue;
+                }
+                const chunks = [];
+                let size = 0;
+                while (true)
+                {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+                    size += value.byteLength;
+                    if (size > maxBytes) break;
+                    chunks.push(value);
+                }
+                if (size > maxBytes)
+                {
+                    entry.status = 'Attachment size or count limit exceeded';
+                    continue;
+                }
+                const basename = new URL(key).pathname.split('/').at(-1);
+                const safeName = basename?.replace(/[^a-z0-9._-]/gi, '').slice(-120) || 'Photo-' + matches.size;
+                const filename = safeName.toLowerCase().endsWith('.' + extension) ? safeName : safeName + '.' + extension;
+                const file = new File(chunks, filename, { type });
+                entry.photo = await createPhotoUploadDraft(file);
+                entry.file = file;
+                entry.extension = extension;
+                entry.status = 'Ready to import';
+                bytes += file.size;
+                count++;
+            }
+            finally { await reader.cancel().catch(() => {}); }
+        }
+        catch { /* Unreadable or unavailable images do not block the genealogy. */ }
+        finally { if (!signal.aborted) onProgress(matches.size); }
     }
     return matches;
 }
@@ -994,7 +1079,14 @@ function mapGedcomImport(parsed, project, matches = new Map(), references = gedc
         sources: [...sources.values()], sourceLinks: [...sourceLinks.values()] };
     const draft = prepareProjectDraft({ ...project, defaultPersonId: people[0].id }, records);
     if (draft.errors.length) return { errors: draft.errors };
-    const distinctFilesFound = new Set([...matches.values()].filter(match => match.found).map(match => match.file)).size;
+    const distinctFilesFound = new Set([...matches].filter(([, match]) => match.found)
+        .map(([key, match]) => match.file || key)).size;
+    for (const entry of attachmentReport)
+    {
+        if (entry.status.startsWith('Imported')) onlinePhotos.delete(entry.name);
+        if (entry.name.startsWith('https://sites-cf.mhcache.com/'))
+            entry.name = new URL(entry.name).pathname.split('/').at(-1) || t('Photo');
+    }
     return { ...draft, warnings: [...warnings.values()], attachmentReport, attachmentAssets, distinctFilesFound, onlinePhotoCount: onlinePhotos.size };
 }
 
@@ -1155,13 +1247,17 @@ function openImportModal()
         <div class="gedcom-preview" data-gedcom-preview aria-live="polite"></div>
         <section class="gedcom-attachments" data-gedcom-attachments hidden aria-labelledby="gedcomAttachmentsTitle">
             <h3 id="gedcomAttachmentsTitle">${escapeHtml(t('Attach referenced files'))}</h3>
-            <p data-gedcom-attachment-help></p>
-            <div class="gedcom-file-row">
+            <p data-gedcom-attachment-help hidden></p>
+            <div class="gedcom-file-row" data-gedcom-local hidden>
                 <button type="button" class="button secondary" data-gedcom-folder-choose>${escapeHtml(t('Select folder'))}</button>
                 <span class="gedcom-file-name" data-gedcom-folder-name data-user-content hidden></span>
                 <button type="button" class="button secondary gedcom-folder-remove" data-gedcom-folder-remove hidden
                     title="${escapeHtml(t('Remove selected folder'))}" aria-label="${escapeHtml(t('Remove selected folder'))}">${icon.trash}</button>
                 <input type="file" webkitdirectory multiple data-gedcom-folder hidden>
+            </div>
+            <div class="gedcom-file-row" data-gedcom-online hidden>
+                <button type="button" class="button secondary" data-gedcom-download>${escapeHtml(t('Download linked photos'))}</button>
+                <span data-gedcom-download-status aria-live="polite"></span>
             </div>
             <div data-gedcom-attachment-status aria-live="polite"></div>
         </section>
@@ -1187,8 +1283,14 @@ function openImportModal()
     const folderName = find('[data-gedcom-folder-name]');
     const attachmentHelp = find('[data-gedcom-attachment-help]');
     const attachmentStatus = find('[data-gedcom-attachment-status]');
-    let parsed, project, references;
+    const localRow = find('[data-gedcom-local]');
+    const onlineRow = find('[data-gedcom-online]');
+    const download = find('[data-gedcom-download]');
+    const downloadStatus = find('[data-gedcom-download-status]');
+    let parsed, project, references, onlineReferences;
     let matches = new Map();
+    let onlineMatches = new Map();
+    let downloadController;
     let revision = 0;
     const isCurrent = request => form.isConnected && request === revision;
     function showError(failure)
@@ -1202,7 +1304,9 @@ function openImportModal()
     }
     function buildDraft(candidate = parsed, title = name.value.trim() || project.name)
     {
-        const draft = mapGedcomImport(candidate, { ...project, name: title }, matches, references);
+        const stagedReferences = new Map([...references, ...[...onlineReferences].filter(([key]) => onlineMatches.has(key))]);
+        const draft = mapGedcomImport(candidate, { ...project, name: title },
+            new Map([...matches, ...onlineMatches]), stagedReferences);
         if (draft.errors.length)
         {
             const failure = new GedcomImportError('The GEDCOM records could not be validated.');
@@ -1225,7 +1329,7 @@ function openImportModal()
         folderChoose.textContent = t('Select folder');
         folderRemove.hidden = folderName.hidden = true;
         folderName.textContent = folderName.title = '';
-        attachmentHelp.hidden = false;
+        attachmentHelp.hidden = !references?.size;
         attachmentStatus.replaceChildren();
     }
     async function readFile(file)
@@ -1233,6 +1337,11 @@ function openImportModal()
         if (!file) return;
         const request = ++revision;
         parsed = null;
+        downloadController?.abort();
+        onlineMatches = new Map();
+        downloadStatus.textContent = '';
+        download.disabled = false;
+        folderChoose.disabled = folderRemove.disabled = false;
         clearFolder();
         preview.replaceChildren();
         warnings.replaceChildren();
@@ -1255,6 +1364,7 @@ function openImportModal()
             name.value = file.name.replace(/\.ged$/i, '').trim().slice(0, 120) || t('Imported family tree');
             project = gedcomDraftMetadata(name.value);
             references = gedcomAttachmentReferences(candidate);
+            onlineReferences = gedcomAttachmentReferences(candidate, true);
             const draft = buildDraft(candidate);
             parsed = candidate;
             version.textContent = 'GEDCOM ' + parsed.version;
@@ -1262,6 +1372,11 @@ function openImportModal()
             renderPreview(draft);
             name.closest('[data-gedcom-name]').hidden = false;
             submit.hidden = submit.disabled = name.disabled = false;
+            attachments.hidden = !references.size && !onlineReferences.size;
+            localRow.hidden = !references.size;
+            onlineRow.hidden = !onlineReferences.size;
+            attachmentHelp.hidden = !references.size;
+            attachmentStatus.replaceChildren();
             if (references.size)
             {
                 attachments.hidden = false;
@@ -1299,10 +1414,11 @@ function openImportModal()
         folderRemove.hidden = folderName.hidden = false;
         attachmentHelp.hidden = true;
         submit.disabled = true;
+        download.disabled = true;
         attachmentStatus.textContent = t('Looking for referenced files…');
         try
         {
-            const result = await matchGedcomAttachments(references, files, () => isCurrent(request));
+            const result = await matchGedcomAttachments(references, files, () => isCurrent(request), onlineMatches);
             if (!isCurrent(request)) return;
             matches = result;
             renderPreview(buildDraft());
@@ -1314,20 +1430,56 @@ function openImportModal()
             renderPreview(buildDraft());
             attachmentStatus.textContent = t('The folder could not be read. Select another folder or continue without attachments.');
         }
-        finally { if (isCurrent(request)) submit.disabled = false; }
+        finally { if (isCurrent(request)) submit.disabled = download.disabled = false; }
     });
     function removeFolder()
     {
         ++revision;
         clearFolder();
-        const report = gedcomImportReport(buildDraft());
-        preview.innerHTML = gedcomImportSummary(report);
-        warnings.innerHTML = gedcomImportWarnings(report);
-        attachmentStatus.insertAdjacentHTML('afterbegin', '<p>' + escapeHtml(t('Attachments will be skipped.')) + '</p>');
-        submit.disabled = false;
+        renderPreview(buildDraft());
+        if (!onlineMatches.size)
+            attachmentStatus.insertAdjacentHTML('afterbegin', '<p>' + escapeHtml(t('Attachments will be skipped.')) + '</p>');
+        submit.disabled = download.disabled = false;
         folderChoose.focus();
     }
     folderRemove.addEventListener('click', removeFolder);
+    download.addEventListener('click', async () =>
+    {
+        if (!parsed || download.disabled) return;
+        const request = ++revision;
+        const controller = new AbortController();
+        downloadController = controller;
+        const closeObserver = new MutationObserver(() =>
+        {
+            if (!form.isConnected) controller.abort();
+        });
+        closeObserver.observe(modalBackdrop, { childList: true });
+        download.disabled = folderChoose.disabled = folderRemove.disabled = submit.disabled = true;
+        const progress = done =>
+        {
+            if (isCurrent(request))
+                downloadStatus.textContent = t('Downloading linked photos: {done} of {total}')
+                    .replace('{done}', done).replace('{total}', onlineReferences.size);
+        };
+        progress(0);
+        try
+        {
+            const result = await downloadGedcomPhotos(onlineReferences, matches, controller.signal, progress);
+            if (!isCurrent(request)) return;
+            onlineMatches = result;
+            renderPreview(buildDraft());
+            downloadStatus.textContent = '';
+        }
+        catch
+        {
+            if (isCurrent(request)) downloadStatus.textContent = t('Linked photo could not be downloaded');
+        }
+        finally
+        {
+            closeObserver.disconnect();
+            if (isCurrent(request)) download.disabled = folderChoose.disabled = folderRemove.disabled = submit.disabled = false;
+        }
+    });
     form.addEventListener('submit', event =>
     {
         event.preventDefault();

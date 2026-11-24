@@ -6,7 +6,7 @@ const path = require('node:path');
 const vm = require('node:vm');
 
 const context = vm.createContext({
-    TextDecoder, TextEncoder, Blob, performance, structuredClone,
+    TextDecoder, TextEncoder, Blob, File, URL, Response, AbortSignal, performance, structuredClone,
     state: { language: 'en' },
     document: { documentElement: { lang: 'en' } },
     t: value => value,
@@ -382,7 +382,38 @@ async function verifyAttachments()
     assert.ok(draft.warnings.some(warning => warning.tag === 'FILE'));
 }
 
-verifyAttachments().then(() =>
+async function verifyOnlinePhotos()
+{
+    const url = 'https://sites-cf.mhcache.com/shared.jpg';
+    const missing = 'https://sites-cf.mhcache.com/missing.jpg';
+    const rows = ['0 @I1@ INDI', '1 OBJE', '2 FILE ' + url, '2 _PERSONALPHOTO Y',
+        '0 @I2@ INDI', '1 OBJE', '2 FILE ' + url, '1 OBJE', '2 FILE ' + missing,
+        '1 OBJE', '2 FILE https://unrelated.example/photo.jpg'];
+    const input = parse(file(['1 SOUR MYHERITAGE', ...rows]));
+    const refs = context.gedcomAttachmentReferences(input, true);
+    assert.equal(refs.size, 2);
+    assert.equal(context.gedcomAttachmentReferences(parse(file(rows)), true).size, 0);
+    const requested = [];
+    context.fetch = async (key, options) =>
+    {
+        requested.push(key);
+        assert.equal(options.credentials, 'omit');
+        assert.equal(options.redirect, 'error');
+        return key === missing ? new Response(null, { status: 404 })
+            : new Response(new Uint8Array([1]), { headers: { 'content-type': 'image/jpeg' } });
+    };
+    const matches = await context.downloadGedcomPhotos(refs, new Map(), new AbortController().signal, () => {});
+    assert.deepEqual(requested, [url, missing]);
+    assert.equal(matches.get(missing).status, 'Linked photo could not be downloaded');
+    const draft = context.mapGedcomImport(input, project, matches, refs);
+    assert.deepEqual(Array.from(draft.errors), []);
+    assert.equal(draft.records.media.length, 1);
+    assert.equal(draft.records.media[0].personIds.length, 2);
+    assert.equal(draft.records.people[0].primaryPhotoId, draft.records.media[0].id);
+    assert.equal(draft.onlinePhotoCount, 2);
+}
+
+verifyAttachments().then(verifyOnlinePhotos).then(() =>
 {
     console.log('GEDCOM decoding, canonical mapping, warnings, attachment matching, and invalid inputs passed.');
 }).catch(error =>

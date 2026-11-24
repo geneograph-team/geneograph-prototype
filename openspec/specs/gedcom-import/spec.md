@@ -44,3 +44,7 @@ Preserve supported event and education details and import Source records with se
 Import engagement, marriage banns, marriage contracts, marriage licenses, marriage settlements, divorce filings, and family census entries as linked Notes. Keep the event label, original date, place, and attached note text. Keep existing marriage, divorce, and annulment events as relationship events.
 
 Map GEDCOM CAL and INT to the Calculated date type when the date can be parsed, keeping the original GEDCOM text. Education and Occupation import GEDCOM FROM and TO periods into their existing start and end fields. Periods on other records remain preserved as text.
+
+### Requirement: Optional MyHeritage photo downloads
+
+For MyHeritage GEDCOM files, offer an explicit download action for JPEG, PNG, and WebP links on the supported MyHeritage image host. Stage and validate each distinct image locally, keep its associations, and apply the same attachment limits as local files. Failed downloads remain nonblocking. Selecting a GEDCOM alone does not request any online images.
