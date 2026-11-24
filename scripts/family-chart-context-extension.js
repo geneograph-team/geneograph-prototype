@@ -20,7 +20,7 @@
 
     // GeneoGraph: extend the native focused tree with approved visible family
     // contexts. Existing occurrences retain their native identity and toggle state.
-    function extendFamilyContexts(tree, data, families, geometry) {
+    function extendFamilyContexts(tree, data, families, geometry, gridConfig) {
         const { is_horizontal, node_separation, level_separation } = geometry;
         const cross = is_horizontal ? "y" : "x";
         const depth = is_horizontal ? "x" : "y";
@@ -83,6 +83,8 @@
             }
         } while (pending.size < previousSize);
 
+        const grid = gridConfig && planContextHouseholdGrid(tree, households, nativeNodes, families, geometry, gridConfig);
+        if (grid?.status === 'applied') return { links: grid.links, grid };
         placeCollateralHouseholds(tree, households, nativeNodes, cross, depth, node_separation);
 
         const contextLinks = [];
@@ -97,7 +99,7 @@
                 for (const link of descriptors) contextLinks.push({ ...link, id: family.id + ":partner", familyContextId: family.id });
             }
         }
-        return contextLinks;
+        return { links: contextLinks, grid };
 
         function distance(a, b) {
             return Math.abs(a[depth] - b[depth]) + Math.abs(a[cross] - b[cross]);

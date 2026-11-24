@@ -2,30 +2,26 @@
 
 ## Status
 
-Isolated calculation experiment; the application preview and bundled runtime are unchanged. This is not a production implementation or accepted replacement for Family Chart's calculation. The prototype consumes the same canonical family contexts and the native preview's occurrence coordinates as ordering inputs. It explores independent household regions only.
+The existing opt-in Family Chart preview attempts a family-context grid allocation before the old collateral placement pass. Classic remains default. Successful allocation is rendered by Family Chart's native SVG join without the legacy post-render connector correction. Unsupported or invalid candidates retain the preceding preview with an explicit localized notice, rather than stacking corrections. No permanent extra mode, schema or deployment change.
 
 ## Model
 
-Group same-generation partners into units, order simple chains or a shared-person star, and assign a distinct family slot. Recursively measure all child units, including their descendants, before placing parent slots. Reserve conservative full-depth envelopes rather than individual row positions. Expand nonprincipal gaps when adjacent family territories would conflict. Allocate inter-generation corridors before generating orthogonal paths; extended partnerships use distinct below-card lanes and child rails attach to family-specific junctions. The calculation is orientation-independent; coordinates are cross/depth, not screen x/y.
+Collect visual family contexts from canonical families and occurrence-local native edges (including Add parent cards). Group same-generation partnerships into units. A child unit belongs exclusively to a household only when one visible family enters it; shared units are separately allocated and retain their edges. Orient the principal edge, traverse its partnership graph outward, recursively measure exclusive child envelopes, allocate family slots and pack region bounds across all occupied generation bands. Anchor the focused region and preserve clean native-only subregions as rigid shapes where possible. Assign inter-generation spacing, distinct ports and partner/child rail lanes before generating paths. Validate card overlap, connector interiors, unrelated coincident routes, false junctions and displayed graph connectivity before applying any geometry. Proper crossings are counted, not claimed absent. The extension owns geometry for the applied path; Family Chart owns cards, native SVG join, viewport and duplicate lifecycle.
 
-This is a deliberate experiment: the extended-partner lanes are below cards, not the previously preferred inline presentation. Native rendering integration, preservation of unchanged native regions, occurrence-aware shared regions and a crossing treatment require review before adoption. A disconnected, repeated, reconvergent or unsupported graph is explicitly rejected rather than silently flattened. Separate family records for the same partner pair are also rejected pending distinct family ports. The algorithm does not use names or fixture IDs to position nodes.
+Extended partnerships use below-card corridors rather than the earlier inline preference: provisional for founder review. Unsupported generation assignments, ambiguous contexts or invalid geometry retain the preceding preview and expose the reason in DOM/console. Fallback is an experimental comparison path, not a proposed permanent second solver.
 
 ## Evidence
 
-Base: `4408c53c`. Executed the pinned D3 and Family Chart bundles, canonical validator and native input adapter in an isolated V8 runtime, then the exact experiment functions in `scripts/test-collateral-household-grid.cjs`.
-
-- 40 fixture/orientation combinations: one to five partners, with/without children, shallow/deep collateral households.
-- All passed candidate coverage, deterministic output, canonical input preservation, parent/child port mapping, no overlapping card boxes, no connector interiors through cards and no coincident unrelated rails in calculation geometry.
-- Crossings still occur (maximum 5 per case). This is not a crossing-free layout; visual treatment and acceptability require review.
-- Calculation timings in this isolated runtime: 0–1 ms, using millisecond resolution; not browser performance.
-- Native CLI and browser QA not run. No actual SVG DOM or screenshots were produced; descriptor geometry is not evidence of final renderer behavior.
+- Initial isolated experiment `4cab673b`: 40 cases. This follow-up executes the actual patched Family Chart calculation and canonical adapter.
+- 80/80 applied synthetic cases: one to five partnerships, single and bilateral hubs, shallow/deep, with/without children, both orientations. Verified canonical family/child endpoints, person coverage, deterministic output, unchanged fixture input and zero card overlap, connector/card interior hits, unrelated coincident segments, false junctions or disconnected occurrences. Maximum proper crossings: 8.
+- Two ordinary no-collateral controls use the unchanged native path and match the preceding geometry.
+- Additional probes in both orientations passed: separate family records for the same partners, and an additional single-parent family for a shared child.
+- Isolated V8 source/bundle execution only; not browser/Node CLI. Actual SVG DOM, screenshots, imported founder case, pinned archive rebuild and localization CLI have not been verified.
 
 ## Remaining gates
 
-- [ ] Reproduce the exact founder-reported third-partner failure in final rendered baseline; compare actual SVG and screenshots.
-- [ ] Test bilateral/asymmetric principal partnerships, spouse ancestry, placeholders, duplicate occurrences, same-partner distinct families, multiple parent families and reconvergence; extend with a boundary-aware model, not fallback geometry.
-- [ ] Retain native direct ancestry/descendant placements outside affected regions and prove unchanged controls, interaction and both orientations.
-- [ ] Decide inline vs separated extended partnership routing; validate final renderer geometry and independent footprint/port connectivity globally.
-- [ ] Native checkout and file:// browser QA, dense fixture and performance comparison, founder review.
-
-Recommendation: revise/continue the isolated experiment, not adopt it yet. Keep #394 and #391 active until the remaining material gates are met.
+- [ ] Reproduce the actual founder-reported imported case, compare final SVG and screenshots, review below-card extended links versus inline convention and remaining crossings.
+- [ ] Expand asymmetric 1–4 additional partners per side, deep ancestors, spouse ancestry, same-partner/multiple-parent contexts, placeholders, native duplicate toggles and reconvergence. Verify supported/unsupported dispositions and no silently omitted relationship.
+- [ ] Confirm unaffected native regions remain satisfactory; quantify necessary displacement, dimensions and dense-tree performance.
+- [ ] Run repository Node checks, pinned archive rebuild, localization and browser/file:// QA in both orientations (focus/selection/edit/add, toggles, themes and depth changes).
+- [ ] Founder review before adoption under #391/#388. Keep #394 active.

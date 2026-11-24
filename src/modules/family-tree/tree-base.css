@@ -1860,6 +1860,21 @@ button.timeline-evidence-name:hover, button.timeline-evidence-name:focus-visible
     outline: none;
 }
 
+.native-household-grid-notice {
+    position: absolute;
+    top: var(--space-3);
+    left: var(--space-3);
+    right: var(--space-3);
+    width: fit-content;
+    max-width: calc(100% - 2 * var(--space-3));
+    padding: var(--space-2) var(--space-3);
+    background: var(--surface-card);
+    color: var(--text-primary);
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-md);
+    pointer-events: none;
+}
+
 .native-family-chart-slot[role="status"] {
     padding: var(--space-4);
 }

@@ -31,6 +31,30 @@ function nativeParentPlaceholderLinkPoints(link)
 function styleNativeFamilyChartLinks(runtime)
 {
     const tree = runtime.chart.store.getTree();
+    const grid = tree.householdGrid;
+    runtime.host.dataset.householdGrid = grid?.status || 'native';
+    runtime.host.dataset.householdGridReason = grid?.reason || '';
+    if (grid?.status === 'applied')
+    {
+        // Calculation owns geometry; this callback owns semantic styling only.
+        for (const path of runtime.host.querySelectorAll('.links_view path.link'))
+        {
+            const link = d3.select(path).datum();
+            if (!link?.gridPaths) continue;
+            path.classList.add('tree-line');
+            path.classList.toggle('partner', Boolean(link.spouse));
+            const family = runtime.input.familyById.get(link.familyContextId);
+            const dashed = Boolean(link.spouse && family && treePartnerConnectorClass(family).includes('is-separated-or-divorced'));
+            path.classList.toggle('is-separated-or-divorced', dashed);
+            const length = link.gridPaths.reduce((total, points) => total + points.slice(1).reduce((sum, point, i) =>
+                sum + Math.hypot(point[0] - points[i][0], point[1] - points[i][1]), 0), 0);
+            if (dashed) path.style.strokeDashoffset = TREE_PARTNER_DASH_LENGTH / 2 - length / 2;
+            else path.style.removeProperty('stroke-dashoffset');
+            path.style.removeProperty('d');
+            path.style.removeProperty('visibility');
+        }
+        return;
+    }
     const nodes = new Set(tree.data.map(node => node.tid));
     const households = new Map();
     const along = tree.is_horizontal ? 1 : 0;
@@ -319,6 +343,22 @@ function mountNativeFamilyChart(slot, input, context)
         chart.setAfterUpdate(() =>
         {
             styleNativeFamilyChartLinks(runtime);
+            const grid = chart.store.getTree().householdGrid;
+            let notice = host.querySelector('[data-household-grid-notice]');
+            if (grid?.status === 'unsupported')
+            {
+                if (!notice)
+                {
+                    notice = document.createElement('div');
+                    notice.dataset.householdGridNotice = '';
+                    notice.className = 'native-household-grid-notice';
+                    notice.setAttribute('role', 'status');
+                    host.append(notice);
+                }
+                notice.textContent = t('Household grid experiment unavailable for this tree. Previous preview layout shown.');
+                console.warn('[Household grid experiment]', grid.reason, grid.diagnostics || '');
+            }
+            else notice?.remove();
             host.querySelectorAll('.f3-toggle-div').forEach(toggle =>
             {
                 toggle.tabIndex = 0;
@@ -380,7 +420,9 @@ function mountNativeFamilyChart(slot, input, context)
     runtime.cardPeople = new Map();
     if (orientation === 'horizontal') chart.setOrientationHorizontal();
     else chart.setOrientationVertical();
-    chart.setFamilyContexts(input.familyContexts);
+    chart.setFamilyContexts(input.familyContexts).setHouseholdGrid({
+        cardWidth: TREE_CARD_W, cardHeight: TREE_CARD_H, laneGap: TREE_GEOMETRY.connectorLaneGap
+    });
     chart.setCardXSpacing(TREE_CARD_W + 56).setCardYSpacing(TREE_CARD_H + 65)
         .setAncestryDepth(view.ancestorGenerations).setProgenyDepth(view.descendantGenerations)
         .setShowSiblingsOfMain(view.ancestorGenerations > 0);

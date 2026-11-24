@@ -69,6 +69,7 @@ function buildNativeFamilyChartInput(people, families, { contextual = false } = 
         parentFamilyByChild,
         parentRolesByChild,
         partnershipFamilies,
+        familyById: new Map(families.map(family => [family.id, family])),
         familyContexts: contextual ? families.map(family => ({
             id: family.id,
             parents: [family.left, family.right].filter(Boolean),

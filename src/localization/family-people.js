@@ -20,6 +20,7 @@ const RU_UI_FAMILY_TREE = {
     'Toggle branch': 'Свернуть или развернуть ветвь',
     'Preview limited to the current generations. Some relationships elsewhere in this project require Classic.': 'Предпросмотр ограничен текущими поколениями. Для некоторых других связей в этом проекте нужен классический вид.',
     'Family Chart preview': 'Предпросмотр Family Chart',
+    'Household grid experiment unavailable for this tree. Previous preview layout shown.': 'Экспериментальная сетка семей недоступна для этого древа. Показана предыдущая схема предпросмотра.',
     'Family Chart cannot display these relationships. Switch off the preview to return to Classic.': 'Family Chart не может отобразить эти связи. Отключите предпросмотр, чтобы вернуться к классическому виду.',
     'Horizontal': 'Горизонтальный',
     'Classic':
