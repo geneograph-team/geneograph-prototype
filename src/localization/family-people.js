@@ -17,6 +17,11 @@ const RU_UI_FAMILY_TREE = {
     'Test layout could not display this tree. Turn it off to return to Classic.':
         'Не удалось отобразить древо в тестовой схеме. Отключите её, чтобы вернуться к классическому виду.',
 
+    'Toggle branch': 'Свернуть или развернуть ветвь',
+    'Preview limited to the current generations. Some relationships elsewhere in this project require Classic.': 'Предпросмотр ограничен текущими поколениями. Для некоторых других связей в этом проекте нужен классический вид.',
+    'Family Chart preview': 'Предпросмотр Family Chart',
+    'Family Chart cannot display these relationships. Switch off the preview to return to Classic.': 'Family Chart не может отобразить эти связи. Отключите предпросмотр, чтобы вернуться к классическому виду.',
+    'Horizontal': 'Горизонтальный',
     'Classic':
         'Классический',
 

@@ -567,6 +567,11 @@ function navigateFamilyTreeToPerson(
     }
 
     const view = treeProjectViewState(projectId);
+    if (view.testLayout && !focusBranch)
+    {
+        selectNativeFamilyChartPerson(personId);
+        return true;
+    }
     const nextFocusPersonId = treeNavigationFocusForPerson(
         personId,
         {

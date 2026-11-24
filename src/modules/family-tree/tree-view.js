@@ -153,7 +153,12 @@ document.addEventListener('fullscreenchange', () =>
     }
     updateTreeFullscreenButton();
     const center = treeFullscreenRuntime.center;
-    requestAnimationFrame(() => restoreTreeFullscreenCenter(center));
+    requestAnimationFrame(() =>
+    {
+        if (state.activeModule === 'Family Tree' && nativeFamilyChart?.host.isConnected)
+            zoomNativeFamilyChart('fit');
+        else restoreTreeFullscreenCenter(center);
+    });
 });
 
 let treeCardLastClick = null;
@@ -849,7 +854,9 @@ function renderFamilyTree()
     sidebar.innerHTML = '';
     const treeProjectId =
         currentFamilyTreeProjectId();
-    const treePeopleSource = currentTreePeople();
+    const treeViewState = treeProjectId ? treeProjectViewState(treeProjectId) : null;
+    const testLayout = treeViewState?.testLayout === true;
+    const treePeopleSource = testLayout ? getPeople(treeProjectId) : currentTreePeople();
     const treeFamiliesSource = currentTreeFamilies();
 
     if (!treeProjectId || !treePeopleSource.length)
@@ -876,7 +883,6 @@ function renderFamilyTree()
         return;
     }
 
-    const treeViewState = treeProjectViewState(treeProjectId);
     const focusPersonId = resolveTreeFocusPersonId(treePeopleSource, treeProjectId);
     const projection = buildFamilyTreeProjection(treePeopleSource, treeFamiliesSource, {
         focusPersonId,
@@ -887,13 +893,15 @@ function renderFamilyTree()
     const familyPeopleCountLabel =
         translateCountPhrase(formatProjectPeopleCount(treeProjectId));
 
-    if (!projection.people.some(person => person.id === state.selectedPersonId))
+    const selectionPeople = testLayout ? treePeopleSource : projection.people;
+    if (!selectionPeople.some(person => person.id === state.selectedPersonId))
     {
-        state.selectedPersonId = projection.focusPersonId;
+        state.selectedPersonId = focusPersonId;
     }
-    const selected = projection.people.find(person => person.id === state.selectedPersonId)
-        || projection.people.find(person => person.id === projection.focusPersonId)
-        || projection.people[0];
+    const selectedPerson = selectionPeople.find(person => person.id === state.selectedPersonId)
+        || selectionPeople.find(person => person.id === focusPersonId)
+        || selectionPeople[0];
+    const selected = testLayout ? toTreePerson(selectedPerson) : selectedPerson;
     if (selected?.id)
     {
         rememberTreeSelectedPerson(
@@ -902,42 +910,12 @@ function renderFamilyTree()
         );
     }
 
-    const testLayout = treeViewState.testLayout === true;
-    let treeLayout;
-    let testLayoutStatus = '';
-    if (testLayout)
-    {
-        try
-        {
-            treeLayout = calculateTestTreeLayout(
-                projection.people,
-                projection.families,
-                projection.focusPersonId,
-                { branchRoles: projection.branchRoles }
-            );
-            if (treeLayout.testIssues.length)
-                testLayoutStatus = t('Test layout: unresolved geometry or routing issues.');
-        }
-        catch (error)
-        {
-            console.warn('[Family Tree test layout]', error);
-            testLayoutStatus = t('Test layout could not display this tree. Turn it off to return to Classic.');
-            treeLayout = {
-                stageWidth: TREE_GEOMETRY.minimumStageWidth,
-                stageHeight: TREE_GEOMETRY.minimumStageHeight,
-                positionedPeople: [], parentPlaceholders: [], focusControls: [], connectorDescriptors: []
-            };
-        }
-    }
-    else
-    {
-        treeLayout = calculateTreeLayout(
-            projection.people,
-            projection.families,
-            projection.focusPersonId,
-            { branchRoles: projection.branchRoles }
-        );
-    }
+    const orientation = nativeFamilyChartOrientation(treeViewState.nativeOrientation);
+    const treeLayout = testLayout ? null : calculateTreeLayout(
+        projection.people, projection.families, projection.focusPersonId,
+        { branchRoles: projection.branchRoles }
+    );
+    if (!testLayout) nativeFamilyChart = null;
     main.innerHTML = `
         <div
           class="tree-shell"
@@ -978,22 +956,22 @@ function renderFamilyTree()
                 <span class="tree-control-chevron" aria-hidden="true">${icon.chevron}</span>
               </button>
               <div class="view-modes" role="tablist" aria-label="${escapeHtml(t('Tree view mode'))}">
-                ${['Classic','Pedigree','Fan'].map((view, index) => `<button class="view-mode ${state.treeView === view ? 'active' : ''}" type="button" role="tab" aria-label="${escapeHtml(t(view))}" aria-selected="${state.treeView === view ? 'true' : 'false'}" ${view === 'Classic' ? '' : 'disabled'} data-tree-view="${view}" title="${escapeHtml(t(view === 'Classic' ? 'Classic view' : view + ' view will be added later.'))}">${[icon.tree, icon.pedigreeView, icon.fanView][index]}<span>${escapeHtml(t(view))}</span></button>`).join('')}
+                ${(testLayout ? ['Classic', 'Horizontal', 'Fan'] : ['Classic', 'Pedigree', 'Fan']).map((view, index) => `<button class="view-mode ${(testLayout ? treeViewState.nativeOrientation || 'Classic' : state.treeView) === view ? 'active' : ''}" type="button" role="tab" aria-label="${escapeHtml(t(view))}" aria-selected="${(testLayout ? treeViewState.nativeOrientation || 'Classic' : state.treeView) === view ? 'true' : 'false'}" ${view === 'Classic' || view === 'Horizontal' ? '' : 'disabled'} data-tree-view="${view}" title="${escapeHtml(t(view === 'Classic' ? 'Classic view' : view === 'Horizontal' ? 'Horizontal' : view + ' view will be added later.'))}">${[icon.tree, icon.pedigreeView, icon.fanView][index]}<span>${escapeHtml(t(view))}</span></button>`).join('')}
               </div>
-              <label class="tree-test-layout-toggle" title="${escapeHtml(t('Try the experimental Family Chart layout'))}">
+              <label class="tree-test-layout-toggle" title="${escapeHtml(t('Family Chart preview'))}">
                 <input type="checkbox" data-tree-test-layout ${testLayout ? 'checked' : ''}>
-                <span>${escapeHtml(t('Test layout'))}</span>
+                <span>${escapeHtml(t('Family Chart preview'))}</span>
               </label>
             </div>
             <div class="tree-toolbar-right">
-              <label class="tree-view-mobile">${icon.tree}<select aria-label="${escapeHtml(t('Tree view mode'))}"><option value="Classic">${escapeHtml(t('Classic'))}</option><option value="Pedigree" disabled>${escapeHtml(t('Pedigree'))}</option><option value="Fan" disabled>${escapeHtml(t('Fan'))}</option></select>${icon.chevron}</label>
+              <label class="tree-view-mobile">${icon.tree}<select data-tree-view-mobile aria-label="${escapeHtml(t('Tree view mode'))}"><option value="Classic">${escapeHtml(t('Classic'))}</option>${testLayout ? `<option value="Horizontal" ${orientation === 'horizontal' ? 'selected' : ''}>${escapeHtml(t('Horizontal'))}</option>` : `<option value="Pedigree" disabled>${escapeHtml(t('Pedigree'))}</option>`}<option value="Fan" disabled>${escapeHtml(t('Fan'))}</option></select>${icon.chevron}</label>
               <span class="tree-people-status" role="status" aria-label="${escapeHtml(t('People in project'))}: ${escapeHtml(familyPeopleCountLabel)}" title="${escapeHtml(t('People in project'))}">${escapeHtml(familyPeopleCountLabel)}</span>
               <button class="tree-icon-button tree-display-settings" type="button" data-tree-settings aria-label="${escapeHtml(t('Tree display settings'))}" title="${escapeHtml(t('Tree display settings'))}">${icon.slidersHorizontal}</button>
             </div>
           </div>
 
             <section class="tree-canvas" aria-label="Family tree canvas" data-test-layout="${testLayout}">
-              ${testLayoutStatus ? `<div class="tree-test-layout-status" role="status">${escapeHtml(testLayoutStatus)}</div>` : ''}
+              ${testLayout ? '<div class="native-family-chart-slot"></div>' : `
               <div class="tree-stage-space" style="width:${treeLayout.stageWidth * state.treeZoom / 100}px;height:${treeLayout.stageHeight * state.treeZoom / 100}px;">
                 <div class="tree-stage" data-detail-level="${treeDetailLevel()}" data-compact-parent="${treeDisplayZoom() < 70}" data-hide-focus="${treeDisplayZoom() <= 50}" style="width:${treeLayout.stageWidth}px;height:${treeLayout.stageHeight}px;transform: scale(${state.treeZoom / 100});--tree-overview-connection-width:${150 / state.treeZoom}px;--tree-overview-parent-border-width:${100 / state.treeZoom}px;--tree-overview-plus-size:${Math.min(70, 1500 / state.treeZoom)}px;--tree-overview-name-size:${Math.min(40, Math.max(22, 1100 / state.treeZoom))}px;">
                   ${renderTreeLines(treeLayout)}
@@ -1002,9 +980,10 @@ function renderFamilyTree()
                   ${treeLayout.focusControls.map(renderTreeFocusControl).join('')}
                 </div>
               </div>
+              `}
               <div class="tree-zoom">
                 <button class="zoom-button" type="button" data-zoom="out" aria-label="Zoom out">${icon.zoomOut}</button>
-                <div class="zoom-value">${treeDisplayZoom()}%</div>
+                <div class="zoom-value">${testLayout ? '' : treeDisplayZoom() + '%'}</div>
                 <button class="zoom-button" type="button" data-zoom="in" aria-label="Zoom in">${icon.zoomIn}</button>
                 <button class="zoom-button" type="button" data-zoom="fit" aria-label="Fit tree">${icon.home}</button>
                 <button class="zoom-button" type="button" data-tree-fullscreen aria-label="${escapeHtml(t(treeFullscreenRuntime.requested ? 'Exit full screen' : 'Enter full screen'))}" title="${escapeHtml(t(treeFullscreenRuntime.requested ? 'Exit full screen' : 'Enter full screen'))}" aria-pressed="${treeFullscreenRuntime.requested ? 'true' : 'false'}">${treeFullscreenRuntime.requested ? icon.fullscreenExit : icon.expand}</button>
@@ -1014,7 +993,26 @@ function renderFamilyTree()
           </div>
         </div>
       `;
-    bindTreeCanvasPan();
+    if (testLayout)
+    {
+        const slot = main.querySelector('.native-family-chart-slot');
+        const input = buildNativeFamilyChartInput(projection.people, projection.families, { contextual: true });
+        const fullInput = buildNativeFamilyChartInput(treePeopleSource, treeFamiliesSource);
+        try
+        {
+            mountNativeFamilyChart(slot, input, {
+                projectId: treeProjectId, focusId: focusPersonId, view: treeViewState, orientation,
+                parentRolesByChild: fullInput.parentRolesByChild
+            });
+        }
+        catch (error)
+        {
+            console.warn('[Family Chart preview]', error);
+            showNativeFamilyChartUnavailable(slot);
+        }
+
+    }
+    else bindTreeCanvasPan();
     main.querySelector('.tree-canvas')?.addEventListener('click', event =>
     {
         if (event.target.closest('button, a, input, select, textarea, [contenteditable="true"]')
@@ -1164,7 +1162,7 @@ function renderFamilyTree()
         {
             treeViewState.classicLayoutViewport = {
                 scroll: getTreeCanvasScroll(),
-                focusPersonId: projection.focusPersonId,
+                focusPersonId,
                 zoom: state.treeZoom
             };
             treeViewState.testLayout = true;
@@ -1174,7 +1172,7 @@ function renderFamilyTree()
         {
             treeViewState.testLayout = false;
             const viewport = treeViewState.classicLayoutViewport;
-            treeViewState.canvasScroll = viewport?.focusPersonId === projection.focusPersonId
+            treeViewState.canvasScroll = viewport?.focusPersonId === focusPersonId
                 && viewport.zoom === state.treeZoom ? viewport.scroll : null;
             delete treeViewState.classicLayoutViewport;
             state.treeCenterTargetId = treeViewState.canvasScroll ? '' : selected.id;
@@ -1182,14 +1180,35 @@ function renderFamilyTree()
         renderFamilyTree();
         main.querySelector('[data-tree-test-layout]')?.focus({ preventScroll: true });
     });
-    main.querySelectorAll('[data-tree-view]').forEach(button => button.addEventListener('click', () =>
+    const chooseOrientation = value =>
     {
-        if (button.dataset.treeView !== 'Classic') return;
-        state.treeView = 'Classic';
-        renderFamilyTree();
-    }));
+        if (!testLayout || !['Classic', 'Horizontal'].includes(value)) return;
+        treeViewState.nativeOrientation = value;
+        try
+        {
+            changeNativeFamilyChartOrientation(nativeFamilyChartOrientation(value));
+        }
+        catch (error)
+        {
+            console.warn('[Family Chart preview]', error);
+            showNativeFamilyChartUnavailable(main.querySelector('.native-family-chart-slot'));
+        }
+        main.querySelectorAll('[data-tree-view]').forEach(button =>
+        {
+            const active = button.dataset.treeView === value;
+            button.classList.toggle('active', active);
+            button.setAttribute('aria-selected', String(active));
+        });
+        const mobile = main.querySelector('[data-tree-view-mobile]');
+        if (mobile) mobile.value = value;
+    };
+    main.querySelectorAll('[data-tree-view]').forEach(button =>
+        button.addEventListener('click', () => chooseOrientation(button.dataset.treeView)));
+    main.querySelector('[data-tree-view-mobile]')?.addEventListener('change', event =>
+        chooseOrientation(event.currentTarget.value));
     main.querySelectorAll('[data-zoom]').forEach(button => button.addEventListener('click', () =>
     {
+        if (testLayout) return zoomNativeFamilyChart(button.dataset.zoom);
         if (button.dataset.zoom === 'fit')
         {
             setTreeZoom(treePhysicalZoom(100));
@@ -1211,12 +1230,12 @@ function renderFamilyTree()
 
     state.treeCenterTargetId = '';
 
-    if (centerTargetId)
+    if (!testLayout && centerTargetId)
     {
         centerTreeOnPerson(centerTargetId);
     }
     else if (
-        treeViewState.canvasScroll
+        !testLayout && treeViewState.canvasScroll
     )
     {
         restoreTreeCanvasScroll(
@@ -2060,7 +2079,8 @@ function renderTreeFocusControl(control)
 }
 
 function renderTreePersonCard(
-    person
+    person,
+    { native = false, occurrenceId = person.id } = {}
 )
 {
     const personId = person.canonicalPersonId || person.id;
@@ -2098,7 +2118,7 @@ function renderTreePersonCard(
             top:${person.layoutY}px;
           "
           data-person-id="${escapeHtml(personId)}"
-          data-tree-occurrence-id="${escapeHtml(person.id)}"
+          data-tree-occurrence-id="${escapeHtml(occurrenceId)}"
           data-tree-primary="${!person.canonicalPersonId}"
           tabindex="0"
           aria-label="${escapeHtml(label)}"
@@ -2142,6 +2162,8 @@ function renderTreePersonCard(
           </div>
 
           <div class="card-actions">
+            ${native && !focused ? `<button class="card-action" type="button" data-native-tree-focus
+              aria-label="${escapeHtml(t('Focus'))}">${icon.focus}</button>` : ''}
             <button
               class="card-action"
               type="button"
