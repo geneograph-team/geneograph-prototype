@@ -117,19 +117,32 @@ if (require.main === module)
     assert.equal(layoutIds.size, baseline.positionedPeople.length);
     assert.deepEqual(new Set(baseline.positionedPeople.map(person => person.canonicalPersonId || person.id)),
         new Set(fixture.people.map(person => person.id)));
-    fixture.people.push({ id: 'third-partner' }, { id: 'third-child' });
+    fixture.people.push({ id: 'third-partner' }, { id: 'third-child' }, { id: 'unrelated' });
     fixture.families.push({ id: 'third-household', left: 'focus', right: 'third-partner', children: ['third-child'] });
     const snapshot = JSON.stringify(fixture);
     const triple = context.calculateTreeLayout(fixture.people, fixture.families, fixture.focus, { branchRoles: fixture.branchRoles });
     const focusAppearances = triple.positionedPeople.filter(person => (person.canonicalPersonId || person.id) === 'focus');
-    assert.equal(focusAppearances.length, 3);
-    assert.ok(focusAppearances.every(person => person.occurrenceCount === 3));
+    assert.equal(focusAppearances.length, 1);
+    assert.equal(focusAppearances[0].occurrenceCount, undefined);
     const households = triple.families.filter(family => ['household', 'other-household', 'third-household'].includes(family.id));
-    assert.equal(new Set(households.map(family => family.left)).size, 3);
+    assert.equal(households.length, 3);
     for (const family of households)
     {
         assert.ok(triple.connectorDescriptors.some(edge => edge.familyId === family.id && edge.childId === family.children[0]));
     }
+    const reached = new Set(['focus']);
+    let previousSize;
+    do
+    {
+        previousSize = reached.size;
+        for (const family of triple.families)
+        {
+            const members = [family.left, family.right, ...family.children].filter(Boolean);
+            if (members.some(id => reached.has(id))) members.forEach(id => reached.add(id));
+        }
+    } while (reached.size !== previousSize);
+    assert.ok(triple.positionedPeople.every(person => reached.has(person.id)));
+    assert.equal(triple.positionedPeople.length, fixture.people.length - 1);
     assert.equal(JSON.stringify(fixture), snapshot);
 
     const singleParent = context.calculateTreeLayout(

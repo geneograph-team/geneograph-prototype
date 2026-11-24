@@ -1060,7 +1060,8 @@ function layoutFamilyTreeHorizontally({
     function neighbouringIndexes(
         block,
         direction,
-        orderIndex
+        orderIndex,
+        localOnly = false
     )
     {
         const models =
@@ -1079,6 +1080,7 @@ function layoutFamilyTreeHorizontally({
 
             neighbours.forEach(entry =>
             {
+                if (localOnly && entry.block.generation !== block.generation + (direction === 'up' ? 1 : -1)) return;
                 const index = entryOrderIndex(entry, orderIndex);
 
                 if (Number.isFinite(index))
@@ -1098,7 +1100,8 @@ function layoutFamilyTreeHorizontally({
       */
     function reorderGeneration(
         generation,
-        direction
+        direction,
+        localOnly = false
     )
     {
         const row = rows.get(generation);
@@ -1119,7 +1122,7 @@ function layoutFamilyTreeHorizontally({
         row.forEach(block =>
         {
             const unitId =
-                block.primaryIncomingId
+                !localOnly && block.primaryIncomingId
                     ? `siblings:${block.primaryIncomingId}`
                     : `single:${block.id}`;
 
@@ -1158,7 +1161,8 @@ function layoutFamilyTreeHorizontally({
                         neighbouringIndexes(
                             left,
                             direction,
-                            orderIndex
+                            orderIndex,
+                            localOnly
                         )
                     );
 
@@ -1167,7 +1171,8 @@ function layoutFamilyTreeHorizontally({
                         neighbouringIndexes(
                             right,
                             direction,
-                            orderIndex
+                            orderIndex,
+                            localOnly
                         )
                     );
 
@@ -1190,7 +1195,8 @@ function layoutFamilyTreeHorizontally({
                         neighbouringIndexes(
                             block,
                             direction,
-                            orderIndex
+                            orderIndex,
+                            localOnly
                         )
                     )
                 );
@@ -1480,6 +1486,24 @@ function layoutFamilyTreeHorizontally({
                         )
                 ])
             );
+        }
+    }
+
+    // Compare orderings driven by adjacent relatives. Wider sibling groups
+    // can otherwise pull a couple across the other partner's ancestry.
+    if (bestScore.crossings && blocks.length <= 180)
+    {
+        for (const [generation, ids] of bestOrder)
+            rows.set(generation, ids.map(id => blockById.get(id)));
+
+        for (let pass = 0; pass < 4; pass++)
+        {
+            for (const generation of generations.slice(0, -1).reverse())
+                reorderGeneration(generation, 'up', true);
+            rememberOrder();
+            for (const generation of generations.slice(1))
+                reorderGeneration(generation, 'down', true);
+            rememberOrder();
         }
     }
 
@@ -2146,12 +2170,15 @@ function layoutFamilyTreeHorizontally({
             routed = branchAligned;
             acceptedPositions = new Map(positionByBlockId);
         }
-        for (const order of [candidateOrders.values().next().value, bestOrder])
+        const compactOrders = routed.crossings && blocks.length <= 180
+            ? candidateOrders.values()
+            : [candidateOrders.values().next().value, bestOrder];
+        for (const order of compactOrders)
         {
             solveAnchoredBranches(order);
             const anchored = measureRoutedCandidate();
             if (anchored.obstructions > routed.obstructions || anchored.crossings > routed.crossings) continue;
-            if (anchored.ancestorLength < routed.ancestorLength)
+            if (anchored.crossings < routed.crossings || anchored.ancestorLength < routed.ancestorLength)
             {
                 routed = anchored;
                 acceptedPositions = new Map(positionByBlockId);
@@ -2789,10 +2816,9 @@ function calculateTreeLayout(people, families, focusPersonId = '', options = {})
             (fam.children || []).forEach(cid => seedGen(cid, gen + 1));
         });
     }
-    people.forEach(p =>
-    {
-        if (!generationByPerson.has(p.id)) generationByPerson.set(p.id, 0);
-    });
+    people = people.filter(person => generationByPerson.has(person.id));
+    for (const id of peopleByRawId.keys())
+        if (!generationByPerson.has(id)) peopleByRawId.delete(id);
     // Keep a person's parents attached to the primary card and give each other
     // family its own endpoint. These IDs only exist in this layout.
     const occurrencePeople = [];
@@ -2819,7 +2845,7 @@ function calculateTreeLayout(people, families, focusPersonId = '', options = {})
             || (a.children?.length || 0) - (b.children?.length || 0)
             || contextPriority(a, person.id) - contextPriority(b, person.id));
         const record = peopleByRawId.get(person.id);
-        record.occurrenceCount = ordered.length;
+
         ordered.slice(1).forEach(family =>
         {
             let id = `${person.id}:family:${family.id}`;
@@ -2840,7 +2866,7 @@ function calculateTreeLayout(people, families, focusPersonId = '', options = {})
 
     if (occurrencePeople.length)
     {
-        people = [...people, ...occurrencePeople];
+
         families = families.map(family =>
         {
             const occurrences = occurrenceByFamily.get(family.id);
@@ -2849,6 +2875,67 @@ function calculateTreeLayout(people, families, focusPersonId = '', options = {})
                 left: occurrences.get(family.left) ?? family.left,
                 right: occurrences.get(family.right) ?? family.right
             } : family;
+        });
+        // Collapse any proposed appearance that would leave its family in a
+        // separate component. Only real family links establish connectivity.
+        const components = new Map();
+        function component(id)
+        {
+            while (components.has(id))
+            {
+                const parent = components.get(id);
+                if (components.has(parent)) components.set(id, components.get(parent));
+                id = parent;
+            }
+            return id;
+        }
+
+        for (const family of families)
+        {
+            const members = [family.left, family.right, ...(family.children || [])]
+                .filter(id => peopleByRawId.has(id));
+            if (!members.length) continue;
+            for (const id of members.slice(1))
+            {
+                const root = component(id);
+                const familyRoot = component(members[0]);
+                if (root !== familyRoot) components.set(root, familyRoot);
+            }
+        }
+
+        const collapsed = new Map();
+        for (const person of occurrencePeople)
+        {
+            const primaryId = person.canonicalPersonId;
+            const root = component(person.id);
+            const primaryRoot = component(primaryId);
+            if (root !== primaryRoot)
+            {
+                components.set(root, primaryRoot);
+                collapsed.set(person.id, primaryId);
+                peopleByRawId.delete(person.id);
+                generationByPerson.delete(person.id);
+            }
+        }
+
+        const retained = occurrencePeople.filter(person => !collapsed.has(person.id));
+        for (const person of retained)
+        {
+            const primary = peopleByRawId.get(person.canonicalPersonId);
+            primary.occurrenceCount = (primary.occurrenceCount || 1) + 1;
+        }
+        for (const person of retained)
+            person.occurrenceCount = peopleByRawId.get(person.canonicalPersonId).occurrenceCount;
+
+        people = [...people, ...retained];
+        families = families.map(family =>
+        {
+            if (!collapsed.has(family.left) && !collapsed.has(family.right)) return family;
+            return {
+                ...family,
+                left: collapsed.get(family.left) ?? family.left,
+                right: collapsed.get(family.right) ?? family.right
+            };
         });
         childFamiliesByParent.clear();
         parentFamilyByChild.clear();
