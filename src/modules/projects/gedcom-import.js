@@ -174,6 +174,19 @@ function parseGedcomDate(text)
     return result;
 }
 
+function parseGedcomPeriod(text)
+{
+    const from = /^FROM\s+(.+?)(?:\s+TO\s+(.+))?$/i.exec(text);
+    const to = /^TO\s+(.+)$/i.exec(text);
+    if (!from && !to) return null;
+    const start = from ? parseGedcomDate(from[1]) : null;
+    const endText = from?.[2] || to?.[1];
+    const end = endText ? parseGedcomDate(endText) : null;
+    if ((start && (!start.valid || start.value.state !== 'known'))
+        || (end && (!end.valid || end.value.state !== 'known'))) return null;
+    return { fromDate: start?.value || null, toDate: end?.value || null };
+}
+
 function gedcomLocalAttachmentPath(value)
 {
     let path = value.trim().replaceAll(String.fromCharCode(92), '/');
@@ -578,8 +591,10 @@ function mapGedcomImport(parsed, project, matches = new Map(), references = gedc
                 used.add(fact);
                 const tag = ['EDUC', 'OCCU', 'RELI'].includes(fact.tag) ? fact.tag : 'FACT';
                 const id = record.id + '-attribute-' + (record.attributes.length + 1);
-                const date = dateNode ? readDate(dateNode) : null;
-                const dateFields = date ? (['EDUC', 'OCCU'].includes(tag) ? { fromDate: date } : { date }) : {};
+                const ranged = ['EDUC', 'OCCU'].includes(tag);
+                const period = ranged && dateNode ? parseGedcomPeriod(dateNode.value.trim()) : null;
+                const date = dateNode && !period ? readDate(dateNode) : null;
+                const dateFields = period || (date ? (ranged ? { fromDate: date } : { date }) : {});
                 const attribute = { id, tag, value: value.toUpperCase() === 'Y' && tag === 'FACT' ? '' : value,
                     ...place, ...dateFields, ...restrictionFields(fact) };
                 if (tag === 'FACT') attribute.type = t(type || 'Other event');

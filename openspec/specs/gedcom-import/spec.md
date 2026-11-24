@@ -43,4 +43,4 @@ Preserve supported event and education details and import Source records with se
 
 Import engagement, marriage banns, marriage contracts, marriage licenses, marriage settlements, divorce filings, and family census entries as linked Notes. Keep the event label, original date, place, and attached note text. Keep existing marriage, divorce, and annulment events as relationship events.
 
-Map GEDCOM CAL and INT to the Calculated date type when the date can be parsed, keeping the original GEDCOM text. Date periods remain unsupported.
+Map GEDCOM CAL and INT to the Calculated date type when the date can be parsed, keeping the original GEDCOM text. Education and Occupation import GEDCOM FROM and TO periods into their existing start and end fields. Periods on other records remain preserved as text.

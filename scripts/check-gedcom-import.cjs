@@ -305,6 +305,22 @@ assert.ok(restricted.records.events.some(event => event.type === 'customFact'
     && event.title === 'Christening' && event.first.year === 1991 && event.placeText === 'Chapel'));
 assert.ok(restricted.records.events.some(event => event.type === 'baptism' && event.first.year === 1992));
 
+const periods = map(file([
+    '0 @I1@ INDI', '1 EDUC School', '2 DATE FROM 1 SEP 2020 TO 22 JUN 2023',
+    '1 OCCU Job', '2 DATE FROM 6 NOV 2022', '1 OCCU Earlier job', '2 DATE TO 2019',
+    '1 EVEN', '2 TYPE Other', '2 DATE FROM 2020 TO 2023'
+]));
+assert.deepEqual(Array.from(periods.errors), []);
+const [educationPeriod, occupationStart, occupationEnd, customPeriod] = periods.records.people[0].attributes;
+assert.equal(educationPeriod.fromDate.first.year, 2020);
+assert.equal(educationPeriod.toDate.first.day, 22);
+assert.equal(occupationStart.fromDate.first.month, 11);
+assert.equal(occupationStart.toDate, null);
+assert.equal(occupationEnd.fromDate, null);
+assert.equal(occupationEnd.toDate.first.year, 2019);
+assert.equal(customPeriod.date.state, 'unparsed');
+assert.equal(periods.warnings.find(warning => warning.kind === 'date-text').count, 1);
+
 async function verifyAttachments()
 {
     const source = parse(file([
