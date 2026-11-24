@@ -46,7 +46,8 @@ assert.deepEqual(Array.from(mapped.errors), []);
 const { people, families, places, events } = mapped.records;
 assert.equal(people[0].names.first, 'Мария');
 assert.equal(people[0].gender, 'unknown');
-assert.equal(people[0].livingStatus, 'Unknown');
+assert.equal(people[0].livingStatus, 'Living');
+assert.equal(people[1].livingStatus, 'Living');
 assert.equal(people[0].birth.first.year, 1970);
 assert.equal(people[1].birth.first.year, 1995);
 assert.equal(people[1].birth.second.year, 1997);
@@ -64,6 +65,18 @@ assert.equal(families[2].relationshipType, 'Unknown relationship');
 assert.ok(events.some(event => event.type === 'marriage'));
 assert.ok(mapped.warnings.some(warning => warning.tag === 'NOTE' && warning.count === 1));
 assert.equal(JSON.stringify(map(decoded).records), JSON.stringify(mapped.records));
+const estimated = map(source.replace('ABT 1970', 'EST AUG 1970').replace('1 DEAT N', '1 DEAT Y'));
+assert.equal(estimated.records.people[0].birth.dateType, 'About / Circa');
+assert.equal(estimated.records.people[0].birth.first.month, 8);
+assert.equal(estimated.records.people[0].birth.originalText, 'EST AUG 1970');
+assert.equal(estimated.records.people[0].livingStatus, 'Deceased');
+assert.ok(!estimated.warnings.some(warning => warning.kind === 'date-text'));
+const julian = map(source.replace('ABT 1970', '@#DJULIAN@ 29 MAR 1836')).records.people[0].birth;
+assert.equal(julian.calendar, 'Julian');
+assert.deepEqual([julian.first.year, julian.first.month, julian.first.day], [1836, 3, 29]);
+assert.equal(julian.originalText, '@#DJULIAN@ 29 MAR 1836');
+assert.equal(context.parseGedcomDate('ABT @#DJULIAN@ 29 FEB 1900').value.calendar, 'Julian');
+assert.equal(context.parseGedcomDate('BET @#DJULIAN@ 1836 AND @#DGREGORIAN@ 1837').valid, false);
 const unparsed = map(source.replace('ABT 1970', 'INT 1970 (estimated from census)'));
 assert.equal(unparsed.records.people[0].birth.originalText, 'INT 1970 (estimated from census)');
 assert.equal(unparsed.records.people[0].birth.state, 'unparsed');
@@ -112,4 +125,20 @@ assert.throws(() => map(file([
     '0 @I1@ INDI', '0 @I2@ INDI', '1 FAMC @F1@', '2 STAT disproven',
     '0 @F1@ FAM', '1 HUSB @I1@', '1 CHIL @I2@'
 ])), /child claims disagree/);
+const mediaInput = parse(file([
+    '0 @I1@ INDI', '1 OBJE', '2 FILE tree.ged.files/portrait.jpg', '2 _PRIM Y',
+    '0 @I2@ INDI', '1 OBJE', '2 FILE tree.ged.files/portrait.jpg',
+    '1 OBJE', '2 FILE https://example.test/portrait.jpg'
+]));
+const mediaDraft = context.mapGedcomImport(mediaInput,
+    { ...project, createdAt: '2026-01-01T00:00:00Z', modifiedAt: '2026-01-01T00:00:00Z' },
+    new Map([['tree.ged.files/portrait.jpg', {
+        filename: 'portrait.jpg', src: 'data:image/jpeg;base64,AA==', mimeType: 'image/jpeg', width: 1, height: 1, sizeBytes: 1
+    }]]));
+assert.deepEqual(Array.from(mediaDraft.errors), []);
+assert.equal(mediaDraft.records.media.length, 1);
+assert.equal(mediaDraft.records.media[0].personIds.length, 2);
+assert.equal(mediaDraft.records.people[0].primaryPhotoId, mediaDraft.records.media[0].id);
+assert.equal(mediaDraft.missingPhotos, 0);
+assert.ok(mediaDraft.warnings.some(warning => warning.tag === 'FILE' && warning.count === 1));
 console.log('GEDCOM decoding, canonical mapping, warnings, and invalid inputs passed.');
