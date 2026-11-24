@@ -43,7 +43,13 @@ function styleNativeFamilyChartLinks(runtime)
     const directGaps = new Map();
     const pathLinks = [...runtime.host.querySelectorAll('.links_view path.link')].map(path => ({ path, link: d3.select(path).datum() }));
     const routedPartners = new Map();
-    const partnershipLanes = new Map();
+    const partnershipCounts = new Map();
+    for (const { link } of pathLinks)
+    {
+        if (!link?.spouse || !nodes.has(link.source.tid) || !nodes.has(link.target.tid)) continue;
+        for (const { tid } of [link.source, link.target])
+            partnershipCounts.set(tid, (partnershipCounts.get(tid) || 0) + 1);
+    }
     for (const { link } of pathLinks)
     {
         if (!link?.spouse || !nodes.has(link.source.tid) || !nodes.has(link.target.tid)) continue;
@@ -60,25 +66,50 @@ function styleNativeFamilyChartLinks(runtime)
         });
         if (!blockers.length)
         {
-            directGaps.set(pairKey([first, last]), [a[along] + extent(first, along), b[along] - extent(last, along)]);
+            const gap = [a[along] + extent(first, along), b[along] - extent(last, along)];
+            const key = pairKey([first, last]);
+            directGaps.set(key, gap);
+            // Drop near the extended partner while staying on the midpoint link.
+            if (first.extendedPartnership === last.tid)
+                junctions.set(key, point(Math.min(gap[0] + first.extendedJunctionInset, gap[1]), a[across]));
+            else if (last.extendedPartnership === first.tid)
+                junctions.set(key, point(Math.max(gap[1] - last.extendedJunctionInset, gap[0]), a[across]));
             continue;
         }
-        const start = a[along];
-        const end = b[along];
-        const rowBottom = a[across] + Math.max(extent(first, across), extent(last, across),
-            ...blockers.map(node => extent(node, across)));
-        const lanes = partnershipLanes.get(a[across]) || [];
-        let lane = lanes.findIndex(intervals => intervals.every(([low, high]) => high < start || low > end));
-        if (lane < 0) lane = lanes.length;
-        (lanes[lane] ||= []).push([start, end]);
-        partnershipLanes.set(a[across], lanes);
-        const laneDepth = rowBottom + 6 + 16 * lane / (lane + 4);
-        // Exit through the card edges facing the next generation.
-        routedPartners.set(link, [
-            point(start, a[across] + extent(first, across)), point(start, laneDepth),
-            point(end, laneDepth), point(end, b[across] + extent(last, across))
-        ]);
-        junctions.set(pairKey([first, last]), point((start + end) / 2, laneDepth));
+        const start = a[along] + extent(first, along);
+        const end = b[along] - extent(last, along);
+        const level = a[across];
+        const occupied = blockers.map(node => {
+            const center = along ? node.y : node.x;
+            return [center - extent(node, along), center + extent(node, along)];
+        }).sort(([left], [right]) => left - right);
+        const segments = [];
+        let cursor = start;
+        for (const [low, high] of occupied)
+        {
+            if (low > cursor) segments.push([point(cursor, level), point(low, level)]);
+            cursor = Math.max(cursor, high);
+        }
+        if (cursor < end) segments.push([point(cursor, level), point(end, level)]);
+        routedPartners.set(link, segments);
+
+        // A farther household descends from its own partner's card.
+        const outer = partnershipCounts.get(first.tid) < partnershipCounts.get(last.tid) ? first : last;
+        const outerPosition = outer === first ? a : b;
+        const key = pairKey([first, last]);
+        junctions.set(key, point(outerPosition[along], outerPosition[across] + extent(outer, across)));
+    }
+    // A gap shared by several partnerships needs only one visible stroke.
+    const drawnGaps = new Set();
+    for (const { link } of pathLinks)
+    {
+        if (!link?.spouse) continue;
+        const gap = directGaps.get(pairKey([link.source, link.target]));
+        if (gap)
+        {
+            const level = across ? link.source.y : link.source.x;
+            drawnGaps.add(JSON.stringify(gap.map(position => point(position, level))));
+        }
     }
     for (const { path, link } of pathLinks)
     {
@@ -98,10 +129,18 @@ function styleNativeFamilyChartLinks(runtime)
         }
         else path.style.removeProperty('stroke-dashoffset');
 
-        const points = routedPartners.get(link) || nativeParentPlaceholderLinkPoints(link);
-        const connector = `M${points.map(point => point.join(' ')).join(' L')}`;
+        const points = nativeParentPlaceholderLinkPoints(link);
+        const segments = routedPartners.get(link)?.filter(segment =>
+        {
+            const key = JSON.stringify(segment);
+            if (drawnGaps.has(key)) return false;
+            drawnGaps.add(key);
+            return true;
+        }) ?? [points];
+        const connector = segments.map(points => `M${points.map(point => point.join(' ')).join(' L')}`).join(' ');
         path.style.setProperty('d', `path("${connector}")`);
-        path.style.removeProperty('visibility');
+        if (segments.length) path.style.removeProperty('visibility');
+        else path.style.visibility = 'hidden';
 
         if (link.spouse || link.d.length !== 6) continue;
         const child = Array.isArray(link.source) ? link.target : link.source;
@@ -111,20 +150,22 @@ function styleNativeFamilyChartLinks(runtime)
         const gap = directGaps.get(parentKey);
         const endpoint = points.at(-1);
         let junction = junctions.get(parentKey);
-        if (gap && (endpoint[along] < gap[0] || endpoint[along] > gap[1]))
+        if (!junction && gap && (endpoint[along] < gap[0] || endpoint[along] > gap[1]))
             junction = point((gap[0] + gap[1]) / 2, endpoint[across]);
         if (junction)
         {
             points[points.length - 1] = junction;
             points[3][along] = points[4][along] = junction[along];
-            const railLevel = (junction[across] + points[0][across]) / 2;
-            for (let index = 1; index < 5; index++) points[index][across] = railLevel;
+
         }
         const familyId = link.familyContextId || runtime.input.parentFamilyByChild.get(child.data.id)?.id;
         if (!familyId) continue;
-        const keyByHousehold = JSON.stringify([familyId, parents.map(parent => parent.tid).sort(), points.at(-1), points[1][across]]);
+        const keyByHousehold = JSON.stringify([familyId, parents.map(parent => parent.tid).sort(), points.at(-1), points[0][across]]);
         if (!households.has(keyByHousehold)) households.set(keyByHousehold, []);
-        households.get(keyByHousehold).push({ path, points });
+        const parentRow = Math.max(...parents.map(parent => across ? parent.y : parent.x));
+        const parentEdge = Math.max(...parents.map(parent => (across ? parent.y : parent.x) + extent(parent, across)));
+        const childEdge = points[0][across] - extent(child, across);
+        households.get(keyByHousehold).push({ path, points, parentRow, parentEdge, childEdge });
     }
 
     if (!CSS.supports('d', 'path("M0 0 L1 1")')) return;
@@ -135,7 +176,7 @@ function styleNativeFamilyChartLinks(runtime)
         const rail = [points.at(-1)[along], ...siblings.map(edge => edge.points[1][along])];
         const start = Math.min(...rail);
         const end = Math.max(...rail);
-        const key = JSON.stringify([points[0][across], points.at(-1)[across]]);
+        const key = JSON.stringify([points[0][across], siblings[0].parentRow]);
         if (!bands.has(key)) bands.set(key, []);
         bands.get(key).push({ siblings, start, end, lane: 0 });
     }
@@ -151,12 +192,15 @@ function styleNativeFamilyChartLinks(runtime)
             group.lane = lane;
         }
 
+        const parentEdge = Math.max(...groups.flatMap(group => group.siblings.map(edge => edge.parentEdge)));
+        const childEdge = Math.min(...groups.flatMap(group => group.siblings.map(edge => edge.childEdge)));
+        const clearance = childEdge - parentEdge;
         for (const { siblings, start, end, lane } of groups)
         {
             const [first, ...rest] = siblings;
             const anchor = first.points.at(-1);
-            const laneGap = Math.min(TREE_GEOMETRY.connectorLaneGap, 40 / lanes.length);
-            const railDepth = first.points[1][across] + (lane - (lanes.length - 1) / 2) * laneGap;
+            const laneGap = Math.min(TREE_GEOMETRY.connectorLaneGap, Math.max(0, clearance - 16) / lanes.length);
+            const railDepth = (clearance > 0 ? (parentEdge + childEdge) / 2 : first.points[1][across]) + (lane - (lanes.length - 1) / 2) * laneGap;
             const onRail = position => tree.is_horizontal ? [railDepth, position] : [position, railDepth];
             const trunk = `M${anchor.join(' ')} L${onRail(anchor[along]).join(' ')}`;
             const sharedRail = `M${onRail(start).join(' ')} L${onRail(end).join(' ')}`;

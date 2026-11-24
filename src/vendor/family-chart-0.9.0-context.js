@@ -773,13 +773,23 @@ function compactParentPlaceholders(tree) {
         }
 
         for (const [level, units] of [...rows].sort(([a], [b]) => a - b)) {
-            if (!units.some(unit => unit.repack)) continue;
+
             const groups = [];
             const assigned = new Set();
             for (const { parents, children } of households) {
                 const childUnits = [...new Set(children.filter(child => child[depth] === level).map(child => unitByNode.get(child)))];
-                if (!childUnits.length || childUnits.some(unit => unit.native || assigned.has(unit))) continue;
-                const junction = parents.reduce((sum, parent) => sum + parent[cross], 0) / parents.length;
+                const shared = parents.find(parent => partners.get(parent).size >= 3);
+                const outer = parents.length === 2 && parents.find(parent => parent !== shared);
+                const independentHousehold = outer && shared && partners.get(outer).size === 1
+                    && parents.every(parent => parent[depth] < level);
+                if (!childUnits.length || childUnits.some(unit => assigned.has(unit) || unit.focus
+                    || unit.native && !independentHousehold)) continue;
+                if (independentHousehold)
+                    childUnits.sort((a, b) => a.anchor - b.anchor);
+                let junction = parents.reduce((sum, parent) => sum + parent[cross], 0) / parents.length;
+                if (independentHousehold && tree.some(node => node[depth] === shared[depth]
+                    && node[cross] > Math.min(outer[cross], shared[cross])
+                    && node[cross] < Math.max(outer[cross], shared[cross]))) junction = outer[cross];
                 let span = 0;
                 const offsets = childUnits.map(unit => {
                     const start = span;
@@ -794,6 +804,7 @@ function compactParentPlaceholders(tree) {
                     target: junction - (Math.min(...points) + Math.max(...points)) / 2, orderAt: junction, native: false });
                 childUnits.forEach(unit => assigned.add(unit));
             }
+            if (!groups.length && !units.some(unit => unit.repack)) continue;
             for (const unit of units) {
                 if (!assigned.has(unit))
                     groups.push({ units: [unit], offsets: [0], span: unit.span, focus: unit.focus, target: unit.target, orderAt: unit.native ? unit.anchor : unit.target, native: unit.native });
@@ -823,6 +834,47 @@ function compactParentPlaceholders(tree) {
                     });
                 });
             }
+        }
+
+        // An outer partner can move toward their children when another
+        // household's child rail extends across the original junction.
+        const familiesByParent = new Map();
+        for (const household of households) {
+            for (const parent of household.parents) {
+                if (!familiesByParent.has(parent)) familiesByParent.set(parent, []);
+                familiesByParent.get(parent).push(household);
+            }
+        }
+        for (const { parents, children } of households) {
+            if (parents.length !== 2 || !children.length) continue;
+            const outer = parents.find(parent => partners.get(parent).size === 1 && !parent.is_ancestry);
+            const shared = parents.find(parent => parent !== outer);
+            if (!outer || partners.get(shared).size < 2 || outer[depth] !== shared[depth]) continue;
+            const side = Math.sign(outer[cross] - shared[cross]);
+            if (!side) continue;
+            const outward = node => side * node[cross];
+            const junction = (outward(outer) + outward(shared)) / 2;
+            const otherChildren = familiesByParent.get(shared)
+                .filter(household => household.parents !== parents)
+                .flatMap(household => household.children)
+                .filter(child => children.some(member => member[depth] === child[depth]));
+            const railEnd = Math.max(-Infinity, ...otherChildren.map(outward));
+            const childCenter = (Math.min(...children.map(outward)) + Math.max(...children.map(outward))) / 2;
+            if (railEnd < junction || childCenter <= railEnd || childCenter <= outward(outer)) continue;
+
+            const nextCard = Math.min(Infinity, ...tree.filter(node =>
+                node[depth] === outer[depth] && outward(node) > outward(outer)).map(outward));
+            const target = Math.min(childCenter + 24, nextCard - spacing);
+            if (target <= outward(outer)) continue;
+            if (target - spacing / 2 <= railEnd) continue;
+
+            const delta = side * target - outer[cross];
+            outer[cross] += delta;
+            if (typeof outer.sx === "number") outer.sx += delta;
+            const previousCross = depth === "x" ? "psy" : "psx";
+            if (typeof outer[previousCross] === "number") outer[previousCross] += delta;
+            outer.extendedPartnership = shared.tid;
+            outer.extendedJunctionInset = 6 + Math.min(24, Math.max(0, target - childCenter));
         }
     }
 
