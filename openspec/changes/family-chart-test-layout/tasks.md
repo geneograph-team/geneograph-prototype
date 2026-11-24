@@ -8,4 +8,8 @@
 - [ ] Browser QA: toggle both directions, switch project/focus, edit/add relative, zoom/pan, EN/RU, themes, desktop/mobile and direct file://.
 - [ ] Compare all #318 examples and #319 crossing cases with equal projection coverage, document performance and obtain adoption decision (#389).
 
-Complex shared-ancestor and mixed fixtures still report routing crossings. This is an experimental view, not a completed architecture replacement. Keep the change active pending browser/evaluation evidence.
+- [x] Add two-partner family-junction placement and conservative crossing-driven occurrence splits.
+- [x] Execute updated regression assertions in an isolated V8 harness: mixed and shared-ancestor fixtures have zero geometry diagnostics; shared fixture uses one additional occurrence; bridge split rejected; multi-partner, pedigree, placeholder and deterministic coverage checks pass.
+- [ ] Browser-verify repeated-card selection/edit/focus, multiple partners, actual founder examples and dense-tree performance.
+
+This is an experimental view, not a completed architecture replacement. Keep the change active pending browser/evaluation evidence.

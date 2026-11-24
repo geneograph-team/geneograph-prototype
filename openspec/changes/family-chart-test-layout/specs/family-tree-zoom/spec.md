@@ -17,3 +17,16 @@ The Family Tree SHALL provide a Test layout checkbox next to its existing view s
 - **WHEN** the experimental calculation cannot produce the intended connected projection
 - **THEN** the view explains that it cannot display the tree
 - **AND** the researcher can uncheck Test layout without losing or modifying genealogy records
+
+### Scenario: Multiple partnerships
+
+- **WHEN** the experimental layout encounters a person with two distinct partners in a simple partner group
+- **THEN** place the person between the partners, preserve explicit family identities, and align each child group as closely as feasible to its own junction without violating occupied-row clearance
+
+### Scenario: Crossing-driven visual repetition
+
+- **WHEN** ordinary experimental routing reports intersecting distinct-family paths
+- **THEN** a bounded candidate search MAY repeat a visual occurrence only if routed intersections decrease without new collisions or lost relationships
+- **AND** all rendered occurrences SHALL remain reachable from the focus through actual relationship edges, not shared identity or badges
+- **AND** every repeated card SHALL resolve to the same canonical person and show its current occurrence count
+- **AND** an unsuccessful or disconnected candidate SHALL leave the connected baseline unchanged

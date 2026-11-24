@@ -32,6 +32,134 @@
 // for calculateTreeLayout. Shared geometry, routing and rendering stay intact.
 function calculateTestTreeLayout(people, sourceFamilies, focusPersonId, options = {})
 {
+    let layout = buildTestTreeLayout(people, sourceFamilies, focusPersonId, options);
+    if (options.allowRepetition === false) return layout;
+
+    // Start from the routed single-appearance graph. Only try splits for
+    // families involved in a real intersection; a long rail is not a trigger.
+    let visualPeople = people;
+    let visualFamilies = sourceFamilies;
+    const crossingCount = candidate => candidate.testIssues.filter(issue => issue.type === 'edge-crossing').length;
+    const issueCount = (candidate, type) => candidate.testIssues.filter(issue => issue.type === type).length;
+    // Bound the extra routing work on dense trees.
+    let remainingTrials = 24;
+    for (let round = 0; round < 3 && crossingCount(layout) && remainingTrials > 0; round++)
+    {
+        const involvedFamilies = new Set(layout.testIssues
+            .filter(issue => issue.type === 'edge-crossing')
+            .flatMap(issue => [issue.leftFamilyId, issue.rightFamilyId]));
+        const memberships = new Map();
+        for (const family of visualFamilies)
+        {
+            for (const id of new Set([family.left, family.right, ...(family.children || [])].filter(Boolean)))
+            {
+                if (!memberships.has(id)) memberships.set(id, []);
+                memberships.get(id).push(family);
+            }
+        }
+        const placeholderOwners = new Set(layout.parentPlaceholders.map(node => node.personId));
+        // Prefer people directly joining two intersecting families. Also
+        // consider another incidence of a shared person on a crossing route.
+        const candidates = visualPeople.filter(person => {
+            const member = memberships.get(person.id) || [];
+            return member.length > 1 && member.some(family => involvedFamilies.has(family.id))
+                && !placeholderOwners.has(person.id);
+        }).sort((a, b) =>
+            memberships.get(b.id).filter(family => involvedFamilies.has(family.id)).length
+            - memberships.get(a.id).filter(family => involvedFamilies.has(family.id)).length);
+
+        let best = null;
+        for (const person of candidates)
+        {
+            for (const family of memberships.get(person.id))
+            {
+                if (!involvedFamilies.has(family.id) || remainingTrials <= 0) continue;
+                const canonicalId = person.canonicalPersonId || person.id;
+                let suffix = 2;
+                const ids = new Set(visualPeople.map(node => node.id));
+                while (ids.has(canonicalId + '--test-occurrence-' + suffix)) suffix++;
+                const occurrenceId = canonicalId + '--test-occurrence-' + suffix;
+                const nextPeople = [...visualPeople, { ...person, id: occurrenceId, canonicalPersonId: canonicalId }];
+                const nextFamilies = visualFamilies.map(record => record.id !== family.id ? record : ({
+                    ...record,
+                    left: record.left === person.id ? occurrenceId : record.left,
+                    right: record.right === person.id ? occurrenceId : record.right,
+                    children: (record.children || []).map(id => id === person.id ? occurrenceId : id)
+                }));
+                // Splitting a bridge would detach a household. Reject that
+                // before the expensive layout; identity badges are not edges.
+                if (!testTreeOccurrencesConnected(nextPeople, nextFamilies, focusPersonId)) continue;
+                remainingTrials--;
+                let candidate;
+                try
+                {
+                    candidate = buildTestTreeLayout(nextPeople, nextFamilies, focusPersonId, options);
+                }
+                catch (error)
+                {
+                    // A failed experimental candidate must never replace the
+                    // connected baseline.
+                    continue;
+                }
+                if (crossingCount(candidate) >= crossingCount(layout)) continue;
+                if (candidate.testIssues.some(issue => ['node-node', 'edge-node', 'missing-family-link'].includes(issue.type))) continue;
+                const otherIssues = ['edge-overlap', 'ancestor-order', 'routing-lane', 'rail-clearance', 'focus-clearance', 'placeholder-width'];
+                if (otherIssues.some(type => issueCount(candidate, type) > issueCount(layout, type))) continue;
+                if (!best || crossingCount(candidate) < crossingCount(best.layout)
+                    || (crossingCount(candidate) === crossingCount(best.layout)
+                        && candidate.testIssues.length < best.layout.testIssues.length))
+                {
+                    best = { layout: candidate, people: nextPeople, families: nextFamilies };
+                }
+                if (!crossingCount(candidate)) break;
+            }
+            if ((best && !crossingCount(best.layout)) || remainingTrials <= 0) break;
+        }
+        if (!best) break;
+        layout = best.layout;
+        visualPeople = best.people;
+        visualFamilies = best.families;
+    }
+    const counts = new Map();
+    for (const person of layout.positionedPeople)
+    {
+        const id = person.canonicalPersonId || person.id;
+        counts.set(id, (counts.get(id) || 0) + 1);
+    }
+    for (const person of layout.positionedPeople)
+    {
+        const count = counts.get(person.canonicalPersonId || person.id);
+        if (count > 1) person.occurrenceCount = count;
+    }
+    return layout;
+}
+
+// Connectivity is evaluated on distinct occurrences, without identity edges.
+// The routed builder independently checks that each real family membership
+// has a connector before accepting the same graph.
+function testTreeOccurrencesConnected(people, families, focusPersonId)
+{
+    const adjacency = new Map(people.map(person => [person.id, new Set()]));
+    if (!adjacency.has(focusPersonId)) return false;
+    for (const family of families)
+    {
+        const parents = [family.left, family.right].filter(id => adjacency.has(id));
+        if (!parents.length) continue;
+        for (const id of [...parents, ...(family.children || [])])
+        {
+            if (!adjacency.has(id) || id === parents[0]) continue;
+            adjacency.get(parents[0]).add(id);
+            adjacency.get(id).add(parents[0]);
+        }
+    }
+    const reached = new Set([focusPersonId]);
+    for (const id of reached)
+        for (const other of adjacency.get(id)) reached.add(other);
+    return reached.size === adjacency.size;
+}
+
+function buildTestTreeLayout(people, sourceFamilies, focusPersonId, options = {})
+{
     const g = TREE_GEOMETRY;
     const roles = options.branchRoles || {};
     const peopleById = new Map(people.map(person => [person.id, person]));
@@ -188,6 +316,31 @@ function calculateTestTreeLayout(people, sourceFamilies, focusPersonId, options 
             ordered.push(nodes.get(id));
             remaining.delete(id);
         }
+        // For a two-partner star, place the shared person between the
+        // partners. Preserve the first recorded family's orientation and
+        // put the other partner opposite it when both hints point one way.
+        if (ordered.length === 3 && ordered.every(node => !node.placeholder))
+        {
+            const pairs = ports.filter(port => port.parents.length === 2
+                && port.parents.every(id => before.has(id)));
+            const distinctPartners = new Map(ordered.map(node => [node.id, new Set()]));
+            for (const port of pairs)
+            {
+                const [a, b] = port.parents;
+                distinctPartners.get(a).add(b);
+                distinctPartners.get(b).add(a);
+            }
+            const shared = ordered.find(node => distinctPartners.get(node.id).size === 2);
+            if (shared && ordered.filter(node => node !== shared).every(node => distinctPartners.get(node.id).size === 1))
+            {
+                const first = pairs.find(port => port.parents.includes(shared.id));
+                const partnerId = first.parents.find(id => id !== shared.id);
+                const partner = nodes.get(partnerId);
+                const other = ordered.find(node => node !== shared && node !== partner);
+                ordered.splice(0, 3, ...(first.parents[0] === shared.id
+                    ? [other, shared, partner] : [partner, shared, other]));
+            }
+        }
         block.members = ordered;
         const gap = (a, b) => a.placeholder || b.placeholder ? g.parentPlaceholderGap : g.spouseGap;
         block.width = ordered.reduce((width, node, index) => width + node.width
@@ -230,8 +383,19 @@ function calculateTestTreeLayout(people, sourceFamilies, focusPersonId, options 
             for (const parent of parents) addEdge(parent, blockById.get(childId), port, childId);
     }
     // Ancestor branches are ordered by their child's position in its couple.
+    function junctionOffset(block, port)
+    {
+        const offsets = port.parents.filter(id => blockById.get(id) === block)
+            .map(id => block.offsets.get(id));
+        return offsets.length ? offsets.reduce((sum, offset) => sum + offset, 0) / offsets.length : 0;
+    }
     for (const block of blocks)
+    {
         block.parents.sort((a, b) => block.offsets.get(a.childId) - block.offsets.get(b.childId));
+        // Each household's children belong to its own family junction,
+        // not the center of the combined multi-partner block.
+        block.children.sort((a, b) => junctionOffset(block, a.port) - junctionOffset(block, b.port));
+    }
 
     const placed = new Map();
     const occupied = new Map();
@@ -250,7 +414,9 @@ function calculateTestTreeLayout(people, sourceFamilies, focusPersonId, options 
             {
                 if (seen.has(edge.block) || placed.has(edge.block)) continue;
                 seen.add(edge.block);
-                children.push(build(edge.block, node, depth + 1, direction === 'children' ? edge.childId : null));
+                const child = build(edge.block, node, depth + 1, direction === 'children' ? edge.childId : null);
+                child.port = edge.port;
+                children.push(child);
             }
             if (children.length) node.children = children;
             return node;
@@ -266,6 +432,53 @@ function calculateTestTreeLayout(people, sourceFamilies, focusPersonId, options 
         treeTestTidy().nodeSize([1, 1]).separation((a, b) =>
             (a.block.width + b.block.width) / 2 + Math.abs(a.anchor - b.anchor)
             + (a.parent === b.parent ? g.siblingGap : g.subtreeGap))(root);
+        if (direction === 'children')
+        {
+            // The tidy layout centers all children on the same node. Refine
+            // multiple households as whole subtrees, toward their own ports.
+            // Keep the original sibling order and same-row footprint gaps.
+            function collect(node, result)
+            {
+                result.add(node);
+                for (const child of node.children || []) collect(child, result);
+            }
+            for (const node of all)
+            {
+                const groups = new Map();
+                for (const child of node.children || [])
+                {
+                    if (!groups.has(child.port)) groups.set(child.port, []);
+                    groups.get(child.port).push(child);
+                }
+                if (groups.size < 2 && node.block.members.length < 3) continue;
+                for (const [port, children] of groups)
+                {
+                    const moving = new Set();
+                    children.forEach(child => collect(child, moving));
+                    const center = node.x - node.anchor + junctionOffset(node.block, port);
+                    const attachments = children.map(child => child.x);
+                    const desired = center - (Math.min(...attachments) + Math.max(...attachments)) / 2;
+                    let low = -Infinity;
+                    let high = Infinity;
+                    for (const item of moving)
+                    {
+                        const x = item.x - item.anchor;
+                        for (const other of all)
+                        {
+                            if (moving.has(other) || other.depth !== item.depth) continue;
+                            const ox = other.x - other.anchor;
+                            const clearance = (item.block.width + other.block.width) / 2
+                                + (item.parent === other.parent ? g.siblingGap : g.subtreeGap);
+                            if (ox < x) low = Math.max(low, ox + clearance - x);
+                            else high = Math.min(high, ox - clearance - x);
+                        }
+                    }
+                    if (low > high) continue;
+                    const shift = Math.max(low, Math.min(high, desired));
+                    for (const item of moving) item.x += shift;
+                }
+            }
+        }
         return all.map(node => ({
             block: node.block,
             center: node.x - node.anchor
@@ -359,9 +572,9 @@ function calculateTestTreeLayout(people, sourceFamilies, focusPersonId, options 
     }
     const positionedPeople = people.map(person => nodes.get(person.id));
     const positionedById = new Map(positionedPeople.map(person => [person.id, person]));
-    const focusControls = positionedPeople.filter(person => roles.focusActionPersonIds?.has(person.id))
+    const focusControls = positionedPeople.filter(person => roles.focusActionPersonIds?.has(person.canonicalPersonId || person.id))
         .map(person => ({
-            personId: person.id, canonicalPersonId: person.id,
+            personId: person.id, canonicalPersonId: person.canonicalPersonId || person.id,
             x: Math.round(person.rightX - g.focusControlWidth),
             y: Math.round(person.topY - g.focusControlHeight - g.focusControlGap),
             width: g.focusControlWidth, height: g.focusControlHeight
@@ -383,7 +596,7 @@ function calculateTestTreeLayout(people, sourceFamilies, focusPersonId, options 
     layout.testIssues = validateTreeLayout(layout);
 
     // Every real family edge must be represented; counters or identity links
-    // cannot connect otherwise detached groups. No repeated appearances yet.
+    // cannot connect otherwise detached groups. Check actual routed edges.
     const connected = new Map(people.map(person => [person.id, new Set()]));
     function connect(a, b)
     {
