@@ -32,3 +32,9 @@ The importer SHALL match files only from the selected folder, including subfolde
 ### Requirement: Explain import outcomes
 
 Fatal errors SHALL stay visible in the dialog and explain the reason, recovery and that no project was created. The preview and result SHALL disclose the session-only lifetime. The result SHALL report actual imported records and attachment outcomes, and remain available in the imported project's overview.
+
+### Requirement: Preserve supported genealogy and evidence from MyHeritage exports
+
+Identify MyHeritage by the GEDCOM header source. When its married surname differs from its recorded surname, import the married surname as the last name and the recorded surname as the maiden name, while respecting an explicitly recorded maiden name. Other exporters retain the standard surname mapping.
+
+Preserve supported event and education details and import Source records with separate linked notes for individual citation excerpts and locators. Omit residence/contact details, recorded ages, citation quality flags, and export bookkeeping from the import report. Report online-only MyHeritage photos once per distinct file URL.

@@ -16,7 +16,7 @@ for (const file of [
     'shared/genealogy-dates', 'shared/person-name-helpers', 'modules/places/place-record-helpers',
     'shared/relationships', 'modules/family-tree/relationships', 'shared/tree-seed-model',
     'modules/people/person-form-fields', 'modules/people/person-editor', 'modules/people/relationship-editor',
-    'core/validation', 'modules/archive/archive-documents', 'modules/projects/gedcom-import'
+    'modules/archive/archive-sources', 'core/validation', 'modules/archive/archive-documents', 'modules/projects/gedcom-import'
 ])
 {
     const filename = path.join(__dirname, '../src', file + '.js');
@@ -140,6 +140,51 @@ assert.throws(() => map(file([
     '0 @I1@ INDI', '0 @I2@ INDI', '1 FAMC @F1@', '2 STAT disproven',
     '0 @F1@ FAM', '1 HUSB @I1@', '1 CHIL @I2@'
 ])), /child claims disagree/);
+const myHeritageRows = [
+    '0 @I1@ INDI', '1 NAME Ada /Birth/', '2 SURN Birth', '2 _MARNM Married',
+    '1 RESI', '2 EMAIL ada@example.test', '2 ADDR Private address', '3 CITY Private place',
+    '1 _UPD timestamp', '1 RIN 1',
+    '1 DEAT', '2 DATE 2010', '2 AGE 42',
+    '1 EDUC University', '2 DATE 1990', '2 NOTE Education note',
+    '1 EVEN', '2 TYPE Departure', '2 DATE 1991', '2 PLAC Departure place',
+    '1 OBJE', '2 FILE https://example.test/image.jpg', '2 _FILESIZE 100',
+    '1 SOUR @S1@', '2 EVEN DEAT', '3 ROLE Witness', '2 PAGE 7', '2 QUAY 2',
+    '2 DATA', '3 DATE 2020', '3 TEXT First', '4 CONC  excerpt',
+    '1 SOUR @S1@', '2 PAGE 9', '2 DATA', '3 TEXT Second excerpt',
+    '0 @I2@ INDI', '1 NAME Eve /Original/', '2 SURN Original', '2 _MARNM Original',
+    '1 OBJE', '2 FILE https://example.test/image.jpg',
+    '0 @I3@ INDI', '1 NAME Beatrice /Keep/', '2 SURN Keep',
+    '0 @S1@ SOUR', '1 TITL Source title', '1 AUTH Author', '1 PUBL Published',
+    '1 TEXT Source', '2 CONT Second line', '1 _TYPE Collection', '1 _MEDI 123',
+    '0 @F1@ FAM'
+];
+const heritage = map(file(['1 SOUR MYHERITAGE', ...myHeritageRows]));
+assert.deepEqual(Array.from(heritage.errors), []);
+assert.equal(heritage.records.people[0].names.last, 'Married');
+assert.equal(heritage.records.people[0].names.maiden, 'Birth');
+assert.equal(heritage.records.people[1].names.maiden, undefined);
+assert.equal(heritage.records.people[2].names.last, 'Keep');
+assert.equal(heritage.onlinePhotoCount, 1);
+assert.equal(heritage.records.places.length, 1);
+assert.equal(heritage.records.sources[0].title, 'Source title');
+assert.equal(heritage.records.sources[0].category, 'online');
+assert.match(heritage.records.sources[0].notes, /Source\nSecond line/);
+const firstCitation = heritage.records.notes.find(note => note.body.includes('First excerpt'));
+const secondCitation = heritage.records.notes.find(note => note.body.includes('Second excerpt'));
+assert.match(firstCitation.body, /Page or reference: 7/);
+assert.match(secondCitation.body, /Page or reference: 9/);
+assert.equal(firstCitation.linkedEventIds[0], heritage.records.events.find(event => event.type === 'death').id);
+assert.equal(secondCitation.linkedEventIds.length, 0);
+assert.equal(heritage.records.sourceLinks.filter(link => link.targetType === 'person').length, 1);
+assert.equal(heritage.records.sourceLinks.filter(link => link.targetType === 'note').length, 2);
+assert.ok(heritage.records.events.some(event => event.title === 'Departure' && event.placeText === 'Departure place'));
+assert.ok(heritage.records.notes.find(note => note.body === 'Education note').linkedEventIds.length);
+assert.deepEqual(Array.from(heritage.warnings, warning => warning.tag), ['FAM']);
+const otherExporter = map(file(['1 SOUR AgelongTree', '0 @I1@ INDI',
+    '1 NAME Ada /Birth/', '2 SURN Birth', '2 _MARNM Married']));
+assert.equal(otherExporter.records.people[0].names.last, 'Birth');
+assert.equal(otherExporter.records.people[0].names.maiden, undefined);
+
 async function verifyAttachments()
 {
     const source = parse(file([

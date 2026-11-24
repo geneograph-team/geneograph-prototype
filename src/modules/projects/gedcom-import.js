@@ -95,7 +95,7 @@ function parseGedcomImport(text)
         }
         const level = Number(match[1]);
         const [, , xref, tag, separator = '', payload = ''] = match;
-        const value = ['NOTE', 'CONT', 'CONC'].includes(tag) ? separator.slice(1) + payload : payload;
+        const value = ['NOTE', 'TEXT', 'CONT', 'CONC'].includes(tag) ? separator.slice(1) + payload : payload;
         if (level > limits.depth || level > stack.length || (level && xref))
             throw new GedcomImportError('Invalid GEDCOM hierarchy.', line);
         if (!level && roots.length >= limits.records)
@@ -133,7 +133,8 @@ function parseGedcomImport(text)
     for (const record of roots)
         if (['INDI', 'FAM'].includes(record.tag) && !record.xref)
             throw new GedcomImportError('A person or family record is missing its GEDCOM ID.', record.line);
-    return { roots: roots.slice(1, -1), xrefs, version };
+    const exporter = head.children.find(node => node.tag === 'SOUR')?.value.trim().toUpperCase() || '';
+    return { roots: roots.slice(1, -1), xrefs, version, exporter };
 }
 
 
@@ -304,6 +305,35 @@ function mapGedcomImport(parsed, project, matches = new Map(), references = gedc
     const eventOwners = new Map();
     const notes = new Map();
     const importedAt = project.createdAt || new Date().toISOString();
+    const myHeritage = parsed.exporter === 'MYHERITAGE';
+    const sources = new Map();
+    const sourceLinks = new Map();
+    const onlinePhotos = new Set();
+    const readText = node =>
+    {
+        used.add(node);
+        const parts = [node.value.replace(/^@@/, '@')];
+        for (const part of node.children)
+        {
+            checkDeadline();
+            if (!['CONT', 'CONC'].includes(part.tag)) continue;
+            parts.push(part.tag === 'CONT' ? '\n' : '', part.value);
+            used.add(part);
+        }
+        return parts.join('');
+    };
+    const addNote = (key, body, title = body.trim().split(/\r?\n/, 1)[0].slice(0, 100)) =>
+    {
+        const note = {
+            id: projectId + '-note-' + (notes.size + 1), projectId, title, body,
+            bodyDelta: null, bodyFormat: '', favorite: false, archived: false, tags: [], checklist: [],
+            createdAt: importedAt, updatedAt: importedAt,
+            linkedPersonIds: [], linkedEventIds: [], linkedPlaceIds: [], linkedPhotoIds: [],
+            linkedArchiveFileIds: [], collectionIds: [], relatedNoteIds: []
+        };
+        notes.set(key, note);
+        return note;
+    };
     const importNotes = (owner, personIds, eventId) =>
     {
         for (const link of owner.children.filter(child => child.tag === 'NOTE'))
@@ -313,29 +343,12 @@ function mapGedcomImport(parsed, project, matches = new Map(), references = gedc
             const source = pointer ? parsed.xrefs.get(link.value.trim()) : link;
             if (source?.tag !== 'NOTE') continue;
             used.add(link);
-            used.add(source);
             let note = notes.get(source);
             if (!note)
             {
-                const parts = [source.value.replace(/^@@/, '@')];
-                for (const part of source.children)
-                {
-                    checkDeadline();
-                    if (!['CONT', 'CONC'].includes(part.tag)) continue;
-                    parts.push(part.tag === 'CONT' ? '\n' : '', part.value);
-                    used.add(part);
-                }
-                const body = parts.join('');
+                const body = readText(source);
                 if (!body.trim()) continue;
-                note = {
-                    id: projectId + '-note-' + (notes.size + 1), projectId,
-                    title: body.trim().split(/\r?\n/, 1)[0].slice(0, 100), body,
-                    bodyDelta: null, bodyFormat: '', favorite: false, archived: false, tags: [], checklist: [],
-                    createdAt: importedAt, updatedAt: importedAt,
-                    linkedPersonIds: [], linkedEventIds: [], linkedPlaceIds: [], linkedPhotoIds: [],
-                    linkedArchiveFileIds: [], collectionIds: [], relatedNoteIds: []
-                };
-                notes.set(source, note);
+                note = addNote(source, body);
             }
             for (const id of personIds)
                 if (!note.linkedPersonIds.includes(id)) note.linkedPersonIds.push(id);
@@ -382,11 +395,8 @@ function mapGedcomImport(parsed, project, matches = new Map(), references = gedc
                 name: placeText, alternativeNames: [], coordinates: null });
         return { placeId: places.get(placeText)?.id || null, placeText };
     };
-    const vital = node =>
+    const readDate = dateNode =>
     {
-        if (!node) return { ...emptyGenealogyDate(), placeId: null, placeText: '' };
-        used.add(node);
-        const dateNode = take(node, 'DATE');
         const dateText = dateNode?.value.trim() || '';
         const parsedDate = dateText ? parseGedcomDate(dateText) : null;
         const date = parsedDate?.valid ? parsedDate.value : emptyGenealogyDate();
@@ -394,9 +404,15 @@ function mapGedcomImport(parsed, project, matches = new Map(), references = gedc
         {
             date.state = 'unparsed';
             date.originalText = dateText;
-            warn('DATE', dateNode.line, 'date-text');
+            warn(dateNode.tag, dateNode.line, 'date-text');
         }
-        return { ...date, ...readPlace(node) };
+        return date;
+    };
+    const vital = node =>
+    {
+        if (!node) return { ...emptyGenealogyDate(), placeId: null, placeText: '' };
+        used.add(node);
+        return { ...readDate(take(node, 'DATE')), ...readPlace(node) };
     };
 
     for (const node of parsed.roots)
@@ -427,6 +443,19 @@ function mapGedcomImport(parsed, project, matches = new Map(), references = gedc
                         used.add(maiden[0]);
                         take(maiden[0], 'TYPE');
                     }
+                }
+            }
+            if (myHeritage && name)
+            {
+                const marriedNode = take(name, '_MARNM');
+                const married = marriedNode?.value.trim();
+                const surnameKey = value => value.normalize('NFC').toLowerCase();
+                if (married && surnameKey(married) !== surnameKey(names.last))
+                {
+                    if (names.last && names.maiden && surnameKey(names.maiden) !== surnameKey(names.last))
+                        warn('_MARNM', marriedNode.line, 'name-conflict');
+                    if (names.last && !names.maiden) names.maiden = names.last;
+                    names.last = married;
                 }
             }
             const sex = take(node, 'SEX');
@@ -464,19 +493,32 @@ function mapGedcomImport(parsed, project, matches = new Map(), references = gedc
                 eventOwners.set(event, 'event-' + record.events.at(-1).id);
                 importNotes(event, [record.id], eventOwners.get(event));
             }
-            for (const fact of node.children.filter(child => ['EDUC', 'OCCU', 'RELI'].includes(child.tag)))
+            for (const fact of node.children.filter(child => ['EDUC', 'OCCU', 'RELI', 'EVEN', 'GRAD'].includes(child.tag)))
             {
                 const value = fact.value.trim();
+                const type = fact.tag === 'EVEN' ? read(fact, 'TYPE') : fact.tag === 'GRAD' ? 'Graduation' : '';
+                const dateNode = take(fact, 'DATE');
                 const place = readPlace(fact);
-                if (!value && !place.placeId) continue;
+                if (!value && !type && !dateNode && !place.placeId && !fact.children.some(child => child.tag === 'NOTE')) continue;
                 used.add(fact);
-                record.attributes.push({ id: record.id + '-attribute-' + (record.attributes.length + 1),
-                    tag: fact.tag, value, ...place });
+                const tag = ['EVEN', 'GRAD'].includes(fact.tag) ? 'FACT' : fact.tag;
+                const id = record.id + '-attribute-' + (record.attributes.length + 1);
+                const date = dateNode ? readDate(dateNode) : null;
+                const dateFields = date ? (['EDUC', 'OCCU'].includes(tag) ? { fromDate: date } : { date }) : {};
+                const attribute = { id, tag, value: value === 'Y' && tag === 'FACT' ? '' : value, ...place, ...dateFields };
+                if (tag === 'FACT') attribute.type = type || 'Other event';
+                record.attributes.push(attribute);
+                if (tag !== 'RELI') eventOwners.set(fact, 'event-' + id);
+                const noteBody = fact.children.filter(child => child.tag === 'NOTE' && !/^@[^@]+@$/.test(child.value.trim()))
+                    .map(readText).filter(value => value.trim()).join('\n');
+                if (noteBody) attribute.notes = noteBody;
+                importNotes(fact, [record.id], eventOwners.get(fact));
             }
             peopleByXref.set(node.xref, record);
         }
         else if (node.tag === 'FAM')
         {
+            if (myHeritage && !node.children.length) continue;
             used.add(node);
             familiesByXref.set(node.xref, { id: projectId + '-family-' + (familiesByXref.size + 1),
                 projectId, type: 'family', gedcomXref: node.xref, partnerAId: '', partnerBId: '',
@@ -501,13 +543,14 @@ function mapGedcomImport(parsed, project, matches = new Map(), references = gedc
             if (family.childIds.includes(id)) throw new GedcomImportError('A family contains a duplicate child link.', child.line);
             family.childIds.push(id);
         }
-        for (const event of node.children.filter(item => ['MARR', 'DIV'].includes(item.tag)))
+        for (const event of node.children.filter(item => ['MARR', 'DIV', 'EVEN'].includes(item.tag)))
         {
-            if (!positiveEvent(event)) continue;
+            if (event.tag !== 'EVEN' && !positiveEvent(event)) continue;
             const { placeId, placeText, ...date } = vital(event);
-            const married = event.tag === 'MARR';
+            const type = read(event, 'TYPE');
+            const eventType = event.tag === 'MARR' ? 'Marriage' : event.tag === 'DIV' ? 'Divorce' : type || 'Other event';
             family.events.push({ id: family.id + '-event-' + (family.events.length + 1), gedcomTag: event.tag,
-                eventType: married ? 'Marriage' : 'Divorce', date, placeId, placeText, typeLabel: read(event, 'TYPE') });
+                eventType, date, placeId, placeText, typeLabel: type });
             const partnerIds = [family.partnerAId, family.partnerBId].filter(Boolean);
             if (partnerIds.length === 2) eventOwners.set(event, 'event-' + family.id + '-' + family.events.at(-1).id);
             if (partnerIds.length)
@@ -596,8 +639,90 @@ function mapGedcomImport(parsed, project, matches = new Map(), references = gedc
         for (const parent of parentId ? [parentId] : [family.partnerAId, family.partnerBId].filter(Boolean))
             family.parentChildTypes[parent + '|' + person.id] = type;
 
+    const sourceDetail = (label, value) => value ? t(label) + ': ' + value : '';
+    for (const node of parsed.roots)
+    {
+        checkDeadline();
+        if (node.tag !== 'SOUR' || !node.xref) continue;
+        used.add(node);
+        const title = read(node, 'TITL') || t('Untitled source');
+        const authorNode = take(node, 'AUTH');
+        const author = authorNode ? readText(authorNode).trim() : '';
+        const classification = myHeritage ? read(node, '_TYPE') : '';
+        const medium = myHeritage ? read(node, '_MEDI') : '';
+        const publicationNode = take(node, 'PUBL');
+        const publication = publicationNode ? readText(publicationNode).trim() : '';
+        const text = node.children.filter(child => child.tag === 'TEXT').map(readText);
+        const category = ['Collection', 'Discovery', 'Smart Matching'].includes(classification) ? 'online'
+            : publication ? 'publication' : '';
+        sources.set(node.xref, {
+            id: projectId + '-source-' + (sources.size + 1), projectId, title, category,
+            providedBy: author, reference: publication, url: '', placeId: null, accessedDate: '',
+            notes: [...text, sourceDetail('Source classification', classification),
+                sourceDetail('Source medium', medium)].filter(Boolean).join('\n\n'),
+            favorite: false, createdAt: importedAt, updatedAt: importedAt
+        });
+    }
+
+    const linkSource = (sourceId, targetType, targetId) =>
+    {
+        const key = [sourceId, targetType, targetId].join(':');
+        if (sourceLinks.has(key)) return;
+        sourceLinks.set(key, { id: projectId + '-source-link-' + (sourceLinks.size + 1),
+            projectId, sourceId, targetType, targetId });
+    };
+    function importCitations(node, personIds, eventIds = [])
+    {
+        checkDeadline();
+        for (const citation of node.children.filter(child => child.tag === 'SOUR'))
+        {
+            checkDeadline();
+            const source = sources.get(citation.value.trim());
+            if (!source) continue;
+            used.add(citation);
+            const targets = [...eventIds];
+            const details = [sourceDetail('Page or reference', read(citation, 'PAGE'))];
+            for (const context of citation.children.filter(child => child.tag === 'EVEN'))
+            {
+                used.add(context);
+                details.push(sourceDetail('Cited event', context.value.trim()),
+                    sourceDetail('Role', read(context, 'ROLE')));
+                if (node.tag !== 'INDI' && node.tag !== 'FAM') continue;
+                const tags = context.value.trim().toUpperCase().split(/\s*,\s*/);
+                const candidates = node.children.filter(child => tags.includes(child.tag) && eventOwners.has(child));
+                if (candidates.length === 1) targets.push(eventOwners.get(candidates[0]));
+            }
+            for (const data of citation.children.filter(child => child.tag === 'DATA'))
+            {
+                used.add(data);
+                details.push(sourceDetail('Citation date', read(data, 'DATE')));
+                for (const text of data.children.filter(child => child.tag === 'TEXT')) details.push(readText(text));
+            }
+            for (const text of citation.children.filter(child => child.tag === 'TEXT')) details.push(readText(text));
+            for (const id of personIds) linkSource(source.id, 'person', id);
+            for (const id of targets) linkSource(source.id, 'event', id);
+            const body = details.filter(value => value.trim()).join('\n\n');
+            if (!body) continue;
+            const note = addNote(citation, body, source.title.slice(0, 100));
+            note.linkedPersonIds = [...personIds];
+            note.linkedEventIds = [...new Set(targets)];
+            linkSource(source.id, 'note', note.id);
+        }
+        for (const child of node.children)
+            if (eventOwners.has(child)) importCitations(child, personIds, [eventOwners.get(child)]);
+    }
+    for (const [xref, person] of peopleByXref) importCitations(parsed.xrefs.get(xref), [person.id]);
+    for (const xref of familiesByXref.keys())
+    {
+        // A family citation without an event belongs to the family, not to each individual.
+        const node = parsed.xrefs.get(xref);
+        for (const event of node.children)
+            if (eventOwners.has(event)) importCitations(event, [], [eventOwners.get(event)]);
+    }
+
     const archiveFiles = [];
     const attachmentAssets = new Map();
+    const primaryPhotos = new Map();
     const attachmentReport = [];
     const byFile = new Map();
     for (const [key, reference] of references)
@@ -637,11 +762,23 @@ function mapGedcomImport(parsed, project, matches = new Map(), references = gedc
             media.set(file, { id, projectId, kind: 'photo', title: title || filename, filename, src, mimeType,
                 width, height, sizeBytes, personIds, albumIds: [], placeId: null, placeText: '', caption: '',
                 favorite: false, createdAt: importedAt, updatedAt: importedAt });
+            const dateNodes = myHeritage ? links.flatMap(link => link.object.children.filter(child => child.tag === '_DATE')) : [];
+            if (dateNodes.length && new Set(dateNodes.map(node => node.value.trim())).size === 1)
+            {
+                for (const node of dateNodes) used.add(node);
+                media.get(file).date = readDate(dateNodes[0]);
+            }
             for (const link of supportedLinks)
             {
                 const person = personFor(link);
-                if (!person.primaryPhotoId && link.object.children.some(child =>
-                    child.tag === '_PRIM' && child.value.trim().toUpperCase() === 'Y')) person.primaryPhotoId = id;
+                if (link.object.children.some(child =>
+                    (child.tag === '_PRIM' || (myHeritage && child.tag === '_PERSONALPHOTO'))
+                        && child.value.trim().toUpperCase() === 'Y'))
+                {
+                    const candidates = primaryPhotos.get(person) || new Set();
+                    candidates.add(id);
+                    primaryPhotos.set(person, candidates);
+                }
             }
         }
         else
@@ -663,18 +800,27 @@ function mapGedcomImport(parsed, project, matches = new Map(), references = gedc
             used.add(link.file);
             for (const node of [link.object, link.record, link.file])
                 for (const child of node.children)
-                    if (['TITL', '_PRIM'].includes(child.tag)) used.add(child);
+                    if (['TITL', '_PRIM'].includes(child.tag) || (myHeritage && child.tag === '_PERSONALPHOTO')) used.add(child);
         }
         for (const { reference, entry } of group)
             entry.status = reference.links.every(supported) ? 'Imported' : reference.links.some(supported)
                 ? 'Imported with some links skipped' : 'No supported record to link';
     }
 
+    for (const [person, candidates] of primaryPhotos)
+        if (candidates.size === 1) person.primaryPhotoId = candidates.values().next().value;
+
     function account(node, parent)
     {
         checkDeadline();
-        if (!parent && node.tag === 'SUBM') return;
-        const technical = node.tag === '_UID'
+        if ((!parent && node.tag === 'SUBM') || node.tag === 'RESI') return;
+        const fileNodes = node.tag === 'OBJE' ? node.children.filter(child => child.tag === 'FILE') : [];
+        if (myHeritage && fileNodes.length && fileNodes.every(file => /^https?:\/\//i.test(file.value.trim())))
+        {
+            for (const file of fileNodes) onlinePhotos.add(file.value.trim());
+            return;
+        }
+        const technical = ['_UID', '_UPD', 'RIN', 'EMAIL', 'AGE', 'QUAY', '_FILESIZE', '_PHOTO_RIN'].includes(node.tag)
             || (node.tag === 'FORM' && ['OBJE', 'FILE'].includes(parent?.tag));
         if (!used.has(node) && !technical) warn(node.tag, node.line);
         for (const child of node.children) account(child, node);
@@ -684,11 +830,12 @@ function mapGedcomImport(parsed, project, matches = new Map(), references = gedc
     const people = [...peopleByXref.values()];
     const families = [...familiesByXref.values()];
     if (!people.length) throw new GedcomImportError('The GEDCOM file contains no people.');
-    const records = { people, families, places: [...places.values()], media: [...media.values()], notes: [...notes.values()], archiveFiles };
+    const records = { people, families, places: [...places.values()], media: [...media.values()], notes: [...notes.values()], archiveFiles,
+        sources: [...sources.values()], sourceLinks: [...sourceLinks.values()] };
     const draft = prepareProjectDraft({ ...project, defaultPersonId: people[0].id }, records);
     if (draft.errors.length) return { errors: draft.errors };
     const distinctFilesFound = new Set([...matches.values()].filter(match => match.found).map(match => match.file)).size;
-    return { ...draft, warnings: [...warnings.values()], attachmentReport, attachmentAssets, distinctFilesFound };
+    return { ...draft, warnings: [...warnings.values()], attachmentReport, attachmentAssets, distinctFilesFound, onlinePhotoCount: onlinePhotos.size };
 }
 
 
@@ -765,6 +912,7 @@ function gedcomImportReport(draft)
     if (draft.records.media.length) rows.push(['Photos', draft.records.media.length]);
     if (draft.records.archiveFiles.length) rows.push(['Imported Archive files', draft.records.archiveFiles.length]);
     if (draft.records.notes.length) rows.push(['Notes', draft.records.notes.length]);
+    if (draft.records.sources.length) rows.push(['Sources', draft.records.sources.length]);
     const authored = Object.fromEntries(PROJECT_DRAFT_COLLECTIONS.filter(key => draft.records[key])
         .map(key => [key, draft.records[key]]));
     const authoredCount = Object.values(authored).reduce((count, records) => count + records.length, 0);
@@ -773,7 +921,7 @@ function gedcomImportReport(draft)
     }, (key, value) => ['src', 'previewUrl'].includes(key) && typeof value === 'string' && value.startsWith('data:')
         ? '' : value)).byteLength;
     return { rows: rows.filter(([, count]) => count > 0), warnings: draft.warnings, attachments: draft.attachmentReport,
-        attachmentCount: draft.records.media.length + draft.records.archiveFiles.length, distinctFilesFound: draft.distinctFilesFound, overBackupRecordLimit: authoredCount > 50000,
+        attachmentCount: draft.records.media.length + draft.records.archiveFiles.length, distinctFilesFound: draft.distinctFilesFound, onlinePhotoCount: draft.onlinePhotoCount, overBackupRecordLimit: authoredCount > 50000,
         overBackupManifestLimit: manifestBytes > 32 * 1024 * 1024 };
 }
 
@@ -795,7 +943,10 @@ function gedcomImportWarnings(report)
         return '<details><summary>' + escapeHtml(t(title)) + ' (' + total + ')</summary><ul>' + examples + '</ul>'
             + (entries.length > 25 ? '<p>' + escapeHtml(t('Showing the first 25 tag types.')) + '</p>' : '') + '</details>';
     };
-    return warningGroup('skipped', 'Skipped or unsupported GEDCOM data')
+    return (report.onlinePhotoCount ? '<p>' + escapeHtml(t('Online photo files not imported: {count}')
+        .replace('{count}', report.onlinePhotoCount)) + '</p>' : '')
+        + warningGroup('name-conflict', 'Conflicting maiden names')
+        + warningGroup('skipped', 'Skipped or unsupported GEDCOM data')
         + warningGroup('date-text', 'Dates preserved as text')
         + (report.overBackupRecordLimit ? '<p>' + escapeHtml(t('This project exceeds the 50,000-record limit for project backups.')) + '</p>' : '')
         + (report.overBackupManifestLimit ? '<p>' + escapeHtml(t('This project exceeds the 32 MiB metadata limit for project backups.')) + '</p>' : '');
