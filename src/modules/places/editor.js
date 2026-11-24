@@ -1737,47 +1737,35 @@ function openPlaceModalForCoordinateReview(placeId)
         (invalidInput || modalBackdrop.querySelector('#placeLatitudeInput'))?.focus({ preventScroll: true });
     });
 }
-function openDeletePlaceModal(placeId, { returnToEditor = false } = {})
+function openDeletePlaceModal(placeId, { returnToEditor = false, unlinkedOnly = false } = {})
 {
-    const place = getPlace(placeId); if (!place) return;
+    const place = getPlace(placeId);
+    if (!place || place.projectId !== currentProjectId()) return;
+    const projectId = place.projectId;
+    if (unlinkedOnly && placeLiveReferenceCount(place))
+    {
+        showToast(t('This place is now linked. It was not deleted.'));
+        renderPlaces();
+        return;
+    }
     const returnAttribute = returnToEditor && placeEditorDraft ? ' data-return-to-place-editor' : '';
     openModal(`<div class="modal" role="dialog" aria-modal="true" aria-labelledby="deletePlaceTitle" data-place-delete-confirm${returnAttribute}><div class="modal-header"><div><h2 id="deletePlaceTitle">Delete place permanently?</h2><p>This action cannot be undone.</p></div><button class="close-button" type="button" data-close aria-label="Close">${icon.close}</button></div><div class="modal-body place-delete-confirm"><strong>${escapeHtml(place.name)}</strong><ul><li>The place will no longer appear in calculated routes.</li><li>Structured links from connected records will be cleared.</li><li>Connected people, events, files, photos, and notes will remain.</li><li>Textual mentions may remain in free-text content.</li></ul></div><div class="modal-footer"><button class="button secondary" type="button" data-close>Cancel</button><button class="button danger" type="button" data-confirm-delete-place>Delete permanently</button></div></div>`);
     modalBackdrop.querySelector('[data-confirm-delete-place]')?.addEventListener('click', () =>
     {
-        resetPlaceEditorDraft();
-        (sampleData.boards || []).forEach(board =>
+        if (!deleteSavedPlace(placeId, { unlinkedOnly, projectId }))
         {
-            let repairedBoardPlace = updateBoardFactPlaceReferences(board, place);
-            (board.diagram?.nodes || []).forEach(node =>
-            {
-                if (node.type !== 'place' || node.placeRef?.scope !== 'project' || node.placeRef.id !== place.id) return;
-                node.placeRef = {
-                    scope: 'board',
-                    name: String(node.placeRef.fallbackName || placePrimaryName(place) || place.name || 'Place').trim()
-                };
-                repairedBoardPlace = true;
-            });
-            if (repairedBoardPlace) board.updatedAt = new Date().toISOString();
-        });
-        removeSourceLinksForTarget(
-            'place',
-            place.id
-        );
-        sampleData.places = sampleData.places.filter(item => item.id !== place.id);
-        markPrototypeSessionEdited();
-        sampleData.placeIssues = (sampleData.placeIssues || []).filter(issue =>
-            issue.placeId !== place.id && issue.otherPlaceId !== place.id);
-        sampleData.people.forEach(person => [person, person.birth, person.death, ...(person.events || []), ...(person.attributes || [])].filter(Boolean).forEach(record => clearStructuredPlaceReferences(record, place.id)));
-        centralFamilyRecords().forEach(family => [family, ...(family.events || [])].forEach(record => clearStructuredPlaceReferences(record, place.id)));
-        [sampleData.media, sampleData.archiveFiles, sampleData.sources, sampleData.notes].forEach(records => (records || []).forEach(record => clearStructuredPlaceReferences(record, place.id)));
-        sampleData.links = sampleData.links.filter(link => !placeLinkMatches(link, place.id));
-        sampleData.events =
-            rebuildSampleEventsAndPruneSourceLinks();
+            closeModal();
+            if (currentProjectId() === projectId) renderPlaces();
+            showToast(t('This place is now linked or unavailable. It was not deleted.'));
+            return;
+        }
+        resetPlaceEditorDraft();
 
         state.selectedPlaceId = projectPlaces()[0]?.id || null;
 
         closeModal();
-        renderPlaces();
+        if (state.placesView === 'review') rerenderPlacesReviewAfterAction('', 'unlinked');
+        else renderPlaces();
 
         showToast(
             'Place deleted permanently.'

@@ -154,6 +154,46 @@ assert.equal(JSON.stringify(draftProject), projectBeforePreparation);
 assert.notEqual(prepared.project, draftProject);
 assert.notEqual(prepared.records.people[0], draftInput.people[0]);
 assert.notEqual(prepared.records.boards[0].diagram.nodes, draftInput.boards[0].diagram.nodes);
+// Place review decisions are canonical project data, not derived activity.
+const unlinkedDecisionInput = JSON.parse(before);
+const reviewPlace = unlinkedDecisionInput.places[0];
+const reviewDecision = { id: 'test-unlinked-review', projectId: project.id, placeId: reviewPlace.id,
+    type: 'unlinked', status: 'dismissed', dismissedAt: '2026-11-24T12:00:00.000Z', reason: '' };
+unlinkedDecisionInput.placeIssues.push(reviewDecision);
+assert.deepEqual(Array.from(context.prepareProjectDraft(project, unlinkedDecisionInput).errors), []);
+reviewDecision.type = 'unsupported-review';
+assert.ok(context.prepareProjectDraft(project, unlinkedDecisionInput).errors.some(error => error.includes('.type is unsupported')));
+reviewDecision.type = 'unlinked';
+reviewDecision.extraField = true;
+assert.ok(context.prepareProjectDraft(project, unlinkedDecisionInput).errors.some(error => error.includes('extraField')));
+
+// Exercise the shared merge/deletion reference writer against a complete
+// canonical sample project and revalidate detached authored records.
+const originalCollections = Object.fromEntries(Object.keys(authored).map(key => [key, sample[key]]));
+try
+{
+    for (const merge of [false, true])
+    {
+        Object.assign(sample, JSON.parse(before));
+        const owners = context.projectPlaceReferenceOwners(project.id);
+        const removed = sample.places.find(place => owners.has(place.id));
+        const survivor = sample.places.find(place => place.id !== removed.id);
+        assert.ok(removed && survivor);
+        context.rewriteProjectPlaceReferences(removed, merge ? survivor : null);
+        sample.places = sample.places.filter(place => place.id !== removed.id);
+        sample.placeIssues = sample.placeIssues.filter(issue =>
+            issue.placeId !== removed.id && issue.otherPlaceId !== removed.id);
+        assert.equal(context.projectPlaceReferenceOwners(project.id).has(removed.id), false);
+        const rewritten = Object.fromEntries(Object.keys(authored).map(key => [key, sample[key]]));
+        const verified = context.prepareProjectDraft(project, rewritten);
+        assert.deepEqual(Array.from(verified.errors), [], merge ? 'Place merge integrity' : 'Place delete integrity');
+    }
+}
+finally
+{
+    Object.assign(sample, originalCollections);
+}
+
 const malformedVitalDateInput = JSON.parse(before);
 const badVitalPerson = malformedVitalDateInput.people[0];
 badVitalPerson.birth.first.aliasYear = 1998;

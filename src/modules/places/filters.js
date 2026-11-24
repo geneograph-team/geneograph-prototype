@@ -829,8 +829,7 @@ function placeCoordinateReviewState(place)
 
 function placeReviewConnectionCount(placeId)
 {
-    return Object.values(getPlaceConnectionCounts(placeId))
-        .reduce((total, count) => total + Number(count || 0), 0);
+    return placeLiveReferenceCount(getPlace(placeId));
 }
 
 function placeDuplicateContextsConflict(left, right)
@@ -960,11 +959,11 @@ function restorePlaceDuplicatePair(key)
     return true;
 }
 
-function getPlaceReviewIssues(place)
+function getPlaceReviewIssues(place, owners = null)
 {
-    if (!place || place.projectId !== currentProjectId()) return [];
+    if (!place) return [];
     const coordinateState = placeCoordinateReviewState(place);
-    const connectionCount = placeReviewConnectionCount(place.id);
+    const connectionCount = placeLiveReferenceCount(place, owners);
     const issues = [];
 
     if (coordinateState.invalid)
@@ -976,7 +975,7 @@ function getPlaceReviewIssues(place)
             actionLabel: 'Fix coordinates'
         });
     }
-    else if (coordinateState.missing)
+    else if (coordinateState.missing && connectionCount > 0)
     {
         issues.push({
             type: 'missing_coordinates',
@@ -995,23 +994,32 @@ function getPlaceReviewIssues(place)
         });
     }
 
+    if (connectionCount === 0)
+    {
+        issues.push({
+            type: 'unlinked',
+            title: 'No linked records',
+            description: 'This place is not linked to any project record.',
+            actionLabel: 'Delete place'
+        });
+    }
     return issues;
 }
 
-function isPlaceReviewIssueDismissed(placeId, issueType)
+function isPlaceReviewIssueDismissed(placeId, issueType, projectId = currentProjectId())
 {
     return (sampleData.placeIssues || []).some(issue =>
-        issue.projectId === currentProjectId()
+        issue.projectId === projectId
         && issue.placeId === placeId
         && issue.type === issueType
         && issue.status === 'dismissed'
     );
 }
 
-function getActivePlaceReviewIssues(place)
+function getActivePlaceReviewIssues(place, owners = null)
 {
-    return getPlaceReviewIssues(place).filter(issue =>
-        !isPlaceReviewIssueDismissed(place.id, issue.type)
+    return getPlaceReviewIssues(place, owners).filter(issue =>
+        !isPlaceReviewIssueDismissed(place.id, issue.type, place.projectId)
     );
 }
 
@@ -1020,9 +1028,24 @@ function placeNeedsReview(place)
     return getActivePlaceReviewIssues(place).length > 0;
 }
 
+function placeReviewPlaceCount(projectId = currentProjectId())
+{
+    const owners = projectPlaceReferenceOwners(projectId);
+    const ids = new Set(projectPlaces(projectId)
+        .filter(place => getActivePlaceReviewIssues(place, owners).length).map(place => place.id));
+    for (const pair of getPlaceDuplicatePairs(projectId))
+        if (!placeDuplicateDismissal(pair))
+        {
+            ids.add(pair.left.id);
+            ids.add(pair.right.id);
+        }
+    return ids.size;
+}
+
 function getPlacesNeedingReview()
 {
-    return projectPlaces().filter(placeNeedsReview);
+    const owners = projectPlaceReferenceOwners(currentProjectId());
+    return projectPlaces().filter(place => getActivePlaceReviewIssues(place, owners).length > 0);
 }
 
 const PLACE_REVIEW_DEFAULT_MISSING_REASON = 'Exact position not identified';

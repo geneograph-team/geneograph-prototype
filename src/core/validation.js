@@ -619,7 +619,7 @@ function validateProjectDraft(project, records, { deferEventReferences = false }
         const owner = 'placeIssues/' + issue.id;
         const pairFields = issue.type === 'possible_duplicate' ? ['otherPlaceId', 'pairKey', 'fingerprints'] : [];
         rejectUnknownFields(owner, issue, ['id', 'projectId', 'placeId', 'type', 'status', 'dismissedAt', 'reason', ...pairFields]);
-        if (!['missing_coordinates', 'invalid_coordinates', 'possible_duplicate'].includes(issue.type))
+        if (!['missing_coordinates', 'invalid_coordinates', 'possible_duplicate', 'unlinked'].includes(issue.type))
             errors.push(owner + '.type is unsupported.');
         if (issue.status !== 'dismissed') errors.push(owner + '.status must be dismissed.');
         if (typeof issue.dismissedAt !== 'string' || !Number.isFinite(Date.parse(issue.dismissedAt)))
@@ -2651,7 +2651,7 @@ function validateSampleData()
         if (!place) warn(`Place issue ${issue.id} points to missing place ${issue.placeId}`);
         else if (place.projectId !== issue.projectId) warn(`Place issue ${issue.id} and place ${issue.placeId} are in different projects`);
         if (issue.status !== 'dismissed') warn(`Place issue ${issue.id} must be a dismissal record`);
-        if (!PLACE_REVIEW_COORDINATE_ISSUE_TYPES.includes(issue.type)) warn(`Place issue ${issue.id} has invalid type ${issue.type}`);
+        if (!['missing_coordinates', 'invalid_coordinates', 'possible_duplicate', 'unlinked'].includes(issue.type)) warn(`Place issue ${issue.id} has invalid type ${issue.type}`);
         if (!Number.isFinite(Date.parse(issue.dismissedAt || ''))) warn(`Place issue ${issue.id} has an invalid dismissedAt timestamp`);
     });
 

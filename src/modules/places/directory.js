@@ -1,5 +1,6 @@
 function renderPlaces()
 {
+    invalidateLinkedPlaceDismissals();
     appNavigationObserve();
     if (
         ![
@@ -39,8 +40,7 @@ function renderPlaces()
 
 function renderPlacesSidebar()
 {
-    const issueCount = getPlacesNeedingReview().length
-        + getPlaceDuplicatePairs().filter(pair => !placeDuplicateDismissal(pair)).length;
+    const issueCount = placeReviewPlaceCount();
 
     const savedFilters =
         placeSavedFiltersForProject();
@@ -1385,7 +1385,7 @@ function placeReviewMatchesSearch(item, query)
     const { place, issue, dismissal } = item;
     const label = issue.type === 'invalid_coordinates'
         ? t('Coordinates need correction')
-        : t('Missing map positions');
+        : t(issue.type === 'unlinked' ? 'Unlinked places' : 'Missing map positions');
     return [
         placePrimaryName(place),
         placeSecondaryName(place),
@@ -1401,8 +1401,8 @@ function placeReviewMatchesSearch(item, query)
 function placesReviewGroups()
 {
     const query = String(state.placesSearch || '').trim().toLowerCase();
-    const active = getPlacesNeedingReview()
-        .flatMap(place => getActivePlaceReviewIssues(place)
+    const owners = projectPlaceReferenceOwners(currentProjectId());
+    const active = projectPlaces().flatMap(place => getActivePlaceReviewIssues(place, owners)
             .map(issue => ({ place, issue, dismissal: null })));
     const dismissed = getDismissedPlaceReviewItems()
         .map(({ place, issue, review }) => ({
@@ -1439,6 +1439,13 @@ function placesReviewGroups()
             items: sort(active.filter(item => item.issue.type === 'missing_coordinates'))
         },
         {
+            key: 'unlinked',
+            title: 'Unlinked places',
+            description: 'Review places that have no linked project records.',
+            empty: 'No unlinked places.',
+            items: sort(active.filter(item => item.issue.type === 'unlinked'))
+        },
+        {
             key: 'dismissed',
             title: 'Dismissed',
             description: 'Dismissed warnings can be restored or given an updated reason.',
@@ -1457,8 +1464,7 @@ function placesReviewGroups()
 
 function placeReviewConnectionTotal(place)
 {
-    return Object.values(getPlaceConnectionCounts(place.id))
-        .reduce((total, count) => total + Number(count || 0), 0);
+    return placeLiveReferenceCount(place);
 }
 
 function renderPlaceReviewListRow(item)
@@ -1472,7 +1478,7 @@ function renderPlaceReviewListRow(item)
     const selected = !state.selectedPlaceReviewPairKey && place.id === state.selectedPlaceId;
     const issueLabel = issue.type === 'invalid_coordinates'
         ? t('Coordinates need correction')
-        : t('No map position');
+        : t(issue.type === 'unlinked' ? 'No linked records' : 'No map position');
     const actions = dismissal
         ? `<button class="button ghost places-review-quiet-button" type="button"
               data-place-review-edit-reason="${placeId}"
@@ -1480,14 +1486,14 @@ function renderPlaceReviewListRow(item)
             <button class="button secondary places-review-restore-button" type="button"
               data-place-review-restore="${placeId}"
               data-place-review-type="${issueType}">${escapeHtml(placeReviewT('Restore'))}</button>`
-        : `<button class="button secondary places-review-position-button" type="button"
+        : `<button class="button ${issue.type === 'unlinked' ? 'danger' : 'secondary places-review-position-button'}" type="button"
               data-place-review-fix="${placeId}"
               data-place-review-type="${issueType}">
-              <span class="places-review-position-icon" aria-hidden="true">${icon.mapPin}</span>
+              <span class="places-review-position-icon" aria-hidden="true">${issue.type === 'unlinked' ? icon.trash : icon.mapPin}</span>
               <span>${escapeHtml(t(issue.actionLabel))}</span></button>
             <button class="button ghost places-review-quiet-button" type="button"
               data-place-review-dismiss="${placeId}"
-              data-place-review-type="${issueType}">${escapeHtml(placeReviewT('Dismiss'))}</button>`;
+              data-place-review-type="${issueType}">${escapeHtml(issue.type === 'unlinked' ? t('Keep') : placeReviewT('Dismiss'))}</button>`;
     const reason = dismissal ? placeReviewDismissalReason(dismissal) : '';
     const localizedReason = reason === PLACE_REVIEW_DEFAULT_MISSING_REASON
         ? t(reason)
@@ -1742,7 +1748,8 @@ function bindPlacesNeedsReviewControls()
     {
         const placeId = button.dataset.placeReviewFix;
         selectPlace(placeId, { focusMap: false });
-        openPlaceModalForCoordinateReview(placeId);
+        if (button.dataset.placeReviewType === 'unlinked') openDeletePlaceModal(placeId, { unlinkedOnly: true });
+        else openPlaceModalForCoordinateReview(placeId);
     }));
 
     main.querySelectorAll('[data-place-review-dismiss]').forEach(button => button.addEventListener('click', () =>

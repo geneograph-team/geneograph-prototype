@@ -1521,17 +1521,17 @@ function renderPlacesInspector(
                 issueCount: reviewIssues.length,
                 showOpenReview: state.placesView !== 'review',
                 actions: `
-                    <button class="places-attention-fix" type="button"
+                    <button class="${firstReviewIssue.type === 'unlinked' ? 'button danger' : 'places-attention-fix'}" type="button"
                         data-place-review-fix="${escapeHtml(place.id)}"
                         data-place-review-type="${escapeHtml(firstReviewIssue.type)}">
-                        ${icon.mapPin}
-                        <span>${escapeHtml(firstReviewIssue.actionLabel)}</span>
+                        ${firstReviewIssue.type === 'unlinked' ? icon.trash : icon.mapPin}
+                        <span>${escapeHtml(t(firstReviewIssue.actionLabel))}</span>
                     </button>
                     <button class="places-attention-dismiss" type="button"
                         data-place-review-dismiss="${escapeHtml(place.id)}"
                         data-place-review-type="${escapeHtml(firstReviewIssue.type)}">
                         ${icon.close}
-                        <span>${escapeHtml(placeReviewT('Dismiss'))}</span>
+                        <span>${escapeHtml(firstReviewIssue.type === 'unlinked' ? t('Keep') : placeReviewT('Dismiss'))}</span>
                     </button>`
             }) : ''}
             ${duplicatePairs.length ? renderPlaceAttention({
@@ -1865,7 +1865,8 @@ function bindPlacesInspectorControls(
     root.querySelector('[data-place-review-fix]')?.addEventListener('click', event =>
     {
         const button = event.currentTarget;
-        openPlaceModalForCoordinateReview(button.dataset.placeReviewFix);
+        if (button.dataset.placeReviewType === 'unlinked') openDeletePlaceModal(button.dataset.placeReviewFix, { unlinkedOnly: true });
+        else openPlaceModalForCoordinateReview(button.dataset.placeReviewFix);
     });
 
     root.querySelectorAll('[data-place-review-view]').forEach(button => button.addEventListener('click', event =>
