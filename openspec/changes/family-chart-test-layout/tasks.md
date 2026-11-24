@@ -16,4 +16,8 @@
 - [x] Run isolated regression assertions for shared-ancestor identity and the same-family sibling convergence (only father repeats, no false Add father, connected graph, zero diagnostics); nonintersecting control retains one card.
 - [ ] Browser-confirm the founder's Marianna/Alexey example and other complex ancestry paths.
 
+- [x] Replace three-person special case with graph-based partnership-chain ordering; reserve explicit junctions and upper tracks for nonadjacent partners.
+- [x] Run isolated regressions: 4/6/8-person partner groups with descendants, both principal ancestors visible, all in-law ancestors visible; 5/8-person paths, asymmetric 1/3 and 3/1 extra partners, one-sided four extra partners, four extra on both sides, canonical edge coverage, deterministic ordering and actual child-to-partner junction attachment. Existing experimental assertions and Classic geometry snapshot comparisons pass.
+- [ ] Browser-verify four-person founder screenshot, additional partners on each side, upper track readability, focus controls, and remaining in-law ancestry crossings.
+
 This is an experimental view, not a completed architecture replacement. Keep the change active pending browser/evaluation evidence.

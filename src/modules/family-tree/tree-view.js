@@ -1370,6 +1370,23 @@ function buildTreeConnectorDescriptors(
             { x: corridor, y: endY }, { x: destinationX, y: endY }, end];
     }
 
+    function testExtendedPartnerRoute(familyId)
+    {
+        const route = layout.testPartnerRoutes?.get(familyId);
+        if (!route) return null;
+        const hub = treeLayoutNode(layout, route.hubId);
+        const leaf = treeLayoutNode(layout, route.leafId);
+        if (!hub || !leaf) return null;
+        const railY = hub.topY - TREE_FOCUS_CONTROL_H - TREE_FOCUS_CONTROL_GAP
+            - (route.lane + 1) * TREE_GEOMETRY.connectorLaneGap;
+        return {
+            x: route.junctionX, y: leaf.centerY,
+            points: [{ x: route.hubX, y: hub.topY }, { x: route.hubX, y: railY },
+                { x: route.junctionX, y: railY }, { x: route.junctionX, y: leaf.centerY },
+                { x: route.side > 0 ? leaf.rightX : leaf.leftX, y: leaf.centerY }]
+        };
+    }
+
     function renderPartnerConnector({ familyId, parentNodes })
     {
         const ordered =
@@ -1383,6 +1400,16 @@ function buildTreeConnectorDescriptors(
             ordered[ordered.length - 1];
 
         const className = treePartnerConnectorClass(familyById.get(familyId));
+        const extended = testExtendedPartnerRoute(familyId);
+        if (extended)
+        {
+            const distanceToJunction = extended.points.slice(1, -1).reduce((sum, point, index) =>
+                sum + Math.abs(point.x - extended.points[index].x) + Math.abs(point.y - extended.points[index].y), 0);
+            const dashOffset = className.includes('is-separated-or-divorced')
+                ? TREE_PARTNER_DASH_LENGTH / 2 - distanceToJunction : null;
+            addDescriptor({ familyId, role: 'partner', className, dashOffset, points: extended.points });
+            return;
+        }
         const blocked = routeObstacles.some(node => !ordered.includes(node)
             && node.leftX < last.leftX && node.rightX > first.rightX
             && node.topY < first.centerY && node.bottomY > first.centerY);
@@ -1475,7 +1502,8 @@ function buildTreeConnectorDescriptors(
                 orderedParents.length - 1
             ];
 
-        const sourceX =
+        const extended = testExtendedPartnerRoute(familyId);
+        const sourceX = extended ? extended.x :
             orderedParents.length > 1
                 ? Math.round(
                     (
@@ -1487,7 +1515,7 @@ function buildTreeConnectorDescriptors(
                     firstParent.centerX
                 );
 
-        const sourceY =
+        const sourceY = extended ? extended.y :
             orderedParents.length > 1
                 ? Math.round(
                     (
@@ -1758,7 +1786,16 @@ function buildTreeConnectorDescriptors(
     if (arrangeBands && rows.size)
     {
         const generations = [...rows.keys()].sort((left, right) => left - right);
-        let nextTop = Math.min(...rows.get(generations[0]).map(node => node.y));
+        const extraAbove = new Map();
+        for (const route of layout.testPartnerRoutes?.values() || [])
+        {
+            const hub = treeLayoutNode(layout, route.hubId);
+            if (!hub) continue;
+            extraAbove.set(hub.generation, Math.max(extraAbove.get(hub.generation) || 0,
+                TREE_FOCUS_CONTROL_H + TREE_FOCUS_CONTROL_GAP + (route.lane + 2) * TREE_GEOMETRY.connectorLaneGap));
+        }
+        if (layout.testPartnerRoutes?.size) layout.testPartnerExtraAbove = extraAbove;
+        let nextTop = Math.min(...rows.get(generations[0]).map(node => node.y)) + (extraAbove.get(generations[0]) || 0);
         generations.forEach((generation, index) =>
         {
             const row = rows.get(generation);
@@ -1774,7 +1811,7 @@ function buildTreeConnectorDescriptors(
             const laneCount = draftsByBand.get(`generation:${nextGeneration}`)?.laneCount || 1;
             nextTop += Math.max(...row.map(node => node.height || node.h))
             + TREE_CONNECTOR_RAIL_OFFSET * 2
-            + (laneCount - 1) * TREE_GEOMETRY.connectorLaneGap;
+            + (laneCount - 1) * TREE_GEOMETRY.connectorLaneGap + (extraAbove.get(nextGeneration) || 0);
         });
         (layout.focusControls || []).forEach(control =>
         {
@@ -1795,7 +1832,8 @@ function buildTreeConnectorDescriptors(
         {
             const first = draft.parentNodes[0];
             const last = draft.parentNodes[draft.parentNodes.length - 1];
-            draft.sourceY = draft.parentNodes.length > 1
+            const extended = testExtendedPartnerRoute(draft.familyId);
+            draft.sourceY = extended ? extended.y : draft.parentNodes.length > 1
                 ? Math.round((first.centerY + last.centerY) / 2)
                 : Math.round(first.bottomY);
             draft.railY = parentBottomY + TREE_CONNECTOR_RAIL_OFFSET
@@ -1803,6 +1841,8 @@ function buildTreeConnectorDescriptors(
         });
         layout.connectorBands.push({
             generation, parentBottomY, childTopY, laneCount: group.laneCount,
+            ...(layout.testPartnerExtraAbove?.has(generation)
+                ? { testPartnerReserve: layout.testPartnerExtraAbove.get(generation) } : {}),
             families: group.map(draft => ({
                 familyId: draft.familyId, sourceX: draft.sourceX,
                 childXs: [...draft.childXById.values()],
@@ -1948,7 +1988,7 @@ function renderTreeLines(layout)
     const halfGap = TREE_GEOMETRY.connectorLaneGap / 2;
     function displayPath(descriptor)
     {
-        if (descriptor.role === 'partner') return descriptor.d;
+        if (descriptor.role === 'partner' && !layout.testPartnerRoutes?.has(descriptor.familyId)) return descriptor.d;
         let path = 'M' + descriptor.points[0].x + ' ' + descriptor.points[0].y;
         for (let index = 1; index < descriptor.points.length; index++)
         {

@@ -20,8 +20,12 @@ The Family Tree SHALL provide a Test layout checkbox next to its existing view s
 
 ### Scenario: Multiple partnerships
 
-- **WHEN** the experimental layout encounters a person with two distinct partners in a simple partner group
-- **THEN** place the person between the partners, preserve explicit family identities, and align each child group as closely as feasible to its own junction without violating occupied-row clearance
+- **WHEN** the experimental layout encounters a same-generation partnership chain
+- **THEN** all actual partners SHALL be adjacent wherever the component is a simple path, including a divorced couple with another partner on each side
+- **AND** orient the principal family using the focus and ancestry context rather than enforcing every gender/slot hint
+- **AND** if a branching component has more partners than can be adjacent, preserve the principal couple and place additional partners outward with separate, explicit family junctions and reserved connector tracks
+- **AND** each child group SHALL attach to its actual family junction and remain as locally aligned as feasible without violating occupied-row clearance
+- **AND** retain canonical families, separated/divorced styling and real-edge connectivity; report unresolved intersections rather than duplicating people solely because of multiple partnerships
 
 ### Scenario: Crossing-driven visual repetition
 

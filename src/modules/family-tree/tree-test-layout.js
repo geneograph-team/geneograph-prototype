@@ -368,29 +368,79 @@ function buildTestTreeLayout(people, sourceFamilies, focusPersonId, options = {}
             ordered.push(nodes.get(id));
             remaining.delete(id);
         }
-        // For a two-partner star, place the shared person between the
-        // partners. Preserve the first recorded family's orientation and
-        // put the other partner opposite it when both hints point one way.
-        if (ordered.length === 3 && ordered.every(node => !node.placeholder))
+        // Order complete partnership components, not each person's spouses
+        // independently. A path has an exact adjacency-preserving order.
+        const pairs = ports.filter(port => port.parents.length === 2
+            && port.parents.every(id => before.has(id)) && port.parents[0] !== port.parents[1]);
+        const adjacency = new Map(ordered.map(node => [node.id, new Set()]));
+        for (const port of pairs)
         {
-            const pairs = ports.filter(port => port.parents.length === 2
-                && port.parents.every(id => before.has(id)));
-            const distinctPartners = new Map(ordered.map(node => [node.id, new Set()]));
-            for (const port of pairs)
+            const [left, right] = port.parents;
+            adjacency.get(left).add(right);
+            adjacency.get(right).add(left);
+        }
+        if (ordered.length > 2)
+        {
+            // Prefer the junction on the focus's direct ancestry path.
+            // Otherwise favor an interior edge over a leaf partnership.
+            const priority = port => {
+                const [left, right] = port.parents;
+                return (port.children.includes(focusPersonId) ? 10000 : 0)
+                    + (port.children.some(id => roles.directAncestorIds?.has(id)) ? 1000 : 0)
+                    + (roles.directAncestorIds?.has(left) && roles.directAncestorIds?.has(right) ? 100 : 0)
+                    + (adjacency.get(left).size > 1 && adjacency.get(right).size > 1 ? 10 : 0);
+            };
+            const main = pairs.slice().sort((a, b) => priority(b) - priority(a))[0];
+            const endpoints = ordered.filter(node => adjacency.get(node.id).size === 1);
+            if (endpoints.length === 2 && ordered.every(node => adjacency.get(node.id).size <= 2))
             {
-                const [a, b] = port.parents;
-                distinctPartners.get(a).add(b);
-                distinctPartners.get(b).add(a);
+                const path = [];
+                let previous = null;
+                let current = endpoints[0].id;
+                while (current && path.length < ordered.length)
+                {
+                    path.push(nodes.get(current));
+                    const next = [...adjacency.get(current)].find(id => id !== previous);
+                    previous = current;
+                    current = next;
+                }
+                if (path.length === ordered.length)
+                {
+                    if (path.findIndex(node => node.id === main.parents[0]) >
+                        path.findIndex(node => node.id === main.parents[1])) path.reverse();
+                    ordered.splice(0, ordered.length, ...path);
+                }
             }
-            const shared = ordered.find(node => distinctPartners.get(node.id).size === 2);
-            if (shared && ordered.filter(node => node !== shared).every(node => distinctPartners.get(node.id).size === 1))
+            else if (main)
             {
-                const first = pairs.find(port => port.parents.includes(shared.id));
-                const partnerId = first.parents.find(id => id !== shared.id);
-                const partner = nodes.get(partnerId);
-                const other = ordered.find(node => node !== shared && node !== partner);
-                ordered.splice(0, 3, ...(first.parents[0] === shared.id
-                    ? [other, shared, partner] : [partner, shared, other]));
+                const [left, right] = main.parents;
+                // Trees with degree > 2 cannot keep every pair adjacent.
+                // For a single hub, distribute partners on both sides.
+                // For linked hubs, keep the principal couple together and
+                // put each hub's other branches outward on its own side.
+                const visited = new Set([left, right]);
+                function branch(id)
+                {
+                    if (visited.has(id)) return [];
+                    visited.add(id);
+                    return [nodes.get(id), ...[...adjacency.get(id)].flatMap(branch)];
+                }
+                const leftBranches = [...adjacency.get(left)].filter(id => id !== right).map(branch);
+                const rightBranches = [...adjacency.get(right)].filter(id => id !== left).map(branch);
+                let leftSide = leftBranches.flat();
+                let rightSide = rightBranches.flat();
+                if (adjacency.get(right).size === 1)
+                {
+                    leftSide = leftBranches.filter((_, i) => i % 2 === 0).flat();
+                    rightSide = leftBranches.filter((_, i) => i % 2 === 1).flat();
+                }
+                else if (adjacency.get(left).size === 1)
+                {
+                    leftSide = rightBranches.filter((_, i) => i % 2 === 1).flat();
+                    rightSide = rightBranches.filter((_, i) => i % 2 === 0).flat();
+                }
+                const sequence = [...leftSide.reverse(), nodes.get(left), nodes.get(right), ...rightSide];
+                if (sequence.length === ordered.length) ordered.splice(0, ordered.length, ...sequence);
             }
         }
         block.members = ordered;
@@ -434,9 +484,67 @@ function buildTestTreeLayout(people, sourceFamilies, focusPersonId, options = {}
         for (const childId of port.children)
             for (const parent of parents) addEdge(parent, blockById.get(childId), port, childId);
     }
+    const extendedPartnerPorts = new Map();
+    for (const block of blocks)
+    {
+        const pairs = ports.filter(port => port.parents.length === 2 && port.parents.every(id => blockById.get(id) === block));
+        const degrees = new Map(block.members.map(node => [node.id, new Set()]));
+        for (const port of pairs)
+        {
+            const [a, b] = port.parents;
+            if (a !== b) { degrees.get(a).add(b); degrees.get(b).add(a); }
+        }
+        const spans = [];
+        for (const port of pairs)
+        {
+            const [a, b] = port.parents;
+            const ai = block.members.findIndex(node => node.id === a);
+            const bi = block.members.findIndex(node => node.id === b);
+            if (Math.abs(ai - bi) <= 1) continue;
+            const leafId = degrees.get(a).size < degrees.get(b).size ? a : b;
+            const hubId = leafId === a ? b : a;
+            const leafIndex = block.members.findIndex(node => node.id === leafId);
+            const side = Math.sign(block.offsets.get(hubId) - block.offsets.get(leafId));
+            const leaf = nodes.get(leafId);
+            const neighbor = block.members[leafIndex + side];
+            const junction = (block.offsets.get(leafId) + side * leaf.width / 2
+                + block.offsets.get(neighbor.id) - side * neighbor.width / 2) / 2;
+            spans.push({ port, hubId, leafId, junction, side, span: Math.abs(ai - bi) });
+        }
+        // Shorter arcs use the lower lanes; longer arcs clear them above.
+        spans.sort((a, b) => a.span - b.span);
+        const byHub = new Map();
+        spans.forEach((entry, lane) =>
+        {
+            entry.lane = lane;
+            if (!byHub.has(entry.hubId)) byHub.set(entry.hubId, []);
+            byHub.get(entry.hubId).push(entry);
+            extendedPartnerPorts.set(entry.port.id, entry);
+        });
+        for (const [hubId, entries] of byHub)
+        {
+            const hub = nodes.get(hubId);
+            // Keep the top attachments clear of the usual incoming parent
+            // stem (center) and the right-aligned Focus control. Nest longer
+            // links closer to the center, within the relevant half of the card.
+            for (const side of [-1, 1])
+            {
+                const group = entries.filter(entry => Math.sign(entry.junction
+                    - block.offsets.get(hubId)) === side).sort((a, b) => a.span - b.span);
+                const clearance = g.connectorLaneGap;
+                const max = Math.min(hub.width / 4, hub.width / 2 - g.focusControlWidth - 4);
+                group.forEach((entry, index) =>
+                {
+                    entry.hubOffset = side * (max - (max - clearance * 1.5) * index / Math.max(1, group.length));
+                });
+            }
+        }
+    }
     // Ancestor branches are ordered by their child's position in its couple.
     function junctionOffset(block, port)
     {
+        const extended = extendedPartnerPorts.get(port.id);
+        if (extended && blockById.get(extended.leafId) === block) return extended.junction;
         const offsets = port.parents.filter(id => blockById.get(id) === block)
             .map(id => block.offsets.get(id));
         return offsets.length ? offsets.reduce((sum, offset) => sum + offset, 0) / offsets.length : 0;
@@ -536,7 +644,7 @@ function buildTestTreeLayout(people, sourceFamilies, focusPersonId, options = {}
             center: node.x - node.anchor
         }));
     }
-    function place(plan, desired, preferredSide = 1)
+    function place(plan, desired, preferredSide = 1, siblingBounds = null)
     {
         const fresh = plan.filter(item => !placed.has(item.block));
         // A collateral branch moves as a unit. Compute its forbidden
@@ -566,6 +674,24 @@ function buildTestTreeLayout(people, sourceFamilies, focusPersonId, options = {}
                 ? (preferredSide < 0 ? left : right)
                 : (Math.abs(desired - left) < Math.abs(right - desired) ? left : right);
         }
+        if (siblingBounds)
+        {
+            // Keep ordered sibling households on their own sides even if
+            // the closest unconstrained gap is across the central branch.
+            const root = fresh[0];
+            const min = siblingBounds.min - root.center;
+            const max = siblingBounds.max - root.center;
+            const ideal = Math.max(min, Math.min(max, desired));
+            const choices = [ideal, ...merged.flatMap(interval => interval)]
+                .filter(value => Number.isFinite(value) && value >= min && value <= max
+                    && merged.every(interval => value <= interval[0] || value >= interval[1]))
+                .sort((a, b) => Math.abs(a - desired) - Math.abs(b - desired)
+                    || preferredSide * (b - a));
+            // A reconvergent graph may leave no legal gap between already
+            // placed siblings. Retain the existing connected fallback and
+            // its geometry diagnostics in that case.
+            if (choices.length) shift = choices[0];
+        }
         for (const item of fresh)
         {
             const center = item.center + shift;
@@ -593,13 +719,30 @@ function buildTestTreeLayout(people, sourceFamilies, focusPersonId, options = {}
             const direction = block.generation < anchor.generation ? 'parents' : 'children';
             const parent = direction === 'children';
             const anchorIds = (parent ? edge.port.parents : edge.port.children).filter(id => blockById.get(id) === anchor);
-            const desired = center + (anchorIds.length
-                ? anchorIds.reduce((sum, id) => sum + anchor.offsets.get(id), 0) / anchorIds.length : 0);
+            const desired = center + (parent && anchor.members.length > 2
+                ? junctionOffset(anchor, edge.port)
+                : anchorIds.length
+                    ? anchorIds.reduce((sum, id) => sum + anchor.offsets.get(id), 0) / anchorIds.length : 0);
             const childId = parent ? edge.port.children.find(id => blockById.get(id) === block) : null;
             const siblingIndex = anchor.children.findIndex(item => item.block === block);
             const placedSibling = anchor.children.findIndex(item => placed.has(item.block));
+            let siblingBounds = null;
+            if (parent && anchor.members.length > 2 && siblingIndex >= 0)
+            {
+                let min = -Infinity;
+                let max = Infinity;
+                anchor.children.forEach((sibling, index) =>
+                {
+                    const other = sibling.block;
+                    if (index === siblingIndex || !placed.has(other)) return;
+                    const clearance = (block.width + other.width) / 2 + g.siblingGap;
+                    if (index < siblingIndex) min = Math.max(min, placed.get(other) + clearance);
+                    else max = Math.min(max, placed.get(other) - clearance);
+                });
+                siblingBounds = { min, max };
+            }
             place(hierarchy(block, direction, childId), desired,
-                siblingIndex >= 0 && placedSibling >= 0 && siblingIndex < placedSibling ? -1 : 1);
+                siblingIndex >= 0 && placedSibling >= 0 && siblingIndex < placedSibling ? -1 : 1, siblingBounds);
             advanced = true;
             break;
         }
@@ -631,7 +774,19 @@ function buildTestTreeLayout(people, sourceFamilies, focusPersonId, options = {}
             y: Math.round(person.topY - g.focusControlHeight - g.focusControlGap),
             width: g.focusControlWidth, height: g.focusControlHeight
         }));
+    const testPartnerRoutes = new Map();
+    for (const [familyId, entry] of extendedPartnerPorts)
+    {
+        const leaf = nodes.get(entry.leafId);
+        const hub = nodes.get(entry.hubId);
+        const center = leaf.centerX - blockById.get(leaf.id).offsets.get(leaf.id);
+        testPartnerRoutes.set(familyId, {
+            hubId: hub.id, leafId: leaf.id, hubX: hub.centerX + entry.hubOffset,
+            junctionX: Math.round(center + entry.junction), side: entry.side, lane: entry.lane
+        });
+    }
     const layout = {
+        testPartnerRoutes,
         positionedPeople, positionedById, peopleById: Object.fromEntries(positionedById),
         families, familyAnchors: {}, parentPlaceholders, parentPlaceholdersByPerson, focusControls
     };

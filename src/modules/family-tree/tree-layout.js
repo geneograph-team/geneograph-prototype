@@ -2376,7 +2376,7 @@ function validateTreeLayout(layout)
     {
         const rails = band.families.map(family => family.railY);
         if (Math.min(...rails) - band.parentBottomY !== TREE_CONNECTOR_RAIL_OFFSET
-          || band.childTopY - Math.max(...rails) !== TREE_CONNECTOR_RAIL_OFFSET)
+          || band.childTopY - Math.max(...rails) !== TREE_CONNECTOR_RAIL_OFFSET + (band.testPartnerReserve || 0))
         {
             issues.push({ type: 'rail-clearance', generation: band.generation, familyIds: band.families.map(family => family.familyId) });
         }

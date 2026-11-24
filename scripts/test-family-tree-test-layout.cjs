@@ -205,6 +205,130 @@ assert.equal(context.testTreeOccurrencesConnected(
     [multiFamilies[0], { ...multiFamilies[1], left: 'shared-copy' }],
     'shared'), false);
 
+// Partnership chain: a divorced couple and other partners on both
+// sides. The central family anchors the orientation; no card repetition.
+function buildPartnerChain(extraPartners, ancestorMode = 'none')
+{
+    const ids = ['A', 'B', 'M', 'MP', 'MM'];
+    const families = [
+        { id: 'center', left: 'A', right: 'B', children: ['M'], relationshipStatus: 'divorced' },
+        { id: 'middle-child', left: 'MP', right: 'M', children: ['MM'] }
+    ];
+    for (let index = 1; index <= extraPartners; index++)
+    {
+        ids.push('X' + index, 'Y' + index, 'L' + index, 'R' + index,
+            'LP' + index, 'RP' + index, 'LL' + index, 'RR' + index);
+        families.push(
+            { id: 'left' + index, left: 'A', right: 'X' + index, children: ['L' + index] },
+            { id: 'right' + index, left: 'Y' + index, right: 'B', children: ['R' + index] },
+            { id: 'left-child' + index, left: 'LP' + index, right: 'L' + index, children: ['LL' + index] },
+            { id: 'right-child' + index, left: 'RP' + index, right: 'R' + index, children: ['RR' + index] }
+        );
+    }
+    const parents = ancestorMode === 'all' ? ids.filter(id => /^(A|B|X\d+|Y\d+)$/.test(id))
+        : ancestorMode === 'main' ? ['A', 'B'] : [];
+    for (const id of parents)
+    {
+        ids.push(id + 'F', id + 'M');
+        families.push({ id: 'parents-' + id, left: id + 'F', right: id + 'M', children: [id] });
+    }
+    // Input family ordering must not separate the central couple.
+    families.push(families.shift());
+    return { people: ids.map(id => ({ id })), families, focus: 'M',
+        roles: { directAncestorIds: new Set(['A', 'B', 'AF', 'AM', 'BF', 'BM']),
+            focusActionPersonIds: new Set(ids.filter(id => id !== 'M')) } };
+}
+
+for (const count of [1, 2, 3])
+{
+    for (const ancestorMode of ['none', 'main', 'all'])
+    {
+        const fixture = buildPartnerChain(count, ancestorMode);
+        const chain = verify(fixture.people, fixture.families, fixture.focus, fixture.roles);
+        const x = id => chain.peopleById[id].centerX;
+        assert.equal(chain.positionedPeople.length, fixture.people.length);
+        assert.equal(x('B') - x('A'), 340, 'central divorced couple adjacent');
+        assert.equal(x('A') - x('X1'), 340);
+        assert.equal(x('Y1') - x('B'), 340);
+        assert.ok(x('L1') < x('M') && x('M') < x('R1'));
+        for (let index = 2; index <= count; index++)
+        {
+            assert.ok(x('X' + index) < x('X' + (index - 1)));
+            assert.ok(x('Y' + index) > x('Y' + (index - 1)));
+            assert.ok(x('L' + index) < x('L' + (index - 1)));
+            assert.ok(x('R' + index) > x('R' + (index - 1)));
+        }
+        assert.equal(chain.testPartnerRoutes.size, 2 * (count - 1));
+        // The child stem must begin at the actual family connector, not a
+        // guessed midpoint within someone else's card.
+        for (const [familyId, route] of chain.testPartnerRoutes)
+        {
+            const partner = chain.connectorDescriptors.find(edge => edge.familyId === familyId && edge.role === 'partner');
+            const stem = chain.connectorDescriptors.find(edge => edge.familyId === familyId
+                && /descendant-(trunk|direct)$/.test(edge.role));
+            assert.ok(partner && stem);
+            assert.equal(stem.points[0].x, route.junctionX);
+            assert.ok(partner.points.some(point => point.x === stem.points[0].x && point.y === stem.points[0].y));
+        }
+        assert.ok(chain.connectorDescriptors.find(edge => edge.familyId === 'center' && edge.role === 'partner')
+            .className.includes('is-separated-or-divorced'));
+        if (ancestorMode !== 'all' || count === 1) assert.equal(chain.testIssues.length, 0);
+        else assert.ok(chain.testIssues.every(issue => issue.type === 'edge-crossing'),
+            'larger groups with all in-law ancestors may retain crossings, but no missing links or card collisions');
+        console.log(JSON.stringify({ extraPartnersPerSide: count, ancestorMode, people: fixture.people.length,
+            diagnostics: Array.from(chain.testIssues, issue => issue.type) }));
+    }
+}
+
+// Asymmetric hubs and one-sided multiple partnerships. A collateral
+// child group must not jump across the central family to find a gap.
+for (const [leftCount, rightCount] of [[1, 3], [3, 1], [0, 4], [4, 0], [4, 4]])
+{
+    const ids = ['A', 'B', 'M'];
+    const families = [{ id: 'center', left: 'A', right: 'B', children: ['M'], relationshipStatus: 'divorced' }];
+    for (const [count, side, hub] of [[leftCount, 'L', 'A'], [rightCount, 'R', 'B']])
+        for (let index = 1; index <= count; index++)
+        {
+            const partner = side + 'p' + index;
+            const child = side + 'c' + index;
+            ids.push(partner, child);
+            families.push({ id: side + index, left: hub, right: partner, children: [child] });
+        }
+    const layout = verify(ids.map(id => ({ id })), families, 'M');
+    assert.equal(layout.positionedPeople.length, ids.length);
+    assert.equal(layout.testIssues.length, 0);
+    const x = id => layout.peopleById[id].centerX;
+    assert.equal(x('B') - x('A'), 340);
+    if (leftCount && rightCount)
+    {
+        for (let i = 1; i <= leftCount; i++) assert.ok(x('Lc' + i) < x('M'));
+        for (let i = 1; i <= rightCount; i++) assert.ok(x('Rc' + i) > x('M'));
+    }
+    const order = Array.from(layout.families).filter(family => family.children.length).map(family => {
+        const extended = layout.testPartnerRoutes.get(family.id);
+        return { junction: extended ? extended.junctionX : (x(family.left) + x(family.right)) / 2,
+            child: x(family.children[0]) };
+    }).sort((a, b) => a.junction - b.junction);
+    assert.ok(order.every((item, index) => index === 0 || order[index - 1].child < item.child));
+}
+
+// A path of arbitrary length must preserve all actual partner adjacency,
+// even when canonical left/right hints cannot all be honored.
+for (const count of [5, 8])
+{
+    const ids = Array.from({ length: count }, (_, i) => 'p' + i);
+    const families = ids.slice(1).map((id, index) => ({
+        id: 'chain-' + index,
+        left: index % 2 ? id : ids[index],
+        right: index % 2 ? ids[index] : id,
+        children: []
+    }));
+    const layout = verify(ids.map(id => ({ id })), families, ids[2]);
+    for (const family of families)
+        assert.equal(Math.abs(layout.peopleById[family.left].centerX - layout.peopleById[family.right].centerX), 340);
+    assert.equal(layout.testIssues.length, 0);
+}
+
 const people = ['focus', 'partner', 'child', 'childPartner', 'grandchild'].map(id => ({ id }));
 const families = [
     { id: 'household', left: 'focus', right: 'partner', children: ['child'] },
