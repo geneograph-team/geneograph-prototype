@@ -247,9 +247,10 @@ for (const count of [1, 2, 3, 4])
         const chain = verify(fixture.people, fixture.families, fixture.focus, fixture.roles);
         const x = id => chain.peopleById[id].centerX;
         assert.equal(chain.positionedPeople.length, fixture.people.length);
+        assert.ok(chain.groupedHouseholds, 'independent secondary household planner used');
         assert.equal(x('B') - x('A'), 340, 'central divorced couple adjacent');
-        assert.equal(x('A') - x('X1'), 340);
-        assert.equal(x('Y1') - x('B'), 340);
+        assert.ok(x('A') - x('X1') >= 340);
+        assert.ok(x('Y1') - x('B') >= 340);
         assert.ok(x('L1') < x('M') && x('M') < x('R1'));
         for (let index = 2; index <= count; index++)
         {
@@ -258,7 +259,7 @@ for (const count of [1, 2, 3, 4])
             assert.ok(x('L' + index) < x('L' + (index - 1)));
             assert.ok(x('R' + index) > x('R' + (index - 1)));
         }
-        assert.equal(chain.testPartnerRoutes.size, 2 * (count - 1));
+        assert.equal(chain.testPartnerRoutes.size, 2 * (count - 1) + (chain.groupedHouseholds ? 2 : 0));
         // The child stem must begin at the actual family connector, not a
         // guessed midpoint within someone else's card.
         for (const [familyId, route] of chain.testPartnerRoutes)
@@ -285,7 +286,7 @@ for (const count of [1, 2, 3, 4])
             assert.ok(descriptor.points.every(point => point.y === descriptor.points[0].y
                 && point.y > a.topY && point.y < a.bottomY && point.y > b.topY && point.y < b.bottomY));
             if (!descriptor.visibleSegments) continue;
-            assert.ok(descriptor.visibleSegments.length >= 2);
+            assert.ok(descriptor.visibleSegments.length >= 1);
             assert.equal((descriptor.d.match(/M/g) || []).length, descriptor.visibleSegments.length);
             assert.deepEqual(new Set(descriptor.partnerIds), new Set([family.left, family.right]));
             const [first, last] = [a, b].sort((x, y) => x.leftX - y.leftX);
@@ -300,6 +301,75 @@ for (const count of [1, 2, 3, 4])
             diagnostics: Array.from(chain.testIssues, issue => issue.type) }));
     }
 }
+
+// Founder grouping regression: two short collateral branches and a
+// longer principal branch with a wide grandchild household. Reserve
+// full-depth branch territory, but keep local descendants compact.
+const groupingIds = ['A', 'B', 'X', 'Y', 'M', 'MP', 'G', 'GP', 'E', 'EP',
+    'S', 'N', 'NP', 'I', 'L', 'LP', 'LL', 'R', 'RP', 'RR', 'AF', 'AM', 'BF', 'BM'];
+const groupingFamilies = [
+    { id: 'center', left: 'A', right: 'B', children: ['M'], relationshipStatus: 'divorced' },
+    { id: 'left', left: 'A', right: 'X', children: ['L'] },
+    { id: 'right', left: 'Y', right: 'B', children: ['R'] },
+    { id: 'm', left: 'MP', right: 'M', children: ['G'] },
+    { id: 'g', left: 'GP', right: 'G', children: ['E', 'S'] },
+    { id: 'e', left: 'EP', right: 'E', children: ['N'] },
+    { id: 'n', left: 'N', right: 'NP', children: [] },
+    { id: 's', left: 'S', right: '', children: ['I'] },
+    { id: 'l', left: 'LP', right: 'L', children: ['LL'] },
+    { id: 'r', left: 'RP', right: 'R', children: ['RR'] },
+    { id: 'pa', left: 'AF', right: 'AM', children: ['A'] },
+    { id: 'pb', left: 'BF', right: 'BM', children: ['B'] }
+];
+const groupingRoles = { directAncestorIds: new Set(['A', 'B', 'AF', 'AM', 'BF', 'BM']) };
+const groupingPeople = groupingIds.map(id => ({ id }));
+const groupingBefore = context.calculateTestTreeLayout(groupingPeople, groupingFamilies, 'M',
+    { branchRoles: groupingRoles, groupHouseholds: false });
+const grouped = verify(groupingPeople, groupingFamilies, 'M', groupingRoles);
+assert.ok(grouped.groupedHouseholds);
+assert.equal(grouped.testIssues.length, 0);
+assert.equal(grouped.positionedPeople.length, groupingPeople.length);
+const gx = id => grouped.peopleById[id].centerX;
+assert.equal(gx('B') - gx('A'), 340, 'principal couple remains compact');
+assert.ok(gx('A') - gx('X') > 340 && gx('Y') - gx('B') > 340,
+    'secondary partners move outward for their own descendants');
+const territories = [
+    ['X', 'L', 'LP', 'LL'],
+    ['A', 'B', 'M', 'MP', 'G', 'GP', 'E', 'EP', 'S', 'N', 'NP', 'I'],
+    ['Y', 'R', 'RP', 'RR']
+].map(ids => ({
+    left: Math.min(...ids.map(id => grouped.peopleById[id].leftX)),
+    right: Math.max(...ids.map(id => grouped.peopleById[id].rightX))
+}));
+assert.ok(territories[1].left - territories[0].right >= 96);
+assert.ok(territories[2].left - territories[1].right >= 96);
+assert.equal((gx('E') + gx('S')) / 2, (gx('G') + gx('GP')) / 2);
+assert.ok(gx('S') - gx('E') <
+    groupingBefore.peopleById.S.centerX - groupingBefore.peopleById.E.centerX);
+for (const familyId of ['left', 'right'])
+{
+    const route = grouped.testPartnerRoutes.get(familyId);
+    const family = grouped.families.find(record => record.id === familyId);
+    const child = grouped.peopleById[family.children[0]];
+    assert.equal(child.centerX, route.junctionX);
+    const partner = grouped.connectorDescriptors.find(edge => edge.familyId === familyId && edge.role === 'partner');
+    assert.ok(partner.visibleSegments.length === 1 && partner.points.every(point => point.y === partner.points[0].y));
+}
+console.log(JSON.stringify({
+    groupingRegression: 'principal and collateral territories',
+    sideClearance: [territories[1].left - territories[0].right, territories[2].left - territories[1].right],
+    principalPartnerGap: gx('B') - gx('A') - 300,
+    secondaryPartnerGaps: [gx('A') - gx('X') - 300, gx('Y') - gx('B') - 300],
+    siblingAttachmentSpacingBefore: groupingBefore.peopleById.S.centerX - groupingBefore.peopleById.E.centerX,
+    siblingAttachmentSpacingAfter: gx('S') - gx('E')
+}));
+
+// A visible independent parent branch on a descendant's partner prevents
+// this local planner from owning the whole descendant component.
+const attached = verify([...groupingPeople, { id: 'external-parent' }],
+    [...groupingFamilies, { id: 'external-parents', left: 'external-parent', right: '', children: ['EP'] }],
+    'M', groupingRoles);
+assert.ok(!attached.groupedHouseholds, 'retain the connected graph solver for non-independent regions');
 
 // Asymmetric hubs and one-sided multiple partnerships. A collateral
 // child group must not jump across the central family to find a gap.

@@ -391,6 +391,7 @@ function buildTestTreeLayout(people, sourceFamilies, focusPersonId, options = {}
                     + (adjacency.get(left).size > 1 && adjacency.get(right).size > 1 ? 10 : 0);
             };
             const main = pairs.slice().sort((a, b) => priority(b) - priority(a))[0];
+            block.principalPort = main;
             const endpoints = ordered.filter(node => adjacency.get(node.id).size === 1);
             if (endpoints.length === 2 && ordered.every(node => adjacency.get(node.id).size <= 2))
             {
@@ -485,55 +486,69 @@ function buildTestTreeLayout(people, sourceFamilies, focusPersonId, options = {}
             for (const parent of parents) addEdge(parent, blockById.get(childId), port, childId);
     }
     const extendedPartnerPorts = new Map();
-    for (const block of blocks)
+    function buildExtendedPartnerPorts()
     {
-        const pairs = ports.filter(port => port.parents.length === 2 && port.parents.every(id => blockById.get(id) === block));
-        const degrees = new Map(block.members.map(node => [node.id, new Set()]));
-        for (const port of pairs)
+        extendedPartnerPorts.clear();
+        for (const block of blocks)
         {
-            const [a, b] = port.parents;
-            if (a !== b) { degrees.get(a).add(b); degrees.get(b).add(a); }
+            const pairs = ports.filter(port => port.parents.length === 2 && port.parents.every(id => blockById.get(id) === block));
+            const degrees = new Map(block.members.map(node => [node.id, new Set()]));
+            for (const port of pairs)
+            {
+                const [a, b] = port.parents;
+                if (a !== b) { degrees.get(a).add(b); degrees.get(b).add(a); }
+            }
+            const spans = [];
+            for (const port of pairs)
+            {
+                const [a, b] = port.parents;
+                const ai = block.members.findIndex(node => node.id === a);
+                const bi = block.members.findIndex(node => node.id === b);
+                const adjacent = Math.abs(ai - bi) === 1;
+                const explicitJunction = block.groupedJunctions?.get(port.id);
+                if (adjacent && explicitJunction === undefined) continue;
+                const leafId = degrees.get(a).size < degrees.get(b).size ? a : b;
+                const hubId = leafId === a ? b : a;
+                const leafIndex = block.members.findIndex(node => node.id === leafId);
+                const side = Math.sign(block.offsets.get(hubId) - block.offsets.get(leafId));
+                const leaf = nodes.get(leafId);
+                const neighbor = block.members[leafIndex + side];
+                const junction = (block.offsets.get(leafId) + side * leaf.width / 2
+                    + block.offsets.get(neighbor.id) - side * neighbor.width / 2) / 2;
+                spans.push({ port, hubId, leafId, junction: explicitJunction ?? junction, side,
+                    adjacent, span: Math.abs(ai - bi) });
+            }
+            // Each extended partnership gets a horizontal lane INSIDE the
+            // generation row. Nonoverlapping spans can share lanes; longer
+            // spans run above shorter ones, but never above the card tops.
+            spans.sort((a, b) => a.span - b.span);
+            const lanes = [];
+            for (const entry of spans)
+            {
+                const x1 = block.offsets.get(entry.hubId);
+                const x2 = block.offsets.get(entry.leafId);
+                const min = Math.min(x1, x2);
+                const max = Math.max(x1, x2);
+                if (entry.adjacent)
+                {
+                    entry.offsetY = 0;
+                    extendedPartnerPorts.set(entry.port.id, entry);
+                    continue;
+                }
+                let lane = 0;
+                while ((lanes[lane] || []).some(other => min < other.max && max > other.min)) lane++;
+                if (!lanes[lane]) lanes[lane] = [];
+                lanes[lane].push({ min, max });
+                entry.lane = lane;
+                extendedPartnerPorts.set(entry.port.id, entry);
+            }
+            const step = Math.min(g.connectorLaneGap / 2,
+                (Math.min(...block.members.map(node => node.height)) / 2 - g.connectorLaneGap / 2)
+                / Math.max(1, lanes.length));
+            for (const entry of spans.filter(item => !item.adjacent)) entry.offsetY = -(entry.lane + 1) * step;
         }
-        const spans = [];
-        for (const port of pairs)
-        {
-            const [a, b] = port.parents;
-            const ai = block.members.findIndex(node => node.id === a);
-            const bi = block.members.findIndex(node => node.id === b);
-            if (Math.abs(ai - bi) <= 1) continue;
-            const leafId = degrees.get(a).size < degrees.get(b).size ? a : b;
-            const hubId = leafId === a ? b : a;
-            const leafIndex = block.members.findIndex(node => node.id === leafId);
-            const side = Math.sign(block.offsets.get(hubId) - block.offsets.get(leafId));
-            const leaf = nodes.get(leafId);
-            const neighbor = block.members[leafIndex + side];
-            const junction = (block.offsets.get(leafId) + side * leaf.width / 2
-                + block.offsets.get(neighbor.id) - side * neighbor.width / 2) / 2;
-            spans.push({ port, hubId, leafId, junction, side, span: Math.abs(ai - bi) });
-        }
-        // Each extended partnership gets a horizontal lane INSIDE the
-        // generation row. Nonoverlapping spans can share lanes; longer
-        // spans run above shorter ones, but never above the card tops.
-        spans.sort((a, b) => a.span - b.span);
-        const lanes = [];
-        for (const entry of spans)
-        {
-            const x1 = block.offsets.get(entry.hubId);
-            const x2 = block.offsets.get(entry.leafId);
-            const min = Math.min(x1, x2);
-            const max = Math.max(x1, x2);
-            let lane = 0;
-            while ((lanes[lane] || []).some(other => min < other.max && max > other.min)) lane++;
-            if (!lanes[lane]) lanes[lane] = [];
-            lanes[lane].push({ min, max });
-            entry.lane = lane;
-            extendedPartnerPorts.set(entry.port.id, entry);
-        }
-        const step = Math.min(g.connectorLaneGap / 2,
-            (Math.min(...block.members.map(node => node.height)) / 2 - g.connectorLaneGap / 2)
-            / Math.max(1, lanes.length));
-        for (const entry of spans) entry.offsetY = -(entry.lane + 1) * step;
     }
+    buildExtendedPartnerPorts();
     // Ancestor branches are ordered by their child's position in its couple.
     function junctionOffset(block, port)
     {
@@ -743,6 +758,147 @@ function buildTestTreeLayout(people, sourceFamilies, focusPersonId, options = {}
         if (!advanced) throw new Error('Test layout cannot attach a visible branch.');
     }
 
+    // Independent household grouping. Plan complete descendant footprints
+    // instead of making secondary partners follow a rigid equal-width row.
+    // This is an atomic local layout: leave reconvergent/non-tree regions
+    // to the existing graph solver, and never move a branch through another.
+    let groupedHouseholds = false;
+    if (options.groupHouseholds !== false)
+    for (const block of blocks)
+    {
+        const principal = block.principalPort;
+        if (!principal || block.members.length < 4 || block.members.some(node => node.placeholder)) continue;
+        const mainIds = principal.parents.slice().sort((a, b) => block.offsets.get(a) - block.offsets.get(b));
+        const mainIndex = block.members.findIndex(node => node.id === mainIds[0]);
+        if (mainIndex < 1 || block.members[mainIndex + 1]?.id !== mainIds[1]
+            || mainIndex + 2 >= block.members.length) continue;
+        const ownPorts = ports.filter(port => port.parents.length === 2
+            && port.parents.every(id => blockById.get(id) === block));
+        // Linked hubs with leaf secondary partners on either side. General
+        // partnership paths/cycles retain their existing ordering.
+        const secondaries = block.members.filter(node => !mainIds.includes(node.id)).map(node => {
+            const matches = ownPorts.filter(port => port.parents.includes(node.id));
+            const side = block.offsets.get(node.id) < block.offsets.get(mainIds[0]) ? -1 : 1;
+            const hubId = mainIds[side < 0 ? 0 : 1];
+            return matches.length === 1 && matches[0].parents.includes(hubId)
+                ? { node, port: matches[0], side } : null;
+        });
+        if (secondaries.some(item => !item) || ownPorts.length !== secondaries.length + 1
+            || ownPorts.some(port => port.children.some(id => !block.children.some(edge =>
+                edge.port === port && edge.childId === id)))) continue;
+        if (!secondaries.some(item => item.port.children.length)) continue;
+        // Do not detach a descendant who has other visible ancestry or
+        // multiple incoming families. Each local block must be owned once.
+        const owned = new Set();
+        let valid = true;
+        function extent(items)
+        {
+            return {
+                left: Math.min(...items.map(item => item.center - item.block.width / 2)),
+                right: Math.max(...items.map(item => item.center + item.block.width / 2))
+            };
+        }
+        function packChildren(edges, parent)
+        {
+            const items = [];
+            const attachments = [];
+            let right = null;
+            for (const edge of edges)
+            {
+                const child = edge.block;
+                if (owned.has(child) || child === block || child.members.length > 2
+                    || child.parents.length !== 1 || child.parents[0].block !== parent
+                    || child.neighbors.some(link => link.block !== parent
+                        && !child.children.some(other => other.block === link.block)))
+                {
+                    valid = false;
+                    return null;
+                }
+                owned.add(child);
+                const own = [{ block: child, center: 0 }];
+                const descendants = packChildren(child.children, child);
+                if (!descendants) return null;
+                own.push(...descendants.items);
+                const footprint = extent(own);
+                const shift = right === null ? 0 : right + g.subtreeGap - footprint.left;
+                own.forEach(item => items.push({ block: item.block, center: item.center + shift }));
+                attachments.push(shift + (child.offsets.get(edge.childId) || 0));
+                right = footprint.right + shift;
+            }
+            const center = attachments.length ? (attachments[0] + attachments.at(-1)) / 2 : 0;
+            return { items: items.map(item => ({ ...item, center: item.center - center })) };
+        }
+        const byPort = new Map();
+        for (const port of ownPorts)
+        {
+            const group = packChildren(block.children.filter(edge => edge.port === port), block);
+            if (!group) break;
+            byPort.set(port, group.items);
+        }
+        if (!valid || byPort.size !== ownPorts.length
+            || block.children.some(edge => !owned.has(edge.block))) continue;
+
+        // Preserve the principal couple's compact gap and current junction.
+        const principalCenter = (block.offsets.get(mainIds[0]) + block.offsets.get(mainIds[1])) / 2;
+        const origin = placed.get(block) + principalCenter;
+        const offsets = new Map(mainIds.map(id => [id, block.offsets.get(id) - principalCenter]));
+        const junctions = new Map();
+        const planned = (byPort.get(principal) || []).map(item => ({ ...item }));
+        const mainExtent = planned.length ? extent(planned) : { left: 0, right: 0 };
+        let outerLeft = Math.min(mainExtent.left, offsets.get(mainIds[0]) - nodes.get(mainIds[0]).width / 2);
+        let outerRight = Math.max(mainExtent.right, offsets.get(mainIds[1]) + nodes.get(mainIds[1]).width / 2);
+        for (const side of [-1, 1])
+        {
+            const partners = secondaries.filter(item => item.side === side)
+                .sort((a, b) => side * (block.offsets.get(a.node.id) - block.offsets.get(b.node.id)));
+            for (const { node, port } of partners)
+            {
+                // The child junction sits just inside the gap facing the
+                // principal hub, rather than at the middle of a long rail.
+                const junctionDelta = -side * (node.width / 2 + g.spouseGap / 2);
+                const children = byPort.get(port).map(item => ({ ...item, center: item.center + junctionDelta }));
+                const footprint = children.length ? extent(children) : { left: 0, right: 0 };
+                const low = Math.min(-node.width / 2, footprint.left);
+                const high = Math.max(node.width / 2, footprint.right);
+                const center = side < 0 ? outerLeft - g.subtreeGap - high : outerRight + g.subtreeGap - low;
+                offsets.set(node.id, center);
+                junctions.set(port.id, center + junctionDelta);
+                planned.push(...children.map(item => ({ ...item, center: item.center + center })));
+                if (side < 0) outerLeft = center + low;
+                else outerRight = center + high;
+            }
+        }
+        const min = Math.min(...block.members.map(node => offsets.get(node.id) - node.width / 2));
+        const max = Math.max(...block.members.map(node => offsets.get(node.id) + node.width / 2));
+        const width = max - min;
+        const recenter = (min + max) / 2;
+        // Include the old neighboring regions in the clearance check.
+        // No partial update is allowed if this independent plan conflicts.
+        const proposed = new Map(planned.map(item => [item.block, origin + item.center]));
+        proposed.set(block, origin + recenter);
+        let collision = false;
+        for (const [item, center] of proposed)
+        {
+            const half = (item === block ? width : item.width) / 2;
+            for (const other of blocks)
+            {
+                if (other === item || other.generation !== item.generation) continue;
+                const otherCenter = proposed.get(other) ?? placed.get(other);
+                const otherHalf = (other === block ? width : other.width) / 2;
+                if (Math.abs(center - otherCenter) < half + otherHalf + g.siblingGap - 0.01)
+                { collision = true; break; }
+            }
+            if (collision) break;
+        }
+        if (collision) continue;
+        block.width = width;
+        block.offsets = new Map([...offsets].map(([id, offset]) => [id, offset - recenter]));
+        block.groupedJunctions = new Map([...junctions].map(([id, offset]) => [id, offset - recenter]));
+        proposed.forEach((center, item) => placed.set(item, center));
+        groupedHouseholds = true;
+    }
+    if (groupedHouseholds) buildExtendedPartnerPorts();
+
     const left = Math.min(...blocks.map(block => placed.get(block) - block.width / 2));
     const minGeneration = Math.min(...blocks.map(block => block.generation));
     for (const block of blocks)
@@ -781,6 +937,7 @@ function buildTestTreeLayout(people, sourceFamilies, focusPersonId, options = {}
     }
     const layout = {
         testPartnerRoutes,
+        ...(groupedHouseholds ? { groupedHouseholds: true } : {}),
         positionedPeople, positionedById, peopleById: Object.fromEntries(positionedById),
         families, familyAnchors: {}, parentPlaceholders, parentPlaceholdersByPerson, focusControls
     };
@@ -795,6 +952,13 @@ function buildTestTreeLayout(people, sourceFamilies, focusPersonId, options = {}
     layout.stageWidth = Math.max(g.minimumStageWidth, Math.ceil(right + g.paddingX));
     layout.stageHeight = Math.max(g.minimumStageHeight, Math.ceil(bottom + g.paddingY));
     layout.testIssues = validateTreeLayout(layout);
+    if (groupedHouseholds && layout.testIssues.length)
+    {
+        const ordinary = buildTestTreeLayout(people, sourceFamilies, focusPersonId, { ...options, groupHouseholds: false });
+        const issueTypes = new Set(layout.testIssues.map(issue => issue.type));
+        if ([...issueTypes].some(type => layout.testIssues.filter(issue => issue.type === type).length
+            > ordinary.testIssues.filter(issue => issue.type === type).length)) return ordinary;
+    }
 
     // Every real family edge must be represented; counters or identity links
     // cannot connect otherwise detached groups. Check actual routed edges.

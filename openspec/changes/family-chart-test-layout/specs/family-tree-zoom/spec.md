@@ -25,6 +25,8 @@ The Family Tree SHALL provide a Test layout checkbox next to its existing view s
 - **AND** orient the principal family using the focus and ancestry context rather than enforcing every gender/slot hint
 - **AND** if a branching component has more partners than can be adjacent, preserve the principal couple and place additional partners outward with separate, explicit family junctions and parallel horizontal connector lanes within the generation row
 - **AND** no same-generation partner connector SHALL route above cards; visible extended segments SHALL meet only the actual partners, leaving clearance at intervening unrelated cards
+- **AND** for independent secondary household branches on both sides of the principal couple, reserve the full visible descendant footprints with exclusive horizontal territories; preserve compact principal partners but allow longer inline secondary partnership gaps and independent junctions near each secondary partner
+- **AND** retain the general connected layout where independent grouping cannot be achieved without conflicts or worsened geometry
 - **AND** each child group SHALL attach to its actual family junction and remain as locally aligned as feasible without violating occupied-row clearance
 - **AND** retain canonical families, separated/divorced styling and real-edge connectivity; report unresolved intersections rather than duplicating people solely because of multiple partnerships
 

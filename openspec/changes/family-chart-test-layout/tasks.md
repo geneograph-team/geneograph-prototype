@@ -24,4 +24,8 @@
 - [x] Run isolated regression assertions for up to four extra partners per former spouse, including all partners’ visible ancestors, no edge crossings or false card contacts; compare Classic geometry and inspect generated SVG paths.
 - [ ] Verify actual inline rendering at different zoom levels and themes on founder’s dataset; confirm the pass-through convention is clear for larger partner groups.
 
+- [x] Reserve full-depth independent household footprints and use flexible secondary-partner spacing; keep principal couple compact and child groups locally centered.
+- [x] Execute isolated regression assertions on the founder-inspired grouping fixture, all 12 larger-partner ancestry combinations, prior mixed/shared-ancestor and asymmetric fixtures, and an externally attached descendant fallback.
+- [ ] Browser-verify branch grouping on the imported dataset and check larger reconvergent cases.
+
 This is an experimental view, not a completed architecture replacement. Keep the change active pending browser/evaluation evidence.
