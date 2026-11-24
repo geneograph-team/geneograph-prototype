@@ -812,8 +812,10 @@ function openTreePersonPicker(anchor)
     };
     const choose = personId =>
     {
+        const fromRecent = !input.value.trim();
         closeMenu();
-        navigateFamilyTreeToPerson(personId);
+        if (fromRecent) setTreeFocusPerson(personId);
+        else navigateFamilyTreeToPerson(personId);
     };
     input.addEventListener('input', renderResults);
     input.addEventListener('keydown', event =>

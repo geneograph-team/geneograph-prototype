@@ -739,7 +739,8 @@ function compactParentPlaceholders(tree) {
             let order = [...members].sort((a, b) => a[cross] - b[cross]);
             // Traverse a simple partnership chain from an endpoint. Retain
             // the direction of the existing native members where possible.
-            if (added && members.every(member => [...partners.get(member)].filter(p => seen.has(p)).length <= 2)) {
+            let reordered = false;
+            if (members.every(member => [...partners.get(member)].filter(p => seen.has(p)).length <= 2)) {
                 const first = order.find(member => [...partners.get(member)].filter(p => seen.has(p)).length === 1);
                 if (first) {
                     const chain = [first];
@@ -750,15 +751,20 @@ function compactParentPlaceholders(tree) {
                     if (chain.length === members.length) {
                         if (native.length > 1 && chain.indexOf(native[0]) > chain.indexOf(native.at(-1))) chain.reverse();
                         const preserved = chain.filter(member => nativeNodes.has(member));
-                        if (preserved.every((member, index) => member === native[index])) order = chain;
+                        const clearsPartnerships = order.slice(1).every((member, index) => partners.get(member).has(order[index]));
+                        if (!added && !clearsPartnerships || added && preserved.every((member, index) => member === native[index])) {
+                            reordered = !added;
+                            order = chain;
+                        }
                     }
                 }
             }
-            const anchor = native[0] || node;
+            const anchor = reordered && seen.has(tree[0]) ? tree[0] : native[0] || node;
+            const repack = added || reordered;
             const offset = order.indexOf(anchor);
             const unit = {
-                order, native: native.length > 0, added, anchor: anchor[cross], target: anchor[cross] - (added ? offset * spacing : 0),
-                offsets: order.map((member, index) => added ? index * spacing : member[cross] - anchor[cross])
+                order, native: native.length > 0, repack, focus: anchor === tree[0], anchor: anchor[cross], target: anchor[cross] - (repack ? offset * spacing : 0),
+                offsets: order.map((member, index) => repack ? index * spacing : member[cross] - anchor[cross])
             };
             unit.span = Math.max(...unit.offsets);
             for (const member of order) unitByNode.set(member, unit);
@@ -767,7 +773,7 @@ function compactParentPlaceholders(tree) {
         }
 
         for (const [level, units] of [...rows].sort(([a], [b]) => a - b)) {
-            if (!units.some(unit => unit.added)) continue;
+            if (!units.some(unit => unit.repack)) continue;
             const groups = [];
             const assigned = new Set();
             for (const { parents, children } of households) {
@@ -790,12 +796,12 @@ function compactParentPlaceholders(tree) {
             }
             for (const unit of units) {
                 if (!assigned.has(unit))
-                    groups.push({ units: [unit], offsets: [0], span: unit.span, target: unit.target, orderAt: unit.native ? unit.anchor : unit.target, native: unit.native });
+                    groups.push({ units: [unit], offsets: [0], span: unit.span, focus: unit.focus, target: unit.target, orderAt: unit.native ? unit.anchor : unit.target, native: unit.native });
             }
 
             groups.sort((a, b) => a.orderAt - b.orderAt || Number(b.native) - Number(a.native));
             const anchor = groups.reduce((best, group, index) =>
-                group.native && (!groups[best].native || Math.abs(group.target) < Math.abs(groups[best].target)) ? index : best, 0);
+                group.focus || (group.native && !groups[best].focus && (!groups[best].native || Math.abs(group.target) < Math.abs(groups[best].target))) ? index : best, 0);
             groups[anchor].position = groups[anchor].target;
             for (let index = anchor + 1; index < groups.length; index++) {
                 const previous = groups[index - 1];

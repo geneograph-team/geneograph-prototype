@@ -40,6 +40,7 @@ function styleNativeFamilyChartLinks(runtime)
     const pairKey = pair => JSON.stringify(pair.map(node => node.tid).sort());
     const point = (position, level) => tree.is_horizontal ? [level, position] : [position, level];
     const junctions = new Map();
+    const directGaps = new Map();
     const pathLinks = [...runtime.host.querySelectorAll('.links_view path.link')].map(path => ({ path, link: d3.select(path).datum() }));
     const routedPartners = new Map();
     const partnershipLanes = new Map();
@@ -57,7 +58,11 @@ function styleNativeFamilyChartLinks(runtime)
                 && coordinates[along] + extent(node, along) > a[along] + extent(first, along)
                 && coordinates[along] - extent(node, along) < b[along] - extent(last, along);
         });
-        if (!blockers.length) continue;
+        if (!blockers.length)
+        {
+            directGaps.set(pairKey([first, last]), [a[along] + extent(first, along), b[along] - extent(last, along)]);
+            continue;
+        }
         const start = a[along];
         const end = b[along];
         const rowBottom = a[across] + Math.max(extent(first, across), extent(last, across),
@@ -102,7 +107,12 @@ function styleNativeFamilyChartLinks(runtime)
         const child = Array.isArray(link.source) ? link.target : link.source;
         const parents = Array.isArray(link.source) ? link.source : link.target;
         if (!nodes.has(child.tid) || !parents.every(parent => nodes.has(parent.tid))) continue;
-        const junction = junctions.get(pairKey(parents));
+        const parentKey = pairKey(parents);
+        const gap = directGaps.get(parentKey);
+        const endpoint = points.at(-1);
+        let junction = junctions.get(parentKey);
+        if (gap && (endpoint[along] < gap[0] || endpoint[along] > gap[1]))
+            junction = point((gap[0] + gap[1]) / 2, endpoint[across]);
         if (junction)
         {
             points[points.length - 1] = junction;

@@ -442,7 +442,7 @@ function currentTreeFamilies()
 }
 
 const TREE_ANCESTOR_GENERATION_MIN = 0;
-const TREE_ANCESTOR_GENERATION_MAX = 6;
+const TREE_ANCESTOR_GENERATION_MAX = 10;
 const TREE_DESCENDANT_GENERATION_MIN = 0;
 const TREE_DESCENDANT_GENERATION_MAX = 5;
 
@@ -463,7 +463,7 @@ function treeProjectViewState(projectId = currentFamilyTreeProjectId())
 
         state.treeProjectViews[projectId] = {
             focusPersonId: defaultPersonId,
-            ancestorGenerations: 4,
+            ancestorGenerations: 6,
             descendantGenerations: 3,
             showCousins: true,
             colorFill: true,
@@ -683,13 +683,7 @@ function openTreeRecentPeopleMenu(anchor)
 
             closeMenu();
 
-            navigateFamilyTreeToPerson(
-                personId,
-                {
-                    focusBranch: false,
-                    center: true
-                }
-            );
+            setTreeFocusPerson(personId);
         });
     });
 
