@@ -1,9 +1,37 @@
 let nativeFamilyChart = null;
 
+function nativeParentPlaceholderLinkPoints(link)
+{
+    const points = link.d.map(point => [...point]);
+    const trim = (node, index, nextIndex) =>
+    {
+        const placeholder = node.data.addParent;
+        if (!placeholder) return;
+        const [x, y] = points[index];
+        const [nextX, nextY] = points[nextIndex];
+        const dx = nextX - x;
+        const dy = nextY - y;
+        const end = Math.min(1, dx ? placeholder.width / (2 * Math.abs(dx)) : Infinity,
+            dy ? placeholder.height / (2 * Math.abs(dy)) : Infinity);
+        points[index] = [x + dx * end, y + dy * end];
+    };
+    if (link.spouse)
+    {
+        trim(link.source, 0, 1);
+        trim(link.target, 1, 0);
+    }
+    else
+    {
+        const parents = Array.isArray(link.source) ? link.source : link.target;
+        if (parents[0] === parents[1]) trim(parents[0], points.length - 1, points.length - 2);
+    }
+    return points;
+}
+
 function styleNativeFamilyChartLinks(runtime)
 {
     const tree = runtime.chart.store.getTree();
-    const nodes = new Set(tree.data);
+    const nodes = new Set(tree.data.map(node => node.tid));
     const households = new Map();
     for (const path of runtime.host.querySelectorAll('.links_view path.link'))
     {
@@ -26,65 +54,62 @@ function styleNativeFamilyChartLinks(runtime)
         }
         else path.style.removeProperty('stroke-dashoffset');
 
-        const curve = !link.spouse && roundedNativeFamilyChartPath(link.d);
-        if (curve) path.style.setProperty('d', `path("${curve}")`);
-        else path.style.removeProperty('d');
+        const points = nativeParentPlaceholderLinkPoints(link);
+        const connector = `M${points.map(point => point.join(' ')).join(' L')}`;
+        path.style.setProperty('d', `path("${connector}")`);
         path.style.removeProperty('visibility');
 
         if (link.spouse || link.d.length !== 6) continue;
         const child = Array.isArray(link.source) ? link.target : link.source;
         const parents = Array.isArray(link.source) ? link.source : link.target;
-        if (!nodes.has(child) || !parents.every(parent => nodes.has(parent))) continue;
+        if (!nodes.has(child.tid) || !parents.every(parent => nodes.has(parent.tid))) continue;
         const familyId = link.familyContextId || runtime.input.parentFamilyByChild.get(child.data.id)?.id;
         if (!familyId) continue;
         const keyByHousehold = JSON.stringify([familyId, parents.map(parent => parent.tid).sort(), link.d.at(-1), link.d[1][tree.is_horizontal ? 0 : 1]]);
         if (!households.has(keyByHousehold)) households.set(keyByHousehold, []);
-        households.get(keyByHousehold).push({ path, points: link.d });
+        households.get(keyByHousehold).push({ path, points });
     }
 
-    if (!CSS.supports('d', 'path("M0 0 L1 1")')) return;    if (!CSS.supports('d', 'path("M0 0 L1 1")')) return;
+    if (!CSS.supports('d', 'path("M0 0 L1 1")')) return;
+    const along = tree.is_horizontal ? 1 : 0;
+    const across = 1 - along;
+    const bands = new Map();
     for (const siblings of households.values())
     {
-        if (siblings.length < 2) continue;
-        const [first, ...rest] = siblings;
-        const horizontal = tree.is_horizontal;
-        const along = horizontal ? 1 : 0;
-        const anchor = first.points.at(-1);
-        const junction = first.points[3];
-        const rail = [anchor[along], ...siblings.map(edge => edge.points[1][along])];
-        const firstRail = [...junction];
-        const lastRail = [...junction];
-        firstRail[along] = Math.min(...rail);
-        lastRail[along] = Math.max(...rail);
-        const trunk = `M${anchor.join(' ')} L${junction.join(' ')}`;
-        const sharedRail = `M${firstRail.join(' ')} L${lastRail.join(' ')}`;
-        const drops = siblings.map(({ points }) => `M${points[1].join(' ')} L${points[0].join(' ')}`).join(' ');
-        first.path.style.setProperty('d', `path("${trunk} ${sharedRail} ${drops}")`);
-        rest.forEach(({ path }) => { path.style.visibility = 'hidden'; });
+        const points = siblings[0].points;
+        const rail = [points.at(-1)[along], ...siblings.map(edge => edge.points[1][along])];
+        const start = Math.min(...rail);
+        const end = Math.max(...rail);
+        const key = JSON.stringify([points[0][across], points.at(-1)[across]]);
+        if (!bands.has(key)) bands.set(key, []);
+        bands.get(key).push({ siblings, start, end, lane: 0 });
     }
-}
 
-function roundedNativeFamilyChartPath(points)
-{
-    const route = points.filter(([x, y], index) =>
-        index === 0 || x !== points[index - 1][0] || y !== points[index - 1][1]);
-    if (route.length < 3) return '';
-    let path = `M${route[0].join(' ')}`;
-    for (let index = 1; index < route.length - 1; index++)
+    for (const groups of bands.values())
     {
-        const [x, y] = route[index];
-        const [previousX, previousY] = route[index - 1];
-        const [nextX, nextY] = route[index + 1];
-        const incoming = Math.hypot(x - previousX, y - previousY);
-        const outgoing = Math.hypot(nextX - x, nextY - y);
-        const radius = Math.min(10, incoming / 2, outgoing / 2);
-        const cornerX = x + radius * (previousX - x) / incoming;
-        const cornerY = y + radius * (previousY - y) / incoming;
-        const exitX = x + radius * (nextX - x) / outgoing;
-        const exitY = y + radius * (nextY - y) / outgoing;
-        path += ` L${cornerX} ${cornerY} Q${x} ${y} ${exitX} ${exitY}`;
+        const lanes = [];
+        for (const group of groups.sort((a, b) => a.start - b.start || a.end - b.end))
+        {
+            let lane = lanes.findIndex(end => end < group.start);
+            if (lane < 0) lane = lanes.length;
+            lanes[lane] = group.end;
+            group.lane = lane;
+        }
+
+        for (const { siblings, start, end, lane } of groups)
+        {
+            const [first, ...rest] = siblings;
+            const anchor = first.points.at(-1);
+            const laneGap = Math.min(TREE_GEOMETRY.connectorLaneGap, 40 / lanes.length);
+            const railDepth = first.points[1][across] + (lane - (lanes.length - 1) / 2) * laneGap;
+            const onRail = position => tree.is_horizontal ? [railDepth, position] : [position, railDepth];
+            const trunk = `M${anchor.join(' ')} L${onRail(anchor[along]).join(' ')}`;
+            const sharedRail = `M${onRail(start).join(' ')} L${onRail(end).join(' ')}`;
+            const drops = siblings.map(({ points }) => `M${onRail(points[0][along]).join(' ')} L${points[0].join(' ')}`).join(' ');
+            first.path.style.setProperty('d', `path("${trunk} ${sharedRail} ${drops}")`);
+            rest.forEach(({ path }) => { path.style.visibility = 'hidden'; });
+        }
     }
-    return `${path} L${route.at(-1).join(' ')}`;
 }
 
 function nativeFamilyChartOrientation(view)
@@ -121,7 +146,14 @@ function addNativeParentPlaceholders(root, runtime)
             const placeholder = d3.hierarchy({
                 id, data: { gender: role === 'father' ? 'M' : 'F' },
                 rels: { parents: [], spouses: [], children: [] },
-                addParent: { personId, role, count: missing.length }
+                addParent: {
+                    personId, role,
+                    width: treeParentPlaceholderWidth(missing.length),
+                    height: missing.length === 1 ? TREE_CARD_H : TREE_GEOMETRY.parentPlaceholderHeight,
+                    get crossSize() { return runtime.orientation === 'horizontal' ? this.height : this.width; },
+                    personCrossSize: runtime.orientation === 'horizontal' ? TREE_CARD_H : TREE_CARD_W,
+                    gap: TREE_PARENT_PLACEHOLDER_GAP
+                }
             });
             placeholder.parent = child;
             placeholder.depth = child.depth + 1;
@@ -166,11 +198,10 @@ function mountNativeFamilyChart(slot, input, context)
                 const placeholder = node.data.addParent;
                 if (placeholder)
                 {
-                    const { personId, role, count } = placeholder;
+                    const { personId, role, width, height } = placeholder;
                     return `<div class="card-inner native-parent-placeholder">${renderTreeParentPlaceholder({
                         personId, rel: role, label: role === 'father' ? 'Add father' : 'Add mother',
-                        x: 0, y: 0, width: treeParentPlaceholderWidth(count),
-                        height: count === 1 ? TREE_CARD_H : TREE_GEOMETRY.parentPlaceholderHeight
+                        x: 0, y: 0, width, height
                     })}</div>`;
                 }
                 const person = runtime.input.peopleById.get(node.data.id);

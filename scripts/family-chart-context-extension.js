@@ -1,3 +1,23 @@
+    function compactParentPlaceholders(tree) {
+        for (const child of tree) {
+            if (child.parents?.length !== 2) continue;
+            const [left, right] = [...child.parents].sort((a, b) => a.x - b.x);
+            const first = left.data.addParent;
+            const second = right.data.addParent;
+            const placeholder = first || second;
+            if (!placeholder) continue;
+            const distance = Math.min(right.x - left.x,
+                (first?.crossSize || placeholder.personCrossSize) / 2
+                + (second?.crossSize || placeholder.personCrossSize) / 2 + placeholder.gap);
+            if (first && second) {
+                const middle = (left.x + right.x) / 2;
+                left.x = middle - distance / 2;
+                right.x = middle + distance / 2;
+            } else if (first) left.x = right.x - distance;
+            else right.x = left.x + distance;
+        }
+    }
+
     // GeneoGraph: extend the native focused tree with approved visible family
     // contexts. Existing occurrences retain native positions and toggle state.
     function extendFamilyContexts(tree, data, families, geometry) {

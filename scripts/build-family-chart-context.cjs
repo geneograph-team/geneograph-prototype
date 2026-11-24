@@ -18,6 +18,8 @@ function insert(before, after)
     bundle = bundle.replace(before, () => after);
 }
 insert('    function calculateTree(data, { main_id', extension + '\n\n    function calculateTree(data, { family_contexts = undefined, main_id');
+insert('        setupProgenyParentsPos(tree);',
+    '        compactParentPlaceholders(tree);\n        setupProgenyParentsPos(tree);');
 insert('        const dim = calculateTreeDim(tree, node_separation, level_separation);',
     '        const contextLinks = family_contexts && extendFamilyContexts(tree, data_stash, family_contexts, { is_horizontal, node_separation, level_separation });\n'
     + '        const dim = calculateTreeDim(tree, node_separation, level_separation);');
