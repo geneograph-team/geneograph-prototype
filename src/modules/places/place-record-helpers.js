@@ -267,6 +267,196 @@ function updateBoardFactPlaceReferences(board, place, replacement = null)
     return updated;
 }
 
+// One traversal of authored Place references. Never scan free text, review
+// decisions or derived timeline events for matching strings.
+function visitProjectPlaceReferences(projectId, visit, { includeDeleted = false } = {})
+{
+    const owned = key => (sampleData[key] || []).filter(record =>
+        record.projectId === projectId && (includeDeleted || !record.deleted));
+    const field = (owner, record, key, kind = 'scalar') =>
+    {
+        if (!record) return;
+        const value = record[key];
+        if (kind === 'array' ? Array.isArray(value) && value.length : typeof value === 'string' && value)
+            visit({ owner, record, key, kind });
+    };
+    const date = (owner, record) =>
+    {
+        field(owner, record, 'placeId');
+        field(owner, record, 'burialPlaceId');
+    };
+    const fact = (owner, record) =>
+    {
+        if (!record) return;
+        date(owner, record);
+        for (const key of ['date', 'fromDate', 'toDate']) date(owner, record[key]);
+    };
+    for (const key of ['people', 'families'])
+        for (const record of owned(key))
+        {
+            fact(record, record);
+            if (key === 'people')
+                for (const vital of ['birth', 'death']) date(record, record[vital]);
+            for (const item of [...(record.events || []), ...(record.attributes || [])])
+                fact(record, item);
+        }
+    for (const record of owned('media'))
+    {
+        field(record, record, 'placeId');
+        date(record, record.date);
+    }
+    for (const record of owned('archiveFiles'))
+    {
+        field(record, record, 'documentPlaceId');
+        field(record, record, 'linkedPlaceIds', 'array');
+        date(record, record.documentDate);
+    }
+    for (const record of owned('notes')) field(record, record, 'linkedPlaceIds', 'array');
+    for (const record of owned('sources'))
+    {
+        field(record, record, 'placeId');
+        date(record, record.accessedDate);
+    }
+    for (const record of owned('sourceLinks'))
+        if (record.targetType === 'place') field(record, record, 'targetId', 'sourceLink');
+    for (const record of owned('links'))
+        for (const end of ['from', 'to'])
+            if (record[end + 'Type'] === 'place') field(record, record, end + 'Id', 'link');
+    for (const board of owned('boards'))
+    {
+        const diagram = board.diagram;
+        for (const person of diagram?.people || [])
+            for (const vital of ['birth', 'death']) date(board, person[vital]);
+        for (const family of diagram?.families || [])
+            for (const event of family.events || []) fact(board, event);
+        for (const node of diagram?.nodes || [])
+            if (node.type === 'place' && node.placeRef?.scope === 'project')
+                field(board, node.placeRef, 'id', 'boardPlace');
+    }
+}
+
+function projectPlaceReferenceOwners(projectId)
+{
+    const owners = new Map();
+    visitProjectPlaceReferences(projectId, ({ owner, record, key, kind }) =>
+    {
+        for (const id of kind === 'array' ? record[key] : [record[key]])
+        {
+            if (!owners.has(id)) owners.set(id, new Set());
+            owners.get(id).add(owner);
+        }
+    });
+    return owners;
+}
+
+function placeLiveReferenceCount(place, owners = null)
+{
+    if (!place) return 0;
+    return (owners || projectPlaceReferenceOwners(place.projectId)).get(place.id)?.size || 0;
+}
+
+// A Keep decision expires when a committed edit links the Place.
+function invalidateLinkedPlaceDismissals()
+{
+    const issues = sampleData.placeIssues || [];
+    if (!issues.some(issue => issue.type === 'unlinked')) return;
+    const projects = new Map();
+    sampleData.placeIssues = issues.filter(issue =>
+    {
+        if (issue.type !== 'unlinked') return true;
+        if (!projects.has(issue.projectId))
+            projects.set(issue.projectId, projectPlaceReferenceOwners(issue.projectId));
+        return !projects.get(issue.projectId).has(issue.placeId);
+    });
+}
+
+function rewriteProjectPlaceReferences(place, replacement = null)
+{
+    const projectId = place.projectId;
+    const keepId = replacement?.id || null;
+    const removedLinks = new Set();
+    const changedBoards = new Set();
+    const changedFiles = new Set();
+    const changedSourceLinks = new Set();
+    const changedLinks = new Set();
+    const boards = new Set((sampleData.boards || []).filter(board => board.projectId === projectId));
+    const archiveFiles = new Set((sampleData.archiveFiles || []).filter(file => file.projectId === projectId));
+    visitProjectPlaceReferences(projectId, ({ owner, record, key, kind }) =>
+    {
+        if (kind === 'array' ? !record[key].includes(place.id) : record[key] !== place.id) return;
+        if (kind === 'sourceLink' || kind === 'link')
+        {
+            if (!replacement) removedLinks.add(owner);
+            else
+            {
+                record[key] = keepId;
+                (kind === 'sourceLink' ? changedSourceLinks : changedLinks).add(owner);
+            }
+        }
+        else if (kind === 'boardPlace')
+        {
+            if (replacement)
+            {
+                record.id = keepId;
+                record.fallbackName = placePrimaryName(replacement) || replacement.name;
+            }
+            else
+            {
+                const name = String(record.fallbackName || placePrimaryName(place) || place.name || 'Place').trim();
+                delete record.id;
+                delete record.fallbackName;
+                record.scope = 'board';
+                record.name = name;
+            }
+        }
+        else if (kind === 'array')
+            record[key] = [...new Set(record[key].map(id => id === place.id ? keepId : id).filter(Boolean))];
+        else
+        {
+            if (!replacement && boards.has(owner) && key === 'placeId' && !record.placeText)
+                record.placeText = place.name;
+            record[key] = keepId;
+        }
+        if (boards.has(owner)) changedBoards.add(owner);
+        if (archiveFiles.has(owner)) changedFiles.add(owner);
+    }, { includeDeleted: true });
+    for (const file of changedFiles)
+        file.linkedPlaceIds = (file.linkedPlaceIds || []).filter(id => id !== file.documentPlaceId);
+    for (const board of changedBoards) board.modifiedAt = new Date().toISOString();
+
+    // Deduplicate redirected links, never unrelated authored evidence.
+    const deduplicate = (records, changed, key) =>
+    {
+        const seen = new Set(records.filter(record => record.projectId === projectId && !changed.has(record)).map(key));
+        return records.filter(record =>
+        {
+            if (removedLinks.has(record)) return false;
+            if (!changed.has(record)) return true;
+            const identity = key(record);
+            if (seen.has(identity)) return false;
+            seen.add(identity);
+            return true;
+        });
+    };
+    sampleData.sourceLinks = deduplicate(sampleData.sourceLinks || [], changedSourceLinks,
+        link => JSON.stringify([link.sourceId, link.targetType, link.targetId]));
+    sampleData.links = deduplicate(sampleData.links || [], changedLinks,
+        link => JSON.stringify([link.fromType, link.fromId, link.toType, link.toId, link.label]));
+}
+
+function deleteSavedPlace(placeId, { unlinkedOnly = false, projectId = currentProjectId() } = {})
+{
+    const place = (sampleData.places || []).find(item => item.id === placeId && item.projectId === projectId);
+    if (!place || projectId !== currentProjectId() || (unlinkedOnly && placeLiveReferenceCount(place))) return false;
+    rewriteProjectPlaceReferences(place);
+    sampleData.places = sampleData.places.filter(item => item !== place);
+    sampleData.placeIssues = (sampleData.placeIssues || []).filter(issue =>
+        issue.projectId !== projectId || (issue.placeId !== placeId && issue.otherPlaceId !== placeId));
+    sampleData.events = rebuildSampleEventsAndPruneSourceLinks();
+    markPrototypeSessionEdited();
+    return true;
+}
+
 function placeMergeValuePresent(value)
 {
     return value !== null && value !== undefined && value !== ''
@@ -376,68 +566,12 @@ function mergeSavedPlaces(keepId, removeId, { aliases = true, locationChoice, fi
     }
     keep.updatedAt = new Date().toISOString();
 
-    (sampleData.people || []).forEach(person =>
-        [person, person.birth, person.death, ...(person.events || []), ...(person.attributes || [])]
-            .forEach(record => retargetStructuredPlaceReferences(record, removeId, keepId)));
-    centralFamilyRecords().forEach(family =>
-        [family, ...(family.events || [])].forEach(record => retargetStructuredPlaceReferences(record, removeId, keepId)));
-    (sampleData.media || []).forEach(record => retargetStructuredPlaceReferences(record, removeId, keepId));
-    (sampleData.archiveFiles || []).forEach(file =>
-    {
-        if (!archiveFilePlaceIds(file).includes(removeId)) return;
-        const documentPlaceId = file.documentPlaceId || null;
-        const related = archiveFilePlaceIds(file);
-        retargetStructuredPlaceReferences(file, removeId, keepId);
-        const remappedDocumentPlaceId = documentPlaceId === removeId ? keepId : documentPlaceId;
-        archiveApplyDocumentPlace(file, remappedDocumentPlaceId,
-            [...new Set(related.map(id => id === removeId ? keepId : id))]
-                .filter(id => id !== remappedDocumentPlaceId));
-    });
-    [sampleData.sources, sampleData.notes].forEach(records =>
-        (records || []).forEach(record => retargetStructuredPlaceReferences(record, removeId, keepId)));
-    (sampleData.sourceLinks || []).forEach(link =>
-    {
-        if (link.targetType === 'place' && link.targetId === removeId) link.targetId = keepId;
-    });
-    const sourceLinkKeys = new Set();
-    sampleData.sourceLinks = (sampleData.sourceLinks || []).filter(link =>
-    {
-        const key = [link.projectId, link.sourceId, link.targetType, link.targetId].join('|');
-        if (link.targetType === 'place' && link.targetId === keepId && sourceLinkKeys.has(key)) return false;
-        sourceLinkKeys.add(key);
-        return true;
-    });
-    (sampleData.links || []).forEach(link =>
-    {
-        for (const [typeKey, idKey] of [['sourceType', 'sourceId'], ['targetType', 'targetId'], ['fromType', 'fromId'], ['toType', 'toId']])
-            if (link[typeKey] === 'place' && link[idKey] === removeId) link[idKey] = keepId;
-    });
-    const linkKeys = new Set();
-    sampleData.links = (sampleData.links || []).filter(link =>
-    {
-        const key = JSON.stringify(Object.entries(link).filter(([name]) => name !== 'id')
-            .sort(([left], [right]) => left.localeCompare(right)));
-        if (placeLinkMatches(link, keepId) && linkKeys.has(key)) return false;
-        linkKeys.add(key);
-        return true;
-    });
-    (sampleData.boards || []).forEach(board =>
-    {
-        let updated = updateBoardFactPlaceReferences(board, removed, keep);
-        (board.diagram?.nodes || []).forEach(node =>
-        {
-            if (node.type !== 'place' || node.placeRef?.scope !== 'project' || node.placeRef.id !== removeId) return;
-            node.placeRef.id = keepId;
-            node.placeRef.fallbackName = placePrimaryName(keep) || keep.name;
-            updated = true;
-        });
-        if (updated) board.updatedAt = keep.updatedAt;
-    });
-    sampleData.places = sampleData.places.filter(place => place.id !== removeId);
+    rewriteProjectPlaceReferences(removed, keep);
+    sampleData.places = sampleData.places.filter(place => place !== removed);
     sampleData.placeIssues = (sampleData.placeIssues || []).filter(issue =>
-        issue.placeId !== removeId && issue.otherPlaceId !== removeId
+        issue.projectId !== keep.projectId || (issue.placeId !== removeId && issue.otherPlaceId !== removeId
         && !(locationChanged && issue.placeId === keepId
-            && PLACE_REVIEW_COORDINATE_ISSUE_TYPES.includes(issue.type)));
+            && PLACE_REVIEW_COORDINATE_ISSUE_TYPES.includes(issue.type))));
     if (state.albumsFilters?.placeId === removeId) state.albumsFilters.placeId = keepId;
     if (Array.isArray(state.placesFilters?.placeIds))
         state.placesFilters.placeIds = [...new Set(state.placesFilters.placeIds.map(id => id === removeId ? keepId : id))];

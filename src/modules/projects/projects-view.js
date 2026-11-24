@@ -1310,7 +1310,6 @@ function renderOpenProjectInsightsCard(project)
     const projectPeople = getPeople(project.id);
     const projectFiles = (sampleData.archiveFiles || []).filter(file => file.projectId === project.id);
     const projectPhotos = getProjectPhotos(project.id);
-    const projectPlaceRecords = projectPlaces(project.id);
     const missingFacts = projectPeople.filter(person =>
         !formatGenealogyDateLabel(person.birth)
         || (!person.birth?.placeId && !person.birth?.placeText)
@@ -1323,9 +1322,7 @@ function renderOpenProjectInsightsCard(project)
         ).length
     ).length;
     const unsortedPhotos = projectPhotos.filter(photo => !(photo.albumIds || []).length).length;
-    const placeCleanup = projectPlaceRecords.filter(place =>
-        getActivePlaceReviewIssues(place).length
-    ).length + getPlaceDuplicatePairs(project.id).filter(pair => !placeDuplicateDismissal(pair)).length;
+    const placeCleanup = placeReviewPlaceCount(project.id);
     const items = [
         missingFacts ? { module: 'People', icon: icon.people, tone: 'people', title: 'Missing facts', detail: `${missingFacts} ${missingFacts === 1 ? 'person is' : 'people are'} missing birth details.` } : null,
         missingSourceData ? { module: 'Archive', icon: icon.file, tone: 'sources', title: 'Missing source data', detail: `${missingSourceData} archive ${missingSourceData === 1 ? 'file is' : 'files are'} missing source information.` } : null,

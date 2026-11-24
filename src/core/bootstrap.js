@@ -6,6 +6,7 @@ let prototypeSessionUnloadListening = false;
 
 function markPrototypeSessionEdited()
 {
+    invalidateLinkedPlaceDismissals();
     if (prototypeSessionHasEdits) return;
     prototypeSessionHasEdits = true;
     updatePrototypeSessionUnloadGuard();

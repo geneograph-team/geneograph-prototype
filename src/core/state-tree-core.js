@@ -312,6 +312,7 @@ const state = {
     placesReviewExpandedGroups: {
         invalid_coordinates: true,
         missing_coordinates: true,
+        unlinked: true,
         dismissed: false
     },
     placesViewMode: 'map',

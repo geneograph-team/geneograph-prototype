@@ -649,6 +649,24 @@ const RU_UI_PLACES = Object.freeze({
     'Coordinates need correction':
         'Координаты нужно исправить',
 
+    'Unlinked places':
+        'Несвязанные места',
+
+    'Review places that have no linked project records.':
+        'Проверьте места, не связанные ни с одной записью проекта.',
+
+    'No unlinked places.':
+        'Нет несвязанных мест.',
+
+    'This place is not linked to any project record.':
+        'Это место не связано ни с одной записью проекта.',
+
+    'This place is now linked. It was not deleted.':
+        'Место теперь связано с записями. Оно не было удалено.',
+
+    'This place is now linked or unavailable. It was not deleted.':
+        'Место теперь связано с записями или недоступно. Оно не было удалено.',
+
     'Missing map positions':
         'Места без координат',
 

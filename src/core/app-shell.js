@@ -568,6 +568,7 @@ document.addEventListener('keydown', event =>
 
 function render()
 {
+    invalidateLinkedPlaceDismissals();
     if (state.activeModule !== 'Family Tree') exitTreeFullscreen();
     if (typeof archiveImageSyncLifecycle === 'function') archiveImageSyncLifecycle();
     appNavigationObserve();
