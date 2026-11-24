@@ -727,7 +727,7 @@ function openTreeSettingsModal()
               <input id="treeShowCousins" type="checkbox" ${view.showCousins ? 'checked' : ''}>
               <span>
                 <strong>Show cousins of the focus person</strong>
-                <small>Collateral branches are limited to cousins of the current focus person.</small>
+                <small>Includes aunts, uncles, and their descendants up to the Descendant generations limit.</small>
               </span>
             </label>
             <label class="tree-settings-check">
@@ -1008,25 +1008,7 @@ function buildFamilyTreeProjection(people, families, options = {})
         ancestorFrontier = [...new Set(next)];
     }
 
-    let descendantFrontier = focusPersonId ? [focusPersonId] : [];
-    for (let depth = 1; depth <= descendantGenerations && descendantFrontier.length; depth += 1)
-    {
-        const next = [];
-        descendantFrontier.forEach(parentId =>
-        {
-            (childFamiliesByParent.get(parentId) || []).forEach(family =>
-            {
-                includeFamily(family);
-                (family.children || []).forEach(childId => next.push(childId));
-            });
-        });
-        descendantFrontier = [...new Set(next)];
-    }
-
-    (childFamiliesByParent.get(focusPersonId) || []).forEach(family =>
-    {
-        includeFamily(family, { children: descendantGenerations > 0 });
-    });
+    const descendantRoots = new Set(focusPersonId ? [focusPersonId] : []);
 
     if (ancestorGenerations > 0)
     {
@@ -1043,18 +1025,7 @@ function buildFamilyTreeProjection(people, families, options = {})
             includeFamily(family);
         });
 
-        parentContext.siblingIds.forEach(siblingId =>
-        {
-            (childFamiliesByParent.get(siblingId) || []).forEach(family =>
-            {
-                const hasPartner = [family.left, family.right]
-                    .some(id => id && id !== siblingId && peopleById.has(id));
-                const hasChildren = (family.children || [])
-                    .some(id => peopleById.has(id));
-                if (!hasPartner && !hasChildren) return;
-                includeFamily(family, { children: descendantGenerations > 0 });
-            });
-        });
+        parentContext.siblingIds.forEach(id => descendantRoots.add(id));
     }
 
     if (options.showCousins && ancestorGenerations >= 2)
@@ -1072,15 +1043,33 @@ function buildFamilyTreeProjection(people, families, options = {})
                 includeFamily(grandparentFamily);
                 (grandparentFamily.children || [])
                     .filter(relativeId => relativeId !== parentId)
-                    .forEach(auntOrUncleId =>
-                    {
-                        (childFamiliesByParent.get(auntOrUncleId) || []).forEach(cousinFamily =>
-                        {
-                            includeFamily(cousinFamily);
-                        });
-                    });
+                    .forEach(id => descendantRoots.add(id));
             });
         });
+    }
+
+    // Each visible side-branch root gets the same depth budget as the focus.
+    // Visiting shared descendants at their shortest depth also guards against cycles.
+    const visitedDescendants = new Set(descendantRoots);
+    let descendantFrontier = [...descendantRoots];
+    for (let depth = 0; depth < Math.max(1, descendantGenerations) && descendantFrontier.length; depth += 1)
+    {
+        const next = [];
+        for (const parentId of descendantFrontier)
+        {
+            for (const family of childFamiliesByParent.get(parentId) || [])
+            {
+                includeFamily(family, { children: depth < descendantGenerations });
+                if (depth >= descendantGenerations) continue;
+                for (const childId of family.children || [])
+                {
+                    if (visitedDescendants.has(childId)) continue;
+                    visitedDescendants.add(childId);
+                    next.push(childId);
+                }
+            }
+        }
+        descendantFrontier = next;
     }
 
     const projectedFamilies = (families || [])

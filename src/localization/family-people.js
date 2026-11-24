@@ -130,8 +130,8 @@ const RU_UI_FAMILY_TREE = {
     'Show cousins of the focus person':
         'Показывать двоюродных родственников основного человека',
 
-    'Collateral branches are limited to cousins of the current focus person.':
-        'Боковые ветви ограничены двоюродными родственниками текущего основного человека.',
+    'Includes aunts, uncles, and their descendants up to the Descendant generations limit.':
+        'Показывает тёть, дядей и их потомков до заданного числа поколений потомков.',
 
     'Color fill':
         'Цветная заливка',
