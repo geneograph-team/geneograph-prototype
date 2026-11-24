@@ -59,7 +59,7 @@ assert.equal(families[0].partnerBId, families[2].partnerBId);
 assert.notEqual(families[0].id, families[2].id);
 assert.equal(families[1].partnerAId, '');
 assert.equal(families[1].childIds[0], people[1].id);
-assert.deepEqual(Object.keys(families[0].parentChildTypes), []);
+assert.deepEqual(Object.values(families[0].parentChildTypes), ['Biological', 'Biological']);
 assert.equal(Object.values(families[1].parentChildTypes)[0], 'Foster');
 assert.equal(families[2].relationshipType, 'Unknown relationship');
 assert.ok(events.some(event => event.type === 'marriage'));
@@ -140,6 +140,14 @@ assert.throws(() => map(file([
     '0 @I1@ INDI', '0 @I2@ INDI', '1 FAMC @F1@', '2 STAT disproven',
     '0 @F1@ FAM', '1 HUSB @I1@', '1 CHIL @I2@'
 ])), /child claims disagree/);
+const unsupportedPedigree = map(file([
+    '0 @I1@ INDI', '0 @I2@ INDI', '1 FAMC @F1@', '2 PEDI sealing',
+    '0 @F1@ FAM', '1 HUSB @I1@', '1 CHIL @I2@'
+]));
+assert.deepEqual(Array.from(unsupportedPedigree.errors), []);
+assert.deepEqual(Object.keys(unsupportedPedigree.records.families[0].parentChildTypes), []);
+assert.ok(unsupportedPedigree.warnings.some(warning => warning.tag === 'PEDI'));
+
 const localizedDate = context.parseGedcomDate('11 ноя 1894');
 assert.equal(localizedDate.valid, true);
 assert.equal(localizedDate.value.first.month, 11);

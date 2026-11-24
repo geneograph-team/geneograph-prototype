@@ -627,6 +627,7 @@ function mapGedcomImport(parsed, project, matches = new Map(), references = gedc
     }
 
     const parentage = [];
+    const ambiguousParentage = new Set();
     for (const [xref, person] of peopleByXref)
     {
         checkDeadline();
@@ -654,6 +655,7 @@ function mapGedcomImport(parsed, project, matches = new Map(), references = gedc
                 {
                     if (status.value.trim().toLowerCase() === 'disproven' && family.childIds.includes(person.id))
                         throw new GedcomImportError('GEDCOM child claims disagree about a family.', status.line);
+                    ambiguousParentage.add(family.id + '|' + person.id);
                     warn('STAT', status.line);
                     continue;
                 }
@@ -662,7 +664,11 @@ function mapGedcomImport(parsed, project, matches = new Map(), references = gedc
                 const type = new Map([['birth', 'Biological'], ['adopted', 'Adoptive'], ['foster', 'Foster']])
                     .get(pedigree?.value.trim().toLowerCase());
                 if (type && !(type === 'Adoptive' && adoptions.has(link.value.trim()))) parentage.push({ family, person, type });
-                else if (pedigree) warn('PEDI', pedigree.line);
+                else if (pedigree?.value.trim())
+                {
+                    ambiguousParentage.add(family.id + '|' + person.id);
+                    if (!type) warn('PEDI', pedigree.line);
+                }
             }
         }
     }
@@ -674,7 +680,12 @@ function mapGedcomImport(parsed, project, matches = new Map(), references = gedc
             const link = event.children.find(node => node.tag === 'FAMC');
             const role = link?.children.find(node => node.tag === 'ADOP');
             const choice = role?.value.trim().toUpperCase();
-            if (!role || !['HUSB', 'WIFE', 'BOTH'].includes(choice)) continue;
+            if (!role || !['HUSB', 'WIFE', 'BOTH'].includes(choice))
+            {
+                const family = familiesByXref.get(link?.value.trim());
+                if (family) ambiguousParentage.add(family.id + '|' + person.id);
+                continue;
+            }
             const family = resolve(familiesByXref, link);
             const parents = [
                 ['HUSB', family.partnerAId, family.partnerARoleHint],
@@ -682,6 +693,7 @@ function mapGedcomImport(parsed, project, matches = new Map(), references = gedc
             ].filter(([tag, id, hint]) => id && (choice === 'BOTH' || (choice === tag && hint === tag)));
             if (!parents.length || (choice === 'BOTH' && parents.length !== 2))
             {
+                ambiguousParentage.add(family.id + '|' + person.id);
                 warn('FAMC', link.line);
                 continue;
             }
@@ -695,6 +707,18 @@ function mapGedcomImport(parsed, project, matches = new Map(), references = gedc
     for (const { family, person, type, parentId } of parentage)
         for (const parent of parentId ? [parentId] : [family.partnerAId, family.partnerBId].filter(Boolean))
             family.parentChildTypes[parent + '|' + person.id] = type;
+
+    for (const family of familiesByXref.values())
+    {
+        const parents = [family.partnerAId, family.partnerBId].filter(Boolean);
+        for (const childId of family.childIds)
+        {
+            checkDeadline();
+            if (ambiguousParentage.has(family.id + '|' + childId)) continue;
+            for (const parentId of parents)
+                family.parentChildTypes[parentId + '|' + childId] ??= 'Biological';
+        }
+    }
 
     const sourceDetail = (label, value) => value ? t(label) + ': ' + value : '';
     for (const node of parsed.roots)

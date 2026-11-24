@@ -15,7 +15,7 @@ The prototype SHALL read UTF-8 GEDCOM 5.5.1 locally and import all supported peo
 
 ### Requirement: Preserve supported family and date semantics
 
-Distinct FAM records SHALL keep distinct identities. One-parent families and multiple memberships SHALL remain separate. Explicit marriage, divorce and supported parentage SHALL be preserved. Unknown parentage or missing events SHALL remain unasserted. Qualified and bounded dates SHALL use canonical date fields, with unsupported date text retained and disclosed.
+Distinct FAM records SHALL keep distinct identities. One-parent families and multiple memberships SHALL remain separate. Explicit marriage, divorce and supported parentage SHALL be preserved. Unspecified parentage SHALL default to Biological. Explicit unsupported or ambiguous parentage and missing events SHALL remain unasserted. Qualified and bounded dates SHALL use canonical date fields, with unsupported date text retained and disclosed.
 
 ### Requirement: Fail without partial imports
 
