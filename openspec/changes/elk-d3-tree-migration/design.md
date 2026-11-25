@@ -1,14 +1,14 @@
 # Design — presentation boundaries and contracts
 
-**Target architecture, not implemented by #398.** The names below describe minimal contracts, not mandated new global bindings or a generic framework. Preserve the static, classic deferred-script application and existing project commands.
+**Migration target.** The approved vertical ELK layout is already the sole provider after #404. The remaining architecture below describes later work. The names below describe minimal contracts, not mandated new global bindings or a generic framework. Preserve the static, classic deferred-script application and existing project commands.
 
 ## 1. Current code and migration boundaries
 
 | Current source under src/ | Observed baseline | Target |
 | --- | --- | --- |
 | `core/state-tree-core.js`: treeProjectViewState, buildFamilyTreeProjection, deriveTreeBranchRoles, navigateFamilyTreeToPerson | Project-local view, canonical selection, focus/depth/cousin context and command routing | Retain semantic rules; detach context and preferences from geometry |
-| `core/app-shell.js`: render and navigation capture/restore | Calls renderFamilyTree; disposes ELK preview on exit; captures focus, selection, zoom and scroll | Own presentation lifecycle and semantic navigation |
-| `modules/family-tree/tree-elk-preview.js`: prepareElkTreeInput, treeElkLayoutForProjection, adaptElkTreeLayout | Anonymous solver IDs, cached graph key, DOWN solve, derives generations, adapts geometry, Classic recovery | Both orientations, revision-owned scene, explicit retry/error |
+| `core/app-shell.js`: render and navigation capture/restore | Calls renderFamilyTree; disposes the ELK request on exit; captures focus, selection, zoom and scroll | Own presentation lifecycle and semantic navigation |
+| `modules/family-tree/tree-elk-preview.js`: prepareElkTreeInput, treeElkLayoutForProjection, adaptElkTreeLayout | Anonymous solver IDs, cached graph key, DOWN solve, derives generations, adapts geometry, Retry after failure | Both orientations, revision-owned scene, explicit retry/error |
 | `modules/family-tree/tree-elk-model.js`: projectElkTreeOccurrences, solveElkTree | Compound layout, bounded duplicate split defers upstream parents, final routing | Independent occurrence stage #399; reuse approved geometry |
 | `modules/family-tree/tree-view.js`: renderFamilyTree, renderTreeLines, renderTreePersonCard, renderTreeFocusControl, treeDetailLevel; `tree-scroll.js` | Rebuilds main HTML, binds events, DOM-dependent centering, synthetic zoom mapping | Incremental renderer, scene-based viewport/search, actual scale and six detail stages |
 | `modules/albums/filters-avatar.js`, `photo-layout-and-crop.js` | Compact avatar uses original photo.src; face positioning scans on scroll | Shared local derivative service; only visible portrait demand |
@@ -89,6 +89,6 @@ Thumbnail service owns source revision/crop/rotation/size/DPR keys, visible dema
 
 ## 8. Delivery and verification
 
-#398 defines boundaries; #404 starts early after this review: extract genuine shared helpers, make current approved vertical ELK sole provider, remove Classic toggle and Classic-only code when safe. Temporary retention needs concrete dependency/regression benefit and removal condition; Git history suffices for comparisons. #399, #400, #401, #402 and #405 may proceed where contracts permit. #403 integrates orientations and actual visual/behavior tests; #404 removes remaining legacy renderer/viewport/CSS/strings, verifies single runtime path and reconciles docs/specs. No deploy/CI changes.
+#398 defines boundaries; #404 removed the Classic solver, connector generator and toggle. Shared geometry and rendering remain active because the ELK adapter and viewport use them. #399, #400, #401, #402 and #405 may proceed where contracts permit. #403 integrates orientations and actual visual/behavior tests; #407 removes remaining legacy renderer/viewport/CSS/strings, verifies single runtime path and reconciles docs/specs. No deploy/CI changes.
 
 Use existing reference fixtures, 52-person expanded-ancestry fixture, Whiskerfield, private import (not committed), #381 internal stress project (mandatory separate removal before open user testing). Verify canonical coverage, generation conflicts, geometry, selection without layout, color/focus/orientation invariance, offline browser, EN/RU, both themes, keyboard/touch, actions/placeholder correctness, cancellation and project isolation. Measure layout passes, DOM render, interaction timing, mounted counts, thumbnail decode/cache separately; report actual numbers and limitations. The earlier preview verification is historical evidence, not new QA. No implementation or browser validation claimed by #398.

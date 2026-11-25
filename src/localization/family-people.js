@@ -110,20 +110,14 @@ const RU_UI_FAMILY_TREE = {
     '0–5 generations':
         '0–5 поколений',
 
-    "ELK preview":
-        "Предпросмотр ELK",
-
     "Calculating tree layout…":
         "Вычисляем расположение дерева…",
 
     "ELK could not lay out this tree.":
         "ELK не удалось построить это дерево.",
 
-    "Use Classic layout":
-        "Использовать классическую раскладку",
-
-    "Some relationships require review in ELK preview.":
-        "Некоторые связи в предпросмотре ELK требуют проверки.",
+    "Some relationships require review.":
+        "Некоторые связи требуют проверки.",
 
     'Show cousins of the focus person':
         'Показывать двоюродных родственников основного человека',

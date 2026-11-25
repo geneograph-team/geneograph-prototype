@@ -13,6 +13,32 @@ const context = vm.createContext(
 const source = path.join(__dirname, '../src/modules/family-tree/tree-elk-model.js');
 vm.runInContext(fs.readFileSync(source, 'utf8'), context);
 
+for (const file of ['tree-geometry.js', 'tree-elk-preview.js'])
+{
+    vm.runInContext(fs.readFileSync(path.join(path.dirname(source), file), 'utf8'), context);
+}
+
+const partialFamily = { id: 'household', left: 'parent', right: '', children: ['focus', 'sibling'] };
+const projection = {
+    people: [{ id: 'focus' }, { id: 'sibling' }, { id: 'parent' }],
+    families: [partialFamily],
+    focusPersonId: 'focus',
+    branchRoles: { ancestorGenerations: 1,
+        parentPresenceByPerson: new Map([
+            ['focus', { father: true, mother: false }],
+            ['sibling', { father: true, mother: false }],
+            ['parent', { father: false, mother: false }]
+        ]) }
+};
+const originalFamily = JSON.stringify(partialFamily);
+const shallow = context.prepareElkTreeInput(projection);
+assert.equal(JSON.stringify(partialFamily), originalFamily);
+assert.equal(shallow.people.filter(person => person.placeholder).length, 1);
+assert.equal(shallow.people.find(person => person.placeholder).placeholder.personId, 'focus');
+projection.branchRoles.ancestorGenerations = 2;
+const deeper = context.prepareElkTreeInput(projection);
+assert.equal(deeper.people.filter(person => person.placeholder?.personId === 'parent').length, 2);
+
 const EPS = .02;
 const between = (v, a, b) => v >= Math.min(a, b) - EPS && v <= Math.max(a, b) + EPS;
 const same = (a, b) => Math.abs(a - b) < EPS;

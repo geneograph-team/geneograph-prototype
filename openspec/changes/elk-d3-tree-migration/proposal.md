@@ -13,7 +13,7 @@ Reuse canonical genealogy, commands, visibility projection and approved ELK layo
 ## Evidence and related work
 
 - [ELK preview design](../elk-tree-preview/design.md) and [verification](../elk-tree-preview/verification.md) describe the existing baseline and outstanding QA. Reuse that implementation, not an alternative provider.
-- #399 occurrences; #400 renderer; #401 derivatives; #402 cards/date/zoom; #403 orientation/integration; #404 early cleanup and final QA; #405 coloring.
+- #399 occurrences; #400 renderer; #401 derivatives; #402 cards/date/zoom; #403 orientation/integration; #404 early Classic removal; #405 coloring; #407 final cleanup and acceptance.
 - Approved standalone attachments: `elk-d3-focus-duplicates.html`, `geneograph-card-zoom-lab.html`, `geneograph-branch-color-lab.html`. Supply to implementation agents for visual comparison. The fixtures are reference evidence, not production integration tests. Decisions are recorded in the feature deltas and design below; exact palette reference also in #405.
 
 Current verified specs remain current-behavior records until corresponding implementation and acceptance; the migration deltas supersede incompatible old target requirements. Preserve earlier preview verification, including unperformed checks. Reconcile preview and migration changes and archive only when verified, as required by [OpenSpec workflow](../../README.md).

@@ -441,6 +441,13 @@ function currentTreeFamilies()
         : [];
 }
 
+function personById(id)
+{
+    const centralPerson = getPerson(id);
+    if (centralPerson) return toTreePerson(centralPerson);
+    return currentTreePeople()[0] || null;
+}
+
 const TREE_ANCESTOR_GENERATION_MIN = 0;
 const TREE_ANCESTOR_GENERATION_MAX = 6;
 const TREE_DESCENDANT_GENERATION_MIN = 0;
@@ -731,10 +738,6 @@ function openTreeSettingsModal()
               </span>
             </label>
             <label class="tree-settings-check">
-              <input id="treeElkPreview" type="checkbox" ${view.elkPreview !== false ? 'checked' : ''}>
-              <span><strong>ELK preview</strong></span>
-            </label>
-            <label class="tree-settings-check">
               <input id="treeColorFill" type="checkbox" ${view.colorFill !== false ? 'checked' : ''}>
               <span>
                 <strong>Color fill</strong>
@@ -765,11 +768,8 @@ function openTreeSettingsModal()
             TREE_DESCENDANT_GENERATION_MAX
         );
         view.showCousins = Boolean(modalBackdrop.querySelector('#treeShowCousins')?.checked);
-        const providerChanged = (view.elkPreview !== false) !== Boolean(modalBackdrop.querySelector('#treeElkPreview')?.checked);
-        view.elkPreview = Boolean(modalBackdrop.querySelector('#treeElkPreview')?.checked);
         view.colorFill = Boolean(modalBackdrop.querySelector('#treeColorFill')?.checked);
-        if (providerChanged && main.querySelector('.tree-stage')) captureTreeCanvasScroll();
-        if (!providerChanged) state.treeCenterTargetId = view.focusPersonId;
+        state.treeCenterTargetId = view.focusPersonId;
         closeModal();
         renderFamilyTree();
     });
@@ -821,8 +821,7 @@ function deriveTreeBranchRoles(
     people,
     families,
     focusPersonId,
-    visiblePersonIds = null,
-    visibleFamilyIds = null
+    visiblePersonIds = null
 )
 {
     const projectPersonIds = new Set((people || []).map(person => person.id));
@@ -830,26 +829,15 @@ function deriveTreeBranchRoles(
         ? new Set([...visiblePersonIds].filter(id => projectPersonIds.has(id)))
         : new Set(projectPersonIds);
     const parentFamiliesByChild = new Map();
-    const childFamiliesByParent = new Map();
-    const partnerIdsByPerson = new Map();
 
     (families || []).forEach(family =>
     {
-        const partners = [family.left, family.right].filter(id => projectPersonIds.has(id));
         const children = (family.children || []).filter(id => projectPersonIds.has(id));
 
         children.forEach(childId =>
         {
             if (!parentFamiliesByChild.has(childId)) parentFamiliesByChild.set(childId, []);
             parentFamiliesByChild.get(childId).push(family);
-        });
-
-        partners.forEach(parentId =>
-        {
-            if (!childFamiliesByParent.has(parentId)) childFamiliesByParent.set(parentId, []);
-            childFamiliesByParent.get(parentId).push(family);
-            if (!partnerIdsByPerson.has(parentId)) partnerIdsByPerson.set(parentId, new Set());
-            partners.filter(id => id !== parentId).forEach(id => partnerIdsByPerson.get(parentId).add(id));
         });
     });
 
@@ -877,48 +865,6 @@ function deriveTreeBranchRoles(
             .flatMap(family => [family.left, family.right])
             .filter(Boolean)
     );
-    const directDescendantIds = collectRelatives(focusPersonId, personId =>
-        (childFamiliesByParent.get(personId) || [])
-            .flatMap(family => family.children || [])
-            .filter(Boolean)
-    );
-    const lineageRelativeIds = collectRelatives(focusPersonId, personId => [
-        ...(parentFamiliesByChild.get(personId) || [])
-            .flatMap(family => [family.left, family.right])
-            .filter(Boolean),
-        ...(childFamiliesByParent.get(personId) || [])
-            .flatMap(family => family.children || [])
-            .filter(Boolean)
-    ]);
-    const focusPartnerIds = new Set(partnerIdsByPerson.get(focusPersonId) || []);
-    const directSiblingIds = treeParentFamilyContext(
-        people,
-        families,
-        focusPersonId
-    ).siblingIds;
-    const householdSiblingIds = new Set(
-        [...directSiblingIds].filter(personId =>
-            (childFamiliesByParent.get(personId) || []).some(family =>
-            {
-                if (visibleFamilyIds instanceof Set && !visibleFamilyIds.has(family.id)) return false;
-                const hasVisiblePartner = [family.left, family.right]
-                    .some(id => id && id !== personId && visibleIds.has(id));
-                const hasVisibleChild = (family.children || [])
-                    .some(id => visibleIds.has(id));
-                return hasVisiblePartner || hasVisibleChild;
-            })
-        )
-    );
-    const visibleRelativePartnerIds = new Set();
-    lineageRelativeIds.forEach(personId =>
-    {
-        if (!visibleIds.has(personId)) return;
-        (partnerIdsByPerson.get(personId) || []).forEach(partnerId =>
-        {
-            if (visibleIds.has(partnerId)) visibleRelativePartnerIds.add(partnerId);
-        });
-    });
-
     const placeholderPersonIds = new Set([focusPersonId, ...directAncestorIds]);
     [...placeholderPersonIds].forEach(id =>
     {
@@ -942,14 +888,6 @@ function deriveTreeBranchRoles(
     });
 
     return {
-        directAncestorIds,
-        directDescendantIds,
-        directSiblingIds,
-        householdSiblingIds,
-        lineageRelativeIds,
-        focusPartnerIds,
-        visibleRelativePartnerIds,
-        placeholderPersonIds,
         focusActionPersonIds,
         parentPresenceByPerson
     };
@@ -1108,8 +1046,7 @@ function buildFamilyTreeProjection(people, families, options = {})
         people,
         families,
         focusPersonId,
-        coherentPersonIds,
-        visibleFamilyIds
+        coherentPersonIds
     );
 
     return {

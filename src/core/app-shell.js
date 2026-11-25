@@ -572,7 +572,7 @@ function render()
     if (state.activeModule !== 'Family Tree')
     {
         exitTreeFullscreen();
-        disposeTreeElkPreview();
+        disposeTreeElkLayout();
         treeRelativeIntent = null;
     }
     if (typeof archiveImageSyncLifecycle === 'function') archiveImageSyncLifecycle();

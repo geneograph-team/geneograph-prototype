@@ -1,9 +1,9 @@
-let treeElkPreview = null;
+let treeElkRequest = null;
 
-function disposeTreeElkPreview()
+function disposeTreeElkLayout()
 {
-    const previous = treeElkPreview;
-    treeElkPreview = null;
+    const previous = treeElkRequest;
+    treeElkRequest = null;
     previous?.cancel?.();
 }
 
@@ -11,7 +11,7 @@ function calculateLocalElkGraph(preview, graph)
 {
     return new Promise((resolve, reject) =>
     {
-        if (preview !== treeElkPreview) return reject(new Error('Layout superseded'));
+        if (preview !== treeElkRequest) return reject(new Error('Layout superseded'));
         const frame = document.createElement('iframe');
         frame.hidden = true;
         frame.title = 'Local graph layout';
@@ -170,31 +170,31 @@ function treeElkLayoutForProjection(projectId, projection, view)
         view.descendantGenerations, view.showCousins, projection.people.map(person => person.id),
         projection.families.map(({ id, left, right, children }) => [id, left, right, children]),
         [...projection.branchRoles.parentPresenceByPerson]]);
-    if (treeElkPreview?.key !== key)
+    if (treeElkRequest?.key !== key)
     {
-        disposeTreeElkPreview();
+        disposeTreeElkLayout();
         const preview = { key };
-        treeElkPreview = preview;
+        treeElkRequest = preview;
         // Defer even input errors until the pending presentation is mounted.
         Promise.resolve().then(async () =>
         {
             try
             {
-                if (treeElkPreview !== preview) return;
+                if (treeElkRequest !== preview) return;
                 preview.model = prepareElkTreeInput(projection);
                 preview.geometry = await solveElkTree(preview.model.people, preview.model.families, 'DOWN',
                     graph => calculateLocalElkGraph(preview, graph));
             }
             catch (error)
             {
-                if (treeElkPreview !== preview) return;
+                if (treeElkRequest !== preview) return;
                 preview.error = true;
-                console.warn('ELK preview:', error.message);
+                console.warn('ELK layout:', error.message);
             }
-            if (treeElkPreview === preview && state.activeModule === 'Family Tree'
-                && currentFamilyTreeProjectId() === projectId && treeProjectViewState(projectId).elkPreview !== false)
+            if (treeElkRequest === preview && state.activeModule === 'Family Tree'
+                && currentFamilyTreeProjectId() === projectId)
                 renderFamilyTree();
         });
     }
-    return treeElkPreview.geometry ? adaptElkTreeLayout(treeElkPreview.model, treeElkPreview.geometry, projection) : null;
+    return treeElkRequest.geometry ? adaptElkTreeLayout(treeElkRequest.model, treeElkRequest.geometry, projection) : null;
 }

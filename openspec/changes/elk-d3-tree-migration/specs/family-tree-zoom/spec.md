@@ -1,4 +1,4 @@
-The founder retired the former 0–200% display-range requirement on 2026-11-25; it has already been removed from the baseline spec in #398. Remove the legacy mapping and tests tied solely to artificial endpoints during #400/#402/#404.
+The founder retired the former 0–200% display-range requirement on 2026-11-25; it has already been removed from the baseline spec in #398. Remove the legacy mapping and tests tied solely to artificial endpoints during #400/#402, with final cleanup in #407.
 
 ## MODIFIED Requirements
 

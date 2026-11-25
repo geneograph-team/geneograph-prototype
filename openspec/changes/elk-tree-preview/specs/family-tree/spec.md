@@ -1,15 +1,15 @@
 ## ADDED Requirements
 
-### Requirement: Reversible ELK layout preview
+### Requirement: Local vertical ELK layout
 
-The Tree presentation SHALL provide a localized, default-enabled ELK preview option per project. Disabling it SHALL select Classic in the same presentation. ELK work SHALL use the local pinned solver and discard results for superseded views.
+The Tree presentation SHALL use the pinned local vertical ELK solver. It SHALL discard results for superseded views and offer localized Retry after a failed request.
 
-#### Scenario: Switch layout providers
+#### Scenario: Retry a failed layout
 
-- GIVEN a project with no explicit preview preference
-- WHEN a user opens Family Tree
-- THEN the Tree uses ELK with the shared cards, connectors and inspector
-- AND unchecking ELK preview selects Classic without changing genealogy records.
+- GIVEN the Tree layout failed
+- WHEN the user chooses Retry
+- THEN the Tree starts a new ELK request for the same project and focus
+- AND canonical records and memberships are preserved.
 
 #### Scenario: Select a visual occurrence
 
