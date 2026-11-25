@@ -1,6 +1,6 @@
 function renderFamilyTreePreserveScroll()
 {
-    const scroll = getTreeCanvasScroll();
+    const scroll = main.querySelector('.tree-stage') ? getTreeCanvasScroll() : null;
 
     // If another action intentionally wants to center on a person,
     // let that behavior win instead of restoring old scroll.
@@ -157,6 +157,7 @@ document.addEventListener('fullscreenchange', () =>
 });
 
 let treeCardLastClick = null;
+let treeRelativeIntent = null;
 
 function treeViewportPointAtClient(clientX, clientY)
 {
@@ -854,6 +855,7 @@ function renderFamilyTree()
 
     if (!treeProjectId || !treePeopleSource.length)
     {
+        disposeTreeElkPreview();
         main.innerHTML = `
           <div class="tree-shell tree-shell-empty">
             <section class="tree-empty-state" aria-labelledby="treeEmptyTitle">
@@ -902,7 +904,9 @@ function renderFamilyTree()
         );
     }
 
-    const treeLayout = calculateTreeLayout(
+    const useElk = treeViewState.elkPreview !== false;
+    if (!useElk) disposeTreeElkPreview();
+    const treeLayout = useElk ? treeElkLayoutForProjection(treeProjectId, projection, treeViewState) : calculateTreeLayout(
         projection.people,
         projection.families,
         projection.focusPersonId,
@@ -959,7 +963,7 @@ function renderFamilyTree()
           </div>
 
             <section class="tree-canvas" aria-label="Family tree canvas">
-              <div class="tree-stage-space" style="width:${treeLayout.stageWidth * state.treeZoom / 100}px;height:${treeLayout.stageHeight * state.treeZoom / 100}px;">
+              ${treeLayout ? `${treeLayout.diagnostics?.length ? `<div class="tree-layout-status" role="status">${escapeHtml(t('Some relationships require review in ELK preview.'))}</div>` : ''}<div class="tree-stage-space" style="width:${treeLayout.stageWidth * state.treeZoom / 100}px;height:${treeLayout.stageHeight * state.treeZoom / 100}px;">
                 <div class="tree-stage" data-detail-level="${treeDetailLevel()}" data-compact-parent="${treeDisplayZoom() < 70}" data-hide-focus="${treeDisplayZoom() <= 50}" style="width:${treeLayout.stageWidth}px;height:${treeLayout.stageHeight}px;transform: scale(${state.treeZoom / 100});--tree-overview-connection-width:${150 / state.treeZoom}px;--tree-overview-parent-border-width:${100 / state.treeZoom}px;--tree-overview-plus-size:${Math.min(70, 1500 / state.treeZoom)}px;--tree-overview-name-size:${Math.min(40, Math.max(22, 1100 / state.treeZoom))}px;">
                   ${renderTreeLines(treeLayout)}
                   ${treeLayout.parentPlaceholders.map(renderTreeParentPlaceholder).join('')}
@@ -967,6 +971,11 @@ function renderFamilyTree()
                   ${treeLayout.focusControls.map(renderTreeFocusControl).join('')}
                 </div>
               </div>
+              ` : `
+                <div class="tree-layout-status" role="status">
+                  ${escapeHtml(t(treeElkPreview?.error ? 'ELK could not lay out this tree.' : 'Calculating tree layout…'))}
+                  ${treeElkPreview?.error ? `<button type="button" class="button secondary" data-tree-use-classic>${escapeHtml(t('Use Classic layout'))}</button>` : ''}
+                </div>`}
               <div class="tree-zoom">
                 <button class="zoom-button" type="button" data-zoom="out" aria-label="Zoom out">${icon.zoomOut}</button>
                 <div class="zoom-value">${treeDisplayZoom()}%</div>
@@ -1080,17 +1089,8 @@ function renderFamilyTree()
                     const currentFocusId = treeProjectViewState().focusPersonId;
                     if (currentFocusId !== anchorPersonId)
                     {
+                        treeRelativeIntent = { projectId: treeProjectId, personId: anchorPersonId };
                         focusTreeBranchForRelative(anchorPersonId);
-                        requestAnimationFrame(() =>
-                        {
-                            requestAnimationFrame(() =>
-                            {
-                                const refreshedButton = main.querySelector(
-                                    `.tree-person-card[data-tree-primary="true"][data-person-id="${CSS.escape(anchorPersonId)}"] [data-card-add="relative"]`
-                                );
-                                openRelativePopover(refreshedButton || button, anchorPersonId);
-                            });
-                        });
                         return;
                     }
 
@@ -1143,18 +1143,23 @@ function renderFamilyTree()
         openTreePersonPicker(event.currentTarget);
     });
     main.querySelector('[data-tree-settings]')?.addEventListener('click', openTreeSettingsModal);
+    main.querySelector('[data-tree-use-classic]')?.addEventListener('click', () =>
+    {
+        treeViewState.elkPreview = false;
+        renderFamilyTree();
+    });
     bindPersonSidebar(main, 'tree');
     const centerTargetId =
         state.treeCenterTargetId;
 
-    state.treeCenterTargetId = '';
+    if (treeLayout) state.treeCenterTargetId = '';
 
-    if (centerTargetId)
+    if (treeLayout && centerTargetId)
     {
         centerTreeOnPerson(centerTargetId);
     }
     else if (
-        treeViewState.canvasScroll
+        treeLayout && treeViewState.canvasScroll
     )
     {
         restoreTreeCanvasScroll(
@@ -1167,6 +1172,15 @@ function renderFamilyTree()
         treeFullscreenRuntime.center = treeFullscreenCenter();
     }, { passive: true });
     treeFullscreenRuntime.center = treeFullscreenCenter();
+    if (treeRelativeIntent && (treeRelativeIntent.projectId !== treeProjectId || treeRelativeIntent.personId !== focusPersonId))
+        treeRelativeIntent = null;
+    if (treeLayout && treeRelativeIntent)
+    {
+        const { personId } = treeRelativeIntent;
+        treeRelativeIntent = null;
+        const button = treePrimaryPersonCard(personId)?.querySelector('[data-card-add="relative"]');
+        if (button) requestAnimationFrame(() => { if (button.isConnected) openRelativePopover(button, personId); });
+    }
 }
 
 function treeLayoutNode(layout, id)

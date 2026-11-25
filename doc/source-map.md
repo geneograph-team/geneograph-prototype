@@ -33,3 +33,7 @@
 - CSS tag order in `src/index.html` is the cascade. Split files preserve their original order, including interleaved shared, Notes, and Places rules. Edit declarations in the owning stylesheet; do not add a trailing override file.
 - HTML and script asset paths resolve from `src/index.html`; CSS `url(...)` paths resolve from their stylesheet. Project-cover URLs inserted through CSS custom properties are made document-absolute in `shared/shared-actions.js`.
 
+
+### Family Tree layout preview
+
+The Tree uses the shared canonical projection in `src/core/state-tree-core.js` and the existing renderer and viewport in `src/modules/family-tree/tree-view.js` and `tree-scroll.js`. `tree-elk-preview.js` owns the project-local layout request and adapts occurrence geometry and connector descriptors. `tree-elk-model.js` owns compound graph construction, duplicate projection and routing. The standalone ELK frame exchanges anonymous ELK JSON graphs through messages. Classic continues to use `tree-layout.js`. A future Fan presentation would attach at the application shell with canonical IDs and project-scoped view state, and own its projection, viewport and radial renderer.

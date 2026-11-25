@@ -731,6 +731,10 @@ function openTreeSettingsModal()
               </span>
             </label>
             <label class="tree-settings-check">
+              <input id="treeElkPreview" type="checkbox" ${view.elkPreview !== false ? 'checked' : ''}>
+              <span><strong>ELK preview</strong></span>
+            </label>
+            <label class="tree-settings-check">
               <input id="treeColorFill" type="checkbox" ${view.colorFill !== false ? 'checked' : ''}>
               <span>
                 <strong>Color fill</strong>
@@ -761,8 +765,11 @@ function openTreeSettingsModal()
             TREE_DESCENDANT_GENERATION_MAX
         );
         view.showCousins = Boolean(modalBackdrop.querySelector('#treeShowCousins')?.checked);
+        const providerChanged = (view.elkPreview !== false) !== Boolean(modalBackdrop.querySelector('#treeElkPreview')?.checked);
+        view.elkPreview = Boolean(modalBackdrop.querySelector('#treeElkPreview')?.checked);
         view.colorFill = Boolean(modalBackdrop.querySelector('#treeColorFill')?.checked);
-        state.treeCenterTargetId = view.focusPersonId;
+        if (providerChanged && main.querySelector('.tree-stage')) captureTreeCanvasScroll();
+        if (!providerChanged) state.treeCenterTargetId = view.focusPersonId;
         closeModal();
         renderFamilyTree();
     });

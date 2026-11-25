@@ -1,0 +1,23 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Local ELK graph layout</title>
+<script src="lib/elk.bundled.js"></script>
+<script>
+    const solver = typeof ELK === 'function' ? new ELK() : null;
+    window.addEventListener('message', async event =>
+    {
+        if (event.source !== window.parent || event.data?.type !== 'layout-graph') return;
+        const { id, graph } = event.data;
+        try
+        {
+            if (!solver) throw new Error('ELK bundle was unavailable');
+            const layout = await solver.layout(graph);
+            event.source.postMessage({ type: 'layout-result', id, layout }, '*');
+        }
+        catch (error)
+        {
+            event.source.postMessage({ type: 'layout-result', id, error: String(error.message || error) }, '*');
+        }
+    });
+    window.parent.postMessage({ type: 'layout-ready' }, '*');
+</script>

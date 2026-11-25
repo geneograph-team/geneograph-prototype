@@ -1806,3 +1806,19 @@ button.timeline-evidence-name:hover, button.timeline-evidence-name:focus-visible
     .timeline-evidence-row .relation-action-button { width: 40px; height: 40px; }
 }
 
+
+.tree-layout-status {
+    position: sticky;
+    top: 12px;
+    left: 12px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: fit-content;
+    max-width: calc(100% - 24px);
+    margin: 12px;
+    padding: 8px 12px;
+    background: var(--surface-card);
+    border-radius: 6px;
+    z-index: 2;
+}

@@ -1,0 +1,14 @@
+# Verification
+
+## Executed
+
+- Node layout regression on both approved data sets at the reference 154 × 58 card dimensions in both orientations and at application 300 × 124 dimensions vertically. Both use two passes, preserve the 19 family records and render 51 occurrences. The duplicate fixture retains 50 canonical people and two Louise cards. The current-card-size runs produced deterministic positions and connectors with zero overlaps, card hits, coincident unrelated routes, crossings or false junctions. A single-parent family passed in both orientations. The one- through five-partner cases passed with and without children, with zero crossings or false junctions in the synthetic cases.
+- Edge on an offline file URL, with HTTP and HTTPS blocked. Whiskerfield rendered 14 cards using either provider. With identical focus and depth, the ELK stage was 2,144 × 1,544 and Classic was 4,040 × 2,290, including each provider's stage padding. Checked keyboard card selection, unchanged cached geometry and viewport, Focus, Edit and Add relative, provider switch during a pending calculation, separate preferences for two projects, zero depth, Russian settings in light mode, and explicit Classic recovery after an injected solver failure.
+- Edge screenshots of both approved fixture graphs with the shared renderer and current card size. Each was 6,414.5 × 1,822, with 51 cards and 71 paths. The duplicate screenshot showed two marked occurrences. The four secondary connector offsets from the child midpoint changed from 201, 475, 1,349 and 173 layout units to 177, 265, 1,025 and 149 after aligning junctions within the available gaps. The screenshots use a local test harness for the fixture and are kept outside tracked source.
+- Edge on a private import, with four focus and depth combinations. The displayed scope ranged from 46 to 128 people. Calculation used one or two passes, took about 0.16–0.84 seconds in the measured run, and returned no model or routing errors. Final connector geometry had zero card overlaps, card hits, coincident unrelated strokes and false junctions. The four views had 0, 0, 2 and 8 proper crossings. Private fixture files remain local.
+- Edge on the stress project. The current UI cap showed 127 ancestor cards in about 0.28 seconds. A direct full-fixture run through the same provider and shared renderer showed 1,023 cards and 511 families in about 5.25 seconds of layout plus 36 ms to render. The bundled non-worker solver can block on such large layouts.
+- Existing Classic branch-layout, stress-fixture generation, and localization catalog checks passed.
+
+## Pending before acceptance
+
+Founder review, touch and fullscreen checks, the full mutation matrix, and broader real-world coverage of incompatible generation constraints and reconvergence remain open. The normal Tree still uses the existing vertical presentation. The horizontal verification covered the layout and connector calculation.

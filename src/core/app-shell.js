@@ -569,7 +569,12 @@ document.addEventListener('keydown', event =>
 function render()
 {
     invalidateLinkedPlaceDismissals();
-    if (state.activeModule !== 'Family Tree') exitTreeFullscreen();
+    if (state.activeModule !== 'Family Tree')
+    {
+        exitTreeFullscreen();
+        disposeTreeElkPreview();
+        treeRelativeIntent = null;
+    }
     if (typeof archiveImageSyncLifecycle === 'function') archiveImageSyncLifecycle();
     appNavigationObserve();
     if (mobileSurface !== 'details' || mobileDetailModule !== state.activeModule)
