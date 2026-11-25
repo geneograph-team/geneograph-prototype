@@ -37,3 +37,5 @@
 ### Family Tree layout preview
 
 The Tree uses the shared canonical projection in `src/core/state-tree-core.js` and the existing renderer and viewport in `src/modules/family-tree/tree-view.js` and `tree-scroll.js`. `tree-elk-preview.js` owns the project-local layout request and adapts occurrence geometry and connector descriptors. `tree-elk-model.js` owns compound graph construction, duplicate projection and routing. The standalone ELK frame exchanges anonymous ELK JSON graphs through messages. Classic continues to use `tree-layout.js`. A future Fan presentation would attach at the application shell with canonical IDs and project-scoped view state, and own its projection, viewport and radial renderer.
+
+Target architecture for the approved migration (#398): [ELK/D3 design](../openspec/changes/elk-d3-tree-migration/design.md). The owners above describe current code; the linked design describes the target contracts, not implemented modules. Update this map as ownership changes land.

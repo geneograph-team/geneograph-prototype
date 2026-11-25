@@ -1,0 +1,94 @@
+# Design — presentation boundaries and contracts
+
+**Target architecture, not implemented by #398.** The names below describe minimal contracts, not mandated new global bindings or a generic framework. Preserve the static, classic deferred-script application and existing project commands.
+
+## 1. Current code and migration boundaries
+
+| Current source under src/ | Observed baseline | Target |
+| --- | --- | --- |
+| `core/state-tree-core.js`: treeProjectViewState, buildFamilyTreeProjection, deriveTreeBranchRoles, navigateFamilyTreeToPerson | Project-local view, canonical selection, focus/depth/cousin context and command routing | Retain semantic rules; detach context and preferences from geometry |
+| `core/app-shell.js`: render and navigation capture/restore | Calls renderFamilyTree; disposes ELK preview on exit; captures focus, selection, zoom and scroll | Own presentation lifecycle and semantic navigation |
+| `modules/family-tree/tree-elk-preview.js`: prepareElkTreeInput, treeElkLayoutForProjection, adaptElkTreeLayout | Anonymous solver IDs, cached graph key, DOWN solve, derives generations, adapts geometry, Classic recovery | Both orientations, revision-owned scene, explicit retry/error |
+| `modules/family-tree/tree-elk-model.js`: projectElkTreeOccurrences, solveElkTree | Compound layout, bounded duplicate split defers upstream parents, final routing | Independent occurrence stage #399; reuse approved geometry |
+| `modules/family-tree/tree-view.js`: renderFamilyTree, renderTreeLines, renderTreePersonCard, renderTreeFocusControl, treeDetailLevel; `tree-scroll.js` | Rebuilds main HTML, binds events, DOM-dependent centering, synthetic zoom mapping | Incremental renderer, scene-based viewport/search, actual scale and six detail stages |
+| `modules/albums/filters-avatar.js`, `photo-layout-and-crop.js` | Compact avatar uses original photo.src; face positioning scans on scroll | Shared local derivative service; only visible portrait demand |
+
+See [current source map](../../../doc/source-map.md) and [preview design](../elk-tree-preview/design.md). Verify existing consumers before removing helpers, including board transfer, inspector and relationship commands. Do not change canonical validation, data adapters or cross-module commands merely to accommodate the layout.
+
+## 2. Dependency direction and lifecycle
+
+```text
+canonical records and existing validation/mutation commands
+    -> detached project semantic context and relationship indexes
+    -> presentation host (project, focus, selection, commands)
+        -> Tree visibility and occurrence projection
+        -> ELK provider -> final scene
+        -> D3 HTML/SVG renderer and viewport
+        -> local thumbnail service (visible portrait demand)
+        -> semantic branch projection -> display style overlay
+```
+
+Branch projection reads the full project index and occurrence provenance, not layout; its style overlay cannot affect placement. Commands flow back through the host to existing canonical commands; layout and renderer cannot mutate genealogy or infer parentage from coordinates. The host owns shell, toolbar, inspector and navigation. Vertical and Horizontal configure one Tree provider, not separate hosts. Future Fan may share canonical context, commands and semantic coloring, but owns radial projection, scene, viewport and renderer; it does not implement Tree's rectangular scene. No speculative registry or generic geometry adapter.
+
+Conceptual lifecycle: mount(container, context, preferences, commands), update(detached context, classified changes), dispose(). Mount once per project/presentation; targeted selection and style updates must not replace the viewport. Capture compatible viewport bookmark before leaving; invalidate old session and dispose solver transport, listeners, pointer capture, frames, transitions, thumbnail subscriptions and stale tasks. Empty project uses the existing first-person action without solver.
+
+## 3. State ownership
+
+| Owner | Data / lifetime |
+| --- | --- |
+| Authored project | Stable project-scoped person/family IDs, names, structured dates/status, partner slots, child memberships and parentage types, facts/evidence, media/crops. No visual geometry, occurrence IDs or color assignments. |
+| App navigation and host | Active project/module, canonical selection, semantic focus and history intent, recents, inspector and action routing. Validate active-project targets. |
+| Project-local view preferences | Existing state.treeProjectViews[projectId]: focus, depth, cousins, orientation, color reference/preset/collateral and channels, expansion preference by context, compatible viewport bookmark. Remember within existing prototype state conventions, not new storage/backup schema. |
+| Presentation session | Session/revision, pending request, bounded geometry cache, scene, preferred occurrence/anchor, transform, mounted elements, diagnostics, image subscriptions. Derived and disposable; never serialize into genealogy or board. |
+
+Default Vertical; branch reference independent of focus. Initialize reference from valid project default or neutral if none; after deletion validate/recover within project. Map existing colorFill true to Gender fill + Gender outline, false to Neutral fill + Gender outline, neutral connectors. Branch preset default 4, collateral off; don't silently change existing gender settings. Preserve focus/selection/depth and compatible expansion preferences on orientation switch. Center on explicitly acted-on occurrence or deterministic primary occurrence, then valid focus if removed; never depend on mounted DOM for lookup. Selection of a visible person highlights all occurrences, does not change focus or trigger layout. Navigation outside visible scope may change focus as existing commands do. Separate Focus buttons retain visual treatment and eligibility.
+
+## 4. Detached boundary contracts
+
+Use ordinary data and maps; no framework or new canonical fields. Detach arrays/records used in asynchronous work. Read fresh canonical display content on updates; solver output must not carry stale person copies.
+
+| Boundary | Required information and invariants |
+| --- | --- |
+| Semantic context | Project ID, canonical records/indexes, explicit family IDs, ordered partner slots, child IDs, parentage, relevant relationship style, topology/content revisions or equivalent fingerprints. Full project context for branch assignment. |
+| Visible projection | Focus, visible person/family IDs and filtered memberships; existing branch roles, actual missing-parent presence and Focus eligibility. |
+| Occurrence projection | Stable occurrenceId, canonicalPersonId, context family IDs/path provenance, primary/expanded flags, count, known-collapsed vs absent ancestry; projected families with canonical familyId and occurrence endpoints; placeholder canonical target and parent slot; generation constraints and diagnostics. |
+| Layout request | Session/project/revision; DOWN or RIGHT; fixed upright card, placeholder and standalone Focus footprints, occurrence/family/edge IDs, port constraints and versioned layout config. Map to request-local opaque solver IDs outside ELK. |
+| Geometry result | Finite normalized scene bounds, rectangles for cards/placeholders/controls, stable occurrence/family IDs, final orthogonal connector segments with stable keys, family/endpoint occurrence IDs, role/style and junction/underpass metadata, diagnostics, request identity. x right, y down, unscaled CSS-layout units; bounds include controls and paths. |
+| Render snapshot | Current scene, current canonical content keyed by ID, selected/focused IDs, occurrence flags, localized detail/date model, occurrence/family style overlay, viewport and action eligibility. DOM keys are visual IDs; edit/add/inspector/board commands use canonical IDs; specific family/expansion actions use explicit context IDs. |
+
+Occurrence IDs derive from canonical ID and deterministic family/context identity, not coordinates, iteration index or name. Preserve separate same-pair family records and every explicit visible membership. Detect reconvergence across co-parent contexts with common descendant path, not merely multiple partners. One occurrence owns visible upstream ancestry; transfer ownership via context preference without canonical mutation. The approved fixture used fixed generation labels: derive actual constraints from projected edges, partners same layer and parent-child step, validate components and cycles. Distinguish missing from known-collapsed or out-of-scope ancestry; no false Add parent action. Overlapping contexts, alternate parent records or incompatible generations may need founder policy; diagnose rather than merge, fabricate or silently discard facts. Use bounded traversal/memoization rather than unbounded path unfolding.
+
+## 5. ELK and connector ownership
+
+Reuse approved compound unified, balanced Brandes–Köpf at all levels, compact inline primary couples, secondary gap junction alignment, dynamic child midpoint spacing, unified rails. At most two solves; first determines bounded additional spacing. ELK owns placement; presentation routing consumes final coordinates only. Preserve relationship line styles and distinct family records, one-parent handling, underpass decoration; native route fallback only with diagnostic for unrepresentable inline geometry. Validate finite bounds, correct endpoints and membership coverage, no unrelated card hits, false junctions or coincident unrelated strokes; measure crossings without claiming planarity. Map generation/cross-axis and port sides for orientations, not rotate text or use second solver. Reference footprint 300 × 124; actual card/control/placeholder metrics are geometry input.
+
+Keep pinned local ELK 0.10.0 and separate frame/provenance/license per preview design. Exchange anonymous graph JSON, not names or media; check message source and correlation, timeout and clean up. Promise/message scheduling does not guarantee off-main-thread execution; current bundle can block. #403 measures both passes and evaluates compatible local worker only if justified. Maintain file://. #400 pins local D3 7.9.0 reference version, license/provenance/checksum, no CDN/build step.
+
+## 6. Invalidation and async ownership
+
+| Change | Required update | Layout |
+| --- | --- | --- |
+| Project/module switch | Dispose session; mount new | New if needed |
+| Topology/relevant parentage, focus, depth, cousins | Projection/occurrences; color index on topology | If effective geometry input changes |
+| Expansion owner, orientation, fixed geometry metrics | Update occurrence edges/constraints or geometry | Yes |
+| Selection, inspector, search query, recents | Targeted content; explicit focus change uses focus rule | No |
+| Names, dates, status, display-only relationship style, photo/crop revision | Content/style/image update in fixed bounds | No unless structural control or metric changes |
+| Branch reference, preset, collateral | Recompute full-project branch index and occurrence overlay | No |
+| Fill/outline/connector, theme, language, detail stage | Style/content/visibility | No |
+| Pan, zoom, resize, fullscreen | Transform/culling/stage; anchor or fit | No |
+
+Geometry key includes project, effective ordered topology/visibility, focus/depth/cousins, expansion context, orientation, metrics and config version; never just counts or display text. Stable serialization/revisions with equivalent correctness; one current geometry cache, bounded additional entries only with measured benefit. Content/style/image caches independent. Distinct session token and monotonically increasing revision; cancel superseded transport where possible, check session/project/presentation/key/revision before and after each await/pass and before publishing. Discard stale success AND error. Coalesce rapid structural changes. Pending scene explicitly marked stale if retained and commands cannot target removed records; otherwise loading. Empty is valid result. Localized diagnostic and Retry for current failed input, no Classic fallback. On dispose cancel frames, timers and message handlers; avoid stale media callbacks. Test repeated/out-of-order results, cancellation, failure, re-entry and project changes.
+
+## 7. Renderer, zoom and thumbnails
+
+One D3 transform shared by SVG and HTML. Keyed enter/update/exit for cards, controls, placeholders, segments; reused keys update geometry and content. Cull using scene viewport and bounded overscan including crossing segments whose endpoints are both offscreen. Profile before spatial index. Search, keyboard traversal, fit and centering use full scene. Mount/scroll target before keyboard focus; keep focused node briefly if needed, recover focus explicitly. Coalesce frame updates, preserve anchors on wheel/pinch/pointer, support keyboard, resize, fullscreen and reduced motion. No per-gesture layout.
+
+**Zoom:** actual scale (100% = 1:1), not remapped 0–200%. No fixed displayed upper/lower endpoint. Keep positive finite bounds based on usable scene/controls, allow genuine Fit of whole scene and marker overview; handle empty/very large scenes, no clipping or jump from stage changes. Use actual on-screen card dimensions for detail and hysteresis; thresholds in delta are lab starting values. Keep scene footprint stable; preserve full accessible identity and inspector when actions hide. Exact scale limits and default viewport anchoring are implementation tuning, not new product requirements.
+
+Thumbnail service owns source revision/crop/rotation/size/DPR keys, visible demand, bounded decode queue/cache by bytes and entries, reusable object URLs/bitmaps, release and invalidation. Rectangular 3:4 Tree portrait cropped without stretching, only Full/Short demand; no original source fallback in compact avatar. Shared compatible consumers may use their own aspect ratios. Do not change full photo viewer/editor or original bytes. Cancel/ignore obsolete subscriptions, isolate projects, test crop edits and duplicates. Do not persist derivatives or change storage unless separately justified.
+
+## 8. Delivery and verification
+
+#398 defines boundaries; #404 starts early after this review: extract genuine shared helpers, make current approved vertical ELK sole provider, remove Classic toggle and Classic-only code when safe. Temporary retention needs concrete dependency/regression benefit and removal condition; Git history suffices for comparisons. #399, #400, #401, #402 and #405 may proceed where contracts permit. #403 integrates orientations and actual visual/behavior tests; #404 removes remaining legacy renderer/viewport/CSS/strings, verifies single runtime path and reconciles docs/specs. No deploy/CI changes.
+
+Use existing reference fixtures, 52-person expanded-ancestry fixture, Whiskerfield, private import (not committed), #381 internal stress project (mandatory separate removal before open user testing). Verify canonical coverage, generation conflicts, geometry, selection without layout, color/focus/orientation invariance, offline browser, EN/RU, both themes, keyboard/touch, actions/placeholder correctness, cancellation and project isolation. Measure layout passes, DOM render, interaction timing, mounted counts, thumbnail decode/cache separately; report actual numbers and limitations. The earlier preview verification is historical evidence, not new QA. No implementation or browser validation claimed by #398.

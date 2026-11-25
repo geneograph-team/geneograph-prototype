@@ -2,14 +2,10 @@
 
 ## Requirements
 
-### Requirement: Visible 0–200 display range
-Family Tree SHALL map its bounded physical zoom range to a displayed
-0–200% level. At 0% the overview remains visible; at 100% the default
-scale is restored.
-
-#### Scenario: Reach the overview
-- **WHEN** the user zooms out repeatedly
-- **THEN** the displayed level stops at 0% and the tree remains usable
+**Current implementation note:** The legacy display mapping is still present in
+code. The founder retired the 0–200% display-range requirement on
+2026-11-25. It is no longer normative; replacement by actual-scale zoom,
+including Fit, is tracked in the [active migration delta](../../changes/elk-d3-tree-migration/specs/family-tree-zoom/spec.md).
 
 ### Requirement: Progressive card details
 Family Tree SHALL adapt person detail to zoom, progressing from full
