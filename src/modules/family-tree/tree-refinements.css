@@ -616,7 +616,7 @@ html.tree-fullscreen .tree-shell {
     background: var(--surface-card);
 }
 
-.tree-initial-single,
+.tree-avatar > .tree-initial-single,
 .tree-stage[data-single-initial="true"] .tree-initial-pair,
 .tree-name-compact,
 .tree-dates-compact {

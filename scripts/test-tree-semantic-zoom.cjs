@@ -139,7 +139,8 @@ async function runTreeSemanticZoomChecks()
     renderFamilyTree();
     check(!image(), 'Source revision leaked an old portrait');
     await until(() => portraitThumbnailJobs === 0);
-    check(show('.tree-initial-pair'), 'Corrupt image fallback is missing');
+    check(show('.tree-initial-pair') && !show('.tree-initial-single'), 'Only paired initials should show in Full');
+    check(card().querySelector('.tree-initial-pair').textContent === 'АГ', 'Full fallback uses given and family initials');
     scale(.77);
     check(show('.tree-initial-single') && !show('.tree-initial-pair')
         && card().querySelector('.tree-initial-single').textContent === 'А', 'Adaptive single initial');
