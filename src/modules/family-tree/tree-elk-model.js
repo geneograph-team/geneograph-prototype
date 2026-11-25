@@ -351,7 +351,8 @@ async function solveElkTree(people, families, direction, calculate)
     const placementOptions = Object.freeze(
     {
         'elk.layered.nodePlacement.strategy': 'BRANDES_KOEPF',
-        'elk.layered.nodePlacement.bk.fixedAlignment': 'BALANCED'
+        'elk.layered.nodePlacement.bk.fixedAlignment': 'BALANCED',
+        'elk.layered.nodePlacement.favorStraightEdges': 'false'
     });
     // The first family of the highest-degree partner is the principal pair.
     // This is a presentation decision and never changes family records.
