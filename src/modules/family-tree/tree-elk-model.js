@@ -293,16 +293,7 @@ function projectElkTreeOccurrences(canonicalPeople, canonicalFamilies, preferenc
 async function solveElkTree(people, families, direction, calculate)
 {
     const nominalPartnerGap = 40;
-    const baseline = Object.freeze(
-    {
-        mode: 'compound',
-        partitions: true,
-        fixedSides: true,
-        placement: 'balanced',
-        placementScope: 'all',
-        mechanism: 'dynamic',
-        secondarySpacing: Math.max(80, nominalPartnerGap)
-    });
+    const secondarySpacing = 80;
     const JUNCTION = 12;
     const EPS = .02;
     const peopleById = new Map(people.map(person => [person.id, person]));
@@ -347,7 +338,7 @@ async function solveElkTree(people, families, direction, calculate)
             owner
         };
     }
-    // Native layout properties only. Default leaves all original ELK options intact.
+    // Shared native placement settings for the root and its compound groups.
     const placementOptions = Object.freeze(
     {
         'elk.layered.nodePlacement.strategy': 'BRANDES_KOEPF',
@@ -389,17 +380,6 @@ async function solveElkTree(people, families, direction, calculate)
     {
         const
         {
-            mode,
-            partitions,
-            fixedSides,
-            placement,
-            placementScope,
-            mechanism,
-            secondarySpacing
-        } = baseline;
-        const compound = true;
-        const
-        {
             groups,
             owner
         } = partnershipGroups();
@@ -408,14 +388,14 @@ async function solveElkTree(people, families, direction, calculate)
             outgoing = direction === 'DOWN' ? 'SOUTH' : 'EAST';
         const options = {
             'elk.algorithm': 'layered',
-            // Experimental: model order at the root only; compound scopes fail in ELK 0.12.1.
+            // Prefer model order at the root only; compound scopes fail in ELK 0.12.1.
             'elk.layered.considerModelOrder.strategy': 'NODES_AND_EDGES',
             'elk.direction': direction,
             'elk.edgeRouting': 'ORTHOGONAL',
             'elk.hierarchyHandling': 'INCLUDE_CHILDREN',
             'elk.json.shapeCoords': 'PARENT',
             'elk.json.edgeCoords': 'PARENT',
-            'elk.partitioning.activate': String(partitions),
+            'elk.partitioning.activate': 'true',
             'elk.layered.mergeHierarchyEdges': 'false',
             'elk.layered.mergeEdges': 'false',
             'elk.spacing.nodeNode': '40',
@@ -441,11 +421,7 @@ async function solveElkTree(people, families, direction, calculate)
             containers = new Map(),
             edgeInfo = new Map(),
             portOwner = new Map();
-        const partition = n => partitions ?
-        {
-            'elk.partitioning.partition': String(n)
-        } :
-        {};
+        const partition = n => ({ 'elk.partitioning.partition': String(n) });
 
         function leaf(id, w, h, part)
         {
@@ -456,49 +432,41 @@ async function solveElkTree(people, families, direction, calculate)
                 layoutOptions:
                 {
                     ...partition(part),
-                    ...(fixedSides ?
-                    {
-                        'elk.portConstraints': 'FIXED_SIDE'
-                    } :
-                    {})
+                    'elk.portConstraints': 'FIXED_SIDE'
                 },
                 ports: []
             };
             nodes.set(id, node);
             return node;
         }
-        if (compound)
+        for (const group of groups)
         {
-            for (const group of groups)
-            {
-                // Internal layout is not separate: INCLUDE_CHILDREN is inherited throughout.
-                const node = {
-                    id: group.id,
-                    children: [],
-                    edges: [],
-                    layoutOptions:
-                    {
-                        ...partition(group.generation),
-                        'elk.partitioning.activate': String(partitions),
-                        'elk.padding': '[top=18,left=18,bottom=18,right=18]',
-                        ...(placementScope === 'all' ? placementOptions :
-                        {})
-                    }
-                };
-                graph.children.push(node);
-                containers.set(group.id, node);
-            }
+            // INCLUDE_CHILDREN is inherited throughout.
+            const node = {
+                id: group.id,
+                children: [],
+                edges: [],
+                layoutOptions:
+                {
+                    ...partition(group.generation),
+                    'elk.partitioning.activate': 'true',
+                    'elk.padding': '[top=18,left=18,bottom=18,right=18]',
+                    ...placementOptions
+                }
+            };
+            graph.children.push(node);
+            containers.set(group.id, node);
         }
         for (const p of people)
         {
-            const node = leaf(p.id, p.width, p.height, compound ? 0 : p.generation * 2);
-            (compound ? containers.get(owner.get(p.id)) : graph).children.push(node);
+            const node = leaf(p.id, p.width, p.height, 0);
+            containers.get(owner.get(p.id)).children.push(node);
         }
         for (const f of families)
         {
-            const node = leaf(f.id, JUNCTION, JUNCTION, compound ? 1 : peopleById.get(f.parents[0]).generation * 2 + 1);
+            const node = leaf(f.id, JUNCTION, JUNCTION, 1);
             owner.set(f.id, owner.get(f.parents[0]));
-            (compound ? containers.get(owner.get(f.id)) : graph).children.push(node);
+            containers.get(owner.get(f.id)).children.push(node);
         }
 
         function port(nodeId, id, side, index)
@@ -529,7 +497,7 @@ async function solveElkTree(people, families, direction, calculate)
                 targetGroup = owner.get(portOwner.get(target));
             // Define every edge in its actual containing graph, so its local ELK
             // coordinates can be translated to the root without changing geometry.
-            const container = compound && sourceGroup === targetGroup ? containers.get(sourceGroup) : graph;
+            const container = sourceGroup === targetGroup ? containers.get(sourceGroup) : graph;
             container.edges.push(
             {
                 id,
@@ -558,7 +526,7 @@ async function solveElkTree(people, families, direction, calculate)
         {
             const order = ordered.get(f.id);
             // ELK numbers fixed ports clockwise. North runs left to right;
-            // west runs bottom to top. The ports constrain the parents without shifting cards.
+            // west runs bottom to top. Fixed port order expresses the preferred card order.
             if (order) nodes.get(f.id).layoutOptions['elk.portConstraints'] = 'FIXED_ORDER';
             const join = order ? null : port(f.id, f.id + ':parents', incoming);
             const descendants = port(f.id, f.id + ':children', outgoing, order ? (direction === 'DOWN' ? 2 : 0) : null);
@@ -588,7 +556,7 @@ async function solveElkTree(people, families, direction, calculate)
                 if (!Number.isFinite(spacing) || spacing < secondarySpacing || spacing > secondarySpacing + 600) throw Error('Invalid dynamic spacing: ' + id);
                 nodes.get(id).layoutOptions['elk.spacing.individual'] = 'spacing.nodeNode:' + spacing;
             }
-        // Stable topological preference for required partner/parent-slot order.
+        // Stable topological preference for principal partner and parent-slot order.
         // This only changes ELK input order, never record order or card positions.
         for (const group of graph.children)
         {
@@ -609,15 +577,7 @@ async function solveElkTree(people, families, direction, calculate)
             groups,
             owner,
             edgeInfo,
-            portOwner,
-            mode,
             direction,
-            partitions,
-            fixedSides,
-            placement,
-            placementScope,
-            mechanism,
-            secondarySpacing,
             primaryPairs,
             ordered
         };
@@ -1181,7 +1141,7 @@ async function solveElkTree(people, families, direction, calculate)
 
     function planDynamicSpacing(raw, model)
     {
-        const floor = model.secondarySpacing,
+        const floor = secondarySpacing,
             limit = floor + 600,
             vertical = model.direction === 'DOWN';
         const cards = new Map(raw.boxes.map(b => [b.id, b]));

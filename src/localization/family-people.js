@@ -139,8 +139,8 @@ const RU_UI_FAMILY_TREE = {
     "Some relationships require review.":
         "Некоторые связи требуют проверки.",
 
-    'Parent or principal partner order could not be satisfied.':
-        'Не удалось соблюсти порядок родителей или основных партнёров.',
+    'Preferred parent or principal partner order was not achieved.':
+        'Предпочтительный порядок родителей или основных партнёров не соблюдён.',
 
     'The layout could not safely position or connect this relationship.':
         'Не удалось безопасно расположить или соединить участников этой связи.',

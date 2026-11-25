@@ -165,7 +165,7 @@ function describeElkTreeDiagnostics(model, layout, projection)
                 && b.x + b.w <= group.x + group.w + .02 && b.y + b.h <= group.y + group.h + .02).map(b => b.id) : []);
         diagnostics.push({
             subject: subjects(ids),
-            reason: t(order ? 'Parent or principal partner order could not be satisfied.'
+            reason: t(order ? 'Preferred parent or principal partner order was not achieved.'
                 : 'The layout could not safely position or connect this relationship.'),
             technical: order ? '' : message
         });

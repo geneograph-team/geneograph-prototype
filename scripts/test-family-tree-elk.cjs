@@ -437,10 +437,13 @@ function inspect(layout, peopleById, families)
             [a.layoutOptions[index], b.layoutOptions[index]] = [b.layoutOptions[index], a.layoutOptions[index]];
             return solver.layout(input);
         });
-        assert.equal(layout.issues.length, 0, layout.issues.join('; '));
         const ordered = new Map(layout.boxes.map(box => [box.id, box]));
         const axis = direction === 'DOWN' ? 'x' : 'y';
-        assert.ok(ordered.get('a')[axis] < ordered.get('b')[axis]);
+        assert.ok(ordered.get('a')[axis] > ordered.get('b')[axis], 'Injected reversal must remain native');
+        assert.equal(layout.issues.length, 1);
+        assert.deepEqual(layout.orderDetails.map(detail => detail.familyId), ['primary']);
+        assert.deepEqual(layout.orderDetails[0].personIds, ['a', 'b']);
+        assert.equal(layout.orderDetails[0].message, layout.issues[0]);
         assert.ok(layout.underpasses);
         const { report } = inspect(layout, new Map(warningPeople.map(person => [person.id, person])), warningFamilies);
         assert.equal(report.cardHits, 0);
@@ -647,7 +650,7 @@ function inspect(layout, peopleById, families)
                 placeholderCases++;
             }
     // A missing-parent slot may belong to a secondary household rather than
-    // the principal couple. It still has a mandatory parent-side role.
+    // the principal couple. Its preferred parent-side role must be diagnosed if reversed.
     for (const direction of ['DOWN', 'RIGHT'])
         for (const missing of ['father', 'mother'])
         {
@@ -668,12 +671,20 @@ function inspect(layout, peopleById, families)
             const axis = direction === 'DOWN' ? 'x' : 'y';
             const left = missing === 'father' ? 'slot' : 'known';
             const right = missing === 'father' ? 'known' : 'slot';
-            assert.ok(byId.get(left)[axis] < byId.get(right)[axis], 'Secondary parent-slot order');
-            assert.equal(layout.issues.length, 0, layout.issues.join('; '));
+            const principal = missing === 'father' ? ['partner', 'known'] : ['known', 'partner'];
+            const preferences = [['primary', principal], ['secondary', [left, right]]];
+            const reversed = preferences.filter(([, [a, b]]) => byId.get(a)[axis] >= byId.get(b)[axis]);
+            assert.deepEqual(layout.orderDetails.map(detail => detail.familyId), reversed.map(([id]) => id));
+            assert.deepEqual(layout.orderDetails.map(detail => detail.personIds), reversed.map(([, ids]) => ids));
+            assert.deepEqual(layout.issues, layout.orderDetails.map(detail => detail.message));
+            assert.ok(layout.underpasses, 'Ordering preferences must not trigger native route fallback');
             const { report } = inspect(layout, new Map(people.map(p => [p.id, p])), families);
             assert.equal(report.cardOverlaps, 0);
             assert.equal(report.cardHits, 0);
             assert.equal(report.falseJunctions, 0);
+            assert.equal(report.coincident, 0);
+            assert.equal(report.nonOrthogonal, 0);
+            assert.equal(report.routedEdges, report.expectedEdges);
             assert.ok(layout.passes <= 2);
             placeholderCases++;
         }
@@ -695,6 +706,7 @@ function inspect(layout, peopleById, families)
         families: [{ id: 'household', left: 'record-a', right: 'record-b', children: ['record-c'] }]
     });
     assert.equal(explanations[0].subject, 'Alice / Bob');
+    assert.equal(explanations[0].reason, 'Preferred parent or principal partner order was not achieved.');
     assert.equal(explanations[1].subject, 'Alice / Bob / Charlie');
     assert.equal(explanations[2].subject, '');
     assert.equal(explanations[3].subject, 'Charlie');
