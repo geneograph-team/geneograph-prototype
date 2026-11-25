@@ -1,9 +1,4 @@
-## REMOVED Requirements
-
-### Requirement: Visible 0–200 display range
-
-**Reason:** Founder explicitly discarded this requirement on 2026-11-25. The synthetic display range, remapping and fixed endpoints are not migration requirements.
-**Migration:** replace with actual-scale zoom and usable physical bounds; remove obsolete mapping and localization/tests tied solely to artificial endpoints in #400/#402/#404.
+The founder retired the former 0–200% display-range requirement on 2026-11-25; it has already been removed from the baseline spec in #398. Remove the legacy mapping and tests tied solely to artificial endpoints during #400/#402/#404.
 
 ## MODIFIED Requirements
 

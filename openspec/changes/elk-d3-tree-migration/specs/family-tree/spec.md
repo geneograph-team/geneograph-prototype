@@ -1,4 +1,4 @@
-## MODIFIED Requirements
+## ADDED Requirements
 
 ### Requirement: Single ELK Tree presentation
 
@@ -21,8 +21,6 @@ Repeated ancestors SHALL be detected by reconvergent relationship paths, not par
 - **THEN** all their occurrences are selected canonically without changing focus or layout
 - **WHEN** the researcher explicitly transfers upstream ancestry to another occurrence
 - **THEN** the ownership and geometry change but canonical records, focus and selection do not.
-
-## ADDED Requirements
 
 ### Requirement: Detached scene and viewport
 

@@ -4,9 +4,19 @@
 
 Existing gender fill and outline remain available independently. When Gender is selected for a channel, male, female and unknown gender SHALL be distinguishable in both themes. Neutral and Branch are alternative channel modes; gender must not be forced when another mode is selected.
 
+#### Scenario: Gender outline with branch fill
+
+- **WHEN** the researcher selects Gender outline and Branch fill
+- **THEN** gender outlines remain distinguishable and branch fill remains visible in both themes.
+
 ### Requirement: Interaction state does not erase identity
 
 Selection, hover, keyboard focus and existing separate Focus control SHALL remain distinguishable independently of the selected category coloring. Preserve canonical actions on all occurrences.
+
+#### Scenario: Select a branch-colored card
+
+- **WHEN** the researcher selects a branch-colored occurrence
+- **THEN** selection is visible without obscuring the category cue or changing the canonical target.
 
 ## ADDED Requirements
 
