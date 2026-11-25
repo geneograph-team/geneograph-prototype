@@ -810,47 +810,6 @@ function openTreeSettingsModal()
     });
 }
 
-function treeParentFamilyContext(people, families, personId)
-{
-    const personIds = new Set(
-        (people || []).map(person => person.id)
-    );
-    const parentIds = new Set();
-    const ownFamilyIds = new Set();
-
-    (families || []).forEach(family =>
-    {
-        if (!(family.children || []).includes(personId)) return;
-
-        ownFamilyIds.add(family.id);
-
-        [family.left, family.right].forEach(id =>
-        {
-            if (id && personIds.has(id)) parentIds.add(id);
-        });
-    });
-
-    // Expand only through this person's recorded parents.
-    // Newly discovered partners do not expand the scope again.
-    const relatedFamilies = (families || []).filter(family =>
-        ownFamilyIds.has(family.id)
-        || [family.left, family.right].some(id =>
-            id && parentIds.has(id)
-        )
-    );
-
-    const siblingIds = new Set(
-        relatedFamilies
-            .flatMap(family => family.children || [])
-            .filter(id => id !== personId && personIds.has(id))
-    );
-
-    return {
-        parentIds,
-        families: relatedFamilies,
-        siblingIds
-    };
-}
 
 function deriveTreeBranchRoles(
     people,
@@ -965,12 +924,17 @@ function buildFamilyTreeProjection(people, families, options = {})
     const visiblePersonIds = new Set(focusPersonId ? [focusPersonId] : []);
     const visibleFamilyIds = new Set();
 
-    const includeFamily = (family, { children = true } = {}) =>
+    const familyChildren = new Map();
+    const includeFamily = (family, children = family.children || []) =>
     {
-        if (!family) return;
         visibleFamilyIds.add(family.id);
         [family.left, family.right].filter(Boolean).forEach(id => visiblePersonIds.add(id));
-        if (children) (family.children || []).forEach(id => visiblePersonIds.add(id));
+        if (!familyChildren.has(family.id)) familyChildren.set(family.id, new Set());
+        for (const childId of children)
+        {
+            visiblePersonIds.add(childId);
+            familyChildren.get(family.id).add(childId);
+        }
     };
 
     let ancestorFrontier = focusPersonId ? [focusPersonId] : [];
@@ -981,93 +945,74 @@ function buildFamilyTreeProjection(people, families, options = {})
         {
             (parentFamiliesByChild.get(childId) || []).forEach(family =>
             {
-                includeFamily(family, { children: depth === 1 });
+                includeFamily(family, depth === 1 ? family.children : [childId]);
                 [family.left, family.right].filter(Boolean).forEach(parentId => next.push(parentId));
             });
         });
         ancestorFrontier = [...new Set(next)];
     }
 
-    let descendantFrontier = focusPersonId ? [focusPersonId] : [];
-    for (let depth = 1; depth <= descendantGenerations && descendantFrontier.length; depth += 1)
+    const roots = new Set(focusPersonId ? [focusPersonId] : []);
+    const ownFamilies = parentFamiliesByChild.get(focusPersonId) || [];
+    const recordedParents = new Set(ownFamilies.flatMap(family => [family.left, family.right])
+        .filter(id => peopleById.has(id)));
+    const siblingRoots = new Set();
+    if (ancestorGenerations >= 1)
     {
-        const next = [];
-        descendantFrontier.forEach(parentId =>
-        {
-            (childFamiliesByParent.get(parentId) || []).forEach(family =>
-            {
-                includeFamily(family);
-                (family.children || []).forEach(childId => next.push(childId));
-            });
-        });
-        descendantFrontier = [...new Set(next)];
-    }
-
-    (childFamiliesByParent.get(focusPersonId) || []).forEach(family =>
-    {
-        includeFamily(family, { children: descendantGenerations > 0 });
-    });
-
-    if (ancestorGenerations > 0)
-    {
-        const parentContext = treeParentFamilyContext(
-            people,
-            families,
-            focusPersonId
-        );
-
-        // These children are siblings in the focused person's generation.
-        // They remain visible even when descendantGenerations is zero.
-        parentContext.families.forEach(family =>
+        const siblingFamilies = new Set(ownFamilies);
+        for (const parentId of recordedParents)
+            for (const family of childFamiliesByParent.get(parentId) || []) siblingFamilies.add(family);
+        for (const family of siblingFamilies)
         {
             includeFamily(family);
-        });
-
-        parentContext.siblingIds.forEach(siblingId =>
-        {
-            (childFamiliesByParent.get(siblingId) || []).forEach(family =>
-            {
-                const hasPartner = [family.left, family.right]
-                    .some(id => id && id !== siblingId && peopleById.has(id));
-                const hasChildren = (family.children || [])
-                    .some(id => peopleById.has(id));
-                if (!hasPartner && !hasChildren) return;
-                includeFamily(family, { children: descendantGenerations > 0 });
-            });
-        });
+            for (const id of family.children || [])
+                if (id !== focusPersonId && peopleById.has(id)) siblingRoots.add(id);
+        }
     }
 
     if (options.showCousins && ancestorGenerations >= 2)
     {
-        const focusParentIds = new Set(
-            (parentFamiliesByChild.get(focusPersonId) || [])
-                .flatMap(family => [family.left, family.right])
-                .filter(Boolean)
-        );
-
-        focusParentIds.forEach(parentId =>
-        {
-            (parentFamiliesByChild.get(parentId) || []).forEach(grandparentFamily =>
+        for (const parentId of recordedParents)
+            for (const family of parentFamiliesByChild.get(parentId) || [])
             {
-                includeFamily(grandparentFamily);
-                (grandparentFamily.children || [])
-                    .filter(relativeId => relativeId !== parentId)
-                    .forEach(auntOrUncleId =>
-                    {
-                        (childFamiliesByParent.get(auntOrUncleId) || []).forEach(cousinFamily =>
-                        {
-                            includeFamily(cousinFamily);
-                        });
-                    });
-            });
-        });
+                includeFamily(family);
+                for (const id of family.children || [])
+                    if (id !== parentId && peopleById.has(id)) roots.add(id);
+            }
+    }
+
+    // Seed all roots at the same distance so the first visit always has the
+    // largest remaining budget. Partners are admitted without joining the queue.
+    const siblingOnly = new Set([...siblingRoots].filter(id => !roots.has(id)));
+    for (const id of siblingRoots) roots.add(id);
+    let frontier = [...roots];
+    const visited = new Set(frontier);
+    for (let depth = 0; frontier.length && (depth === 0 || depth < descendantGenerations); depth++)
+    {
+        const next = [];
+        for (const parentId of frontier)
+            for (const family of childFamiliesByParent.get(parentId) || [])
+            {
+                const children = (family.children || []).filter(id => peopleById.has(id));
+                if (depth === 0 && siblingOnly.has(parentId) && !children.length
+                    && ![family.left, family.right].some(id => id !== parentId && peopleById.has(id))) continue;
+                includeFamily(family, depth < descendantGenerations ? children : []);
+                if (depth >= descendantGenerations) continue;
+                for (const childId of children)
+                {
+                    if (visited.has(childId)) continue;
+                    visited.add(childId);
+                    next.push(childId);
+                }
+            }
+        frontier = next;
     }
 
     const projectedFamilies = (families || [])
         .filter(family => visibleFamilyIds.has(family.id))
         .map(family => ({
             ...family,
-            children: (family.children || []).filter(childId => visiblePersonIds.has(childId))
+            children: (family.children || []).filter(childId => familyChildren.get(family.id).has(childId))
         }));
     const coherentPersonIds = new Set(visiblePersonIds);
     projectedFamilies.forEach(family =>

@@ -117,3 +117,6 @@ The portrait slot is 54 × 72 layout units. Initials switch to one below 44 rend
 Canonical biological father and mother role hints feed the bounded project graph. The resolver uses four fixed splitting levels and visited person and slot states deeper in the graph. Project session preferences retain a reference independent of focus and migrate legacy fill without changing the outline and connector defaults. An absent or deleted reference resolves to neutral and can be replaced in settings.
 
 The graph is revalidated after a committed edit. Visual parent and child endpoints carry branch attribution separately from ELK geometry. Ambiguous appearances and merged routes stay neutral. Color-only saves patch keyed nodes and the legend. Theme palettes are CSS tokens and initials mix 33% into the neutral surface.
+### Collateral descendant visibility (#409)
+
+The visibility projection seeds the focus, its eligible siblings, and eligible aunts and uncles together at distance zero. A breadth-first walk through indexed child families gives the first visit the largest remaining budget. Partners are admitted without adding them to the traversal frontier. Each family records its allowed child memberships independently of overall person visibility, so an independently visible person cannot restore an excluded child edge.

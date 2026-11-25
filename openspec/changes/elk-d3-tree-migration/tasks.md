@@ -12,6 +12,7 @@ Architecture planning (#398) is merged. Implementation and verification are trac
 - [ ] #401: local derivatives and image lifecycle implemented. Packaged photos under direct file opening remain a browser compatibility gap.
 - [x] #402: implement approved cards/date/zoom, verify thresholds and accessibility.
 - [x] #405: project-level coloring and channel/legend behavior.
+- [x] #409: apply descendant depth consistently to sibling and cousin branches.
 - [ ] #403: integrate both orientations, actual browser/geometry and stress QA, founder acceptance.
 - [ ] #407: remove remaining legacy paths, reconcile current specs and preview change, final documentation, QA and archive.
 
@@ -64,3 +65,10 @@ Inspected current pushed default, repository and OpenSpec guidance, preview desi
 - Edge verified independent channels, the project reference search, legend, focus independence, retained portraits, and unchanged scene geometry during color-only saves. Whiskerfield computed styles showed distinct initials tiles in Gender, Branch and Neutral fill in both themes. The initials tint is 33%, versus 13% detailed categorized card fill. Legacy neutral detail keeps its neutral surface. Sixteen hues were reviewed as palette samples and are not assumed universally distinguishable.
 - A role-labeled 1,023-person, 511-family stress fixture recorded 1,023 state visits, 1.4 ms resolution, 10.1 ms first color refresh and 0.2 ms cached restyle with three mounted cards and five paths. Zero structural projections ran during those changes.
 - Renderer, ELK, occurrence, localization, portrait and semantic zoom regressions passed. Settings persist in the existing project session view. Durable reload persistence, private import and production horizontal behavior were not verified.
+
+## Verification of #409
+
+- The 40-case depth and toggle matrix passed, including half-siblings, childless partners, terminal descendants, excluded in-law households and older collateral roots. Overlapping and cyclic input remained bounded. An independently visible child did not authorize an excluded family membership. Canonical inputs were preserved.
+- The 12,852-case occurrence matrix and seven additional solves passed. The existing Alex fixture now projects 52 canonical people and 20 families, up from 50 people and 19 families, because another admitted collateral household is visible. Approved ELK, renderer and branch-color checks passed. Offline Edge checks preserved repeated appearance identity, ancestry transfer and branch slots.
+- Offline Edge Tree Settings checks produced 20 people and 11 families at depth 0, 25 and 11 at depth 1, 45 and 21 at depth 3, and 65 and 31 at depth 5 with Show cousins on. Depth 3 with Show cousins off produced 31 people and 15 families. Rendered model branches were connected. Canonical selection and Edit worked from a half-sibling card. These settings-to-scene runs took 235–325 ms on this machine.
+- A broad synthetic source of 4,610 people and 4,054 families projected 3,065 people and 2,531 families at depth 5 in 12.61 ms in Node. The projection intentionally excludes later child memberships. Horizontal integration remains part of #403. The founder can verify the private import separately.

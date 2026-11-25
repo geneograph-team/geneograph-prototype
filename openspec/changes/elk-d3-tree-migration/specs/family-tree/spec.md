@@ -30,3 +30,7 @@ ELK SHALL own card placement, with at most two solves for approved dynamic spaci
 
 - **WHEN** an earlier layout completes after a newer focus or project request
 - **THEN** it is discarded and only the current request may publish geometry.
+
+### Requirement: Branch-relative descendant depth
+
+Descendant generations SHALL count independently below the focus and every eligible sibling when ancestor depth is at least one. At ancestor depth two or more, Show cousins SHALL add the siblings of each recorded parent and apply the same descendant budget below each aunt or uncle. The toggle SHALL NOT add the siblings of grandparents or older ancestors. At depth zero the roots and eligible partners remain visible. Child paths are bounded by the chosen depth, and a family SHALL display only the child memberships admitted through eligible paths. Branch coloring is independent of visibility.
