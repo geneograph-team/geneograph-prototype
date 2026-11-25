@@ -13,7 +13,7 @@ Architecture planning (#398) is merged. Implementation and verification are trac
 - [x] #402: implement approved cards/date/zoom, verify thresholds and accessibility.
 - [x] #405: project-level coloring and channel/legend behavior.
 - [x] #409: apply descendant depth consistently to sibling and cousin branches.
-- [x] #403: integrate both orientations and verify shared geometry and settings. Founder visual acceptance remains pending.
+- [ ] #403 reopened: inline routing correction verified. Mandatory principal order remains unresolved for the compound fixture below.
 - [ ] #407: remove remaining legacy paths, reconcile current specs and preview change, final documentation, QA and archive.
 
 ## Verification of this architecture change
@@ -79,3 +79,11 @@ Inspected current pushed default, repository and OpenSpec guidance, preview desi
 - Baseline ordinary partner gaps measured 20 layout units horizontally in Vertical and vertically in Horizontal. The new measured ordinary gap is 40 in both directions. Sixty-four mixed-gender order cases covered reversed inputs, childless and child-bearing families, and up to five partners. Approved layouts and existing secondary-spacing checks passed within two passes. The secondary floor remains 80 and larger outward requests remain bounded by the existing algorithm.
 - The depth-eight stress scene had 511 cards and three mounted at the measured viewport in each orientation. Both needed one pass, with representative Edge ELK times around 1.2–1.4 s. Ordinary selection and viewport changes reused the existing scene.
 - Bundled portraits retain the existing direct-file Edge fallback. Full private-import and founder visual acceptance remain pending. The screenshots use Whiskerfield.
+
+## Reopened #403 verification
+
+- Reversing the principal junction ports in an otherwise valid compound graph reproduced global native fallback in both orientations. The integrated solver reported Principal partner order and ELK output has unresolved geometry or endpoint issues. The corrected solver retains inline routes and reports only the actual ordering warning. Card coordinates were identical for the same ELK output. A missing card still failed the first-pass geometry check.
+- The 21-person, 11-family synthetic fixture in scripts/fixtures/elk-principal-order-reversal.json independently reproduces a native reversal. Both people in childless principal pair z1 belong to other child-bearing families and have upstream ancestry. With ELK 0.10.0 the male/female starts are 952/612 in DOWN and 528/364 in RIGHT. Current fixed-order ports, explicit fixed-position ports and the in-layer predecessor option produced these same coordinates. This blocks mandatory ordering for the fixture. No extra production passes or coordinate overrides were introduced.
+- Comparison with the exact pre-integration solver at ebd235799 measured 20 ordinary gap units, followed by 40 in the integrated and corrected code. The synthetic secondary pair in f10 kept an 80-unit first/final inward gap and requested minimum in both directions, with zero outward deficit and one pass. With the integrated and corrected solver, the secondary partner center/child midpoint were 1482/1317 in DOWN and 794/702.33 in RIGHT. The routing fix preserves spacing geometry and adds no passes. No spacing regression was demonstrated on these fixtures.
+- Offline Edge with forced reversal showed the warning and retained inline routing, solid and 10/8 dashed partner strokes, and equal geometry across relationship status changes. The normal local import sample at two focuses showed zero ordering, geometry or occurrence diagnostics with inline routing in both orientations. The exact founder view remains for private recheck.
+- The approved solver suite, injected warning and malformed geometry checks, the 16,524-case occurrence matrix, renderer and branch/color and display settings regressions passed. #407 remains pending founder acceptance of the reopened work.

@@ -1227,14 +1227,16 @@ async function solveElkTree(people, families, direction, calculate)
         final = buildGraph(spacingPlan.requested);
         raw = flatten(await calculate(final.graph), final);
     }
+    // Order warnings do not invalidate otherwise usable connector geometry.
+    const orderIssues = [];
     const finalCards = new Map(raw.boxes.map(box => [box.id, box]));
     for (const pair of final.primaryPairs)
     {
         if (!pair.orderedPeople) continue;
         const [male, female] = pair.orderedPeople.map(id => finalCards.get(id));
         const cross = direction === 'DOWN' ? 'x' : 'y';
-        if (male[cross] >= female[cross])
-            raw.issues.push(`Principal partner order: ${pair.primary} (${male[cross]}, ${female[cross]})`);
+        if (male && female && male[cross] >= female[cross])
+            orderIssues.push(`Principal partner order: ${pair.primary} (${male[cross]}, ${female[cross]})`);
     }
     let layout;
     try
@@ -1252,6 +1254,7 @@ async function solveElkTree(people, families, direction, calculate)
     }
     return {
         ...layout,
+        issues: [...layout.issues, ...orderIssues],
         direction,
         elapsed: performance.now() - started,
         passes: final === first ? 1 : 2,

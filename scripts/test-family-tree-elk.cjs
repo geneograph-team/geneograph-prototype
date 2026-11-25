@@ -411,6 +411,57 @@ function inspect(layout, peopleById, families)
     }
     console.log(JSON.stringify({ orderedCases, bilateralCases: 2, nominalGap: 40 }));
 
+    // Reverse an ordered junction in ELK's input so its output is valid geometry
+    // with a deliberately reversed principal pair, alongside unaffected families.
+    const warningPeople = ['u', 'v', 'x', 'y', 'a', 'b', 'm', 'n', 'c', 'd', 'e'].map((id, index) => ({
+        id, gender: index % 2 ? 'female' : 'male', width: 300, height: 124,
+        generation: index < 4 ? 0 : index < 8 ? 1 : 2
+    }));
+    const warningFamilies = [
+        { id: 'left', parents: ['u', 'v'], children: ['a', 'm'] },
+        { id: 'right', parents: ['x', 'y'], children: ['b', 'n'] },
+        { id: 'primary', parents: ['a', 'b'], children: ['c'] },
+        { id: 'secondary', parents: ['a', 'n'], children: ['d'] },
+        { id: 'other', parents: ['m', 'b'], children: ['e'] }
+    ];
+    for (const direction of ['DOWN', 'RIGHT'])
+    {
+        const layout = await context.solveElkTree(warningPeople, warningFamilies, direction, graph =>
+        {
+            const input = JSON.parse(JSON.stringify(graph));
+            const junction = input.children.flatMap(group => group.children).find(node => node.id === 'primary');
+            const [a, b] = junction.ports.filter(port => port.id.startsWith('primary:parents:'));
+            const index = 'elk.port.index';
+            [a.layoutOptions[index], b.layoutOptions[index]] = [b.layoutOptions[index], a.layoutOptions[index]];
+            return solver.layout(input);
+        });
+        assert.equal(layout.issues.length, 1);
+        assert.match(layout.issues[0], /^Principal partner order: primary /);
+        assert.ok(layout.underpasses);
+        const { report } = inspect(layout, new Map(warningPeople.map(person => [person.id, person])), warningFamilies);
+        assert.equal(report.cardHits, 0);
+        assert.equal(report.falseJunctions, 0);
+        assert.equal(report.routedEdges, report.expectedEdges);
+        assert.ok(layout.passes <= 2);
+
+        await assert.rejects(context.solveElkTree(warningPeople, warningFamilies, direction, async graph =>
+        {
+            const result = await solver.layout(JSON.parse(JSON.stringify(graph)));
+            const group = result.children.find(container => container.children.some(node => node.id === 'a'));
+            group.children = group.children.filter(node => node.id !== 'a');
+            return result;
+        }), /Cannot measure incomplete first-pass ELK layout/);
+    }
+
+    const reversal = require('./fixtures/elk-principal-order-reversal.json');
+    for (const direction of ['DOWN', 'RIGHT'])
+    {
+        const layout = await solvePair(reversal.people, reversal.families, direction);
+        assert.ok(layout.underpasses, layout.issues.join('; '));
+        assert.ok(layout.issues.every(issue => issue.startsWith('Principal partner order: z1 ')));
+        assert.ok(layout.passes <= 2);
+        console.log(JSON.stringify({ direction, compoundOrderingDiagnostics: layout.issues }));
+    }
 })().catch(error =>
 {
     console.error(error);
