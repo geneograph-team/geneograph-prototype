@@ -4,7 +4,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 const vm = require('node:vm');
-const ELK = require('../src/vendor/elkjs-0.10.0/lib/elk.bundled.js');
+const ELK = require('../src/vendor/elkjs-0.12.1/lib/elk.bundled.js');
 const fixtures = require('./fixtures/elk-tree-approved.json');
 const context = vm.createContext(
 {
@@ -452,6 +452,171 @@ function inspect(layout, peopleById, families)
             return result;
         }), /Cannot measure incomplete first-pass ELK layout/);
     }
+
+
+    // Ancestry-first centering: ordinary couples stay compact, siblings must
+    // not pull the principal household off the midpoint of its parental pairs.
+    function pedigree(depth, side, descendants, extended = false)
+    {
+        const people = [], families = [];
+        const add = (id, generation, gender) =>
+        {
+            people.push({ id, generation, gender, width: 300, height: 124 });
+            return id;
+        };
+        const family = (id, parents, children) => families.push({ id, parents, children });
+        const parental = id => families.find(f => f.children.includes(id));
+        add('R', depth, 'male');
+        add('S', depth, 'female');
+        family('couple:R', ['R', 'S'], []);
+        function ancestors(child, generation)
+        {
+            if (!generation) return;
+            const prefix = child === 'R' ? '' : child;
+            const father = add(prefix + 'F', generation - 1, 'male');
+            const mother = add(prefix + 'M', generation - 1, 'female');
+            family('parents:' + child, [father, mother], [child]);
+            ancestors(father, generation - 1);
+            ancestors(mother, generation - 1);
+        }
+        ancestors('R', depth);
+        for (const branch of side)
+        {
+            if (extended)
+            {
+                const anchor = branch.repeat(3);
+                const generation = depth - 3;
+                for (let i = 1; i <= 3; i++)
+                {
+                    let current = add(branch + '-branch-' + i, generation, i === 2 ? 'female' : 'male');
+                    parental(anchor).children.push(current);
+                    for (let level = generation; level <= depth; level++)
+                    {
+                        if (i === 2 && level > generation + 1) break;
+                        const person = people.find(p => p.id === current);
+                        const male = person.gender === 'male';
+                        let parents = [current];
+                        if (i !== 2 || level !== generation)
+                        {
+                            const spouse = add(current + '-partner', level, male ? 'female' : 'male');
+                            parents = male ? [current, spouse] : [spouse, current];
+                        }
+                        const children = [];
+                        if (level < depth)
+                        {
+                            children.push(add(current + '-child', level + 1, i === 3 ? 'female' : 'male'));
+                            if (i === 1 && level === generation)
+                                children.push(add(current + '-other', level + 1, 'female'));
+                        }
+                        family('extended:' + current, parents, children);
+                        current = children[0];
+                        if (!current) break;
+                    }
+                }
+            }
+            const sibling = add(branch + '-near', depth - 1, branch === 'F' ? 'male' : 'female');
+            parental(branch).children.push(sibling);
+            if (descendants)
+                family('near:' + branch, [sibling], [add(sibling + '-child', depth, 'male')]);
+        }
+        return { people, families };
+    }
+
+    function cardCoordinates(graph, people)
+    {
+        const ids = new Set(people.map(p => p.id));
+        const cards = new Map();
+        function walk(node, x, y)
+        {
+            if (ids.has(node.id))
+                cards.set(node.id, { id: node.id, x, y, w: node.width, h: node.height });
+            for (const child of node.children || []) walk(child, x + child.x, y + child.y);
+        }
+        walk(graph, 0, 0);
+        return cards;
+    }
+
+    function coupleErrors(cards, families, direction)
+    {
+        const incoming = new Map(families.flatMap(f => f.children.map(id => [id, f])));
+        const center = f => f.parents.reduce((sum, id) =>
+        {
+            const b = cards.get(id);
+            return sum + (direction === 'DOWN' ? b.x + b.w / 2 : b.y + b.h / 2);
+        }, 0) / f.parents.length;
+        const result = new Map();
+        for (const f of families)
+        {
+            if (f.parents.length !== 2) continue;
+            const [a, b] = f.parents.map(id => incoming.get(id));
+            if (a?.parents.length === 2 && b?.parents.length === 2)
+                result.set(f.id, Math.abs(center(f) - (center(a) + center(b)) / 2));
+        }
+        return result;
+    }
+
+    let centeringCases = 0;
+    for (const direction of ['DOWN', 'RIGHT'])
+        for (const [depth, side, descendants, extended] of [
+            [3, '', false, false],
+            [3, 'M', false, false],
+            [3, 'F', true, false],
+            [5, 'M', true, false],
+            [5, 'F', false, false],
+            [5, 'FM', true, false],
+            [5, 'M', true, true],
+            [5, 'F', true, true]
+        ])
+        {
+            const { people, families } = pedigree(depth, side, descendants, extended);
+            let native;
+            const layout = await context.solveElkTree(people, families, direction, async graph =>
+            {
+                native = await solver.layout(JSON.parse(JSON.stringify(graph)));
+                return native;
+            });
+            const before = cardCoordinates(native, people);
+            const after = new Map(layout.boxes.map(b => [b.id, b]));
+            const oldErrors = coupleErrors(before, families, direction);
+            const newErrors = coupleErrors(after, families, direction);
+            assert.ok(layout.passes <= 2);
+            assert.deepEqual([...layout.issues], []);
+            assert.equal(after.size, before.size);
+            for (const [id, error] of newErrors)
+                assert.ok(error <= oldErrors.get(id) + EPS, 'Other couple centering regressed: ' + id);
+            for (const p of people)
+            {
+                const a = before.get(p.id), b = after.get(p.id);
+                assert.equal(direction === 'DOWN' ? a.y : a.x, direction === 'DOWN' ? b.y : b.x);
+                assert.equal(a.w, b.w);
+                assert.equal(a.h, b.h);
+            }
+            for (const f of families.filter(f => f.parents.length === 2))
+            {
+                const [a, b] = f.parents.map(id => before.get(id));
+                const [c, d] = f.parents.map(id => after.get(id));
+                const axis = direction === 'DOWN' ? 'x' : 'y';
+                assert.ok(same(b[axis] - a[axis], d[axis] - c[axis]), 'Rigid partner gap changed');
+            }
+            const { report } = inspect(layout, new Map(people.map(p => [p.id, p])), families);
+            assert.equal(report.cardOverlaps, 0);
+            assert.equal(report.cardHits, 0);
+            assert.equal(report.coincident, 0);
+            assert.equal(report.falseJunctions, 0);
+            assert.equal(report.nonOrthogonal, 0);
+            assert.equal(report.routedEdges, families.reduce((n, f) => n + (f.parents.length === 2 ? 2 : 0) + f.children.length, 0));
+            if (!extended)
+            {
+                assert.ok(newErrors.get('parents:R') < EPS, 'Main couple must be centered');
+                if (side.length !== 1)
+                    assert.deepEqual([...after.values()], [...before.values()], 'Balanced tree must remain native');
+            }
+            console.log(JSON.stringify({ direction, depth, side, descendants, extended,
+                nativeOffset: oldErrors.get('parents:R'), refinedOffset: newErrors.get('parents:R'),
+                centeredFamilies: layout.centeredFamilies || [], crossings: report.crossings }));
+            centeringCases++;
+        }
+    console.log(JSON.stringify({ centeringCases }));
 
     const reversal = require('./fixtures/elk-principal-order-reversal.json');
     for (const direction of ['DOWN', 'RIGHT'])

@@ -14,6 +14,7 @@ Architecture planning (#398) is merged. Implementation and verification are trac
 - [x] #405: project-level coloring and channel/legend behavior.
 - [x] #409: apply descendant depth consistently to sibling and cousin branches.
 - [ ] #403 reopened: inline routing correction verified. Mandatory principal order remains unresolved for the compound fixture below.
+- [ ] PR #410: upgrade to tested ELK.js 0.12.1 and guarded ancestry-first centering; native browser/offline and real-project QA pending.
 - [ ] #407: remove remaining legacy paths, reconcile current specs and preview change, final documentation, QA and archive.
 
 ## Verification of this architecture change
@@ -87,3 +88,8 @@ Inspected current pushed default, repository and OpenSpec guidance, preview desi
 - Comparison with the exact pre-integration solver at ebd235799 measured 20 ordinary gap units, followed by 40 in the integrated and corrected code. The synthetic secondary pair in f10 kept an 80-unit first/final inward gap and requested minimum in both directions, with zero outward deficit and one pass. With the integrated and corrected solver, the secondary partner center/child midpoint were 1482/1317 in DOWN and 794/702.33 in RIGHT. The routing fix preserves spacing geometry and adds no passes. No spacing regression was demonstrated on these fixtures.
 - Offline Edge with forced reversal showed the warning and retained inline routing, solid and 10/8 dashed partner strokes, and equal geometry across relationship status changes. The normal local import sample at two focuses showed zero ordering, geometry or occurrence diagnostics with inline routing in both orientations. The exact founder view remains for private recheck.
 - The approved solver suite, injected warning and malformed geometry checks, the 16,524-case occurrence matrix, renderer and branch/color and display settings regressions passed. #407 remains pending founder acceptance of the reopened work.
+## PR #410 centering verification
+
+- The upstream ELK.js 0.12.1 bundle and license were copied unchanged (matching Git blob IDs); retained the local frame and at most two solves. Removed the ineffective favorStraightEdges experiment.
+- Executed the existing ELK regression assertions and 16 new centering cases against the real 0.12.1 bundle in an isolated JavaScript environment with a small Node assertion/VM harness substitute. 4,323 assertions passed. The 16 cases covered complete pedigrees, maternal/paternal siblings with and without descendants, bilateral siblings and extended mirrored branches in DOWN and RIGHT. All main offsets reached zero; generation coordinates, card dimensions, partner spacing and other measured couple errors did not regress. No card overlaps, card hits, coincident unrelated segments, false junctions or non-orthogonal routes were reported. The known compound z1 reversal still emits its existing diagnostic; it remains unresolved.
+- Full Node invocation, the separate occurrence suite, offline browser integration, the complete standalone matrix, private projects and large-scene performance have not been verified in this environment. Keep the migration active and PR draft pending review.

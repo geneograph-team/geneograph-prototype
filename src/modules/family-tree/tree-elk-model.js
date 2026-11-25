@@ -351,8 +351,7 @@ async function solveElkTree(people, families, direction, calculate)
     const placementOptions = Object.freeze(
     {
         'elk.layered.nodePlacement.strategy': 'BRANDES_KOEPF',
-        'elk.layered.nodePlacement.bk.fixedAlignment': 'BALANCED',
-        'elk.layered.nodePlacement.favorStraightEdges': 'false'
+        'elk.layered.nodePlacement.bk.fixedAlignment': 'BALANCED'
     });
     // The first family of the highest-degree partner is the principal pair.
     // This is a presentation decision and never changes family records.
@@ -992,7 +991,7 @@ async function solveElkTree(people, families, direction, calculate)
             }
         }
         // Allocate all child rails for a generation band together, before drawing them.
-        // ELK's person coordinates, group extents and child ports stay untouched.
+        // The supplied person coordinates, group extents and child ports stay untouched.
         const railBands = allocateUnifiedRails(pendingChildren, [...byId.values()]);
         for (const entry of pendingChildren)
         {
@@ -1252,6 +1251,18 @@ async function solveElkTree(people, families, direction, calculate)
             issues: [...raw.issues, error.message]
         };
     }
+    if (layout.underpasses && !orderIssues.length)
+    {
+        try
+        {
+            layout = refineElkTreeCentering(raw, final, people, families, layout, inlinePartnerships);
+        }
+        catch (error)
+        {
+            // Keep the valid inline scene if refinement itself fails.
+            layout = { ...layout, issues: [...layout.issues, 'Family centering refinement: ' + error.message] };
+        }
+    }
     return {
         ...layout,
         issues: [...layout.issues, ...orderIssues],
@@ -1261,4 +1272,208 @@ async function solveElkTree(people, families, direction, calculate)
         spacing: spacingPlan.entries,
         primaryPairs: final.primaryPairs
     };
+}
+// Refine the cross-axis position of ordinary family groups only. The native
+// solver still determines generations, internal geometry and model order.
+// The existing inline router is the only publisher of refined connectors.
+function refineElkTreeCentering(raw, model, people, families, baseline, route)
+{
+    const EPS = .02;
+    const vertical = model.direction === 'DOWN';
+    const axis = vertical ? 'x' : 'y';
+    const extent = vertical ? 'w' : 'h';
+    const sceneExtent = vertical ? 'width' : 'height';
+    const peopleById = new Map(people.map(p => [p.id, p]));
+    const incoming = new Map(people.map(p => [p.id, []]));
+    const unions = new Map(model.groups.map(g => [g.id, []]));
+    for (const family of families)
+    {
+        unions.get(model.owner.get(family.id)).push(family);
+        for (const child of family.children) incoming.get(child).push(family);
+    }
+    const ordinary = new Set(model.groups.filter(g => g.members.every(id => !peopleById.get(id).placeholder)
+        && g.members.length <= 2 && unions.get(g.id).length <= 1).map(g => g.id));
+    const generations = new Map(model.groups.map(g => [g.id, g.generation]));
+    const clearanceByGroup = new Map(model.groups.map(g => [g.id,
+        Math.max(40, ...(vertical ? [] : g.members.map(id => peopleById.get(id).focusClearance || 0)))]));
+    const realPair = f => f?.parents.length === 2 && f.parents.every(id => !peopleById.get(id).placeholder);
+    const pairs = families.filter(realPair).map(f =>
+    {
+        const parents = f.parents.map(id => incoming.get(id));
+        if (parents.some(fs => fs.length !== 1 || !realPair(fs[0]))) return null;
+        const [a, b] = parents.map(fs => fs[0]);
+        if (a.id === b.id) return null;
+        return { f, a, b, group: model.owner.get(f.id), generation: peopleById.get(f.parents[0]).generation };
+    }).filter(Boolean).sort((a, b) => a.generation - b.generation || a.f.id.localeCompare(b.f.id));
+    const errors = geometry =>
+    {
+        const cards = new Map(geometry.boxes.map(b => [b.id, b]));
+        const center = f => f.parents.reduce((sum, id) =>
+        {
+            const card = cards.get(id);
+            return sum + card[axis] + card[extent] / 2;
+        }, 0) / f.parents.length;
+        return new Map(pairs.map(p => [p.f.id, center(p.f) - (center(p.a) + center(p.b)) / 2]));
+    };
+    // Native fallback routes cannot be reused after moving their endpoints.
+    if (baseline.issues.length || baseline.paths.some(p => p.native)) return baseline;
+    let current = raw;
+    let layout = baseline;
+    let offsets = errors(current);
+    const accepted = [];
+    let conflicts = null;
+    for (const pair of pairs)
+    {
+        const delta = -offsets.get(pair.f.id);
+        if (Math.abs(delta) <= EPS || !ordinary.has(pair.group)) continue;
+        const moved = new Set([pair.group]);
+        // Descendant groups with no other incoming family may follow rigidly.
+        // Shared/multiple partnerships and placeholder groups stay native.
+        let added = true;
+        while (added)
+        {
+            added = false;
+            for (const g of model.groups)
+            {
+                if (!ordinary.has(g.id) || moved.has(g.id)) continue;
+                const parents = g.members.flatMap(id => incoming.get(id));
+                if (parents.length && parents.every(f => moved.has(model.owner.get(f.id))))
+                {
+                    moved.add(g.id);
+                    added = true;
+                }
+            }
+        }
+        const shapes = new Map(current.groups.map(g => [g.id, g]));
+        // Preserve order and at least the existing clearance up to the nominal
+        // spacing (including horizontal Focus-control clearance).
+        let safe = true;
+        for (const id of moved)
+        {
+            const a = shapes.get(id);
+            if (!a || a[axis] + delta < 0)
+            {
+                safe = false;
+                break;
+            }
+            for (const b of current.groups)
+            {
+                if (moved.has(b.id) || generations.get(id) !== generations.get(b.id)) continue;
+                const before = a[axis] <= b[axis];
+                const gap = before ? b[axis] - a[axis] - a[extent] : a[axis] - b[axis] - b[extent];
+                const clearance = Math.max(clearanceByGroup.get(id), clearanceByGroup.get(b.id));
+                const next = gap + (before ? -delta : delta);
+                if (next < Math.min(clearance, Math.max(0, gap)) - EPS)
+                {
+                    safe = false;
+                    break;
+                }
+            }
+            if (!safe) break;
+        }
+        if (!safe) continue;
+        const translate = (shape, owner) => moved.has(owner) ? { ...shape, [axis]: shape[axis] + delta } : shape;
+        const trial = {
+            ...current,
+            boxes: current.boxes.map(b => translate(b, model.owner.get(b.id))),
+            groups: current.groups.map(g => translate(g, g.id)),
+            junctions: current.junctions.map(j => translate(j, model.owner.get(j.id))),
+            ports: current.ports.map(p => translate(p, model.owner.get(p.node)))
+        };
+        trial[sceneExtent] = Math.max(current[sceneExtent], ...trial.groups.map(g => g[axis] + g[extent] + (vertical ? 48 : 64)));
+        const nextOffsets = errors(trial);
+        if (Math.abs(nextOffsets.get(pair.f.id)) > EPS || pairs.some(p =>
+            Math.abs(nextOffsets.get(p.f.id)) > Math.abs(offsets.get(p.f.id)) + EPS)) continue;
+        // Native path sections in trial are read-only depth/coverage hints for
+        // inlinePartnerships. Every visible route must be reconstructed by it;
+        // never publish a candidate that reuses native sections.
+        let candidate;
+        try
+        {
+            candidate = route(trial, model);
+        }
+        catch (error)
+        {
+            continue;
+        }
+        if (candidate.issues.length || candidate.paths.some(p => p.native)) continue;
+        conflicts ??= elkCenteringConflicts(layout, axis);
+        const nextConflicts = elkCenteringConflicts(candidate, axis);
+        if ([...nextConflicts].some(([key, count]) => count > (conflicts.get(key) || 0))) continue;
+        current = trial;
+        layout = candidate;
+        offsets = nextOffsets;
+        conflicts = nextConflicts;
+        accepted.push(pair.f.id);
+    }
+    return accepted.length ? { ...layout, centeredFamilies: accepted } : baseline;
+}
+
+// Compare conflict multiplicity by relationship/card identity, not absolute
+// coordinates: an existing crossing may translate, but no new one is allowed.
+// Sweep bounding intervals on the cross axis to avoid comparing distant rails.
+function elkCenteringConflicts(layout, axis)
+{
+    const EPS = .02;
+    const conflicts = new Map();
+    const items = [];
+    const add = (type, ids) =>
+    {
+        const key = JSON.stringify([type, ...ids.sort()]);
+        conflicts.set(key, (conflicts.get(key) || 0) + 1);
+    };
+    for (const b of layout.boxes)
+        items.push({ id: b.id, card: true, x0: b.x, x1: b.x + b.w, y0: b.y, y1: b.y + b.h });
+    for (const p of layout.paths)
+        for (let i = 1; i < p.points.length; i++)
+        {
+            const a = p.points[i - 1], b = p.points[i];
+            const x0 = Math.min(a.x, b.x), x1 = Math.max(a.x, b.x);
+            const y0 = Math.min(a.y, b.y), y1 = Math.max(a.y, b.y);
+            if (![x0, x1, y0, y1].every(Number.isFinite) || (x1 - x0 > EPS && y1 - y0 > EPS))
+            {
+                add('invalid segment', [p.id]);
+                continue;
+            }
+            if (x1 - x0 <= EPS && y1 - y0 <= EPS) continue;
+            items.push({ id: p.id, family: p.family, x0, x1, y0, y1 });
+        }
+    items.sort((a, b) => a[axis + '0'] - b[axis + '0']);
+    for (let i = 0; i < items.length; i++)
+        for (let j = i + 1; j < items.length; j++)
+        {
+            const a = items[i], b = items[j];
+            if (b[axis + '0'] > a[axis + '1'] + EPS) break;
+            const x = Math.min(a.x1, b.x1) - Math.max(a.x0, b.x0);
+            const y = Math.min(a.y1, b.y1) - Math.max(a.y0, b.y0);
+            if (x < -EPS || y < -EPS) continue;
+            if (a.card && b.card)
+            {
+                if (x > EPS && y > EPS) add('card overlap', [a.id, b.id]);
+                continue;
+            }
+            if (a.card || b.card)
+            {
+                const card = a.card ? a : b;
+                const line = a.card ? b : a;
+                const vertical = line.x1 - line.x0 <= EPS;
+                if (vertical ? y > EPS && line.x0 > card.x0 + EPS && line.x0 < card.x1 - EPS
+                    : x > EPS && line.y0 > card.y0 + EPS && line.y0 < card.y1 - EPS)
+                    add('card hit', [card.id, line.id]);
+                continue;
+            }
+            if (a.family === b.family) continue;
+            const parallel = (a.x1 - a.x0 <= EPS) === (b.x1 - b.x0 <= EPS);
+            if (parallel)
+            {
+                add(x > EPS || y > EPS ? 'coincident' : 'contact', [a.id, b.id]);
+                continue;
+            }
+            const v = a.x1 - a.x0 <= EPS ? a : b;
+            const h = v === a ? b : a;
+            const interior = v.x0 > h.x0 + EPS && v.x0 < h.x1 - EPS
+                && h.y0 > v.y0 + EPS && h.y0 < v.y1 - EPS;
+            add(interior ? 'crossing' : 'contact', [a.id, b.id]);
+        }
+    return conflicts;
 }

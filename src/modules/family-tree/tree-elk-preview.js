@@ -16,7 +16,7 @@ function calculateLocalElkGraph(preview, graph)
         const frame = document.createElement('iframe');
         frame.hidden = true;
         frame.title = 'Local graph layout';
-        frame.src = 'vendor/elkjs-0.10.0/layout.html';
+        frame.src = 'vendor/elkjs-0.12.1/layout.html';
         function finish(error, layout)
         {
             clearTimeout(timeout);

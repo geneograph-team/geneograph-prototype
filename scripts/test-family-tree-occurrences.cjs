@@ -4,7 +4,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 const vm = require('node:vm');
-const ELK = require('../src/vendor/elkjs-0.10.0/lib/elk.bundled.js');
+const ELK = require('../src/vendor/elkjs-0.12.1/lib/elk.bundled.js');
 const fixtures = require('./fixtures/elk-tree-approved.json');
 const context = vm.createContext({ performance, clampNumber: (value, minimum, maximum) =>
     Math.max(minimum, Math.min(maximum, value)) });

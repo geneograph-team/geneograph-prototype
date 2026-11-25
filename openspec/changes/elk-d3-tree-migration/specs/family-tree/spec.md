@@ -24,12 +24,27 @@ Repeated ancestors SHALL be detected by reconvergent relationship paths, not par
 
 ### Requirement: Detached scene and viewport
 
-ELK SHALL own card placement, with at most two solves for approved dynamic spacing. Routing consumes final coordinates without moving cards. Renderer SHALL incrementally update keyed visible cards, controls and intersecting connectors, with full-scene navigation. Selection, viewport, semantic detail and colors SHALL NOT recalculate layout. Superseded or disposed requests SHALL NOT publish.
+ELK SHALL own generation alignment, compound geometry and initial placement, with at most two solves for approved dynamic spacing. A guarded ancestry-first stage MAY translate ordinary family groups rigidly along the cross axis before final inline routing. Routing consumes accepted coordinates without moving cards. Renderer SHALL incrementally update keyed visible cards, controls and intersecting connectors, with full-scene navigation. Selection, viewport, semantic detail and colors SHALL NOT recalculate layout. Superseded or disposed requests SHALL NOT publish.
 
 #### Scenario: Change focus while layout is pending
 
 - **WHEN** an earlier layout completes after a newer focus or project request
 - **THEN** it is discarded and only the current request may publish geometry.
+
+### Requirement: Guarded ancestry-first family centering
+
+An ordinary two-person family group with two distinct unambiguous known parental families SHALL prefer the midpoint of those parental families. Collateral branches SHALL NOT force a displaced ordinary couple to remain off-center when a safe correction exists. Corrections SHALL preserve the generation axis, internal partner geometry and order, relative group order and minimum available clearance, relationship memberships and connector integrity. Descendant groups MAY follow rigidly when all their incoming families move together. Shared partnership blocks and placeholder groups SHALL retain native placement. Already centered groups SHALL remain unchanged unless they follow an accepted rigid translation. A correction SHALL be rejected when another eligible couple's centering worsens or routing adds geometry conflicts. Rejected corrections SHALL retain the last valid scene; the existing inline router SHALL own final connectors. No extra solver passes or synthetic relationships are permitted.
+
+#### Scenario: Asymmetric collateral branch
+
+- **WHEN** a sibling with or without descendants pulls an ordinary couple away from the midpoint between its known parental families
+- **THEN** center the couple when all placement and routing invariants permit
+- **AND** preserve previously balanced ancestral couples and compact partnerships.
+
+#### Scenario: Unsafe correction
+
+- **WHEN** a proposed translation violates group clearance, ancestry centering or connector integrity
+- **THEN** retain the last valid placement and its routes.
 
 ### Requirement: Branch-relative descendant depth
 
