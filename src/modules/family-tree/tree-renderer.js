@@ -246,20 +246,23 @@ function renderTreeViewport(runtime)
     const viewport = treeSceneViewport(transform, canvas.clientWidth, canvas.clientHeight, 96);
     const detail = treeDetailLevel(transform.k);
     stage.style.transform = 'translate(' + transform.x + 'px, ' + transform.y + 'px) scale(' + transform.k + ')';
+    const activeAction = document.activeElement?.closest('.card-actions');
+    if ((detail === 'label' || detail === 'marker') && stage.contains(activeAction))
+        activeAction.closest('.tree-person-card').focus({ preventScroll: true });
     stage.dataset.detailLevel = detail;
+    stage.dataset.singleInitial = String(54 * transform.k < 44);
     stage.dataset.compactParent = String(transform.k < .76);
     stage.dataset.hideFocus = String(transform.k <= .60);
     stage.style.setProperty('--tree-overview-connection-width', 1.5 / transform.k + 'px');
     stage.style.setProperty('--tree-overview-parent-border-width', 1 / transform.k + 'px');
     stage.style.setProperty('--tree-overview-plus-size', Math.min(70, 15 / transform.k) + 'px');
-    stage.style.setProperty('--tree-overview-name-size', Math.min(40, Math.max(22, 11 / transform.k)) + 'px');
+    stage.style.setProperty('--tree-overview-name-size', Math.min(78, Math.max(25, 11 / transform.k)) + 'px');
     runtime.shell.querySelector('.zoom-value').textContent = Math.round(transform.k * 100) + '%';
 
     const active = document.activeElement;
     const focusedKey = stage.contains(active) ? active.closest('[data-tree-occurrence-id]')?.dataset.treeOccurrenceId : null;
     const isVisible = entry => treeSceneIntersects(viewport, entry.bounds);
     const cards = scene.cards.filter(entry => entry.key === focusedKey || isVisible(entry));
-    const portraitSize = Math.round(TREE_GEOMETRY.avatarSize * transform.k);
     const generation = runtime.contentRevision;
     joinTreeHtml(runtime.cards, cards, 'article', entry =>
     {
@@ -271,7 +274,7 @@ function renderTreeViewport(runtime)
         }
         return entry.markup;
     });
-    updateTreePortraits(runtime, visible, detail, portraitSize);
+    updateTreePortraits(runtime, visible, detail, .75);
     if (focusedKey && document.activeElement === document.body)
         runtime.cards.querySelector('[data-tree-occurrence-id="' + CSS.escape(focusedKey) + '"]')?.focus({ preventScroll: true });
     const controls = transform.k > .60 ? scene.controls.filter(isVisible) : [];

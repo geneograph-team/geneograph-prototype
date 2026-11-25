@@ -131,9 +131,7 @@ function marriedSpouseSurnameForTree(
     );
 }
 
-function treePersonDisplayName(
-    person
-)
+function treePersonCardNames(person)
 {
     const names =
         person?.names
@@ -182,15 +180,6 @@ function treePersonDisplayName(
             )
             : '';
 
-    const coreName =
-        [
-            firstName,
-            middleName,
-            effectiveSurname
-        ]
-            .filter(Boolean)
-            .join(' ');
-
     const shouldShowMaiden =
         Boolean(
             maidenSurname
@@ -201,25 +190,30 @@ function treePersonDisplayName(
           )
         );
 
-    if (!coreName)
-        return formatPersonFullName(person) || 'Unnamed person';
-
-    return [
-        cleanTreeNamePart(names.prefix),
-        shouldShowMaiden ? `${coreName} (${maidenSurname})` : coreName,
-        cleanTreeNamePart(names.suffix)
-    ].filter(Boolean).join(' ');
+    const format = middle =>
+    {
+        const core = [firstName, middle, effectiveSurname].filter(Boolean).join(' ');
+        if (!core)
+            return formatPersonFullName({ ...person, names: { ...names, middle } }) || 'Unnamed person';
+        return [
+            cleanTreeNamePart(names.prefix),
+            shouldShowMaiden ? `${core} (${maidenSurname})` : core,
+            cleanTreeNamePart(names.suffix)
+        ].filter(Boolean).join(' ');
+    };
+    const name = format(middleName);
+    return { name, compactName: middleName ? format('') : name };
 }
 
 function toTreePerson(person)
 {
     return {
         id: person.id,
-        name:
-          treePersonDisplayName(
-              person
-          ),
+        ...treePersonCardNames(person),
         first: cleanTreeNamePart(person.names?.first),
+        names: person.names,
+        birthFact: person.birth,
+        deathFact: person.death,
         short: formatPersonInitials(person),
         gender: person.gender,
         birth: formatGenealogyDateLabel(person.birth),

@@ -2,11 +2,13 @@ let treeRenderRuntime = null;
 
 function treeDetailLevel(scale = treeRenderRuntime?.transform.k ?? state.treeZoom / 100)
 {
-    const width = TREE_CARD_W * scale;
-    if (width < TREE_CARD_W * .28) return 'marker';
-    if (width < TREE_CARD_W * .64) return 'given';
-    if (width < TREE_CARD_W * .88) return 'name';
-    return 'full';
+    const width = TREE_CARD_W * scale, height = TREE_CARD_H * scale;
+    if (width >= 278 && height >= 112) return 'full';
+    if (width >= 228 && height >= 92) return 'short';
+    if (width >= 174 && height >= 70) return 'compact';
+    if (width >= 110 && height >= 46) return 'actions';
+    if (width >= 48 && height >= 19) return 'label';
+    return 'marker';
 }
 
 function requestTreeViewport(runtime)

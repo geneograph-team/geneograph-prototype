@@ -510,12 +510,12 @@ function renderTreePersonCard(person)
           === treeProjectViewState()
               .focusPersonId;
 
-    const displayName =
-        String(
-            person.name
-          || 'Unnamed person'
-        );
-    const givenName = String(person.first || displayName);
+    const displayName = translateText(person.name || 'Unnamed person');
+    const compactName = translateText(person.compactName || displayName);
+    const givenName = person.first || compactName;
+    const initials = treeCardInitials(person);
+    const dates = treeCardDatePresentation(person.birthFact, person.deathFact, person.status, state.language);
+    const editLabel = state.language === 'ru' ? `Редактировать: ${translateText(displayName)}` : `Edit ${displayName}`;
     const label = repeated
         ? `${translateText(displayName)} (${state.language === 'ru' ? 'карточек в дереве' : 'cards in tree'}: ${person.occurrenceCount})`
         : displayName;
@@ -538,7 +538,7 @@ function renderTreePersonCard(person)
           data-tree-primary="${primary}"
           ${repeated && person.hasParents ? `data-tree-ancestry="${collapsed ? 'collapsed' : 'expanded'}"` : ''}
           tabindex="0"
-          aria-label="${escapeHtml(label)}"
+          aria-label="${escapeHtml([translateText(label), ...dates].join(', '))}" data-i18n-skip
           ${
                 focused && primary
                     ? 'aria-current="true"'
@@ -549,31 +549,33 @@ function renderTreePersonCard(person)
               ? `<button type="button" class="tree-occurrence-badge" data-tree-expand-ancestry aria-label="${escapeHtml(t('Show ancestry here'))}" title="${escapeHtml(t('Show ancestry here'))}">×${person.occurrenceCount}</button>`
               : repeated ? `<span class="tree-occurrence-badge" ${person.hasParents ? `title="${escapeHtml(t('Ancestry shown here'))}"` : 'aria-hidden="true"'}>×${person.occurrenceCount}</span>` : ''}
           <div class="tree-card-avatar-stack">
-            <div class="person-avatar tree-avatar ${escapeHtml(personAvatarClass(person))}" aria-hidden="true">
-              <span class="person-avatar-initials">${escapeHtml(personAvatarInitials(person))}</span>
+            <div class="person-avatar tree-avatar" aria-hidden="true">
+              <span class="person-avatar-initials tree-initial-pair">${escapeHtml(initials.pair)}</span>
+              <span class="person-avatar-initials tree-initial-single">${escapeHtml(initials.single)}</span>
             </div>
+          </div>
 
-            ${
+          ${
                 focused && primary
                     ? `
                   <span class="tree-focus-badge">
                     ${icon.focus}
-                    <span>Focus</span>
+                    <span>${escapeHtml(t('Focus'))}</span>
                   </span>
                 `
                     : ''
             }
-          </div>
 
           <div class="tree-card-content">
             <span class="tree-given-name" aria-hidden="true">${escapeHtml(givenName)}</span>
             <h3
-              class="tree-name"
+              class="tree-name tree-name-full"
               title="${escapeHtml(displayName)}">
 
               ${escapeHtml(displayName)}
             </h3>
 
+            <h3 class="tree-name tree-name-compact" title="${escapeHtml(displayName)}">${escapeHtml(compactName)}</h3>
             ${renderTreeCardDateLines(
                 person
             )}
@@ -584,7 +586,7 @@ function renderTreePersonCard(person)
               class="card-action"
               type="button"
               data-card-edit="${escapeHtml(personId)}"
-              aria-label="Edit ${escapeHtml(displayName)}">
+              aria-label="${escapeHtml(editLabel)}" title="${escapeHtml(t('Edit'))}">
 
               ${icon.edit}
             </button>
@@ -593,7 +595,7 @@ function renderTreePersonCard(person)
               class="card-action"
               type="button"
               data-card-add="relative"
-              aria-label="Add relative">
+              aria-label="${escapeHtml(t('Add relative'))}" title="${escapeHtml(t('Add relative'))}">
 
               ${icon.plus}
             </button>
@@ -612,32 +614,62 @@ function treePersonGenderClass(person)
     return 'unknown-gender';
 }
 
+const treeInitialSegmenter = typeof Intl.Segmenter === 'function' ? new Intl.Segmenter() : null;
+
+function treeCardInitials(person)
+{
+    const names = person.names || {};
+    const segmenter = treeInitialSegmenter;
+    const initial = value =>
+    {
+        const text = normalizeNameSegment(value).toLocaleUpperCase();
+        return (segmenter?.segment(text)[Symbol.iterator]().next().value?.segment || Array.from(text)[0] || '');
+    };
+    const given = initial(names.first);
+    const family = initial(names.last || names.maiden);
+    const single = given || family || initial(names.middle || names.prefix || names.suffix) || '?';
+    return { single, pair: given && family ? given + family : single };
+}
+
+function treeCardDatePresentation(birth, death, status, language, compact = false)
+{
+    const format = input =>
+    {
+        const date = normalizeGenealogyDateInput(input);
+        if (date.state !== 'known')
+            return { text: date.state === 'unparsed' ? date.originalText : '', detailed: false };
+        if (compact)
+        {
+            const compactPart = part => part.year
+                || dateLabelFromParts(null, part.month, part.day, language, { padDay: false });
+            const year = compactPart(date.first);
+            const qualifier = (language === 'ru'
+                ? { 'About / Circa': 'ок.', Calculated: 'выч.', Before: 'до', After: 'после' }
+                : { 'About / Circa': 'c.', Calculated: 'calc.', Before: 'bef.', After: 'aft.' })[date.dateType];
+            if (date.dateType === 'Between')
+                return { text: (language === 'ru' ? 'между ' : 'bet. ') + year + '–' + compactPart(date.second), detailed: false };
+            return { text: qualifier ? qualifier + ' ' + year : String(year), detailed: false };
+        }
+        return { text: genealogyDateDisplay(date, language, { padDay: false }),
+            detailed: Boolean(date.first.month || date.second?.month || date.dateType === 'Between') };
+    };
+    const start = format(birth), end = format(death);
+    const living = normalizeLivingStatus(status);
+    if (start.text && end.text)
+        return start.detailed || end.detailed ? [start.text, '– ' + end.text] : [start.text + '–' + end.text];
+    if (end.text) return ['?–' + end.text];
+    if (start.text) return [start.text + (living === 'Living' ? '' : '–?')];
+    if (living === 'Living') return [];
+    return [language === 'ru'
+        ? (living === 'Deceased' ? 'Умер(ла)' : 'Неизвестно')
+        : (living === 'Deceased' ? 'Deceased' : 'Unknown')];
+}
+
 function renderTreeCardDateLines(person)
 {
-    const lines = [];
-    const status = normalizeLivingStatus(person.status);
-    const birthDate = String(person.birth || '').trim();
-    const deathDate = String(person.death || '').trim();
-
-    if (birthDate)
-    {
-        lines.push(`<span>Born: ${escapeHtml(birthDate)}</span>`);
-    }
-
-    if (status === 'Deceased')
-    {
-        lines.push(
-            deathDate
-                ? `<span>Died: ${escapeHtml(deathDate)}</span>`
-                : '<span>Deceased</span>'
-        );
-    }
-    else if (status === 'Unknown')
-    {
-        lines.push('<span>Unknown</span>');
-    }
-
-    return lines.length
-        ? `<div class="tree-dates">${lines.join('')}</div>`
-        : '';
+    const dates = compact => treeCardDatePresentation(person.birthFact, person.deathFact, person.status, state.language, compact)
+        .map(line => '<span>' + escapeHtml(line) + '</span>').join('');
+    return '<div class="tree-dates tree-dates-full" aria-hidden="true" data-i18n-skip>' + dates(false) + '</div>'
+        + '<div class="tree-dates tree-dates-compact" aria-hidden="true" data-i18n-skip>' + dates(true) + '</div>';
 }
+

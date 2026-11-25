@@ -156,6 +156,7 @@ function createPortraitThumbnailCache(generate = generatePortraitThumbnail)
     return {
         stats,
         entries,
+        hasReady(key) { return Boolean(entries.get(key)?.url); },
         subscribe(key, request, listener)
         {
             let entry = entries.get(key);
@@ -168,7 +169,7 @@ function createPortraitThumbnailCache(generate = generatePortraitThumbnail)
             }
             else
             {
-                if (!makeRoom(1, 0, 0)) return null;
+                if (!request || !makeRoom(1, 0, 0)) return null;
                 stats.misses++;
                 entry = { key, request, listeners: new Set() };
                 entries.set(key, entry);

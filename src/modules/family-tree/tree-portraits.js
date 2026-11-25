@@ -38,7 +38,7 @@ function treePortraitDescriptor(runtime, id)
     return descriptor;
 }
 
-function updateTreePortraits(runtime, visible, detail, size, aspect = 1)
+function updateTreePortraits(runtime, visible, detail, aspect)
 {
     const leases = runtime.portraitLeases ||= new Map();
     const demand = new Map();
@@ -51,48 +51,88 @@ function updateTreePortraits(runtime, visible, detail, size, aspect = 1)
         const rect = avatar.getBoundingClientRect();
         if (!rect.width || !rect.height || rect.right <= canvas.left || rect.left >= canvas.right
             || rect.bottom <= canvas.top || rect.top >= canvas.bottom) continue;
-        const tier = portraitThumbnailTier(Math.max(rect.width, rect.height) || size);
+        const tier = portraitThumbnailTier(Math.max(rect.width, rect.height));
         const descriptor = treePortraitDescriptor(runtime, card.dataset.personId);
-        if (descriptor) demand.set(avatar, { key: descriptor.key + '|' + aspect + '|' + tier, tier, descriptor });
+        if (descriptor)
+        {
+            const base = descriptor.key + '|' + aspect;
+            demand.set(avatar, { base, key: base + '|' + tier, tier, descriptor });
+        }
     }
 
     for (const [avatar, lease] of leases)
     {
-        if (demand.get(avatar)?.key === lease.key) continue;
-        avatar.querySelector('img')?.remove();
-        avatar.classList.remove('has-photo');
-        lease.release();
+        if (demand.get(avatar)?.base === lease.base) continue;
+        releaseTreePortrait(avatar, lease);
         leases.delete(avatar);
     }
     if (!demand.size) return;
     const cache = runtime.portraitCache ||= createPortraitThumbnailCache();
-    for (const [avatar, { key, tier, descriptor }] of demand)
+    for (const [avatar, { base, key, tier, descriptor }] of demand)
     {
-        if (leases.has(avatar)) continue;
-        const release = cache.subscribe(key, { ...descriptor.request, aspect, tier }, url =>
+        let lease = leases.get(avatar);
+        if (!lease)
         {
-            if (!avatar.isConnected || runtime.stage.hidden) return;
-            const image = document.createElement('img');
-            image.className = 'tree-portrait-image';
-            image.alt = '';
-            image.decoding = 'async';
-            image.draggable = false;
-            image.onload = () => { if (image.parentNode === avatar) avatar.classList.add('has-photo'); };
-            image.onerror = () => image.remove();
-            image.src = url;
-            avatar.append(image);
-        });
-        if (release) leases.set(avatar, { key, release });
+            lease = { base, current: null, pending: null };
+            leases.set(avatar, lease);
+            const compatible = [...portraitThumbnailLimits.tiers].reverse()
+                .map(value => base + '|' + value)
+                .find(candidate => cache.hasReady(candidate));
+            if (compatible && compatible !== key)
+                subscribeTreePortrait(runtime, avatar, lease, compatible, null, true);
+        }
+        if (lease.pending?.key === key) continue;
+        lease.pending?.release?.();
+        lease.pending = null;
+        if (lease.current?.key !== key)
+            subscribeTreePortrait(runtime, avatar, lease, key, { ...descriptor.request, aspect, tier });
     }
+}
+
+function subscribeTreePortrait(runtime, avatar, lease, key, request, fallback = false)
+{
+    const subscription = { key };
+    if (fallback) lease.fallback = subscription;
+    else lease.pending = subscription;
+    subscription.release = runtime.portraitCache.subscribe(key, request, url =>
+    {
+        const image = document.createElement('img');
+        image.className = 'tree-portrait-image';
+        image.alt = '';
+        image.decoding = 'async';
+        image.draggable = false;
+        image.src = url;
+        image.decode().then(() =>
+        {
+            if (runtime.portraitLeases.get(avatar) !== lease || !avatar.isConnected || runtime.stage.hidden) return;
+            if (fallback ? lease.fallback !== subscription || lease.current : lease.pending !== subscription) return;
+
+            const previous = lease.current;
+            avatar.querySelector('img')?.remove();
+            avatar.append(image);
+            avatar.classList.add('has-photo');
+            lease.current = subscription;
+            if (!fallback) lease.fallback?.release();
+            lease.fallback = null;
+            if (!fallback) lease.pending = null;
+            previous?.release();
+        }).catch(() => {});
+    });
+    if (!subscription.release) lease[fallback ? 'fallback' : 'pending'] = null;
+}
+
+function releaseTreePortrait(avatar, lease)
+{
+    avatar.querySelector('img')?.remove();
+    avatar.classList.remove('has-photo');
+    lease.current?.release();
+    lease.pending?.release?.();
+    lease.fallback?.release?.();
 }
 
 function clearTreePortraits(runtime)
 {
-    for (const [avatar, lease] of runtime.portraitLeases || [])
-    {
-        avatar.querySelector('img')?.remove();
-        avatar.classList.remove('has-photo');
-        lease.release();
-    }
+    for (const [avatar, lease] of runtime.portraitLeases || []) releaseTreePortrait(avatar, lease);
     runtime.portraitLeases?.clear();
 }
+

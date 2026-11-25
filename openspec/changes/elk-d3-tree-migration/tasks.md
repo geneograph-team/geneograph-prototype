@@ -10,7 +10,7 @@ Architecture planning (#398) is merged. Implementation and verification are trac
 - [x] #408: support reconverging sibling branches and visual family instances.
 - [x] #400: incremental D3 renderer and actual-scale viewport.
 - [ ] #401: local derivatives and image lifecycle implemented. Packaged photos under direct file opening remain a browser compatibility gap.
-- [ ] #402: implement approved cards/date/zoom, verify thresholds and accessibility.
+- [x] #402: implement approved cards/date/zoom, verify thresholds and accessibility.
 - [ ] #405: project-level coloring and channel/legend behavior.
 - [ ] #403: integrate both orientations, actual browser/geometry and stress QA, founder acceptance.
 - [ ] #407: remove remaining legacy paths, reconcile current specs and preview change, final documentation, QA and archive.
@@ -51,3 +51,9 @@ Inspected current pushed default, repository and OpenSpec guidance, preview desi
 - Isolated Edge on loopback and direct file opening passed synthetic 4.32 MP and tiny-source checks, off-center crop, tagged region, four rotations, transparency, 96 × 128 output, in-flight deduplication, warm reuse, corrupt-source suppression, late disposal, URL release and active cache bounds. Tree checks covered actual blob URL and natural dimensions, hidden and offscreen demand, warm pan without scene changes, canonical source/region/crop changes, unlinking and project disposal. The full photo viewer and crop editor still used the original source. Packaged portraits worked on loopback and used initials on direct file opening in Edge. The complete EN/RU and light/dark matrix was not repeated for this task.
 - The same Edge machine and 6,400 × 1,500 viewport at 100% compared #400 with #401 using 72 deterministic 2,400 × 1,800 JPEGs and two identical eight-position pan passes. The harness eagerly decoded mounted baseline images so completion could be compared. Cold settling was 106 ms before and 646 ms after. Mounted images went from 34 originals to 32 thumbnails at 128 × 128, about 560 MiB versus 2 MiB estimated mounted RGBA if all mounted images were decoded, rather than measured browser RSS. The updated cold cache created 32 derivatives and retained 24,690 encoded bytes. First pan took 200 ms before and 467 ms after, including 14 more derivative jobs. Warm pan took 184 ms before and 133 ms after, with zero additional generation, 42 cumulative cache hits and 35,998 retained encoded bytes. Maximum pan draw was 4.6 ms in both runs. Both kept the same scene throughout panning. This records source generation attempts after the change. Native browser original decode reuse on the baseline was not instrumented.
 - Renderer, approved ELK, occurrence, duplicate transfer in Edge, and localization checks passed. The active migration remains open.
+
+## Verification of #402
+
+- Edge passed the six semantic zoom boundaries on loopback and direct-file opening using Whiskerfield and synthetic long Cyrillic names, dates and photos. Verified 3:4 geometry, adaptive initials, accessible full identity, date precision, action targets, Edit, Add relative and keyboard focus fallback. Card and geometry identities were stable during zoom.
+- Verified the 96 × 128 portrait through delayed and failed 256-tier generation, cached return after Compact, successful decoded swap to 384 × 512, and invalidation on corrupt source replacement.
+- Edge regressions covered duplicate transfer, original viewer/editor media, wheel anchoring, touch pinch, Fit, fullscreen and project disposal. Renderer, ELK, occurrence and localization checks passed. Reviewed EN dark and RU light Whiskerfield captures. Bundled photos under direct-file opening retain the existing #401 fallback in Edge. Production horizontal QA remains with #403.

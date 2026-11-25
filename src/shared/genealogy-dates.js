@@ -113,13 +113,13 @@ function dateValueFromParts(year, month = '', day = '')
     return d ? `day ${Number(d)}` : '';
 }
 
-function dateLabelFromParts(year, month = '', day = '', language = 'en')
+function dateLabelFromParts(year, month = '', day = '', language = 'en', { padDay = true } = {})
 {
     const ru = language === 'ru';
     const y = year ? String(year).padStart(4, '0') : '';
     const row = GENEALOGY_MONTHS.find(item => Number(item[0]) === Number(month));
     const m = row ? ru ? day ? row[5] : row[4] : day || year ? row[1] : row[2] : '';
-    if (m) return [day ? y ? String(day).padStart(2, '0') : String(Number(day)) : '', m, y].filter(Boolean).join(' ');
+    if (m) return [day ? y && padDay ? String(day).padStart(2, '0') : String(Number(day)) : '', m, y].filter(Boolean).join(' ');
     if (day) return `${ru ? 'День' : 'Day'} ${Number(day)}${y ? `, ${y}` : ''}`;
     return y;
 }
@@ -226,18 +226,18 @@ function genealogyDateFromBase(base, type, originalText = '', calendar = 'Gregor
     return { valid: true, value };
 }
 
-function genealogyDateDisplay(value, language = 'en')
+function genealogyDateDisplay(value, language = 'en', options)
 {
     if (value.state === 'unknown') return language === 'ru' ? 'Дата неизвестна' : 'Date unknown';
     if (value.state === 'unparsed') return value.originalText;
     if (value.state !== 'known') return '';
-    const label = dateLabelFromParts(value.first.year, value.first.month, value.first.day, language);
+    const label = dateLabelFromParts(value.first.year, value.first.month, value.first.day, language, options);
     const prefixes = language === 'ru' ? { 'About / Circa': 'Около', Calculated: 'Вычислено:', Before: 'До', After: 'После' }
         : { 'About / Circa': 'About', Calculated: 'Calculated', Before: 'Before', After: 'After' };
     if (value.dateType === 'Between')
     {
         const second = value.second || {};
-        return `${language === 'ru' ? 'Между' : 'Between'} ${label} ${language === 'ru' ? 'и' : 'and'} ${dateLabelFromParts(second.year, second.month, second.day, language)}`;
+        return `${language === 'ru' ? 'Между' : 'Between'} ${label} ${language === 'ru' ? 'и' : 'and'} ${dateLabelFromParts(second.year, second.month, second.day, language, options)}`;
     }
     return prefixes[value.dateType] ? `${prefixes[value.dateType]} ${label}` : label;
 }

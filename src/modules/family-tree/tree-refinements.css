@@ -386,18 +386,15 @@ html.tree-fullscreen .tree-shell {
 
 .tree-person-card {
     --tree-gender-border: var(--gg-accent-creative-blue-outline);
-    --tree-gender-fill: var(--gg-accent-creative-blue-subtle-container);
     border: 2px solid var(--tree-gender-border);
 }
 
 .tree-person-card.female {
     --tree-gender-border: var(--gg-accent-investigation-purple-outline);
-    --tree-gender-fill: var(--gg-accent-investigation-purple-subtle-container);
 }
 
 .tree-person-card.unknown-gender {
     --tree-gender-border: var(--gg-status-offline-outline);
-    --tree-gender-fill: var(--gg-status-offline-subtle-container);
 }
 
 .tree-person-card.selected {
@@ -426,14 +423,6 @@ html.tree-fullscreen .tree-shell {
     box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--gg-primary) 34%, transparent), 0 8px 22px color-mix(in srgb, var(--gg-scrim) 16%, transparent);
 }
 
-.tree-workspace.has-color-fill .tree-person-card:not(.selected) {
-    background: var(--tree-gender-fill);
-}
-
-.tree-workspace.has-color-fill .tree-person-card:not(.selected):hover {
-    background: color-mix(in srgb, var(--tree-gender-fill) 84%, var(--tree-gender-border));
-}
-
 .tree-occurrence-badge {
     position: absolute;
     inset-block-start: 5px;
@@ -459,45 +448,21 @@ html.tree-fullscreen .tree-shell {
     padding-inline-end: 32px;
 }
 
-.tree-stage[data-detail-level="given"] .tree-occurrence-badge,
+.tree-stage[data-detail-level="label"] .tree-occurrence-badge,
 .tree-stage[data-detail-level="marker"] .tree-occurrence-badge {
     font-size: var(--tree-overview-name-size);
 }
 
-.tree-stage[data-detail-level="given"] .has-tree-occurrences .tree-card-content {
-    padding-inline: 54px;
+.tree-stage[data-detail-level="label"] .has-tree-occurrences .tree-card-content {
+    padding-inline: 58px;
 }
 
 .tree-stage[data-detail-level="marker"] .tree-occurrence-badge {
     position: static;
 }
 
-.tree-stage[data-detail-level="name"] .tree-person-card .tree-dates,
-.tree-stage[data-detail-level="name"] .tree-person-card .card-actions,
-.tree-stage[data-detail-level="name"] .tree-focus-badge {
-    display: none;
-}
-
-.tree-stage[data-detail-level="name"] .tree-person-card .tree-name {
-    font-size: 17px;
-}
-
-.tree-stage[data-detail-level="name"] .tree-person-card {
-    grid-template-rows: minmax(0, 1fr);
-    align-items: center;
-}
-
-.tree-stage[data-detail-level="name"] .tree-card-avatar-stack {
-    grid-row: 1;
-    grid-template-rows: minmax(0, 1fr);
-}
-
-.tree-stage[data-detail-level="name"] .tree-card-content {
-    align-self: center;
-}
-
 .tree-stage[data-detail-level="marker"] .tree-line,
-.tree-stage[data-detail-level="given"] .tree-line {
+.tree-stage[data-detail-level="label"] .tree-line {
     stroke-width: var(--tree-overview-connection-width);
 }
 
@@ -518,35 +483,35 @@ html.tree-fullscreen .tree-shell {
 }
 
 .tree-stage[data-detail-level="marker"] .add-parent-card .add-plus svg,
-.tree-stage[data-detail-level="given"] .add-parent-card .add-plus svg {
+.tree-stage[data-detail-level="label"] .add-parent-card .add-plus svg {
     width: var(--tree-overview-plus-size);
     height: var(--tree-overview-plus-size);
 }
 
-.tree-stage[data-detail-level="given"] .tree-person-card,
+.tree-stage[data-detail-level="label"] .tree-person-card,
 .tree-stage[data-detail-level="marker"] .tree-person-card {
     display: flex;
     align-items: center;
     justify-content: center;
 }
 
-.tree-stage[data-detail-level="given"] .tree-card-avatar-stack,
+.tree-stage[data-detail-level="label"] .tree-card-avatar-stack,
 .tree-stage[data-detail-level="marker"] .tree-card-avatar-stack,
-.tree-stage[data-detail-level="given"] .tree-person-card .tree-name,
+.tree-stage[data-detail-level="label"] .tree-person-card .tree-name,
 .tree-stage[data-detail-level="marker"] .tree-person-card .tree-name,
-.tree-stage[data-detail-level="given"] .tree-person-card .tree-dates,
+.tree-stage[data-detail-level="label"] .tree-person-card .tree-dates,
 .tree-stage[data-detail-level="marker"] .tree-person-card .tree-dates,
-.tree-stage[data-detail-level="given"] .tree-person-card .card-actions,
+.tree-stage[data-detail-level="label"] .tree-person-card .card-actions,
 .tree-stage[data-detail-level="marker"] .tree-person-card .card-actions {
     display: none;
 }
 
-.tree-stage[data-detail-level="given"] .tree-card-content {
+.tree-stage[data-detail-level="label"] .tree-card-content {
     width: 100%;
     align-items: center;
 }
 
-.tree-stage[data-detail-level="given"] .tree-given-name {
+.tree-stage[data-detail-level="label"] .tree-given-name {
     display: block;
     max-width: 100%;
     overflow: hidden;
@@ -575,14 +540,14 @@ html.tree-fullscreen .tree-shell {
     outline-offset: 4px;
 }
 
-.tree-stage[data-detail-level="given"] .add-parent-card .add-label,
+.tree-stage[data-detail-level="label"] .add-parent-card .add-label,
 .tree-stage[data-detail-level="marker"] .add-parent-card .add-label,
-.tree-stage[data-detail-level="given"] .tree-focus-control span,
+.tree-stage[data-detail-level="label"] .tree-focus-control span,
 .tree-stage[data-detail-level="marker"] .tree-focus-control span {
     display: none;
 }
 
-.tree-stage[data-detail-level="given"] .add-parent-card .add-plus,
+.tree-stage[data-detail-level="label"] .add-parent-card .add-plus,
 .tree-stage[data-detail-level="marker"] .add-parent-card .add-plus {
     margin-bottom: 0;
 }
@@ -599,6 +564,162 @@ html.tree-fullscreen .tree-shell {
     gap:
         1px;
 }
+
+.tree-person-card {
+    --tree-card-category: var(--tree-gender-border);
+    --tree-placeholder-tint: var(--tree-card-category);
+    --tree-overview-fill: 13%;
+    --tree-action-size: 28px;
+    grid-template-columns: 54px minmax(0, 1fr);
+    grid-template-rows: 72px minmax(0, 1fr);
+    row-gap: 2px;
+}
+
+.tree-workspace:not(.has-color-fill) .tree-person-card {
+    --tree-placeholder-tint: var(--gg-status-offline-outline);
+}
+
+.tree-workspace.has-color-fill .tree-person-card:not(.selected) {
+    background: color-mix(in oklab, var(--tree-card-category) var(--tree-overview-fill), var(--surface-card));
+}
+
+.tree-workspace.has-color-fill .tree-person-card:not(.selected):hover {
+    background: color-mix(in oklab, var(--tree-card-category) var(--tree-overview-fill), var(--tree-card-hover));
+}
+
+.tree-card-avatar-stack {
+    grid-row: 1;
+    grid-template-rows: 72px;
+}
+
+.tree-person-card > .tree-focus-badge {
+    position: absolute;
+    inset-inline-start: 10px;
+    inset-block-end: 8px;
+}
+
+.tree-stage:is([data-detail-level="actions"], [data-detail-level="label"], [data-detail-level="marker"]) .tree-focus-badge {
+    display: none;
+}
+
+.tree-card-avatar-stack > .tree-avatar {
+    --person-avatar-width: 54px;
+    --person-avatar-height: 72px;
+    aspect-ratio: 3 / 4;
+    border: 0;
+    color: var(--text-primary);
+    font-size: 23px;
+    background: color-mix(in oklab, var(--tree-placeholder-tint) 15%, var(--surface-card));
+}
+
+.tree-card-avatar-stack > .tree-avatar.has-photo {
+    background: var(--surface-card);
+}
+
+.tree-initial-single,
+.tree-stage[data-single-initial="true"] .tree-initial-pair,
+.tree-name-compact,
+.tree-dates-compact {
+    display: none;
+}
+
+.tree-stage[data-single-initial="true"] .tree-initial-single {
+    display: grid;
+}
+
+.tree-stage:not([data-detail-level="full"]) .tree-name-full,
+.tree-stage:not([data-detail-level="full"]) .tree-dates-full {
+    display: none;
+}
+
+.tree-stage:is([data-detail-level="short"], [data-detail-level="compact"], [data-detail-level="actions"]) .tree-name-compact {
+    display: -webkit-box;
+}
+
+.tree-stage:is([data-detail-level="short"], [data-detail-level="compact"]) .tree-dates-compact {
+    display: grid;
+}
+
+.tree-dates:empty {
+    display: none;
+}
+
+.tree-person-card .card-actions {
+    position: absolute;
+    inset-inline-end: 8px;
+    inset-block-end: 6px;
+}
+
+.tree-person-card .card-action {
+    width: var(--tree-action-size);
+    height: var(--tree-action-size);
+}
+
+.tree-stage[data-detail-level="short"] .tree-person-card {
+    --tree-action-size: 32px;
+}
+
+.tree-stage:is([data-detail-level="compact"], [data-detail-level="actions"]) .tree-person-card {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr);
+}
+
+.tree-stage:is([data-detail-level="compact"], [data-detail-level="actions"]) .tree-card-avatar-stack,
+.tree-stage:is([data-detail-level="label"], [data-detail-level="marker"]) :is(.tree-card-avatar-stack, .card-actions) {
+    display: none;
+}
+
+.tree-stage:is([data-detail-level="compact"], [data-detail-level="actions"]) .tree-card-content {
+    grid-column: 1;
+}
+
+.tree-stage[data-detail-level="compact"] .tree-person-card {
+    --tree-action-size: 42px;
+    padding-bottom: 45px;
+}
+
+.tree-stage[data-detail-level="compact"] .tree-name {
+    font-size: 20px;
+    -webkit-line-clamp: 1;
+    line-clamp: 1;
+}
+
+.tree-stage[data-detail-level="compact"] .tree-dates {
+    font-size: 17px;
+}
+
+.tree-stage[data-detail-level="actions"] .tree-person-card {
+    --tree-action-size: 66px;
+    --tree-overview-fill: 25%;
+    padding-inline-end: 156px;
+}
+
+.tree-stage[data-detail-level="actions"] .tree-name {
+    font-size: 30px;
+}
+
+.tree-stage[data-detail-level="actions"] .card-action svg {
+    width: 32px;
+    height: 32px;
+}
+
+.tree-stage[data-detail-level="compact"] .card-action svg {
+    width: 23px;
+    height: 23px;
+}
+
+.tree-stage[data-detail-level="label"] .tree-person-card {
+    --tree-overview-fill: 90%;
+}
+
+.tree-stage[data-detail-level="marker"] .tree-person-card {
+    --tree-overview-fill: 99%;
+}
+
+.tree-workspace.has-color-fill .tree-stage[data-detail-level="label"] .tree-person-card:not(.selected) {
+    color: var(--surface-card);
+}
+
 
 .add-parent-card {
     padding: 8px;
