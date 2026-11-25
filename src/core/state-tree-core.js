@@ -573,6 +573,7 @@ function navigateFamilyTreeToPerson(
     }
 
     const view = treeProjectViewState(projectId);
+    if (!focusBranch && selectVisibleTreePerson(personId, { center })) return true;
     const nextFocusPersonId = treeNavigationFocusForPerson(
         personId,
         {

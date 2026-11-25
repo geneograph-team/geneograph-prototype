@@ -186,7 +186,7 @@ function treeElkLayoutForProjection(projectId, projection, view)
     if (treeElkRequest?.key !== key)
     {
         disposeTreeElkLayout();
-        const preview = { key };
+        const preview = { key, projection };
         treeElkRequest = preview;
         // Defer even input errors until the pending presentation is mounted.
         Promise.resolve().then(async () =>
@@ -206,8 +206,9 @@ function treeElkLayoutForProjection(projectId, projection, view)
             }
             if (treeElkRequest === preview && state.activeModule === 'Family Tree'
                 && currentFamilyTreeProjectId() === projectId)
-                renderFamilyTree();
+                renderFamilyTree(preview.projection);
         });
     }
+    treeElkRequest.projection = projection;
     return treeElkRequest.geometry ? adaptElkTreeLayout(treeElkRequest.model, treeElkRequest.geometry, projection) : null;
 }

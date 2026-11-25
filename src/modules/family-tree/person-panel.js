@@ -230,16 +230,9 @@ function renderPersonPhotoUnlinkButton(
       `;
 }
 
-function renderFamilyPhotos(person)
+function renderFamilyPhotos(person, linkedPhotos)
 {
-    const photos =
-        getPhotosForPerson(
-            person?.id
-        ).slice(
-            0,
-            RIGHT_SIDEBAR_LIMITS
-                .photos
-        );
+    const photos = linkedPhotos.slice(0, RIGHT_SIDEBAR_LIMITS.photos);
 
     if (!photos.length)
     {
@@ -298,18 +291,9 @@ function renderFamilyPhotos(person)
       `;
 }
 
-function renderFamilyArchiveItems(
-    person
-)
+function renderFamilyArchiveItems(person, linkedFiles)
 {
-    const files =
-        getArchiveFilesForPerson(
-            person?.id
-        ).slice(
-            0,
-            RIGHT_SIDEBAR_LIMITS
-                .files
-        );
+    const files = linkedFiles.slice(0, RIGHT_SIDEBAR_LIMITS.files);
 
     if (!files.length)
     {
@@ -335,15 +319,8 @@ function renderFamilyArchiveItems(
     });
 }
 
-function renderFamilyNotes(
-    person
-)
+function renderFamilyNotes(person, notes)
 {
-    const notes =
-        getNotesForPerson(
-            person?.id
-        );
-
     if (!notes.length)
     {
         return `
@@ -687,28 +664,9 @@ function renderFamilyTreeHeroLifeDetails(person)
     return `<div class="tree-person-life">${rows.map(row => `<div class="tree-person-life-line"><div><strong>${escapeHtml(row.label)}:</strong> ${escapeHtml(row.date)}</div>${row.place ? `<div class="tree-person-life-place">${escapeHtml(row.place)}</div>` : ''}</div>`).join('')}</div>`;
 }
 
-function renderFamilyTreePersonHero(
-    person
-)
+function renderFamilyTreePersonHero(person, { photoCount, fileCount, noteCount })
 {
-    const status =
-        person.status
-        || person.living;
-
-    const photoCount =
-        getPersonPhotoCount(
-            person.id
-        );
-
-    const fileCount =
-        getArchiveFilesForPerson(
-            person.id
-        ).length;
-
-    const noteCount =
-        getNotesForPerson(
-            person.id
-        ).length;
+    const status = person.status || person.living;
 
     const viewState = treeProjectViewState();
     const isFocusPerson = viewState.focusPersonId === person.id;
@@ -967,20 +925,18 @@ function renderPersonSidebar(
       </div>`;
 
     const timelineContent = renderFamilyTreeTimeline(person.id);
-    const relationshipsContent =
-        renderRelationships(person.id);
-
-    const relationshipsCount =
-        relationshipCount(person.id);
-    const photosContent = renderFamilyPhotos(person);
-    const archiveContent = renderFamilyArchiveItems(person);
-    const notesContent =
-        renderFamilyNotes(
-            person
-        );
-    const photoCount = getPersonPhotoCount(person.id);
-    const archiveCount = getArchiveFilesForPerson(person.id).length;
-    const noteCount = getNotesForPerson(person.id).length;
+    const groups = getRelationshipGroups(person.id);
+    const relationshipsContent = renderRelationships(person.id, groups);
+    const relationshipsCount = relationshipCount(person.id, groups);
+    const photos = getPhotosForPerson(person.id);
+    const files = getArchiveFilesForPerson(person.id);
+    const notes = getNotesForPerson(person.id);
+    const photosContent = renderFamilyPhotos(person, photos);
+    const archiveContent = renderFamilyArchiveItems(person, files);
+    const notesContent = renderFamilyNotes(person, notes);
+    const photoCount = photos.length;
+    const archiveCount = files.length;
+    const noteCount = notes.length;
     const centralPerson =
         getPerson(
             person.id
@@ -1029,7 +985,7 @@ function renderPersonSidebar(
           class="tree-inspector family-person-pane${contextClass}"
           ${contextAttribute}
           aria-label="Selected person details">
-        ${renderFamilyTreePersonHero(person)}
+        ${renderFamilyTreePersonHero(person, { photoCount, fileCount: archiveCount, noteCount })}
         <div class="family-person-actions">${actionsContent}</div>
         ${renderInspectorSection('insights', 'Insights', 'No insights found', '<div class="panel-muted">No insights found for this person.</div>')}
         ${renderInspectorSection(

@@ -418,9 +418,9 @@ function renderRelationshipGroup(group)
       `;
 }
 
-function relationshipCount(personId)
+function relationshipCount(personId, groups = getRelationshipGroups(personId))
 {
-    return getRelationshipGroups(personId)
+    return groups
         .reduce(
             (total, group) =>
                 total + group.items.length,
@@ -428,9 +428,9 @@ function relationshipCount(personId)
         );
 }
 
-function renderRelationships(personId)
+function renderRelationships(personId, relationshipGroups = getRelationshipGroups(personId))
 {
-    const groups = getRelationshipGroups(personId)
+    const groups = relationshipGroups
         .map(renderRelationshipGroup)
         .filter(Boolean);
 

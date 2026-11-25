@@ -355,7 +355,7 @@ html.tree-fullscreen .tree-shell {
 }
 
 .tree-canvas {
-    overflow: auto;
+    overflow: clip;
     grid-column: 1;
     grid-row: 2;
 }
@@ -1310,4 +1310,8 @@ html.tree-fullscreen .tree-shell {
         bottom: 6px;
         font-size: 11px;
     }
+}
+
+.tree-layout-status[hidden], .tree-stage[hidden] {
+    display: none;
 }

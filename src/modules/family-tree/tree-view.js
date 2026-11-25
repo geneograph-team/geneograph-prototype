@@ -16,73 +16,10 @@ function renderFamilyTreePreserveScroll()
     return true;
 }
 
-const treeZoomRuntime = {
-    frame: null,
-    delta: 0,
-    clientX: 0,
-    clientY: 0
-};
-
-const TREE_ZOOM_MIN = 20;
-const TREE_ZOOM_MAX = 180;
-
-function treeDisplayZoom(physicalZoom = state.treeZoom)
-{
-    return Math.round((physicalZoom - TREE_ZOOM_MIN) * 200 / (TREE_ZOOM_MAX - TREE_ZOOM_MIN));
-}
-
-function treePhysicalZoom(displayZoom)
-{
-    const level = Math.max(0, Math.min(200, displayZoom));
-    return TREE_ZOOM_MIN + level * (TREE_ZOOM_MAX - TREE_ZOOM_MIN) / 200;
-}
-
-function treeDetailLevel(displayZoom = treeDisplayZoom())
-{
-    if (displayZoom < 10) return 'marker';
-    if (displayZoom < 55) return 'given';
-    if (displayZoom < 85) return 'name';
-    return 'full';
-}
-
 const treeFullscreenRuntime = {
     requested: false,
-    exitAfterEnter: false,
-    center: null
+    exitAfterEnter: false
 };
-
-function treeStageMargins(canvas)
-{
-    const stageSpace = canvas?.querySelector('.tree-stage-space');
-    if (!stageSpace) return { x: 0, y: 0 };
-    const style = getComputedStyle(stageSpace);
-    return {
-        x: Number.parseFloat(style.marginLeft) || 0,
-        y: Number.parseFloat(style.marginTop) || 0
-    };
-}
-
-function treeFullscreenCenter()
-{
-    const canvas = main.querySelector('.tree-canvas');
-    if (!canvas) return null;
-    const zoom = state.treeZoom / 100;
-    const margin = treeStageMargins(canvas);
-    return {
-        x: (canvas.scrollLeft + canvas.clientWidth / 2 - margin.x) / zoom,
-        y: (canvas.scrollTop + canvas.clientHeight / 2 - margin.y) / zoom
-    };
-}
-
-function restoreTreeFullscreenCenter(center = treeFullscreenRuntime.center)
-{
-    const canvas = main.querySelector('.tree-canvas');
-    if (!canvas || !center) return;
-    const zoom = state.treeZoom / 100;
-    const margin = treeStageMargins(canvas);
-    canvas.scrollLeft = center.x * zoom + margin.x - canvas.clientWidth / 2;
-    canvas.scrollTop = center.y * zoom + margin.y - canvas.clientHeight / 2;
-}
 
 function updateTreeFullscreenButton()
 {
@@ -99,7 +36,6 @@ function updateTreeFullscreenButton()
 
 async function toggleTreeFullscreen()
 {
-    treeFullscreenRuntime.center = treeFullscreenCenter();
     if (treeFullscreenRuntime.requested && document.fullscreenElement === document.documentElement)
     {
         await document.exitFullscreen();
@@ -122,7 +58,6 @@ async function toggleTreeFullscreen()
 function exitTreeFullscreen()
 {
     if (!treeFullscreenRuntime.requested) return;
-    treeFullscreenRuntime.center = treeFullscreenCenter();
     if (document.fullscreenElement === document.documentElement)
     {
         document.exitFullscreen().catch(() => {});
@@ -152,556 +87,9 @@ document.addEventListener('fullscreenchange', () =>
         treeFullscreenRuntime.exitAfterEnter = false;
     }
     updateTreeFullscreenButton();
-    const center = treeFullscreenRuntime.center;
-    requestAnimationFrame(() => restoreTreeFullscreenCenter(center));
 });
 
-let treeCardLastClick = null;
 let treeRelativeIntent = null;
-
-function treeViewportPointAtClient(clientX, clientY)
-{
-    const canvas = main.querySelector('.tree-canvas');
-    if (!canvas) return null;
-    const rect = canvas.getBoundingClientRect();
-    const zoom = state.treeZoom / 100;
-    const margin = treeStageMargins(canvas);
-    return {
-        x: (canvas.scrollLeft + clientX - rect.left - margin.x) / zoom,
-        y: (canvas.scrollTop + clientY - rect.top - margin.y) / zoom
-    };
-}
-
-function restoreTreeViewportAnchor(point, clientX, clientY)
-{
-    const canvas = main.querySelector('.tree-canvas');
-    if (!canvas || !point) return;
-    const rect = canvas.getBoundingClientRect();
-    const zoom = state.treeZoom / 100;
-    const margin = treeStageMargins(canvas);
-    canvas.scrollLeft = point.x * zoom + margin.x - (clientX - rect.left);
-    canvas.scrollTop = point.y * zoom + margin.y - (clientY - rect.top);
-}
-
-function applyTreeZoomToDom(options = {})
-{
-    const canvas = main.querySelector('.tree-canvas');
-    const stageSpace = canvas?.querySelector('.tree-stage-space');
-    const stage = stageSpace?.querySelector('.tree-stage');
-    if (!canvas || !stageSpace || !stage) return false;
-    const scale = state.treeZoom / 100;
-    const stageWidth = Number.parseFloat(stage.style.width) || stage.offsetWidth;
-    const stageHeight = Number.parseFloat(stage.style.height) || stage.offsetHeight;
-    stageSpace.style.width = `${stageWidth * scale}px`;
-    stageSpace.style.height = `${stageHeight * scale}px`;
-    stage.style.transform = `scale(${scale})`;
-    stage.style.setProperty('--tree-overview-connection-width', `${1.5 / scale}px`);
-    stage.style.setProperty('--tree-overview-parent-border-width', `${1 / scale}px`);
-    stage.style.setProperty('--tree-overview-plus-size', `${Math.min(70, 15 / scale)}px`);
-    stage.style.setProperty('--tree-overview-name-size', `${Math.min(40, Math.max(22, 11 / scale))}px`);
-    stage.dataset.detailLevel = treeDetailLevel();
-    stage.dataset.compactParent = String(treeDisplayZoom() < 70);
-    stage.dataset.hideFocus = String(treeDisplayZoom() <= 50);
-    const value = canvas.querySelector('.tree-zoom .zoom-value');
-    if (value) value.textContent = `${treeDisplayZoom()}%`;
-    if (options.anchor)
-    {
-        restoreTreeViewportAnchor(options.anchor, options.clientX, options.clientY);
-    }
-    else if (options.center)
-    {
-        const margin = treeStageMargins(canvas);
-        canvas.scrollLeft = options.center.x * scale + margin.x - canvas.clientWidth / 2;
-        canvas.scrollTop = options.center.y * scale + margin.y - canvas.clientHeight / 2;
-    }
-    return true;
-}
-
-function setTreeZoom(nextZoom, options = {})
-{
-    const zoom = Math.max(TREE_ZOOM_MIN, Math.min(TREE_ZOOM_MAX, nextZoom));
-    if (zoom === state.treeZoom) return false;
-    const canvas = main.querySelector('.tree-canvas');
-    const margin = treeStageMargins(canvas);
-    const center = options.anchor ? null : canvas ? {
-        x: (canvas.scrollLeft + canvas.clientWidth / 2 - margin.x) / (state.treeZoom / 100),
-        y: (canvas.scrollTop + canvas.clientHeight / 2 - margin.y) / (state.treeZoom / 100)
-    } : null;
-    state.treeZoom = zoom;
-    return applyTreeZoomToDom({ ...options, center });
-}
-
-function queueTreeWheelZoom(event)
-{
-    event.preventDefault();
-    treeZoomRuntime.delta += event.deltaY;
-    treeZoomRuntime.clientX = event.clientX;
-    treeZoomRuntime.clientY = event.clientY;
-    if (treeZoomRuntime.frame) return;
-    treeZoomRuntime.frame = requestAnimationFrame(() =>
-    {
-        treeZoomRuntime.frame = null;
-        const delta = treeZoomRuntime.delta;
-        treeZoomRuntime.delta = 0;
-        if (!delta) return;
-        const clientX = treeZoomRuntime.clientX;
-        const clientY = treeZoomRuntime.clientY;
-        const anchor = treeViewportPointAtClient(clientX, clientY);
-        setTreeZoom(treePhysicalZoom(treeDisplayZoom() + (delta < 0 ? 10 : -10)), { anchor, clientX, clientY });
-    });
-}
-
-function bindTreeCanvasPan()
-{
-    const canvas = main.querySelector('.tree-canvas');
-
-    if (!canvas) return;
-
-    const DRAG_THRESHOLD = 4;
-
-    /*
-      * Person cards are intentionally omitted. Their non-control
-      * surfaces can initiate panning, while clicking without
-      * moving continues to activate the card.
-      */
-    const interactiveSelector = [
-        '.add-parent-card',
-        '.tree-zoom',
-        'button',
-        'input',
-        'select',
-        'textarea',
-        'a',
-        '[contenteditable="true"]'
-    ].join(', ');
-
-    let gesture = null;
-    let suppressNextClick = false;
-    const touches = new Map();
-    let touchGesture = null;
-
-    const touchMidpoint = () =>
-    {
-        const [first, second] = [...touches.values()];
-        return {
-            x: (first.x + second.x) / 2,
-            y: (first.y + second.y) / 2,
-            distance: Math.hypot(first.x - second.x, first.y - second.y)
-        };
-    };
-
-    const beginTouchPinch = () =>
-    {
-        const midpoint = touchMidpoint();
-        touchGesture = {
-            kind: 'pinch',
-            zoom: state.treeZoom,
-            distance: Math.max(1, midpoint.distance),
-            anchor: treeViewportPointAtClient(midpoint.x, midpoint.y)
-        };
-        suppressNextClick = true;
-        canvas.classList.remove('is-panning');
-        touches.forEach((_, pointerId) => canvas.setPointerCapture?.(pointerId));
-    };
-
-    canvas.addEventListener('pointerdown', event =>
-    {
-        if (event.pointerType !== 'touch') return;
-        touches.set(event.pointerId, { x: event.clientX, y: event.clientY });
-        if (touches.size === 2)
-        {
-            beginTouchPinch();
-        }
-        else if (touches.size === 1 && !event.target.closest(interactiveSelector))
-        {
-            touchGesture = {
-                kind: 'pan', pointerId: event.pointerId,
-                x: event.clientX, y: event.clientY,
-                left: canvas.scrollLeft, top: canvas.scrollTop,
-                moved: false
-            };
-        }
-    });
-
-    canvas.addEventListener('pointermove', event =>
-    {
-        if (event.pointerType !== 'touch' || !touches.has(event.pointerId)) return;
-        touches.set(event.pointerId, { x: event.clientX, y: event.clientY });
-        if (touchGesture?.kind === 'pinch' && touches.size >= 2)
-        {
-            const midpoint = touchMidpoint();
-            setTreeZoom(touchGesture.zoom * midpoint.distance / touchGesture.distance, {
-                anchor: touchGesture.anchor,
-                clientX: midpoint.x,
-                clientY: midpoint.y
-            });
-            restoreTreeViewportAnchor(touchGesture.anchor, midpoint.x, midpoint.y);
-            event.preventDefault();
-        }
-        else if (touchGesture?.kind === 'pan' && touchGesture.pointerId === event.pointerId)
-        {
-            const dx = event.clientX - touchGesture.x;
-            const dy = event.clientY - touchGesture.y;
-            if (!touchGesture.moved && Math.hypot(dx, dy) < DRAG_THRESHOLD) return;
-            touchGesture.moved = true;
-            suppressNextClick = true;
-            canvas.classList.add('is-panning');
-            canvas.setPointerCapture?.(event.pointerId);
-            canvas.scrollLeft = touchGesture.left - dx;
-            canvas.scrollTop = touchGesture.top - dy;
-            event.preventDefault();
-        }
-    });
-
-    const endTouch = event =>
-    {
-        if (event.pointerType !== 'touch' || !touches.delete(event.pointerId)) return;
-        if (canvas.hasPointerCapture?.(event.pointerId)) canvas.releasePointerCapture(event.pointerId);
-        if (touchGesture?.kind === 'pinch')
-        {
-            // Do not turn the remaining finger into a pan after a pinch.
-            if (!touches.size) touchGesture = null;
-        }
-        else if (touchGesture?.pointerId === event.pointerId)
-        {
-            touchGesture = null;
-            canvas.classList.remove('is-panning');
-        }
-        if (!touches.size && suppressNextClick)
-        {
-            setTimeout(() => { suppressNextClick = false; }, 500);
-        }
-    };
-    canvas.addEventListener('pointerup', endTouch);
-    canvas.addEventListener('pointercancel', endTouch);
-
-    const finishGesture = event =>
-    {
-        if (!gesture) return;
-
-        if (
-            event?.pointerId !== undefined &&
-          event.pointerId !== gesture.pointerId
-        )
-        {
-            return;
-        }
-
-        const pointerId = gesture.pointerId;
-        const didPan = gesture.didPan;
-
-        gesture = null;
-        canvas.classList.remove('is-panning');
-
-        /*
-        * A stationary press must remain a normal browser click.
-        */
-        if (!didPan)
-        {
-            suppressNextClick = false;
-        }
-
-        if (canvas.hasPointerCapture?.(pointerId))
-        {
-            try
-            {
-                canvas.releasePointerCapture(pointerId);
-            }
-            catch
-            {
-            /*
-            * The browser may already have released capture.
-            */
-            }
-        }
-    };
-
-    canvas.addEventListener('pointerdown', event =>
-    {
-        if (
-            event.button !== 0 ||
-          event.isPrimary === false ||
-          event.pointerType === 'touch'
-        )
-        {
-            return;
-        }
-
-        const target =
-            event.target instanceof Element
-                ? event.target
-                : null;
-
-        if (target?.closest(interactiveSelector))
-        {
-            return;
-        }
-
-        suppressNextClick = false;
-
-        gesture = {
-            pointerId: event.pointerId,
-            startX: event.clientX,
-            startY: event.clientY,
-            startScrollLeft: canvas.scrollLeft,
-            startScrollTop: canvas.scrollTop,
-            didPan: false
-        };
-
-        /*
-        * Do not call setPointerCapture here. Keeping the original
-        * pointer target is what allows stationary card clicks.
-        */
-    });
-
-    canvas.addEventListener('pointermove', event =>
-    {
-        if (
-            !gesture ||
-          event.pointerId !== gesture.pointerId
-        )
-        {
-            return;
-        }
-
-        const deltaX = event.clientX - gesture.startX;
-        const deltaY = event.clientY - gesture.startY;
-
-        if (!gesture.didPan)
-        {
-            const distance = Math.hypot(deltaX, deltaY);
-
-            if (distance < DRAG_THRESHOLD)
-            {
-                return;
-            }
-
-            gesture.didPan = true;
-            suppressNextClick = true;
-            canvas.classList.add('is-panning');
-
-            /*
-          * Capture only after this gesture has become a pan.
-          */
-            canvas.setPointerCapture?.(event.pointerId);
-
-            window.getSelection()?.removeAllRanges();
-        }
-
-        event.preventDefault();
-
-        canvas.scrollLeft =
-            gesture.startScrollLeft - deltaX;
-
-        canvas.scrollTop =
-            gesture.startScrollTop - deltaY;
-    });
-
-    /*
-      * Dragging from a card can still produce a synthetic click
-      * after pointerup. Consume that click only when a real pan
-      * crossed the drag threshold.
-      */
-    canvas.addEventListener(
-        'click',
-        event =>
-        {
-            if (!suppressNextClick) return;
-
-            suppressNextClick = false;
-            event.preventDefault();
-            event.stopImmediatePropagation();
-        },
-        true
-    );
-
-    canvas.addEventListener('pointerup', finishGesture);
-    canvas.addEventListener('pointercancel', finishGesture);
-    canvas.addEventListener('lostpointercapture', finishGesture);
-}
-
-const treeSearchRuntime = {
-    input: null,
-    menu: null,
-    controller: null,
-    results: [],
-    activeIndex: -1
-};
-
-function hideTreeSearchResults()
-{
-    treeSearchRuntime.menu?.remove();
-    treeSearchRuntime.menu = null;
-    treeSearchRuntime.results = [];
-    treeSearchRuntime.activeIndex = -1;
-    treeSearchRuntime.input?.setAttribute('aria-expanded', 'false');
-    treeSearchRuntime.input?.removeAttribute('aria-controls');
-    treeSearchRuntime.input?.removeAttribute('aria-activedescendant');
-}
-
-function disposeTreeSearch()
-{
-    hideTreeSearchResults();
-    treeSearchRuntime.controller?.abort();
-    treeSearchRuntime.controller = null;
-    treeSearchRuntime.input = null;
-}
-
-function positionTreeSearchResults()
-{
-    const { input, menu } = treeSearchRuntime;
-    if (!input?.isConnected || !menu) return;
-
-    const rect = input.closest('.app-search-field').getBoundingClientRect();
-    const width = Math.min(332, window.innerWidth - 24);
-    menu.style.width = `${width}px`;
-    menu.style.left = `${Math.max(12, Math.min(rect.left, window.innerWidth - width - 12))}px`;
-    const below = window.innerHeight - rect.bottom - 12;
-    const above = rect.top - 12;
-    menu.style.maxHeight = `${Math.max(80, Math.min(360, Math.max(below, above)))}px`;
-    menu.style.top = below >= Math.min(menu.scrollHeight, 280) || below >= above
-        ? `${rect.bottom + 6}px`
-        : `${Math.max(12, rect.top - Math.min(menu.scrollHeight, 360) - 6)}px`;
-}
-
-function setTreeSearchActiveIndex(index)
-{
-    const { input, menu, results } = treeSearchRuntime;
-    if (!menu || !results.length) return;
-    treeSearchRuntime.activeIndex = (index + results.length) % results.length;
-    menu.querySelectorAll('[role="option"]').forEach((option, optionIndex) =>
-    {
-        const active = optionIndex === treeSearchRuntime.activeIndex;
-        option.classList.toggle('is-active', active);
-        option.setAttribute('aria-selected', String(active));
-    });
-    const activeOption = menu.querySelectorAll('[role="option"]')[treeSearchRuntime.activeIndex];
-    input.setAttribute('aria-activedescendant', activeOption.id);
-    activeOption.scrollIntoView({ block: 'nearest' });
-}
-
-function updateTreeSearchResults()
-{
-    const input = treeSearchRuntime.input;
-    const query = input?.value.trim().toLocaleLowerCase();
-    if (!query)
-    {
-        hideTreeSearchResults();
-        return;
-    }
-
-    const projectId = currentFamilyTreeProjectId();
-    const results = getPeople(projectId)
-        .filter(person => !person.deleted)
-        .filter(person =>
-        {
-            const names = [
-                connectPersonName(person),
-                person.names?.first,
-                person.names?.middle,
-                person.names?.last,
-                person.names?.maiden
-            ].filter(Boolean);
-            return [...names, ...names.map(name => translateText(name))]
-                .join(' ').toLocaleLowerCase().includes(query);
-        })
-        .sort((a, b) => connectPersonName(a).localeCompare(connectPersonName(b), state.language))
-        .slice(0, 12);
-    treeSearchRuntime.results = results;
-    treeSearchRuntime.activeIndex = -1;
-    input.removeAttribute('aria-activedescendant');
-
-    const menu = treeSearchRuntime.menu || document.createElement('div');
-    menu.id = 'treeSearchResults';
-    menu.className = 'menu-popover tree-search-results';
-    menu.setAttribute('role', 'listbox');
-    menu.setAttribute('aria-label', t('Search results'));
-    menu.innerHTML = results.length
-        ? results.map((person, index) => `<button id="treeSearchOption${index}" class="tree-recent-person" type="button" role="option" aria-selected="false" tabindex="-1" data-tree-search-person="${escapeHtml(person.id)}">
-              ${renderPersonAvatar(person, 'small-avatar')}
-              <span><strong>${escapeHtml(connectPersonName(person))}</strong><small>${escapeHtml(connectPersonLifeLine(person))}</small></span>
-            </button>`).join('')
-        : `<div class="tree-recent-people-empty" role="status">${escapeHtml(t('No matching people.'))}</div>`;
-    if (!menu.isConnected) document.body.appendChild(menu);
-    treeSearchRuntime.menu = menu;
-    input.setAttribute('aria-controls', menu.id);
-    input.setAttribute('aria-expanded', 'true');
-    localizeUI(menu, { suppressObserverReplay: true });
-    positionTreeSearchResults();
-}
-
-function bindTreeSearch()
-{
-    const input = main.querySelector('#treeSearch');
-    if (!input) return;
-    const controller = new AbortController();
-    const { signal } = controller;
-    treeSearchRuntime.input = input;
-    treeSearchRuntime.controller = controller;
-    let openBeforePointer = null;
-
-    input.addEventListener('input', updateTreeSearchResults, { signal });
-    input.addEventListener('focus', updateTreeSearchResults, { signal });
-    input.addEventListener('pointerdown', () =>
-    {
-        openBeforePointer = Boolean(treeSearchRuntime.menu);
-    }, { signal });
-    input.addEventListener('click', () =>
-    {
-        const wasOpen = openBeforePointer;
-        openBeforePointer = null;
-        if (wasOpen === true) hideTreeSearchResults();
-        else if (!treeSearchRuntime.menu) updateTreeSearchResults();
-    }, { signal });
-    input.addEventListener('keydown', event =>
-    {
-        if (event.key === 'Escape')
-        {
-            if (!treeSearchRuntime.menu) return;
-            event.preventDefault();
-            event.stopPropagation();
-            hideTreeSearchResults();
-        }
-        else if (event.key === 'ArrowDown' || event.key === 'ArrowUp')
-        {
-            if (!treeSearchRuntime.menu) updateTreeSearchResults();
-            if (!treeSearchRuntime.results.length) return;
-            event.preventDefault();
-            setTreeSearchActiveIndex(treeSearchRuntime.activeIndex + (event.key === 'ArrowDown' ? 1 : -1));
-        }
-        else if (event.key === 'Enter' && treeSearchRuntime.menu)
-        {
-            const person = treeSearchRuntime.results[treeSearchRuntime.activeIndex < 0
-                ? 0 : treeSearchRuntime.activeIndex];
-            if (!person) return;
-            event.preventDefault();
-            hideTreeSearchResults();
-            input.value = '';
-            navigateFamilyTreeToPerson(person.id);
-        }
-    }, { signal });
-    document.addEventListener('pointerdown', event =>
-    {
-        if (!input.closest('.app-search-field')?.contains(event.target)
-            && !treeSearchRuntime.menu?.contains(event.target)) hideTreeSearchResults();
-    }, { signal });
-    document.addEventListener('scroll', positionTreeSearchResults, { capture: true, signal });
-    window.addEventListener('resize', positionTreeSearchResults, { signal });
-    document.addEventListener('pointerdown', event =>
-    {
-        const option = event.target.closest('[data-tree-search-person]');
-        if (option && treeSearchRuntime.menu?.contains(option)) event.preventDefault();
-    }, { signal });
-    document.addEventListener('click', event =>
-    {
-        const option = event.target.closest('[data-tree-search-person]');
-        if (!option || !treeSearchRuntime.menu?.contains(option)) return;
-        const personId = option.dataset.treeSearchPerson;
-        hideTreeSearchResults();
-        input.value = '';
-        navigateFamilyTreeToPerson(personId);
-    }, { signal });
-}
 
 let treeMobileMenuController = null;
 
@@ -842,20 +230,19 @@ function openTreePersonPicker(anchor)
     input.focus({ preventScroll: true });
 }
 
-function renderFamilyTree()
+function renderFamilyTree(readyProjection = null)
 {
     appNavigationObserve();
     closeTreeMobileMenu();
-    disposeTreeSearch();
     sidebar.innerHTML = '';
     const treeProjectId =
         currentFamilyTreeProjectId();
-    const treePeopleSource = currentTreePeople();
-    const treeFamiliesSource = currentTreeFamilies();
+    const treePeopleSource = readyProjection?.people || currentTreePeople();
 
     if (!treeProjectId || !treePeopleSource.length)
     {
         disposeTreeElkLayout();
+        disposeTreeRenderer();
         main.innerHTML = `
           <div class="tree-shell tree-shell-empty">
             <section class="tree-empty-state" aria-labelledby="treeEmptyTitle">
@@ -879,8 +266,8 @@ function renderFamilyTree()
     }
 
     const treeViewState = treeProjectViewState(treeProjectId);
-    const focusPersonId = resolveTreeFocusPersonId(treePeopleSource, treeProjectId);
-    const projection = buildFamilyTreeProjection(treePeopleSource, treeFamiliesSource, {
+    const focusPersonId = readyProjection?.focusPersonId || resolveTreeFocusPersonId(treePeopleSource, treeProjectId);
+    const projection = readyProjection || buildFamilyTreeProjection(treePeopleSource, currentTreeFamilies(), {
         focusPersonId,
         ancestorGenerations: treeViewState.ancestorGenerations,
         descendantGenerations: treeViewState.descendantGenerations,
@@ -905,7 +292,7 @@ function renderFamilyTree()
     }
 
     const treeLayout = treeElkLayoutForProjection(treeProjectId, projection, treeViewState);
-    main.innerHTML = `
+    const shellMarkup = () => `
         <div
           class="tree-shell"
           style="
@@ -955,239 +342,105 @@ function renderFamilyTree()
             </div>
           </div>
 
-            <section class="tree-canvas" aria-label="Family tree canvas">
-              ${treeLayout ? `${treeLayout.diagnostics?.length ? `<div class="tree-layout-status" role="status">${escapeHtml(t('Some relationships require review.'))}</div>` : ''}<div class="tree-stage-space" style="width:${treeLayout.stageWidth * state.treeZoom / 100}px;height:${treeLayout.stageHeight * state.treeZoom / 100}px;">
-                <div class="tree-stage" data-detail-level="${treeDetailLevel()}" data-compact-parent="${treeDisplayZoom() < 70}" data-hide-focus="${treeDisplayZoom() <= 50}" style="width:${treeLayout.stageWidth}px;height:${treeLayout.stageHeight}px;transform: scale(${state.treeZoom / 100});--tree-overview-connection-width:${150 / state.treeZoom}px;--tree-overview-parent-border-width:${100 / state.treeZoom}px;--tree-overview-plus-size:${Math.min(70, 1500 / state.treeZoom)}px;--tree-overview-name-size:${Math.min(40, Math.max(22, 1100 / state.treeZoom))}px;">
-                  ${renderTreeLines(treeLayout)}
-                  ${treeLayout.parentPlaceholders.map(renderTreeParentPlaceholder).join('')}
-                  ${treeLayout.positionedPeople.map(renderTreePersonCard).join('')}
-                  ${treeLayout.focusControls.map(renderTreeFocusControl).join('')}
-                </div>
+            <section class="tree-canvas" tabindex="0" aria-label="Family tree canvas">
+              <div class="tree-stage">
+                <svg class="tree-lines" aria-hidden="true"></svg>
+                <div data-tree-placeholders></div>
+                <div data-tree-cards></div>
+                <div data-tree-focus-controls></div>
               </div>
-              ` : `
-                <div class="tree-layout-status" role="status">
-                  ${escapeHtml(t(treeElkRequest?.error ? 'ELK could not lay out this tree.' : 'Calculating tree layout…'))}
-                  ${treeElkRequest?.error ? `<button type="button" class="button secondary" data-tree-retry-layout>${escapeHtml(t('Retry'))}</button>` : ''}
-                </div>`}
+              <div class="tree-layout-status" role="status" hidden></div>
               <div class="tree-zoom">
                 <button class="zoom-button" type="button" data-zoom="out" aria-label="Zoom out">${icon.zoomOut}</button>
-                <div class="zoom-value">${treeDisplayZoom()}%</div>
+                <div class="zoom-value">${Math.round(state.treeZoom)}%</div>
                 <button class="zoom-button" type="button" data-zoom="in" aria-label="Zoom in">${icon.zoomIn}</button>
                 <button class="zoom-button" type="button" data-zoom="fit" aria-label="Fit tree">${icon.home}</button>
                 <button class="zoom-button" type="button" data-tree-fullscreen aria-label="${escapeHtml(t(treeFullscreenRuntime.requested ? 'Exit full screen' : 'Enter full screen'))}" title="${escapeHtml(t(treeFullscreenRuntime.requested ? 'Exit full screen' : 'Enter full screen'))}" aria-pressed="${treeFullscreenRuntime.requested ? 'true' : 'false'}">${treeFullscreenRuntime.requested ? icon.fullscreenExit : icon.expand}</button>
               </div>
             </section>
-            ${renderPersonSidebar(selected.id, 'tree')}
           </div>
         </div>
       `;
-    bindTreeCanvasPan();
-    main.querySelector('.tree-canvas')?.addEventListener('click', event =>
+    let runtime = treeRenderRuntime;
+    const mount = runtime?.projectId !== treeProjectId || !runtime.shell.isConnected;
+    if (mount)
     {
-        if (event.target.closest('button, a, input, select, textarea, [contenteditable="true"]')
-            || event.detail < 2 && !event.target.closest('.tree-person-card'))
+        disposeTreeRenderer();
+        main.innerHTML = shellMarkup();
+        const shell = main.querySelector('.tree-shell');
+        const canvas = shell.querySelector('.tree-canvas');
+        runtime = { projectId: treeProjectId, shell, canvas, stage: canvas.querySelector('.tree-stage'),
+            workspace: shell.querySelector('.tree-workspace'), cards: canvas.querySelector('[data-tree-cards]'),
+            placeholders: canvas.querySelector('[data-tree-placeholders]'), controls: canvas.querySelector('[data-tree-focus-controls]'),
+            lines: canvas.querySelector('.tree-lines'), controller: new AbortController(), contentRevision: 0 };
+        treeRenderRuntime = runtime;
+        bindTreeViewport(runtime);
+        bindTreeRenderer(runtime);
+    }
+    else if (runtime.language !== state.language)
+    {
+        localizeUI(runtime.shell, { suppressObserverReplay: true });
+        updateTreeFullscreenButton();
+    }
+    runtime.language = state.language;
+    runtime.workspace.classList.toggle('has-color-fill', treeViewState.colorFill !== false);
+    runtime.shell.querySelector('.tree-people-status').textContent = familyPeopleCountLabel;
+    updateTreeInspector(runtime, selected);
+    const status = runtime.canvas.querySelector('.tree-layout-status');
+    status.hidden = Boolean(treeLayout && !treeLayout.diagnostics?.length);
+    status.replaceChildren();
+    if (!status.hidden)
+    {
+        status.textContent = t(treeLayout ? 'Some relationships require review.' :
+            treeElkRequest?.error ? 'ELK could not lay out this tree.' : 'Calculating tree layout…');
+        if (!treeLayout && treeElkRequest?.error)
         {
-            treeCardLastClick = null;
-            return;
-        }
-        const previous = treeCardLastClick;
-        if (event.detail < 2 || !previous || previous.projectId !== currentFamilyTreeProjectId()
-            || performance.now() - previous.time > 500
-            || Math.hypot(event.clientX - previous.x, event.clientY - previous.y) > 6) return;
-        // Selection rerenders the cards before the second click can reach its original target.
-        event.preventDefault();
-        event.stopImmediatePropagation();
-        treeCardLastClick = null;
-        setTreeFocusPerson(previous.personId);
-    }, true);
-    main.querySelector('.tree-canvas')?.addEventListener('wheel', queueTreeWheelZoom, { passive: false });
-    main
-        .querySelectorAll('.tree-person-card[data-person-id]')
-        .forEach(card =>
-        {
-            const selectCard = () =>
-            {
-                const occurrenceId = card.dataset.treeOccurrenceId;
-                const restoreFocus = document.activeElement === card;
-                navigateFamilyTreeToPerson(
-                    card.dataset.personId,
-                    {
-                        focusBranch: false,
-                        center: false
-                    }
-                );
-                if (restoreFocus && !card.isConnected)
-                {
-                    const replacement = main.querySelector(`.tree-person-card[data-tree-occurrence-id="${CSS.escape(occurrenceId)}"]`);
-                    (replacement || treePrimaryPersonCard(card.dataset.personId))?.focus({ preventScroll: true });
-                }
-            };
-
-            card.addEventListener('click', event =>
-            {
-                if (event.target.closest('button, a, input, select, textarea, [contenteditable="true"]'))
-                {
-                    treeCardLastClick = null;
-                    return;
-                }
-                const projectId = currentFamilyTreeProjectId();
-                treeCardLastClick = event.detail > 0 ? {
-                    projectId, personId: card.dataset.personId, time: performance.now(), x: event.clientX, y: event.clientY
-                } : null;
-                selectCard();
-            });
-
-            card.addEventListener('dblclick', event =>
-            {
-                if (event.target.closest('button, a, input, select, textarea, [contenteditable="true"]')) return;
-                event.preventDefault();
-                treeCardLastClick = null;
-                setTreeFocusPerson(card.dataset.personId);
-            });
-
-            card.addEventListener('keydown', event =>
-            {
-                if (
-                    event.target !== card ||
-              !['Enter', ' '].includes(event.key)
-                )
-                {
-                    return;
-                }
-
-                event.preventDefault();
-                selectCard();
-            });
-        });
-    main
-        .querySelectorAll('[data-card-add]')
-        .forEach(button =>
-            button.addEventListener(
-                'click',
-                event =>
-                {
-                    event.stopPropagation();
-
-                    const card =
-                        button.closest(
-                            '[data-person-id]'
-                        );
-
-                    const anchorPersonId =
-                        card?.dataset.personId
-                || state.selectedPersonId;
-
-                    if (!anchorPersonId) return;
-
-                    const currentFocusId = treeProjectViewState().focusPersonId;
-                    if (currentFocusId !== anchorPersonId)
-                    {
-                        treeRelativeIntent = { projectId: treeProjectId, personId: anchorPersonId };
-                        focusTreeBranchForRelative(anchorPersonId);
-                        return;
-                    }
-
-                    state.selectedPersonId = anchorPersonId;
-
-                    openRelativePopover(
-                        button,
-                        anchorPersonId
-                    );
-                }
-            )
-        );
-    main.querySelectorAll('[data-card-edit]').forEach(button => button.addEventListener('click', e =>
-    {
-        e.stopPropagation();
-        openEditPersonModal(button.dataset.cardEdit);
-    }));
-    main.querySelectorAll('[data-tree-card-focus]').forEach(button => button.addEventListener('click', event =>
-    {
-        event.stopPropagation();
-        const personId = button.dataset.treeCardFocus;
-        if (personId) setTreeFocusPerson(personId);
-    }));
-    main.querySelectorAll('[data-add-relative]').forEach(button => button.addEventListener('click', () =>
-    {
-        const target = personById(button.dataset.personId || state.selectedPersonId);
-        if (target?.id) focusTreeBranchForRelative(target.id);
-        openAddPersonModal(`Add ${button.dataset.addRelative}`, `Create a new person and add as ${target.name.split(' ')[0]}'s ${button.dataset.addRelative}`, { relativeType: button.dataset.addRelative, personId: target.id });
-    }));
-    main.querySelectorAll('[data-tree-view]').forEach(button => button.addEventListener('click', () =>
-    {
-        if (button.dataset.treeView !== 'Classic') return;
-        state.treeView = 'Classic';
-        renderFamilyTree();
-    }));
-    main.querySelectorAll('[data-zoom]').forEach(button => button.addEventListener('click', () =>
-    {
-        if (button.dataset.zoom === 'fit')
-        {
-            setTreeZoom(treePhysicalZoom(100));
-            centerTreeOnPerson(treeProjectViewState().focusPersonId);
-            return;
-        }
-        setTreeZoom(treePhysicalZoom(treeDisplayZoom() + (button.dataset.zoom === 'in' ? 10 : -10)));
-    }));
-    main.querySelector('[data-tree-fullscreen]')?.addEventListener('click', toggleTreeFullscreen);
-    main.querySelector('[data-tree-person-picker]')?.addEventListener('click', event =>
-    {
-        event.stopPropagation();
-        openTreePersonPicker(event.currentTarget);
-    });
-    if (treeLayout)
-    {
-        const appearances = new Map(treeLayout.positionedPeople.map(person => [person.id, person]));
-        main.querySelectorAll('[data-tree-expand-ancestry]').forEach(button => button.addEventListener('click', () =>
-        {
-            const card = button.closest('[data-tree-occurrence-id]');
-            const appearance = appearances.get(card.dataset.treeOccurrenceId);
-            if (!appearance?.hasParents || appearance.expanded || !appearance.preferredContext) return;
-            if (document.activeElement === button) treeViewState.ancestryFocusReturn = appearance.id;
-            captureTreeCanvasScroll(treeProjectId);
-            (treeViewState.ancestryExpansion ??= new Map()).set(appearance.canonicalPersonId, appearance.preferredContext);
-            renderFamilyTree();
-        }));
-        if (treeViewState.ancestryFocusReturn)
-        {
-            const id = CSS.escape(treeViewState.ancestryFocusReturn);
-            delete treeViewState.ancestryFocusReturn;
-            main.querySelector('[data-tree-occurrence-id="' + id + '"]')?.focus({ preventScroll: true });
+            const retry = document.createElement('button');
+            retry.type = 'button';
+            retry.className = 'button secondary';
+            retry.dataset.treeRetryLayout = '';
+            retry.textContent = t('Retry');
+            status.append(retry);
         }
     }
-    main.querySelector('[data-tree-settings]')?.addEventListener('click', openTreeSettingsModal);
-    main.querySelector('[data-tree-retry-layout]')?.addEventListener('click', () =>
+    runtime.stage.hidden = !treeLayout;
+    if (!treeLayout)
     {
-        disposeTreeElkLayout();
-        renderFamilyTree();
-    });
-    bindPersonSidebar(main, 'tree');
-    const centerTargetId =
-        state.treeCenterTargetId;
-
-    if (treeLayout) state.treeCenterTargetId = '';
-
-    if (treeLayout && centerTargetId)
-    {
-        centerTreeOnPerson(centerTargetId);
+        runtime.scene = null;
+        if (runtime.stage.contains(document.activeElement)) runtime.canvas.focus({ preventScroll: true });
+        return;
     }
-    else if (
-        treeLayout && treeViewState.canvasScroll
-    )
+    runtime.contentRevision++;
+    runtime.scene = createTreeRenderScene(treeLayout);
+    runtime.request = treeElkRequest;
+    runtime.focusId = focusPersonId;
+    runtime.ancestors = treeViewState.ancestorGenerations;
+    runtime.descendants = treeViewState.descendantGenerations;
+    runtime.cousins = treeViewState.showCousins;
+    runtime.stage.style.width = runtime.scene.width + 'px';
+    runtime.stage.style.height = runtime.scene.height + 'px';
+    runtime.lines.setAttribute('viewBox', '0 0 ' + runtime.scene.width + ' ' + runtime.scene.height);
+    updateTreeViewportLimits(runtime);
+    const centerTarget = state.treeCenterTargetId;
+    state.treeCenterTargetId = '';
+    if (centerTarget) centerTreeOnOccurrence(runtime.scene.primaryByPerson.get(centerTarget), false);
+    else if (treeViewState.canvasScroll && runtime.bookmark !== treeViewState.canvasScroll)
+        restoreTreeCanvasScroll(treeViewState.canvasScroll);
+    else if (!runtime.hasScene) centerTreeOnOccurrence(runtime.scene.primaryByPerson.get(focusPersonId), false);
+    runtime.bookmark = treeViewState.canvasScroll;
+    runtime.hasScene = true;
+    flushTreeViewport(runtime);
+    if (treeViewState.ancestryFocusReturn)
     {
-        restoreTreeCanvasScroll(
-            treeViewState.canvasScroll
-        );
+        const occurrenceId = treeViewState.ancestryFocusReturn;
+        const selector = '[data-tree-occurrence-id="' + CSS.escape(occurrenceId) + '"]';
+        delete treeViewState.ancestryFocusReturn;
+        if (!runtime.cards.querySelector(selector)) centerTreeOnOccurrence(runtime.scene.byOccurrence.get(occurrenceId));
+        runtime.cards.querySelector(selector)?.focus({ preventScroll: true });
     }
-    const canvas = main.querySelector('.tree-canvas');
-    canvas?.addEventListener('scroll', () =>
-    {
-        treeFullscreenRuntime.center = treeFullscreenCenter();
-    }, { passive: true });
-    treeFullscreenRuntime.center = treeFullscreenCenter();
     if (treeRelativeIntent && (treeRelativeIntent.projectId !== treeProjectId || treeRelativeIntent.personId !== focusPersonId))
         treeRelativeIntent = null;
-    if (treeLayout && treeRelativeIntent)
+    if (treeRelativeIntent)
     {
         const { personId } = treeRelativeIntent;
         treeRelativeIntent = null;
@@ -1222,57 +475,6 @@ function treePartnerConnectorClass(family)
     return dashed ? 'tree-line partner is-separated-or-divorced' : 'tree-line partner';
 }
 
-function renderTreeLines(layout)
-{
-    const descriptors = layout.connectorDescriptors;
-    // A short gap in the horizontal route distinguishes a crossing
-    // from a junction. Keep the original geometry for diagnostics.
-    const vertical = descriptors.flatMap(descriptor => descriptor.points.slice(1).flatMap((end, index) =>
-    {
-        const start = descriptor.points[index];
-        return start.x === end.x && start.y !== end.y
-            ? [{ familyId: descriptor.familyOccurrenceId || descriptor.familyId, x: start.x, top: Math.min(start.y, end.y), bottom: Math.max(start.y, end.y) }]
-            : [];
-    }));
-    const halfGap = TREE_GEOMETRY.connectorLaneGap / 2;
-    function displayPath(descriptor)
-    {
-        if (descriptor.role === 'partner') return descriptor.d;
-        let path = 'M' + descriptor.points[0].x + ' ' + descriptor.points[0].y;
-        for (let index = 1; index < descriptor.points.length; index++)
-        {
-            const start = descriptor.points[index - 1];
-            const end = descriptor.points[index];
-            if (start.x === end.x) { path += ' V' + end.y; continue; }
-            if (start.y !== end.y) { path += ' L' + end.x + ' ' + end.y; continue; }
-            const direction = Math.sign(end.x - start.x);
-            const length = Math.abs(end.x - start.x);
-            const crossings = vertical.filter(line => line.familyId !== (descriptor.familyOccurrenceId || descriptor.familyId)
-                && start.y > line.top && start.y < line.bottom)
-                .map(line => (line.x - start.x) * direction)
-                .filter(distance => distance > halfGap && distance < length - halfGap)
-                .sort((left, right) => left - right);
-            let cursor = 0;
-            for (let index = 0; index < crossings.length; index++)
-            {
-                const before = crossings[index] - halfGap;
-                let after = crossings[index] + halfGap;
-                while (crossings[index + 1] - halfGap <= after)
-                    after = crossings[++index] + halfGap;
-                if (before > cursor) path += ' H' + (start.x + direction * before);
-                path += ' M' + (start.x + direction * after) + ' ' + end.y;
-                cursor = after;
-            }
-            path += ' H' + end.x;
-        }
-        return path;
-    }
-    const paths = descriptors.map(descriptor => `<path class="${descriptor.className}" data-tree-family-id="${escapeHtml(String(descriptor.familyId || ''))}" data-tree-connection-role="${escapeHtml(descriptor.role)}" ${descriptor.childId ? `data-tree-child-id="${escapeHtml(descriptor.childId)}"` : ''} d="${displayPath(descriptor)}"/>`);
-    return `<svg class="tree-lines" viewBox="0 0 ${layout.stageWidth} ${layout.stageHeight}" width="${layout.stageWidth}" height="${layout.stageHeight}" aria-hidden="true">
-        ${paths.join('\n        ')}
-      </svg>`;
-}
-
 function renderTreeParentPlaceholder(placeholder)
 {
     const target = personById(placeholder.personId);
@@ -1293,7 +495,7 @@ function renderTreeFocusControl(control)
 }
 
 function renderTreePersonCard(
-    person
+    person, { portrait = true } = {}
 )
 {
     const personId = person.canonicalPersonId || person.id;
@@ -1348,10 +550,10 @@ function renderTreePersonCard(
               ? `<button type="button" class="tree-occurrence-badge" data-tree-expand-ancestry aria-label="${escapeHtml(t('Show ancestry here'))}" title="${escapeHtml(t('Show ancestry here'))}">×${person.occurrenceCount}</button>`
               : repeated ? `<span class="tree-occurrence-badge" ${person.hasParents ? `title="${escapeHtml(t('Ancestry shown here'))}"` : 'aria-hidden="true"'}>×${person.occurrenceCount}</span>` : ''}
           <div class="tree-card-avatar-stack">
-            ${renderPersonAvatar(
+            ${portrait ? renderPersonAvatar(
                 person.canonicalPersonId ? { ...person, id: personId } : person,
                 'tree-avatar'
-            )}
+            ) : '<div class="person-avatar tree-avatar" aria-hidden="true"></div>'}
 
             ${
                 focused && primary

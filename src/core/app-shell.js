@@ -573,6 +573,7 @@ function render()
     {
         exitTreeFullscreen();
         disposeTreeElkLayout();
+        disposeTreeRenderer();
         treeRelativeIntent = null;
     }
     if (typeof archiveImageSyncLifecycle === 'function') archiveImageSyncLifecycle();
@@ -581,7 +582,6 @@ function render()
         closeMobileSurface(false);
     geneoProductTourOnRender();
     closeMenu();
-    disposeTreeSearch();
 
     if (state.activeModule !== 'Notes')
     {

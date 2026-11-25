@@ -395,18 +395,11 @@
 }
 
 .tree-stage {
-    position: relative;
+    position: absolute;
+    inset: 0 auto auto 0;
     min-width: 0;
     min-height: 0;
     transform-origin: 0 0;
-}
-
-.tree-stage-space {
-    position: relative;
-    flex: none;
-    margin: auto;
-    min-width: 0;
-    min-height: 0;
 }
 
 .tree-lines {
