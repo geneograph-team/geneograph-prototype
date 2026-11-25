@@ -111,3 +111,9 @@ Connectors share straight segments at family junctions. Eligible elbows use up t
 The 300 × 124 card geometry is stable. Full, Short, Compact, Actions-only and Label require both approved dimensions. Their exact scale boundaries are 278/300, 228/300, 174/300, 46/124 and 48/300. There is no hysteresis. The four action-bearing stages use 28, 32, 42 and 66 layout-unit target sides, each providing at least 24 CSS pixels at its minimum scale. Standalone Focus keeps its existing anchor and visibility above 60%.
 
 The portrait slot is 54 × 72 layout units. Initials switch to one below 44 rendered CSS pixels of width. The Tree holds the last decoded derivative while another tier for the same subject and crop is pending or fails. Returning after Compact can reuse a ready compatible tier. A source or crop revision releases the earlier derivative. The existing structured date model supplies card date variants and accessible detail. Card category and placeholder tint custom properties are available for #405.
+
+### Progressive branch colors (#405)
+
+Canonical biological father and mother role hints feed the bounded project graph. The resolver uses four fixed splitting levels and visited person and slot states deeper in the graph. Project session preferences retain a reference independent of focus and migrate legacy fill without changing the outline and connector defaults. An absent or deleted reference resolves to neutral and can be replaced in settings.
+
+The graph is revalidated after a committed edit. Visual parent and child endpoints carry branch attribution separately from ELK geometry. Ambiguous appearances and merged routes stay neutral. Color-only saves patch keyed nodes and the legend. Theme palettes are CSS tokens and initials mix 33% into the neutral surface.

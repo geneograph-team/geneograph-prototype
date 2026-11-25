@@ -338,6 +338,7 @@ function renderFamilyTree(readyProjection = null)
             <div class="tree-toolbar-right">
               <label class="tree-view-mobile">${icon.tree}<select aria-label="${escapeHtml(t('Tree view mode'))}"><option value="Classic">${escapeHtml(t('Classic'))}</option><option value="Pedigree" disabled>${escapeHtml(t('Pedigree'))}</option><option value="Fan" disabled>${escapeHtml(t('Fan'))}</option></select>${icon.chevron}</label>
               <span class="tree-people-status" role="status" aria-label="${escapeHtml(t('People in project'))}: ${escapeHtml(familyPeopleCountLabel)}" title="${escapeHtml(t('People in project'))}">${escapeHtml(familyPeopleCountLabel)}</span>
+              <details class="tree-branch-legend" hidden data-i18n-skip><summary></summary><div class="tree-branch-legend-content"></div></details>
               <button class="tree-icon-button tree-display-settings" type="button" data-tree-settings aria-label="${escapeHtml(t('Tree display settings'))}" title="${escapeHtml(t('Tree display settings'))}">${icon.slidersHorizontal}</button>
             </div>
           </div>
@@ -383,7 +384,6 @@ function renderFamilyTree(readyProjection = null)
         updateTreeFullscreenButton();
     }
     runtime.language = state.language;
-    runtime.workspace.classList.toggle('has-color-fill', treeViewState.colorFill !== false);
     runtime.shell.querySelector('.tree-people-status').textContent = familyPeopleCountLabel;
     updateTreeInspector(runtime, selected);
     const status = runtime.canvas.querySelector('.tree-layout-status');
@@ -413,6 +413,7 @@ function renderFamilyTree(readyProjection = null)
     }
     runtime.contentRevision++;
     runtime.scene = createTreeRenderScene(treeLayout);
+    refreshTreeColors(runtime);
     runtime.request = treeElkRequest;
     runtime.focusId = focusPersonId;
     runtime.ancestors = treeViewState.ancestorGenerations;

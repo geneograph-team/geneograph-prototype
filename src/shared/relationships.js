@@ -13,7 +13,7 @@ function familyPartnerBId(family)
     return family?.partnerBId || '';
 }
 
-function familyPartnerRole(family, personId)
+function familyPartnerRole(family, personId, { explicitOnly = false } = {})
 {
     if (!family || !personId) return '';
     const partnerA = familyPartnerAId(family);
@@ -25,6 +25,7 @@ function familyPartnerRole(family, personId)
             : '';
     if (hint === 'HUSB') return 'father';
     if (hint === 'WIFE') return 'mother';
+    if (explicitOnly) return '';
     const gender = String(getPerson(personId)?.gender || '').toLowerCase();
     if (gender === 'male') return 'father';
     if (gender === 'female') return 'mother';

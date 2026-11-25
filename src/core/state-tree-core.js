@@ -704,6 +704,23 @@ function openTreeSettingsModal()
     const projectId = currentFamilyTreeProjectId();
     const view = treeProjectViewState(projectId);
     const focusPerson = getPerson(view.focusPersonId);
+    const colors = treeColorSettings(projectId, view);
+    let reference = colors.reference;
+    const referenceSchema = [{
+        key: 'reference', label: 'Branch reference person', control: 'combobox', layout: 'full',
+        placeholder: 'Search people', defaultValue: '',
+        getOptions: () => getPeople(projectId).map(person => ({
+            value: person.id, label: formatPersonFullName(person) || t('Unnamed person')
+        }))
+    }];
+    const referencePicker = { schema: referenceSchema, values: { reference }, prefix: 'tree-branch-person' };
+    const option = (value, selected, label = value) =>
+        `<option value="${value}" ${value === selected ? 'selected' : ''}>${escapeHtml(t(label))}</option>`;
+    const channel = (key, label, allowGender) => `<div class="field">
+        <label for="tree-color-${key}">${escapeHtml(t(label))}</label>
+        <select id="tree-color-${key}">${option('neutral', colors[key], 'Neutral')}
+            ${allowGender ? option('gender', colors[key], 'Gender') : ''}${option('branch', colors[key], 'Branch')}</select>
+    </div>`;
 
     openModal(`<div class="modal tree-settings-modal" role="dialog" aria-modal="true" aria-labelledby="treeSettingsTitle">
         <div class="modal-header">
@@ -738,13 +755,19 @@ function openTreeSettingsModal()
                 <small>Collateral branches are limited to cousins of the current focus person.</small>
               </span>
             </label>
-            <label class="tree-settings-check">
-              <input id="treeColorFill" type="checkbox" ${view.colorFill !== false ? 'checked' : ''}>
-              <span>
-                <strong>Color fill</strong>
-                <small>Fill person cards with their gender color. Turn off to keep neutral cards with colored borders.</small>
-              </span>
-            </label>
+            <fieldset class="tree-branch-settings">
+              <legend>${escapeHtml(t('Branch coloring'))}</legend>
+              ${renderSharedFilterFields(referencePicker)}
+              <div class="field">
+                <label for="treeBranchPreset">${escapeHtml(t('Branch count'))}</label>
+                <select id="treeBranchPreset">${TREE_BRANCH_PRESETS.map(value => option(value, colors.preset, String(value))).join('')}</select>
+              </div>
+              <label class="tree-settings-check"><input id="treeBranchCollateral" type="checkbox" ${colors.collateral ? 'checked' : ''}>
+                <strong>${escapeHtml(t('Include collateral relatives'))}</strong>
+              </label>
+              <div class="tree-color-channels">${channel('fill', 'Fill', true)}${channel('outline', 'Outline', true)}
+                ${channel('connectors', 'Connectors', false)}</div>
+            </fieldset>
           </div>
           <div class="modal-footer">
             <button class="button secondary" type="button" data-close>Cancel</button>
@@ -753,9 +776,11 @@ function openTreeSettingsModal()
         </form>
       </div>`);
 
+    bindSharedFilterFields(modalBackdrop, { ...referencePicker, onChange: next => { reference = next.reference; } });
     modalBackdrop.querySelector('#treeSettingsForm')?.addEventListener('submit', event =>
     {
         event.preventDefault();
+        const previousStructure = [view.ancestorGenerations, view.descendantGenerations, view.showCousins];
         const ancestorValue = Number(modalBackdrop.querySelector('#treeAncestorGenerations')?.value);
         const descendantValue = Number(modalBackdrop.querySelector('#treeDescendantGenerations')?.value);
         view.ancestorGenerations = clampNumber(
@@ -769,10 +794,19 @@ function openTreeSettingsModal()
             TREE_DESCENDANT_GENERATION_MAX
         );
         view.showCousins = Boolean(modalBackdrop.querySelector('#treeShowCousins')?.checked);
-        view.colorFill = Boolean(modalBackdrop.querySelector('#treeColorFill')?.checked);
-        state.treeCenterTargetId = view.focusPersonId;
+        const preset = Number(modalBackdrop.querySelector('#treeBranchPreset').value);
+        colors.reference = getPerson(reference)?.projectId === projectId ? reference : '';
+        colors.preset = TREE_BRANCH_PRESETS.includes(preset) ? preset : 4;
+        colors.collateral = modalBackdrop.querySelector('#treeBranchCollateral').checked;
+        for (const key of ['fill', 'outline', 'connectors']) colors[key] = modalBackdrop.querySelector('#tree-color-' + key).value;
         closeModal();
-        renderFamilyTree();
+        if (view.ancestorGenerations !== previousStructure[0] || view.descendantGenerations !== previousStructure[1]
+            || view.showCousins !== previousStructure[2])
+        {
+            state.treeCenterTargetId = view.focusPersonId;
+            renderFamilyTree();
+        }
+        else refreshTreeColors(treeRenderRuntime);
     });
 }
 

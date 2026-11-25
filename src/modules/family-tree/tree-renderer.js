@@ -206,7 +206,9 @@ function createTreeRenderScene(layout)
         left: Math.min(rect.left, next.left), right: Math.max(rect.right, next.right),
         top: Math.min(rect.top, next.top), bottom: Math.max(rect.bottom, next.bottom)
     }), { left: Infinity, top: Infinity, right: -Infinity, bottom: -Infinity });
-    return { cards, placeholders, controls, paths, bounds,
+    const colorFamilies = layout.colorFamilies || [];
+    return { cards, placeholders, controls, paths, bounds, colorFamilies,
+        colorFamilyById: new Map(colorFamilies.map(family => [family.id, family])),
         width: layout.stageWidth, height: layout.stageHeight,
         byOccurrence: new Map(cards.map(card => [card.id, card])),
         primaryByPerson: new Map(cards.filter(card => card.primary !== false)
@@ -291,6 +293,7 @@ function renderTreeViewport(runtime)
         .attr('data-tree-child-id', path => path.childIds?.length === 1 ? path.childIds[0] : null)
         .attr('data-tree-child-ids', path => path.childIds?.length > 1 ? JSON.stringify(path.childIds) : null)
         .attr('d', path => path.d);
+    paintTreeColors(runtime);
 }
 function bindTreeRenderer(runtime)
 {

@@ -1,4 +1,15 @@
 const RU_UI_FAMILY_TREE = {
+    'Branch coloring': 'Цвета ветвей',
+    'Branch reference person': 'Исходный человек для ветвей',
+    'Branch count': 'Количество ветвей',
+    'Include collateral relatives': 'Включать боковые ветви',
+    'Outline': 'Контур',
+    'Connectors': 'Линии связей',
+    'Branch': 'Ветвь',
+    'Branch legend': 'Легенда ветвей',
+    'Vacant branch origin': 'Предок не указан',
+    'Choose a branch reference in Tree Settings.': 'Выберите исходного человека в настройках древа.',
+    'Neutral includes missing, unrelated and ambiguous paths.': 'Нейтральный цвет обозначает отсутствующие, неродственные и неоднозначные ветви.',
     'Recently viewed people selector will open here.':
         'Здесь откроется список недавно просмотренных людей.',
 

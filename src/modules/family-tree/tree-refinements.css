@@ -372,12 +372,12 @@ html.tree-fullscreen .tree-shell {
 }
 
 .tree-line {
-    stroke: var(--tree-connection);
+    stroke: var(--tree-branch-stroke, var(--tree-connection));
     stroke-width: 3.2;
 }
 
 .tree-line.partner {
-    stroke: var(--tree-connection-partner);
+    stroke: var(--tree-branch-stroke, var(--tree-connection-partner));
 }
 
 .tree-line.partner.is-separated-or-divorced {
@@ -386,7 +386,7 @@ html.tree-fullscreen .tree-shell {
 
 .tree-person-card {
     --tree-gender-border: var(--gg-accent-creative-blue-outline);
-    border: 2px solid var(--tree-gender-border);
+    border: 2px solid var(--tree-outline-category, var(--tree-gender-border));
 }
 
 .tree-person-card.female {
@@ -609,7 +609,7 @@ html.tree-fullscreen .tree-shell {
     border: 0;
     color: var(--text-primary);
     font-size: 23px;
-    background: color-mix(in oklab, var(--tree-placeholder-tint) 15%, var(--surface-card));
+    background: color-mix(in oklab, var(--tree-placeholder-tint) 33%, var(--surface-card));
 }
 
 .tree-card-avatar-stack > .tree-avatar.has-photo {
@@ -882,7 +882,7 @@ html.tree-fullscreen .tree-shell {
 }
 
 .tree-line.descendant {
-    stroke: var(--tree-connection);
+    stroke: var(--tree-branch-stroke, var(--tree-connection));
 }
 
 @media (max-width: 1400px) {
@@ -1435,4 +1435,133 @@ html.tree-fullscreen .tree-shell {
 
 .tree-layout-status[hidden], .tree-stage[hidden] {
     display: none;
+}
+
+/* Project Tree color channels. */
+.tree-shell {
+    --tree-branch-1: #3976ad;
+    --tree-branch-2: #b75e81;
+    --tree-branch-3: #278275;
+    --tree-branch-4: #ad782c;
+    --tree-branch-5: #7958b1;
+    --tree-branch-6: #ad503f;
+    --tree-branch-7: #548531;
+    --tree-branch-8: #3987a7;
+    --tree-branch-9: #9b6689;
+    --tree-branch-10: #697fbd;
+    --tree-branch-11: #8e8331;
+    --tree-branch-12: #328f9d;
+    --tree-branch-13: #a55778;
+    --tree-branch-14: #6a925f;
+    --tree-branch-15: #b76e39;
+    --tree-branch-16: #8177a2;
+    --tree-branch-neutral: #87938b;
+}
+
+:root[data-theme="dark"] .tree-shell {
+    --tree-branch-1: #71b2eb;
+    --tree-branch-2: #e98eaf;
+    --tree-branch-3: #59c3b0;
+    --tree-branch-4: #e6b75b;
+    --tree-branch-5: #bba0f1;
+    --tree-branch-6: #ed927c;
+    --tree-branch-7: #a6c96b;
+    --tree-branch-8: #70c7e6;
+    --tree-branch-9: #d7a0d0;
+    --tree-branch-10: #9baee9;
+    --tree-branch-11: #d0c96b;
+    --tree-branch-12: #6dcfcb;
+    --tree-branch-13: #e9a2b4;
+    --tree-branch-14: #a1c49a;
+    --tree-branch-15: #efad79;
+    --tree-branch-16: #b6acd6;
+    --tree-branch-neutral: #828f86;
+}
+
+.tree-workspace[data-tree-fill="neutral"] .tree-stage:not([data-detail-level="label"], [data-detail-level="marker"]) .tree-person-card {
+    --tree-overview-fill: 0%;
+}
+
+:root[data-theme="light"] .tree-workspace:is([data-tree-fill="branch"], [data-tree-fill="neutral"])
+.tree-stage[data-detail-level="label"] .tree-person-card:not(.selected) {
+    color: black;
+}
+
+.tree-branch-settings {
+    min-width: 0;
+    margin: 0;
+    padding: 12px;
+    display: grid;
+    gap: 12px;
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-sm);
+}
+
+.tree-branch-settings legend {
+    padding-inline: 5px;
+    font-weight: 700;
+}
+
+.tree-color-channels {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 112px), 1fr));
+    gap: 10px;
+}
+
+.tree-branch-legend {
+    position: relative;
+    font-size: 13px;
+}
+
+.tree-branch-legend summary {
+    cursor: pointer;
+    padding: 8px;
+}
+
+.tree-branch-legend-content {
+    position: absolute;
+    inset-inline-end: 0;
+    z-index: 40;
+    width: min(300px, calc(100vw - 70px));
+    max-height: min(65vh, 420px);
+    overflow: auto;
+    padding: 12px;
+    background: var(--surface-card);
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-sm);
+    box-shadow: 0 5px 16px color-mix(in srgb, var(--gg-scrim) 16%, transparent);
+}
+
+.tree-branch-legend-content ul {
+    padding: 0;
+    margin: 8px 0;
+    list-style: none;
+    display: grid;
+    gap: 6px;
+}
+
+.tree-branch-legend-content li {
+    display: grid;
+    grid-template-columns: 12px 2ch minmax(0, 1fr);
+    align-items: start;
+    gap: 6px;
+}
+
+.tree-branch-legend-content p {
+    margin: 0;
+    color: var(--text-secondary);
+}
+
+.tree-branch-neutral-swatch {
+    --tree-swatch: var(--tree-branch-neutral);
+    display: inline-block;
+    margin-inline-end: 6px;
+}
+
+.tree-branch-swatch {
+    width: 12px;
+    height: 12px;
+    margin-block-start: 2px;
+    border-radius: 3px;
+    background: var(--tree-swatch);
 }

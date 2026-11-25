@@ -2,10 +2,12 @@
 // Track committed edits for the remainder of the browser session. Do not treat
 // navigation, filtering, selection or project viewing as edits.
 let prototypeSessionHasEdits = false;
+let prototypeSessionEditRevision = 0;
 let prototypeSessionUnloadListening = false;
 
 function markPrototypeSessionEdited()
 {
+    prototypeSessionEditRevision++;
     invalidateLinkedPlaceDismissals();
     if (prototypeSessionHasEdits) return;
     prototypeSessionHasEdits = true;

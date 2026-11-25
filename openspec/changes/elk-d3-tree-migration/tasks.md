@@ -11,7 +11,7 @@ Architecture planning (#398) is merged. Implementation and verification are trac
 - [x] #400: incremental D3 renderer and actual-scale viewport.
 - [ ] #401: local derivatives and image lifecycle implemented. Packaged photos under direct file opening remain a browser compatibility gap.
 - [x] #402: implement approved cards/date/zoom, verify thresholds and accessibility.
-- [ ] #405: project-level coloring and channel/legend behavior.
+- [x] #405: project-level coloring and channel/legend behavior.
 - [ ] #403: integrate both orientations, actual browser/geometry and stress QA, founder acceptance.
 - [ ] #407: remove remaining legacy paths, reconcile current specs and preview change, final documentation, QA and archive.
 
@@ -57,3 +57,10 @@ Inspected current pushed default, repository and OpenSpec guidance, preview desi
 - Edge passed the six semantic zoom boundaries on loopback and direct-file opening using Whiskerfield and synthetic long Cyrillic names, dates and photos. Verified 3:4 geometry, adaptive initials, accessible full identity, date precision, action targets, Edit, Add relative and keyboard focus fallback. Card and geometry identities were stable during zoom.
 - Verified the 96 × 128 portrait through delayed and failed 256-tier generation, cached return after Compact, successful decoded swap to 384 × 512, and invalidation on corrupt source replacement.
 - Edge regressions covered duplicate transfer, original viewer/editor media, wheel anchoring, touch pinch, Fit, fullscreen and project disposal. Renderer, ELK, occurrence and localization checks passed. Reviewed EN dark and RU light Whiskerfield captures. Bundled photos under direct-file opening retain the existing #401 fallback in Edge. Production horizontal QA remains with #403.
+
+## Verification of #405
+
+- A deterministic 63-person pedigree passed the four slot sequences through five generations. Verified vacant origins, the maternal grandfather in slot 2, explicit-role conflicts, bounded cycles and unique or mixed collateral paths. Single- and two-parent GEDCOM fixtures kept their distinct occurrence colors through ancestry-owner transfer in Edge. Matching routed fragments were colored.
+- Edge verified independent channels, the project reference search, legend, focus independence, retained portraits, and unchanged scene geometry during color-only saves. Whiskerfield computed styles showed distinct initials tiles in Gender, Branch and Neutral fill in both themes. The initials tint is 33%, versus 13% detailed categorized card fill. Legacy neutral detail keeps its neutral surface. Sixteen hues were reviewed as palette samples and are not assumed universally distinguishable.
+- A role-labeled 1,023-person, 511-family stress fixture recorded 1,023 state visits, 1.4 ms resolution, 10.1 ms first color refresh and 0.2 ms cached restyle with three mounted cards and five paths. Zero structural projections ran during those changes.
+- Renderer, ELK, occurrence, localization, portrait and semantic zoom regressions passed. Settings persist in the existing project session view. Durable reload persistence, private import and production horizontal behavior were not verified.

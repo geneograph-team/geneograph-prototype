@@ -171,7 +171,14 @@ function adaptElkTreeLayout(model, layout, projection)
             className: partner && family ? treePartnerConnectorClass(family) : partner ? 'tree-line partner' : 'tree-line descendant',
             childId: path.role === 'child' ? records.get(path.person)?.id : undefined };
     });
-    return { stageWidth: Math.ceil(layout.width), stageHeight: Math.ceil(layout.height),
+    const occurrenceIds = new Map(model.people.map(person => [person.id, person.occurrenceId || person.id]));
+    const colorFamilies = model.families.map(family => ({
+        id: family.familyOccurrenceId || family.id,
+        canonicalId: family.canonicalFamilyId,
+        parents: family.parents.map(id => occurrenceIds.get(id)),
+        children: family.children.map(id => occurrenceIds.get(id))
+    }));
+    return { stageWidth: Math.ceil(layout.width), stageHeight: Math.ceil(layout.height), colorFamilies,
         positionedPeople, parentPlaceholders, focusControls, connectorDescriptors,
         diagnostics: [...layout.issues, ...model.deferred.map(item => item.reason)] };
 }
