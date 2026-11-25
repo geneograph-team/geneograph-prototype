@@ -334,6 +334,7 @@ function bindTreeRenderer(runtime)
                 openRelativePopover(button, personId);
             }
         }
+        else if (button.dataset.treeView) setTreeOrientation(button.dataset.treeView);
         else if (button.dataset.treeCardFocus) setTreeFocusPerson(button.dataset.treeCardFocus);
         else if (button.dataset.addRelative)
         {
@@ -358,6 +359,10 @@ function bindTreeRenderer(runtime)
             disposeTreeElkLayout();
             renderFamilyTree();
         }
+    }, { signal });
+    runtime.shell.addEventListener('change', event =>
+    {
+        if (event.target.matches('[data-tree-orientation]')) setTreeOrientation(event.target.value);
     }, { signal });
     runtime.canvas.addEventListener('dblclick', event =>
     {
@@ -437,7 +442,7 @@ function selectVisibleTreePerson(personId, { center })
     const runtime = treeRenderRuntime;
     const view = treeProjectViewState();
     if (!runtime?.scene || runtime.projectId !== currentFamilyTreeProjectId()
-        || runtime.request !== treeElkRequest || runtime.focusId !== view.focusPersonId
+        || runtime.request !== treeElkRequest || runtime.request.orientation !== view.orientation || runtime.focusId !== view.focusPersonId
         || runtime.ancestors !== view.ancestorGenerations || runtime.descendants !== view.descendantGenerations
         || runtime.cousins !== view.showCousins) return false;
     const selected = runtime.scene.primaryByPerson.get(personId);

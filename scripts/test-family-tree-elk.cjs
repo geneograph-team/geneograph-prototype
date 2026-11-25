@@ -360,6 +360,57 @@ function inspect(layout, peopleById, families)
                 falseJunctions: report.falseJunctions }));
         }
     }
+    const solvePair = (people, families, direction) => context.solveElkTree(people, families, direction,
+        graph => solver.layout(JSON.parse(JSON.stringify(graph))));
+    let orderedCases = 0;
+    for (const direction of ['DOWN', 'RIGHT'])
+        for (const count of [1, 2, 3, 5])
+            for (const hasChildren of [false, true])
+                for (const maleAnchor of [false, true])
+                    for (const reverse of [false, true])
+                    {
+                        const anchor = { id: 'a', gender: maleAnchor ? 'male' : 'female', width: 300, height: 124, generation: 0 };
+                        const people = [anchor], families = [];
+                        for (let i = 0; i < count; i++)
+                        {
+                            people.push({ ...anchor, id: 'p' + i, gender: maleAnchor ? 'female' : 'male' });
+                            if (hasChildren) people.push({ ...anchor, id: 'c' + i, generation: 1 });
+                            families.push({ id: 'f' + i, parents: reverse ? ['p' + i, 'a'] : ['a', 'p' + i],
+                                children: hasChildren ? ['c' + i] : [] });
+                        }
+                        if (reverse) people.reverse();
+                        const layout = await solvePair(people, families, direction);
+                        assert.deepEqual([...layout.issues], []);
+                        assert.equal(layout.primaryPairs[0].primary, 'f0');
+                        const byId = new Map(layout.boxes.map(box => [box.id, box]));
+                        const [male, female] = layout.primaryPairs[0].orderedPeople.map(id => byId.get(id));
+                        const gap = direction === 'DOWN' ? female.x - male.x - male.w : female.y - male.y - male.h;
+                        assert.ok(gap >= 40 - .02, 'Ordered principal partner gap');
+                        if (count === 1) assert.ok(Math.abs(gap - 40) < .02, 'Uniform ordinary gap');
+                        assert.ok(layout.passes <= 2);
+                        assert.ok(layout.spacing.every(entry => entry.firstInwardGap >= 40 - .02));
+                        orderedCases++;
+                    }
+    for (const direction of ['DOWN', 'RIGHT'])
+    {
+        const people = ['a', 'b', 'c', 'd', 'e', 'child'].map(id => ({
+            id, gender: ['a', 'd', 'e'].includes(id) ? 'male' : 'female', width: 300, height: 124,
+            generation: id === 'child' ? 1 : 0
+        }));
+        const families = [
+            { id: 'principal', parents: ['b', 'a'], children: ['child'] },
+            { id: 'left-extra', parents: ['a', 'c'], children: [] },
+            { id: 'right-extra', parents: ['b', 'd'], children: [] },
+            { id: 'other-extra', parents: ['b', 'e'], children: [] }
+        ];
+        const layout = await solvePair(people, families, direction);
+        assert.deepEqual([...layout.issues], []);
+        assert.equal(layout.primaryPairs[0].primary, 'principal');
+        assert.equal(layout.primaryPairs[0].anchor, 'b');
+        assert.ok(layout.passes <= 2);
+    }
+    console.log(JSON.stringify({ orderedCases, bilateralCases: 2, nominalGap: 40 }));
+
 })().catch(error =>
 {
     console.error(error);

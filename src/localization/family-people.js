@@ -1,4 +1,8 @@
 const RU_UI_FAMILY_TREE = {
+    'Vertical': 'Вертикальное',
+    'Horizontal': 'Горизонтальное',
+    'Vertical tree': 'Вертикальное древо',
+    'Horizontal tree': 'Горизонтальное древо',
     'Branch coloring': 'Цвета ветвей',
     'Branch reference person': 'Исходный человек для ветвей',
     'Branch count': 'Количество ветвей',

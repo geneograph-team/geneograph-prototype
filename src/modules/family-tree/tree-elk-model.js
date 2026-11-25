@@ -292,6 +292,7 @@ function projectElkTreeOccurrences(canonicalPeople, canonicalFamilies, preferenc
 
 async function solveElkTree(people, families, direction, calculate)
 {
+    const nominalPartnerGap = 40;
     const baseline = Object.freeze(
     {
         mode: 'compound',
@@ -300,7 +301,7 @@ async function solveElkTree(people, families, direction, calculate)
         placement: 'balanced',
         placementScope: 'all',
         mechanism: 'dynamic',
-        secondarySpacing: 80
+        secondarySpacing: Math.max(80, nominalPartnerGap)
     });
     const JUNCTION = 12;
     const EPS = .02;
@@ -352,9 +353,8 @@ async function solveElkTree(people, families, direction, calculate)
         'elk.layered.nodePlacement.strategy': 'BRANDES_KOEPF',
         'elk.layered.nodePlacement.bk.fixedAlignment': 'BALANCED'
     });
-    // Identify only multi-partner groups; ordinary couples and ancestors are unchanged.
-    // The sample does not contain a canonical primary-partner flag. Input family
-    // order is used explicitly as an experimental choice, not a genealogical fact.
+    // The first family of the highest-degree partner is the principal pair.
+    // This is a presentation decision and never changes family records.
     function primaryPartnerships(groups)
     {
         const result = [];
@@ -367,7 +367,7 @@ async function solveElkTree(people, families, direction, calculate)
                 count: fs.filter(f => f.parents.includes(id)).length
             }));
             counts.sort((a, b) => b.count - a.count);
-            if (!counts.length || counts[0].count < 2) continue;
+            if (!counts.length || !counts[0].count) continue;
             const anchor = counts[0].id,
                 primary = fs.find(f => f.parents.includes(anchor));
             const secondary = fs.filter(f => f.id !== primary.id && f.parents.includes(anchor));
@@ -377,6 +377,10 @@ async function solveElkTree(people, families, direction, calculate)
                 anchor,
                 primary: primary.id,
                 primaryPeople: [...primary.parents],
+                orderedPeople: primary.parents.some(id => peopleById.get(id).gender === 'male')
+                    && primary.parents.some(id => peopleById.get(id).gender === 'female')
+                    ? [...primary.parents].sort((a, b) => Number(peopleById.get(b).gender === 'male')
+                        - Number(peopleById.get(a).gender === 'male')) : null,
                 secondary: secondary.map(f => f.id),
                 secondaryPeople: [...new Set(secondary.flatMap(f => f.parents.filter(id => id !== anchor && !primary.parents.includes(id))))]
             });
@@ -498,7 +502,7 @@ async function solveElkTree(people, families, direction, calculate)
             (compound ? containers.get(owner.get(f.id)) : graph).children.push(node);
         }
 
-        function port(nodeId, id, side)
+        function port(nodeId, id, side, index)
         {
             const node = nodes.get(nodeId);
             if (!node.ports.some(p => p.id === id))
@@ -510,7 +514,8 @@ async function solveElkTree(people, families, direction, calculate)
                     height: 0,
                     layoutOptions:
                     {
-                        'elk.port.side': side
+                        'elk.port.side': side,
+                        ...(index == null ? {} : { 'elk.port.index': String(index) })
                     }
                 });
                 portOwner.set(id, nodeId);
@@ -543,15 +548,34 @@ async function solveElkTree(people, families, direction, calculate)
                 targetNode: portOwner.get(target)
             });
         }
+        const ordered = new Map(primaryPairs.filter(pair => pair.orderedPeople).map(pair => [pair.primary, pair.orderedPeople]));
         for (const f of families)
         {
-            const join = port(f.id, f.id + ':parents', incoming),
-                descendants = port(f.id, f.id + ':children', outgoing);
-            for (const parent of f.parents) edge(f, 'parent', parent, port(parent, parent + ':out:' + f.id, outgoing), join);
+            const order = ordered.get(f.id);
+            // ELK numbers fixed ports clockwise. North runs left to right;
+            // west runs bottom to top. The ports constrain the parents without shifting cards.
+            if (order) nodes.get(f.id).layoutOptions['elk.portConstraints'] = 'FIXED_ORDER';
+            const join = order ? null : port(f.id, f.id + ':parents', incoming);
+            const descendants = port(f.id, f.id + ':children', outgoing, order ? (direction === 'DOWN' ? 2 : 0) : null);
+            for (const parent of f.parents)
+            {
+                const index = order?.indexOf(parent);
+                const target = join || port(f.id, f.id + ':parents:' + parent, incoming,
+                    direction === 'DOWN' ? index : 2 - index);
+                edge(f, 'parent', parent, port(parent, parent + ':out:' + f.id, outgoing), target);
+            }
             for (const child of f.children) edge(f, 'child', child, descendants, port(child, child + ':in:' + f.id, incoming));
         }
         // Per-element minimum node spacing: this is not a flexible maximum or
         // guaranteed descendant alignment. Test the documented IndividualSpacings string.
+        const partnered = new Set(families.filter(family => family.parents.length === 2
+            && family.parents.every(id => !peopleById.get(id).placeholder)).flatMap(family => family.parents));
+        for (const person of people)
+        {
+            const minimum = Math.max(partnered.has(person.id) ? nominalPartnerGap : 0,
+                direction === 'RIGHT' ? person.focusClearance || 0 : 0);
+            if (minimum) nodes.get(person.id).layoutOptions['elk.spacing.individual'] = 'spacing.nodeNode:' + minimum;
+        }
         for (const pair of primaryPairs)
             for (const id of pair.secondaryPeople)
             {
@@ -1202,6 +1226,15 @@ async function solveElkTree(people, families, direction, calculate)
         final = buildGraph(spacingPlan.requested);
         raw = flatten(await calculate(final.graph), final);
     }
+    const finalCards = new Map(raw.boxes.map(box => [box.id, box]));
+    for (const pair of final.primaryPairs)
+    {
+        if (!pair.orderedPeople) continue;
+        const [male, female] = pair.orderedPeople.map(id => finalCards.get(id));
+        const cross = direction === 'DOWN' ? 'x' : 'y';
+        if (male[cross] >= female[cross])
+            raw.issues.push(`Principal partner order: ${pair.primary} (${male[cross]}, ${female[cross]})`);
+    }
     let layout;
     try
     {
@@ -1218,6 +1251,7 @@ async function solveElkTree(people, families, direction, calculate)
     }
     return {
         ...layout,
+        direction,
         elapsed: performance.now() - started,
         passes: final === first ? 1 : 2,
         spacing: spacingPlan.entries,

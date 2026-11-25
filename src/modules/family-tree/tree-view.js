@@ -332,11 +332,12 @@ function renderFamilyTree(readyProjection = null)
                 <span class="tree-control-chevron" aria-hidden="true">${icon.chevron}</span>
               </button>
               <div class="view-modes" role="tablist" aria-label="${escapeHtml(t('Tree view mode'))}">
-                ${['Classic','Pedigree','Fan'].map((view, index) => `<button class="view-mode ${state.treeView === view ? 'active' : ''}" type="button" role="tab" aria-label="${escapeHtml(t(view))}" aria-selected="${state.treeView === view ? 'true' : 'false'}" ${view === 'Classic' ? '' : 'disabled'} data-tree-view="${view}" title="${escapeHtml(t(view === 'Classic' ? 'Classic view' : view + ' view will be added later.'))}">${[icon.tree, icon.pedigreeView, icon.fanView][index]}<span>${escapeHtml(t(view))}</span></button>`).join('')}
+                ${['vertical', 'horizontal', 'fan'].map((mode, index) =>
+                    `<button class="view-mode" type="button" role="tab" data-tree-view="${mode}" ${mode === 'fan' ? 'disabled' : ''}>${[icon.tree, icon.pedigreeView, icon.fanView][index]}<span>${escapeHtml(t(['Vertical', 'Horizontal', 'Fan'][index]))}</span></button>`).join('')}
               </div>
             </div>
             <div class="tree-toolbar-right">
-              <label class="tree-view-mobile">${icon.tree}<select aria-label="${escapeHtml(t('Tree view mode'))}"><option value="Classic">${escapeHtml(t('Classic'))}</option><option value="Pedigree" disabled>${escapeHtml(t('Pedigree'))}</option><option value="Fan" disabled>${escapeHtml(t('Fan'))}</option></select>${icon.chevron}</label>
+              <label class="tree-view-mobile">${icon.tree}<select data-tree-orientation aria-label="${escapeHtml(t('Tree view mode'))}"><option value="vertical">${escapeHtml(t('Vertical'))}</option><option value="horizontal">${escapeHtml(t('Horizontal'))}</option><option disabled>${escapeHtml(t('Fan'))}</option></select>${icon.chevron}</label>
               <span class="tree-people-status" role="status" aria-label="${escapeHtml(t('People in project'))}: ${escapeHtml(familyPeopleCountLabel)}" title="${escapeHtml(t('People in project'))}">${escapeHtml(familyPeopleCountLabel)}</span>
               <details class="tree-branch-legend" hidden data-i18n-skip><summary></summary><div class="tree-branch-legend-content"></div></details>
               <button class="tree-icon-button tree-display-settings" type="button" data-tree-settings aria-label="${escapeHtml(t('Tree display settings'))}" title="${escapeHtml(t('Tree display settings'))}">${icon.slidersHorizontal}</button>
@@ -384,6 +385,16 @@ function renderFamilyTree(readyProjection = null)
         updateTreeFullscreenButton();
     }
     runtime.language = state.language;
+    for (const button of runtime.shell.querySelectorAll('[data-tree-view]'))
+    {
+        const active = button.dataset.treeView === treeViewState.orientation;
+        button.classList.toggle('active', active);
+        button.setAttribute('aria-selected', String(active));
+        const label = { vertical: 'Vertical tree', horizontal: 'Horizontal tree', fan: 'Fan' }[button.dataset.treeView];
+        button.setAttribute('aria-label', t(label));
+        button.title = t(label);
+    }
+    runtime.shell.querySelector('[data-tree-orientation]').value = treeViewState.orientation;
     runtime.shell.querySelector('.tree-people-status').textContent = familyPeopleCountLabel;
     updateTreeInspector(runtime, selected);
     const status = runtime.canvas.querySelector('.tree-layout-status');
@@ -412,6 +423,8 @@ function renderFamilyTree(readyProjection = null)
         return;
     }
     runtime.contentRevision++;
+    const orientationChanged = runtime.sceneOrientation !== treeLayout.orientation;
+    runtime.sceneOrientation = treeLayout.orientation;
     runtime.scene = createTreeRenderScene(treeLayout);
     refreshTreeColors(runtime);
     runtime.request = treeElkRequest;
@@ -426,10 +439,16 @@ function renderFamilyTree(readyProjection = null)
     const centerTarget = state.treeCenterTargetId;
     state.treeCenterTargetId = '';
     if (centerTarget) centerTreeOnOccurrence(runtime.scene.primaryByPerson.get(centerTarget), false);
-    else if (treeViewState.canvasScroll && runtime.bookmark !== treeViewState.canvasScroll)
-        restoreTreeCanvasScroll(treeViewState.canvasScroll);
-    else if (!runtime.hasScene) centerTreeOnOccurrence(runtime.scene.primaryByPerson.get(focusPersonId), false);
-    runtime.bookmark = treeViewState.canvasScroll;
+    else
+    {
+        const bookmark = [treeViewState.canvasScroll, treeViewState.orientationBookmarks.get(treeLayout.orientation)]
+            .find(candidate => candidate?.key === runtime.request.key);
+        if (bookmark && (orientationChanged || runtime.bookmark !== bookmark))
+            restoreTreeCanvasScroll(bookmark);
+        else if (orientationChanged || !runtime.hasScene)
+            centerTreeOnOccurrence(runtime.scene.primaryByPerson.get(focusPersonId), false);
+        runtime.bookmark = bookmark;
+    }
     runtime.hasScene = true;
     flushTreeViewport(runtime);
     if (treeViewState.ancestryFocusReturn)

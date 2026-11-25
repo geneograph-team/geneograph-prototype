@@ -148,20 +148,25 @@ function getTreeCanvasScroll()
     const runtime = treeRenderRuntime;
     if (!runtime?.scene) return null;
     const { x, y, k } = runtime.transform;
-    return { left: -x, top: -y, scale: k };
+    return { left: -x, top: -y, scale: k, key: runtime.request?.key };
 }
 
 function captureTreeCanvasScroll(projectId = currentFamilyTreeProjectId())
 {
     if (!projectId || treeRenderRuntime?.projectId !== projectId) return null;
     const bookmark = getTreeCanvasScroll();
-    if (bookmark) treeProjectViewState(projectId).canvasScroll = bookmark;
+    if (bookmark)
+    {
+        const view = treeProjectViewState(projectId);
+        view.canvasScroll = bookmark;
+        view.orientationBookmarks.set(treeRenderRuntime.request.orientation, bookmark);
+    }
     return bookmark;
 }
 
 function restoreTreeCanvasScroll(bookmark)
 {
     const runtime = treeRenderRuntime;
-    if (!runtime || !bookmark) return;
+    if (!runtime?.scene || !bookmark || bookmark.key !== runtime.request?.key) return;
     setTreeViewport(runtime, -bookmark.left, -bookmark.top, bookmark.scale || state.treeZoom / 100);
 }

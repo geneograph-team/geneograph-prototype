@@ -13,7 +13,7 @@ Architecture planning (#398) is merged. Implementation and verification are trac
 - [x] #402: implement approved cards/date/zoom, verify thresholds and accessibility.
 - [x] #405: project-level coloring and channel/legend behavior.
 - [x] #409: apply descendant depth consistently to sibling and cousin branches.
-- [ ] #403: integrate both orientations, actual browser/geometry and stress QA, founder acceptance.
+- [x] #403: integrate both orientations and verify shared geometry and settings. Founder visual acceptance remains pending.
 - [ ] #407: remove remaining legacy paths, reconcile current specs and preview change, final documentation, QA and archive.
 
 ## Verification of this architecture change
@@ -72,3 +72,10 @@ Inspected current pushed default, repository and OpenSpec guidance, preview desi
 - The 12,852-case occurrence matrix and seven additional solves passed. The existing Alex fixture now projects 52 canonical people and 20 families, up from 50 people and 19 families, because another admitted collateral household is visible. Approved ELK, renderer and branch-color checks passed. Offline Edge checks preserved repeated appearance identity, ancestry transfer and branch slots.
 - Offline Edge Tree Settings checks produced 20 people and 11 families at depth 0, 25 and 11 at depth 1, 45 and 21 at depth 3, and 65 and 31 at depth 5 with Show cousins on. Depth 3 with Show cousins off produced 31 people and 15 families. Rendered model branches were connected. Canonical selection and Edit worked from a half-sibling card. These settings-to-scene runs took 235–325 ms on this machine.
 - A broad synthetic source of 4,610 people and 4,054 families projected 3,065 people and 2,531 families at depth 5 in 12.61 ms in Node. The projection intentionally excludes later child memberships. Horizontal integration remains part of #403. The founder can verify the private import separately.
+## Verification of #403
+
+- Edge switched the actual desktop and mobile selectors, cancelled a superseded direction, reused completed orientation results, restored a compatible Vertical camera, and preserved selected identity and Edit. Verified the solid and 10/8 dashed partner strokes at identical Horizontal geometry. Whiskerfield had no card/Focus overlap or layout diagnostics. Orthogonal segment checks found zero unrelated Focus/connector intersections in Whiskerfield and the depth-eight stress tree. Related family feeds can pass behind Focus controls in Horizontal. Direct file opening and loopback restored saved depth 4, Horizontal, and branch settings after reload. The settings regression also covers defaults, bounds, project isolation, removed references and damaged or blocked storage.
+- The #409 fixture produced identical visibility counts in both orientations across depth 0, 1, 3 and 5, with Show cousins on and off. Horizontal repeated-ancestor fixtures preserved colored slots and canonical actions through transfer. The projection suite passed 16,524 combinations with the higher ancestor limit and seven targeted solves.
+- Baseline ordinary partner gaps measured 20 layout units horizontally in Vertical and vertically in Horizontal. The new measured ordinary gap is 40 in both directions. Sixty-four mixed-gender order cases covered reversed inputs, childless and child-bearing families, and up to five partners. Approved layouts and existing secondary-spacing checks passed within two passes. The secondary floor remains 80 and larger outward requests remain bounded by the existing algorithm.
+- The depth-eight stress scene had 511 cards and three mounted at the measured viewport in each orientation. Both needed one pass, with representative Edge ELK times around 1.2–1.4 s. Ordinary selection and viewport changes reused the existing scene.
+- Bundled portraits retain the existing direct-file Edge fallback. Full private-import and founder visual acceptance remain pending. The screenshots use Whiskerfield.

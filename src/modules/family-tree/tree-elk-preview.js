@@ -1,4 +1,5 @@
 let treeElkRequest = null;
+const treeElkOrientationCache = new Map();
 
 function disposeTreeElkLayout()
 {
@@ -42,6 +43,7 @@ function calculateLocalElkGraph(preview, graph)
 
 function prepareElkTreeInput(projection, preferences)
 {
+    const genderById = new Map(projection.people.map(person => [person.id, person.gender]));
     const semantic = projectElkTreeOccurrences(
         projection.people.map(({ id }) => ({ id })),
         projection.families.map(family => ({ id: family.id,
@@ -54,7 +56,9 @@ function prepareElkTreeInput(projection, preferences)
     const model = {
         ...semantic,
         people: semantic.people.map(person => ({ ...person, id: ids.get(person.id),
-            width: TREE_CARD_W, height: TREE_CARD_H })),
+            gender: genderById.get(person.personId), width: TREE_CARD_W, height: TREE_CARD_H,
+            focusClearance: projection.branchRoles.focusActionPersonIds?.has(person.personId)
+                ? TREE_FOCUS_CONTROL_H + TREE_FOCUS_CONTROL_GAP : 0 })),
         families: semantic.families.map((family, index) => ({
             id: 'f' + index, canonicalFamilyId: family.canonicalFamilyId, familyOccurrenceId: family.familyOccurrenceId,
             parents: family.parents.map(id => ids.get(id)), children: family.children.map(id => ids.get(id))
@@ -178,7 +182,8 @@ function adaptElkTreeLayout(model, layout, projection)
         parents: family.parents.map(id => occurrenceIds.get(id)),
         children: family.children.map(id => occurrenceIds.get(id))
     }));
-    return { stageWidth: Math.ceil(layout.width), stageHeight: Math.ceil(layout.height), colorFamilies,
+    return { orientation: layout.direction === 'RIGHT' ? 'horizontal' : 'vertical',
+        stageWidth: Math.ceil(layout.width), stageHeight: Math.ceil(layout.height), colorFamilies,
         positionedPeople, parentPlaceholders, focusControls, connectorDescriptors,
         diagnostics: [...layout.issues, ...model.deferred.map(item => item.reason)] };
 }
@@ -186,24 +191,29 @@ function adaptElkTreeLayout(model, layout, projection)
 function treeElkLayoutForProjection(projectId, projection, view)
 {
     const expansion = new Map(view.ancestryExpansion);
-    const key = JSON.stringify([projectId, projection.focusPersonId, view.ancestorGenerations,
-        view.descendantGenerations, view.showCousins, projection.people.map(person => person.id),
+    const orientation = view.orientation === 'horizontal' ? 'horizontal' : 'vertical';
+    const direction = orientation === 'horizontal' ? 'RIGHT' : 'DOWN';
+    const key = JSON.stringify([projectId, orientation, projection.focusPersonId, view.ancestorGenerations,
+        view.descendantGenerations, view.showCousins, projection.people.map(person => [person.id, person.gender]),
         projection.families.map(({ id, left, right, children }) => [id, left, right, children]),
         [...projection.branchRoles.parentPresenceByPerson], [...expansion].sort()]);
     if (treeElkRequest?.key !== key)
     {
         disposeTreeElkLayout();
-        const preview = { key, projection };
+        const cached = treeElkOrientationCache.get(orientation);
+        const preview = { key, projection, orientation, ...(cached?.key === key ? cached : {}) };
         treeElkRequest = preview;
         // Defer even input errors until the pending presentation is mounted.
-        Promise.resolve().then(async () =>
+        if (!preview.geometry) Promise.resolve().then(async () =>
         {
             try
             {
                 if (treeElkRequest !== preview) return;
                 preview.model = prepareElkTreeInput(projection, expansion);
-                preview.geometry = await solveElkTree(preview.model.people, preview.model.families, 'DOWN',
+                preview.geometry = await solveElkTree(preview.model.people, preview.model.families, direction,
                     graph => calculateLocalElkGraph(preview, graph));
+                if (treeElkRequest !== preview) return;
+                treeElkOrientationCache.set(orientation, { key, model: preview.model, geometry: preview.geometry });
             }
             catch (error)
             {

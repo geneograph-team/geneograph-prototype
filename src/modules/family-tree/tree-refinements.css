@@ -232,12 +232,13 @@ html.tree-fullscreen .tree-shell {
     flex: none;
 }
 
-.tree-toolbar .view-mode[data-tree-view="Pedigree"] svg {
+.tree-toolbar .view-mode[data-tree-view="horizontal"] svg {
+    transform: scaleX(-1);
     width: 22px;
     height: 22px;
 }
 
-.tree-toolbar .view-mode[data-tree-view="Fan"] svg {
+.tree-toolbar .view-mode[data-tree-view="fan"] svg {
     width: 25px;
     height: 25px;
 }

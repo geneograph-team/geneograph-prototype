@@ -34,3 +34,8 @@ ELK SHALL own card placement, with at most two solves for approved dynamic spaci
 ### Requirement: Branch-relative descendant depth
 
 Descendant generations SHALL count independently below the focus and every eligible sibling when ancestor depth is at least one. At ancestor depth two or more, Show cousins SHALL add the siblings of each recorded parent and apply the same descendant budget below each aunt or uncle. The toggle SHALL NOT add the siblings of grandparents or older ancestors. At depth zero the roots and eligible partners remain visible. Child paths are bounded by the chosen depth, and a family SHALL display only the child memberships admitted through eligible paths. Branch coloring is independent of visibility.
+### Requirement: Shared partner geometry and saved presentation
+
+Principal mixed-gender pairs SHALL put male left in Vertical and above in Horizontal. The principal family is the first recorded household involving the highest-degree partner according to the existing layout policy. Real partnerships have a uniform nominal minimum of 40 layout units. Relationship status changes the stroke treatment. Secondary placements retain their outward clearance calculation and larger minimum.
+
+New or missing ancestor-depth settings SHALL default to five generations and accept zero through eight. Valid saved depths are retained. Committed depth, Show cousins, orientation and branch display preferences SHALL be cached per project in the current browser profile when local storage is available. A restored camera must match the layout key.

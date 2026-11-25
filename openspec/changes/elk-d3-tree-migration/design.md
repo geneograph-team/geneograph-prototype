@@ -120,3 +120,8 @@ The graph is revalidated after a committed edit. Visual parent and child endpoin
 ### Collateral descendant visibility (#409)
 
 The visibility projection seeds the focus, its eligible siblings, and eligible aunts and uncles together at distance zero. A breadth-first walk through indexed child families gives the first visit the largest remaining budget. Partners are admitted without adding them to the traversal frontier. Each family records its allowed child memberships independently of overall person visibility, so an independently visible person cannot restore an excluded child edge.
+### Horizontal and project presentation settings (#403)
+
+The shared Tree adapter selects ELK DOWN or RIGHT, carries orientation through the request and routes, and keeps the last completed compatible result per orientation. Async results are published only by the active request. Camera bookmarks match the full layout key and stay in session view state. Project-local browser storage holds only committed orientation, depth, cousins and color settings. Default ancestor depth is five and the supported range is zero through eight. Missing or invalid settings fall back safely.
+
+The measured 20-unit ordinary partner gap became a uniform 40-unit nominal minimum. The secondary floor remains max(80, 40) and the first-pass dynamic deficit retains its existing bound. The principal relationship is chosen as before. Ordered ports on a principal mixed-gender junction set male-first placement on the relevant axis in the unified ELK graph, and final coordinates are checked for violations. Horizontal cards reserve the existing Focus control height plus its gap through individual node spacing. Rendering still consumes final coordinates.

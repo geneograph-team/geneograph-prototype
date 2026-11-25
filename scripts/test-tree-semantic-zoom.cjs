@@ -74,6 +74,7 @@ async function runTreeSemanticZoomChecks()
     ctx.fillRect(0, 0, 800, 1000);
     photo.src = synthetic.toDataURL();
     renderFamilyTree();
+    await until(() => runtime.scene && runtime.request === treeElkRequest);
     const geometry = treeElkRequest.geometry, scene = runtime.scene;
     const projected = runtime.scene.primaryByPerson.get(id);
     const card = () => runtime.cards.querySelector('[data-person-id="' + id + '"]');

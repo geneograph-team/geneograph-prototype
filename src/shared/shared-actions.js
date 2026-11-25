@@ -1628,6 +1628,7 @@ function deleteProject(projectId)
     if (state.projectContinuation?.projectId === project.id) clearProjectContinuation();
 
     delete state.treeProjectViews[project.id];
+    saveTreeDisplaySettings(project.id, null);
     deletedBoardIds.forEach(boardId =>
     {
         delete state.geneoBoardViewports[boardId];

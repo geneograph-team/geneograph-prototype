@@ -7,7 +7,6 @@ const state = {
     search: '',
     openSide: 'overview',
     projectContinuation: null,
-    treeView: 'Classic',
     treeZoom: 100,
     selectedPersonId: 'silver',
     treeProjectViews: {},
@@ -449,7 +448,7 @@ function personById(id)
 }
 
 const TREE_ANCESTOR_GENERATION_MIN = 0;
-const TREE_ANCESTOR_GENERATION_MAX = 6;
+const TREE_ANCESTOR_GENERATION_MAX = 8;
 const TREE_DESCENDANT_GENERATION_MIN = 0;
 const TREE_DESCENDANT_GENERATION_MAX = 5;
 
@@ -462,6 +461,69 @@ function treeDefaultPersonId(projectId = currentFamilyTreeProjectId())
         : people[0]?.id || '';
 }
 
+
+const TREE_DISPLAY_STORAGE_KEY = 'geneograph-tree-display-v1';
+
+function treeDisplaySettings(projectId, raw = {})
+{
+    if (!raw || typeof raw !== 'object') raw = {};
+    const number = (value, fallback, min, max) => typeof value === 'number' && Number.isFinite(value)
+        ? clampNumber(Math.round(value), min, max) : fallback;
+    const saved = raw.colors && typeof raw.colors === 'object' ? raw.colors : {};
+    const hasReference = Object.hasOwn(saved, 'reference');
+    const defaultId = sampleData.projects.find(project => project.id === projectId)?.defaultPersonId;
+    const reference = hasReference ? saved.reference : defaultId;
+    const channel = (value, choices, fallback) => choices.includes(value) ? value : fallback;
+    return {
+        orientation: raw.orientation === 'horizontal' ? 'horizontal' : 'vertical',
+        ancestorGenerations: number(raw.ancestorGenerations, 5, TREE_ANCESTOR_GENERATION_MIN, TREE_ANCESTOR_GENERATION_MAX),
+        descendantGenerations: number(raw.descendantGenerations, 3, TREE_DESCENDANT_GENERATION_MIN, TREE_DESCENDANT_GENERATION_MAX),
+        showCousins: typeof raw.showCousins === 'boolean' ? raw.showCousins : true,
+        colors: {
+            reference: typeof reference === 'string' && getPerson(reference)?.projectId === projectId ? reference : '',
+            preset: [2, 4, 8, 16].includes(saved.preset) ? saved.preset : 4,
+            collateral: saved.collateral === true,
+            fill: channel(saved.fill, ['neutral', 'gender', 'branch'], raw.colorFill === false ? 'neutral' : 'gender'),
+            outline: channel(saved.outline, ['neutral', 'gender', 'branch'], 'gender'),
+            connectors: channel(saved.connectors, ['neutral', 'branch'], 'neutral')
+        }
+    };
+}
+
+function readTreeDisplaySettings(projectId)
+{
+    let saved;
+    try { saved = JSON.parse(localStorage.getItem(TREE_DISPLAY_STORAGE_KEY + ':' + projectId)); }
+    catch (_error) {}
+    return treeDisplaySettings(projectId, saved?.projectId === projectId ? saved.settings : undefined);
+}
+
+function saveTreeDisplaySettings(projectId, view)
+{
+    try
+    {
+        if (view)
+            localStorage.setItem(TREE_DISPLAY_STORAGE_KEY + ':' + projectId,
+                JSON.stringify({ projectId, settings: treeDisplaySettings(projectId, view) }));
+        else localStorage.removeItem(TREE_DISPLAY_STORAGE_KEY + ':' + projectId);
+    }
+    catch (_error) {}
+}
+
+function setTreeOrientation(orientation)
+{
+    if (!['vertical', 'horizontal'].includes(orientation)) return;
+    const projectId = currentFamilyTreeProjectId();
+    const view = treeProjectViewState(projectId);
+    if (view.orientation === orientation) return;
+    captureTreeCanvasScroll(projectId);
+    view.orientation = orientation;
+    view.canvasScroll = null;
+    state.treeCenterTargetId = '';
+    saveTreeDisplaySettings(projectId, view);
+    renderFamilyTree();
+}
+
 function treeProjectViewState(projectId = currentFamilyTreeProjectId())
 {
     if (!state.treeProjectViews[projectId])
@@ -470,10 +532,8 @@ function treeProjectViewState(projectId = currentFamilyTreeProjectId())
 
         state.treeProjectViews[projectId] = {
             focusPersonId: defaultPersonId,
-            ancestorGenerations: 4,
-            descendantGenerations: 3,
-            showCousins: true,
-            colorFill: true,
+            ...readTreeDisplaySettings(projectId),
+            orientationBookmarks: new Map(),
             recentPersonIds:
             defaultPersonId
                 ? [defaultPersonId]
@@ -799,6 +859,7 @@ function openTreeSettingsModal()
         colors.preset = TREE_BRANCH_PRESETS.includes(preset) ? preset : 4;
         colors.collateral = modalBackdrop.querySelector('#treeBranchCollateral').checked;
         for (const key of ['fill', 'outline', 'connectors']) colors[key] = modalBackdrop.querySelector('#tree-color-' + key).value;
+        saveTreeDisplaySettings(projectId, view);
         closeModal();
         if (view.ancestorGenerations !== previousStructure[0] || view.descendantGenerations !== previousStructure[1]
             || view.showCousins !== previousStructure[2])
