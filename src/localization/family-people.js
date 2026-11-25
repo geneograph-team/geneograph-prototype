@@ -110,6 +110,9 @@ const RU_UI_FAMILY_TREE = {
     '0–5 generations':
         '0–5 поколений',
 
+    'Show ancestry here': 'Показать предков здесь',
+    'Ancestry shown here': 'Предки показаны здесь',
+
     "Calculating tree layout…":
         "Вычисляем расположение дерева…",
 

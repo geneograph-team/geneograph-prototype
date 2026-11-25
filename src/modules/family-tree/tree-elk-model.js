@@ -1,5 +1,5 @@
 // Ported from the approved standalone ELK and automatic-occurrence experiments.
-function projectElkTreeOccurrences(canonicalPeople, canonicalFamilies)
+function projectElkTreeOccurrences(canonicalPeople, canonicalFamilies, preferences = new Map())
 {
     const byId = new Map(canonicalPeople.map((p, i) => [p.id,
     {
@@ -23,7 +23,8 @@ function projectElkTreeOccurrences(canonicalPeople, canonicalFamilies)
             for (const child of f.children) outgoing.get(id).add(child);
         }
     }
-    // Memoize descendants, rejecting cycles rather than recursively unrolling them.
+    // Intersect downstream reachability sets to find the visible roots that
+    // would reach both contexts in an upstream walk. Memoization also rejects cycles.
     const descendants = new Map(),
         visiting = new Set();
 
@@ -41,6 +42,7 @@ function projectElkTreeOccurrences(canonicalPeople, canonicalFamilies)
     }
     for (const p of canonicalPeople) reachable(p.id);
     const overlaps = (a, b) => [...a].some(id => b.has(id));
+    const owners = new Map();
     const overrides = new Map(),
         decisions = [],
         deferred = [],
@@ -80,7 +82,7 @@ function projectElkTreeOccurrences(canonicalPeople, canonicalFamilies)
                 for (const d of reachable(id)) c.descendants.add(d);
             }
         }
-        const parts = [...contexts.values()],
+        const parts = [...contexts.values()].sort((a, b) => String(a.peer ?? '').localeCompare(String(b.peer ?? ''))),
             conflicts = new Map(parts.map(c => [c, new Set()])),
             evidence = [];
         let ambiguous = false;
@@ -104,21 +106,25 @@ function projectElkTreeOccurrences(canonicalPeople, canonicalFamilies)
                     commonDescendants: [...a.descendants].filter(id => b.descendants.has(id)).sort()
                 });
             }
-        if (!evidence.length || ambiguous || parentFamilies.get(p.id).length)
+        if (!evidence.length || ambiguous)
         {
             entries.push(
             {
                 person:
                 {
                     ...p,
-                    personId: p.id
+                    personId: p.id,
+                    occurrenceId: p.id,
+                    primary: true,
+                    occurrenceCount: 1,
+                    contextFamilyIds: households.get(p.id).map(family => family.id).sort()
                 },
                 position
             });
-            if (ambiguous || evidence.length) deferred.push(
+            if (ambiguous) deferred.push(
             {
                 personId: p.id,
-                reason: ambiguous ? 'Shared immediate child or non-independent parent contexts' : 'Shared ancestor has visible parents; upstream occurrence policy not chosen',
+                reason: 'Overlapping or incomplete co-parent contexts; retained without splitting',
                 evidence
             });
             continue;
@@ -142,26 +148,46 @@ function projectElkTreeOccurrences(canonicalPeople, canonicalFamilies)
         // This is input ordering only, never a screen-coordinate constraint.
         const anchor = b => b.filter(c => c.peer !== null).map(c => byId.get(c.peer).index).sort((a, z) => Math.abs(a - position) - Math.abs(z - position) || a - z)[0] ?? position;
         const ranked = [...buckets].sort((a, b) => Math.abs(anchor(a) - position) - Math.abs(anchor(b) - position) || anchor(a) - anchor(b));
-        const original = ranked[0],
-            appearances = [];
+        const original = ranked[0];
+        const appearances = [];
+        const hasParents = parentFamilies.get(p.id).length > 0;
+        const preferred = preferences.get(p.id);
+        const preferredBucket = buckets.find(bucket => bucket.some(context => context.peer === preferred));
+        const expandedBucket = preferredBucket || original;
         for (const bucket of buckets)
         {
-            const fs = bucket.flatMap(c => c.families),
-                id = bucket === original ? p.id : freshId(p.id, fs[0].id);
+            const fs = bucket.flatMap(context => context.families);
+            const familyIds = fs.map(family => family.id).sort();
+            const peers = bucket.map(context => context.peer);
+            const contextKey = JSON.stringify([...peers].sort());
+            const occurrenceId = 'elk-occurrence:' + JSON.stringify([p.id, contextKey]);
+            const id = bucket === original ? p.id : freshId(p.id, familyIds[0]);
+            if (bucket === expandedBucket) owners.set(p.id, id);
             entries.push(
             {
                 person:
                 {
                     ...p,
                     id,
-                    personId: p.id
+                    personId: p.id,
+                    occurrenceId,
+                    primary: bucket === original,
+                    occurrenceCount: buckets.length,
+                    contextKey,
+                    contextFamilyIds: familyIds,
+                    hasParents,
+                    expanded: hasParents && bucket === expandedBucket,
+                    preferredPeer: bucket.find(context => conflicts.get(context).size > 0)?.peer,
+                    contextRoots: [...new Set(evidence.filter(item => item.families.some(group =>
+                        group.some(familyId => familyIds.includes(familyId)))).flatMap(item => item.commonDescendants))].sort()
                 },
                 position: bucket === original ? position : anchor(bucket) + .5
             });
             appearances.push(
             {
-                occurrenceId: id,
-                familyIds: fs.map(f => f.id)
+                occurrenceId,
+                familyIds,
+                contextKey
             });
             for (const f of fs)
             {
@@ -183,8 +209,18 @@ function projectElkTreeOccurrences(canonicalPeople, canonicalFamilies)
     {
         ...f,
         parents: f.parents.map(id => overrides.get(f.id)?.get(id) ?? id),
-        children: [...f.children]
+        children: f.children.map(id => owners.get(id) ?? id)
     }));
+    const canonicalByOccurrence = new Map(people.map(person => [person.id, person.personId]));
+    families.forEach((family, index) =>
+    {
+        const canonical = canonicalFamilies[index];
+        for (const role of ['parents', 'children'])
+        {
+            if (family[role].some((id, position) => canonicalByOccurrence.get(id) !== canonical[role][position]))
+                throw Error('Family identity lost: ' + family.id);
+        }
+    });
     return {
         people,
         families,

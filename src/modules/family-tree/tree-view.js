@@ -1135,6 +1135,26 @@ function renderFamilyTree()
         event.stopPropagation();
         openTreePersonPicker(event.currentTarget);
     });
+    if (treeLayout)
+    {
+        const appearances = new Map(treeLayout.positionedPeople.map(person => [person.id, person]));
+        main.querySelectorAll('[data-tree-expand-ancestry]').forEach(button => button.addEventListener('click', () =>
+        {
+            const card = button.closest('[data-tree-occurrence-id]');
+            const appearance = appearances.get(card.dataset.treeOccurrenceId);
+            if (!appearance?.hasParents || appearance.expanded || !appearance.preferredPeer) return;
+            if (document.activeElement === button) treeViewState.ancestryFocusReturn = appearance.id;
+            captureTreeCanvasScroll(treeProjectId);
+            (treeViewState.ancestryExpansion ??= new Map()).set(appearance.canonicalPersonId, appearance.preferredPeer);
+            renderFamilyTree();
+        }));
+        if (treeViewState.ancestryFocusReturn)
+        {
+            const id = CSS.escape(treeViewState.ancestryFocusReturn);
+            delete treeViewState.ancestryFocusReturn;
+            main.querySelector('[data-tree-occurrence-id="' + id + '"]')?.focus({ preventScroll: true });
+        }
+    }
     main.querySelector('[data-tree-settings]')?.addEventListener('click', openTreeSettingsModal);
     main.querySelector('[data-tree-retry-layout]')?.addEventListener('click', () =>
     {
@@ -1278,6 +1298,8 @@ function renderTreePersonCard(
 {
     const personId = person.canonicalPersonId || person.id;
     const repeated = person.occurrenceCount > 1;
+    const primary = person.primary !== false;
+    const collapsed = repeated && person.hasParents && !person.expanded;
     const selected =
         personId
           === state.selectedPersonId;
@@ -1312,16 +1334,19 @@ function renderTreePersonCard(
           "
           data-person-id="${escapeHtml(personId)}"
           data-tree-occurrence-id="${escapeHtml(person.id)}"
-          data-tree-primary="${!person.canonicalPersonId}"
+          data-tree-primary="${primary}"
+          ${repeated && person.hasParents ? `data-tree-ancestry="${collapsed ? 'collapsed' : 'expanded'}"` : ''}
           tabindex="0"
           aria-label="${escapeHtml(label)}"
           ${
-                focused && !person.canonicalPersonId
+                focused && primary
                     ? 'aria-current="true"'
                     : ''
             }>
 
-          ${repeated ? `<span class="tree-occurrence-badge" aria-hidden="true">×${person.occurrenceCount}</span>` : ''}
+          ${collapsed
+              ? `<button type="button" class="tree-occurrence-badge" data-tree-expand-ancestry aria-label="${escapeHtml(t('Show ancestry here'))}" title="${escapeHtml(t('Show ancestry here'))}">×${person.occurrenceCount}</button>`
+              : repeated ? `<span class="tree-occurrence-badge" ${person.hasParents ? `title="${escapeHtml(t('Ancestry shown here'))}"` : 'aria-hidden="true"'}>×${person.occurrenceCount}</span>` : ''}
           <div class="tree-card-avatar-stack">
             ${renderPersonAvatar(
                 person.canonicalPersonId ? { ...person, id: personId } : person,
@@ -1329,7 +1354,7 @@ function renderTreePersonCard(
             )}
 
             ${
-                focused && !person.canonicalPersonId
+                focused && primary
                     ? `
                   <span class="tree-focus-badge">
                     ${icon.focus}

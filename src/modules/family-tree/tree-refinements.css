@@ -449,6 +449,12 @@ html.tree-fullscreen .tree-shell {
     pointer-events: none;
 }
 
+[data-tree-expand-ancestry].tree-occurrence-badge {
+    pointer-events: auto;
+    cursor: pointer;
+    border-style: dashed;
+}
+
 .has-tree-occurrences .tree-card-content {
     padding-inline-end: 32px;
 }

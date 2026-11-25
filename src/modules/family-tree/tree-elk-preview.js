@@ -40,15 +40,25 @@ function calculateLocalElkGraph(preview, graph)
     });
 }
 
-function prepareElkTreeInput(projection)
+function prepareElkTreeInput(projection, preferences)
 {
-    const ids = new Map(projection.people.map((person, index) => [person.id, 'p' + index]));
-    const people = projection.people.map(person => ({ id: ids.get(person.id), width: TREE_CARD_W, height: TREE_CARD_H }));
-    const families = projection.families.map((family, index) => ({
-        id: 'f' + index, parents: [family.left, family.right].map(id => ids.get(id)).filter(Boolean),
-        children: family.children.map(id => ids.get(id)).filter(Boolean)
-    }));
-    const model = projectElkTreeOccurrences(people, families);
+    const semantic = projectElkTreeOccurrences(
+        projection.people.map(({ id }) => ({ id })),
+        projection.families.map(family => ({ id: family.id,
+            parents: [family.left, family.right].filter(Boolean), children: family.children })),
+        preferences
+    );
+    // Stable canonical context stays in the presentation. Only anonymous IDs
+    // and geometry are passed into the solver frame.
+    const ids = new Map(semantic.people.map((person, index) => [person.id, 'p' + index]));
+    const model = {
+        ...semantic,
+        people: semantic.people.map(person => ({ ...person, id: ids.get(person.id),
+            width: TREE_CARD_W, height: TREE_CARD_H })),
+        families: semantic.families.map((family, index) => ({
+            id: 'f' + index, parents: family.parents.map(id => ids.get(id)), children: family.children.map(id => ids.get(id))
+        }))
+    };
     const relations = new Map(model.people.map(person => [person.id, []]));
     function connect(a, b, step)
     {
@@ -60,7 +70,7 @@ function prepareElkTreeInput(projection)
         if (family.parents.length === 2) connect(...family.parents, 0);
         for (const child of family.children) connect(family.parents[0], child, 1);
     }
-    const focus = ids.get(projection.focusPersonId);
+    const focus = model.people.find(person => person.personId === projection.focusPersonId && person.primary)?.id;
     const generations = new Map([[focus, 0]]);
     const queue = [focus];
     for (const id of queue)
@@ -87,7 +97,8 @@ function prepareElkTreeInput(projection)
     const handled = new Set();
     for (const person of model.people.slice())
     {
-        const canonicalId = projection.people[Number(person.personId.slice(1))].id;
+        if (person.occurrenceCount > 1 && (person.hasParents ? !person.expanded : !person.primary)) continue;
+        const canonicalId = person.personId;
         const presence = projection.branchRoles.parentPresenceByPerson.get(canonicalId);
         const generation = generations.get(person.id) - 1;
         if (!presence || -generation > projection.branchRoles.ancestorGenerations) continue;
@@ -119,16 +130,9 @@ function prepareElkTreeInput(projection)
 function adaptElkTreeLayout(model, layout, projection)
 {
     const boxes = new Map(layout.boxes.map(box => [box.id, box]));
-    const counts = new Map();
-    const records = new Map();
-    for (const person of model.people)
-    {
-        if (person.placeholder) continue;
-        counts.set(person.personId, (counts.get(person.personId) || 0) + 1);
-        records.set(person.id, projection.people[Number(person.personId.slice(1))]);
-    }
-    const occurrenceFamilies = new Map(model.decisions.flatMap(decision => decision.appearances.map(appearance =>
-        [appearance.occurrenceId, appearance.familyIds.map(id => projection.families[Number(id.slice(1))].id).sort()])));
+    const canonical = new Map(projection.people.map(person => [person.id, person]));
+    const records = new Map(model.people.filter(person => !person.placeholder)
+        .map(person => [person.id, canonical.get(person.personId)]));
     const positionedPeople = [];
     const parentPlaceholders = [];
     const focusControls = [];
@@ -141,10 +145,12 @@ function adaptElkTreeLayout(model, layout, projection)
             continue;
         }
         const record = records.get(person.id);
-        const primary = person.id === person.personId;
-        const id = primary ? record.id : 'elk-occurrence:' + JSON.stringify([record.id, occurrenceFamilies.get(person.id)]);
-        positionedPeople.push({ ...record, id, ...(!primary && { canonicalPersonId: record.id }),
-            generation: person.generation, layoutX: x, layoutY: y, width, height, occurrenceCount: counts.get(person.personId) });
+        const id = person.occurrenceId;
+        positionedPeople.push({ ...record, id, canonicalPersonId: record.id, primary: person.primary,
+            occurrenceCount: person.occurrenceCount, hasParents: person.hasParents, expanded: person.expanded,
+            preferredPeer: person.preferredPeer, contextKey: person.contextKey,
+            contextFamilyIds: person.contextFamilyIds, contextRoots: person.contextRoots,
+            generation: person.generation, layoutX: x, layoutY: y, width, height });
         if (projection.branchRoles.focusActionPersonIds.has(record.id))
             focusControls.push({ personId: id, canonicalPersonId: record.id,
                 x: x + width - TREE_FOCUS_CONTROL_W, y: y - TREE_FOCUS_CONTROL_H - TREE_FOCUS_CONTROL_GAP,
@@ -166,10 +172,11 @@ function adaptElkTreeLayout(model, layout, projection)
 
 function treeElkLayoutForProjection(projectId, projection, view)
 {
+    const expansion = new Map(view.ancestryExpansion);
     const key = JSON.stringify([projectId, projection.focusPersonId, view.ancestorGenerations,
         view.descendantGenerations, view.showCousins, projection.people.map(person => person.id),
         projection.families.map(({ id, left, right, children }) => [id, left, right, children]),
-        [...projection.branchRoles.parentPresenceByPerson]]);
+        [...projection.branchRoles.parentPresenceByPerson], [...expansion].sort()]);
     if (treeElkRequest?.key !== key)
     {
         disposeTreeElkLayout();
@@ -181,7 +188,7 @@ function treeElkLayoutForProjection(projectId, projection, view)
             try
             {
                 if (treeElkRequest !== preview) return;
-                preview.model = prepareElkTreeInput(projection);
+                preview.model = prepareElkTreeInput(projection, expansion);
                 preview.geometry = await solveElkTree(preview.model.people, preview.model.families, 'DOWN',
                     graph => calculateLocalElkGraph(preview, graph));
             }
