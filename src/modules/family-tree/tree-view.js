@@ -1142,10 +1142,10 @@ function renderFamilyTree()
         {
             const card = button.closest('[data-tree-occurrence-id]');
             const appearance = appearances.get(card.dataset.treeOccurrenceId);
-            if (!appearance?.hasParents || appearance.expanded || !appearance.preferredPeer) return;
+            if (!appearance?.hasParents || appearance.expanded || !appearance.preferredContext) return;
             if (document.activeElement === button) treeViewState.ancestryFocusReturn = appearance.id;
             captureTreeCanvasScroll(treeProjectId);
-            (treeViewState.ancestryExpansion ??= new Map()).set(appearance.canonicalPersonId, appearance.preferredPeer);
+            (treeViewState.ancestryExpansion ??= new Map()).set(appearance.canonicalPersonId, appearance.preferredContext);
             renderFamilyTree();
         }));
         if (treeViewState.ancestryFocusReturn)
@@ -1231,7 +1231,7 @@ function renderTreeLines(layout)
     {
         const start = descriptor.points[index];
         return start.x === end.x && start.y !== end.y
-            ? [{ familyId: descriptor.familyId, x: start.x, top: Math.min(start.y, end.y), bottom: Math.max(start.y, end.y) }]
+            ? [{ familyId: descriptor.familyOccurrenceId || descriptor.familyId, x: start.x, top: Math.min(start.y, end.y), bottom: Math.max(start.y, end.y) }]
             : [];
     }));
     const halfGap = TREE_GEOMETRY.connectorLaneGap / 2;
@@ -1247,7 +1247,7 @@ function renderTreeLines(layout)
             if (start.y !== end.y) { path += ' L' + end.x + ' ' + end.y; continue; }
             const direction = Math.sign(end.x - start.x);
             const length = Math.abs(end.x - start.x);
-            const crossings = vertical.filter(line => line.familyId !== descriptor.familyId
+            const crossings = vertical.filter(line => line.familyId !== (descriptor.familyOccurrenceId || descriptor.familyId)
                 && start.y > line.top && start.y < line.bottom)
                 .map(line => (line.x - start.x) * direction)
                 .filter(distance => distance > halfGap && distance < length - halfGap)

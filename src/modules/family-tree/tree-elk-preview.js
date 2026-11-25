@@ -56,7 +56,8 @@ function prepareElkTreeInput(projection, preferences)
         people: semantic.people.map(person => ({ ...person, id: ids.get(person.id),
             width: TREE_CARD_W, height: TREE_CARD_H })),
         families: semantic.families.map((family, index) => ({
-            id: 'f' + index, parents: family.parents.map(id => ids.get(id)), children: family.children.map(id => ids.get(id))
+            id: 'f' + index, canonicalFamilyId: family.canonicalFamilyId, familyOccurrenceId: family.familyOccurrenceId,
+            parents: family.parents.map(id => ids.get(id)), children: family.children.map(id => ids.get(id))
         }))
     };
     const relations = new Map(model.people.map(person => [person.id, []]));
@@ -95,6 +96,7 @@ function prepareElkTreeInput(projection, preferences)
         for (const child of family.children)
             if (!parentFamilies.has(child)) parentFamilies.set(child, family);
     const handled = new Set();
+    const occurrences = new Map(model.people.map(person => [person.id, person]));
     for (const person of model.people.slice())
     {
         if (person.occurrenceCount > 1 && (person.hasParents ? !person.expanded : !person.primary)) continue;
@@ -105,7 +107,8 @@ function prepareElkTreeInput(projection, preferences)
         const roles = ['father', 'mother'].filter(role => !presence[role]);
         if (!roles.length) continue;
         let family = parentFamilies.get(person.id);
-        if (handled.has(family) || family?.parents.length === 2) continue;
+        if (handled.has(family) || family?.parents.length === 2
+            || family?.parents.some(id => occurrences.get(id)?.occurrenceCount > 1)) continue;
         if (!family)
         {
             family = { id: 'placeholder-family-' + person.id, parents: [], children: [person.id] };
@@ -148,19 +151,22 @@ function adaptElkTreeLayout(model, layout, projection)
         const id = person.occurrenceId;
         positionedPeople.push({ ...record, id, canonicalPersonId: record.id, primary: person.primary,
             occurrenceCount: person.occurrenceCount, hasParents: person.hasParents, expanded: person.expanded,
-            preferredPeer: person.preferredPeer, contextKey: person.contextKey,
-            contextFamilyIds: person.contextFamilyIds, contextRoots: person.contextRoots,
+            preferredContext: person.preferredContext, contextKey: person.contextKey,
+            contextFamilyIds: person.contextFamilyIds, contextFamilyOccurrenceIds: person.contextFamilyOccurrenceIds, contextRoots: person.contextRoots,
             generation: person.generation, layoutX: x, layoutY: y, width, height });
         if (projection.branchRoles.focusActionPersonIds.has(record.id))
             focusControls.push({ personId: id, canonicalPersonId: record.id,
                 x: x + width - TREE_FOCUS_CONTROL_W, y: y - TREE_FOCUS_CONTROL_H - TREE_FOCUS_CONTROL_GAP,
                 width: TREE_FOCUS_CONTROL_W, height: TREE_FOCUS_CONTROL_H });
     }
+    const semanticFamilies = new Map(model.families.map(family => [family.id, family]));
+    const canonicalFamilies = new Map(projection.families.map(family => [family.id, family]));
     const connectorDescriptors = layout.paths.map(path =>
     {
-        const family = /^f\d+$/.test(path.family) ? projection.families[Number(path.family.slice(1))] : null;
+        const occurrence = semanticFamilies.get(path.family);
+        const family = canonicalFamilies.get(occurrence?.canonicalFamilyId);
         const partner = path.role === 'parent' && layout.underpasses && !path.native;
-        return { familyId: family?.id || path.family, points: path.points,
+        return { familyId: family?.id || path.family, familyOccurrenceId: occurrence?.familyOccurrenceId || path.family, points: path.points,
             d: treeConnectorPath(path.points), role: partner ? 'partner' : 'descendant',
             className: partner && family ? treePartnerConnectorClass(family) : partner ? 'tree-line partner' : 'tree-line descendant',
             childId: path.role === 'child' ? records.get(path.person)?.id : undefined };

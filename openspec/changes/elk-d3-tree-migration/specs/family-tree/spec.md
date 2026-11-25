@@ -13,7 +13,7 @@ Family Tree SHALL use the approved ELK provider in Vertical and Horizontal orien
 
 ### Requirement: Canonical identity and visual occurrences
 
-Repeated ancestors SHALL be detected by reconvergent relationship paths, not partner count. Each occurrence SHALL identify its canonical person and context; all repeated appearances show ×N when space permits, with accessible full identity. Exactly one occurrence owns visible upstream ancestry and can transfer that ownership to another occurrence. Distinct family records and memberships SHALL remain intact. Known collapsed ancestry is not an unknown parent.
+Repeated ancestors SHALL be detected by reconvergent relationship paths, not partner count. Each occurrence SHALL identify its canonical person and context; all repeated appearances show ×N when space permits, with accessible full identity. Exactly one occurrence owns visible upstream ancestry and can transfer that ownership to another occurrence. Distinct family records and memberships SHALL remain intact. When distinct siblings reconverge on visible descendant paths, visual family instances SHALL partition the child memberships and repeat both known parents together or the single known parent. The preference SHALL distinguish sibling contexts of the same family. Known collapsed ancestry is not an unknown parent.
 
 #### Scenario: Select or transfer an occurrence
 

@@ -42,12 +42,58 @@ function projectElkTreeOccurrences(canonicalPeople, canonicalFamilies, preferenc
     }
     for (const p of canonicalPeople) reachable(p.id);
     const overlaps = (a, b) => [...a].some(id => b.has(id));
+    const visualFamilies = [];
+    const deferred = [];
+    const unrelatedBranches = (a, b) => !reachable(a).has(b) && !reachable(b).has(a);
+    for (const family of canonicalFamilies)
+    {
+        // A child that is itself on a sibling's descendant path is ambiguous.
+        // Keep the canonical family whole rather than unfolding that overlap.
+        const ordered = [...family.children].sort();
+        const overlap = ordered.some((child, index) => ordered.slice(index + 1)
+            .some(other => !unrelatedBranches(child, other)));
+        const ambiguousParents = family.parents.filter(parent => households.get(parent).some(other =>
+            other !== family && other.children.some(child => family.children.includes(child))
+            && JSON.stringify([...other.parents].sort()) !== JSON.stringify([...family.parents].sort())));
+        const buckets = [];
+        if (!overlap && !ambiguousParents.length)
+        {
+            for (const child of ordered)
+            {
+                let bucket = buckets.find(group => group.every(other => !overlaps(reachable(child), reachable(other))));
+                if (!bucket) { bucket = []; buckets.push(bucket); }
+                bucket.push(child);
+            }
+        }
+        else if (ordered.length > 1)
+        {
+            deferred.push({ familyId: family.id, reason: 'Overlapping sibling or alternative parent contexts; retained without splitting' });
+        }
+        if (buckets.length < 2)
+        {
+            visualFamilies.push({ ...family, canonicalFamilyId: family.id, familyOccurrenceId: family.id });
+            continue;
+        }
+        for (const children of buckets)
+        {
+            // Anchor the key to a reconverging branch rather than an ordinary
+            // sibling that may enter or leave this visible group.
+            const anchor = children.find(child => ordered.some(other =>
+                !children.includes(other) && overlaps(reachable(child), reachable(other))));
+            const key = 'elk-family-occurrence:' + JSON.stringify([family.id, anchor]);
+            visualFamilies.push({ ...family, id: key, canonicalFamilyId: family.id, familyOccurrenceId: key,
+                splitSiblings: true, children: family.children.filter(id => children.includes(id)) });
+        }
+    }
+    for (const list of households.values()) list.length = 0;
+    for (const family of visualFamilies)
+        for (const parent of family.parents) households.get(parent).push(family);
+
     const owners = new Map();
     const overrides = new Map(),
         decisions = [],
-        deferred = [],
         entries = [];
-    const usedIds = new Set([...byId.keys(), ...familyIds]);
+    const usedIds = new Set([...byId.keys(), ...visualFamilies.map(family => family.id)]);
 
     function freshId(personId, familyId)
     {
@@ -67,14 +113,16 @@ function projectElkTreeOccurrences(canonicalPeople, canonicalFamilies, preferenc
         for (const f of households.get(p.id))
         {
             const peer = f.parents.find(id => id !== p.id) ?? null;
-            if (!contexts.has(peer)) contexts.set(peer,
+            const contextId = f.splitSiblings || peer === null ? f.familyOccurrenceId : peer;
+            if (!contexts.has(contextId)) contexts.set(contextId,
             {
                 peer,
+                contextId,
                 families: [],
                 children: new Set(),
                 descendants: new Set()
             });
-            const c = contexts.get(peer);
+            const c = contexts.get(contextId);
             c.families.push(f);
             for (const id of f.children)
             {
@@ -82,7 +130,7 @@ function projectElkTreeOccurrences(canonicalPeople, canonicalFamilies, preferenc
                 for (const d of reachable(id)) c.descendants.add(d);
             }
         }
-        const parts = [...contexts.values()].sort((a, b) => String(a.peer ?? '').localeCompare(String(b.peer ?? ''))),
+        const parts = [...contexts.values()].sort((a, b) => a.contextId.localeCompare(b.contextId)),
             conflicts = new Map(parts.map(c => [c, new Set()])),
             evidence = [];
         let ambiguous = false;
@@ -93,7 +141,7 @@ function projectElkTreeOccurrences(canonicalPeople, canonicalFamilies, preferenc
                 if (!overlaps(a.descendants, b.descendants)) continue;
                 // Shared immediate children indicate alternative parent records, not the
                 // independent ancestral branches this policy is designed to unfold.
-                if (a.peer === null || b.peer === null || overlaps(a.children, b.children) || overlaps(a.children, b.descendants) || overlaps(b.children, a.descendants))
+                if (overlaps(a.children, b.children) || overlaps(a.children, b.descendants) || overlaps(b.children, a.descendants))
                 {
                     ambiguous = true;
                     continue;
@@ -106,7 +154,18 @@ function projectElkTreeOccurrences(canonicalPeople, canonicalFamilies, preferenc
                     commonDescendants: [...a.descendants].filter(id => b.descendants.has(id)).sort()
                 });
             }
-        if (!evidence.length || ambiguous)
+        // A split family provides explicit branch ownership even if an
+        // unrelated alternative household also needs a separate diagnosis.
+        const siblingSplit = parts.some(context => context.families.some(family => family.splitSiblings));
+        if (ambiguous)
+        {
+            deferred.push({
+                personId: p.id,
+                reason: 'Overlapping or incomplete co-parent contexts; retained without splitting',
+                evidence
+            });
+        }
+        if (!evidence.length || (ambiguous && !siblingSplit))
         {
             entries.push(
             {
@@ -117,15 +176,9 @@ function projectElkTreeOccurrences(canonicalPeople, canonicalFamilies, preferenc
                     occurrenceId: p.id,
                     primary: true,
                     occurrenceCount: 1,
-                    contextFamilyIds: households.get(p.id).map(family => family.id).sort()
+                    contextFamilyIds: [...new Set(households.get(p.id).map(family => family.canonicalFamilyId))].sort()
                 },
                 position
-            });
-            if (ambiguous) deferred.push(
-            {
-                personId: p.id,
-                reason: 'Overlapping or incomplete co-parent contexts; retained without splitting',
-                evidence
             });
             continue;
         }
@@ -152,14 +205,17 @@ function projectElkTreeOccurrences(canonicalPeople, canonicalFamilies, preferenc
         const appearances = [];
         const hasParents = parentFamilies.get(p.id).length > 0;
         const preferred = preferences.get(p.id);
-        const preferredBucket = buckets.find(bucket => bucket.some(context => context.peer === preferred));
+        const exactBucket = buckets.find(bucket => bucket.some(context => context.contextId === preferred));
+        const legacyBuckets = buckets.filter(bucket => bucket.some(context => context.peer === preferred));
+        const preferredBucket = exactBucket || (legacyBuckets.length === 1 ? legacyBuckets[0] : null);
         const expandedBucket = preferredBucket || original;
         for (const bucket of buckets)
         {
             const fs = bucket.flatMap(context => context.families);
             const familyIds = fs.map(family => family.id).sort();
-            const peers = bucket.map(context => context.peer);
-            const contextKey = JSON.stringify([...peers].sort());
+            const contextKey = JSON.stringify(bucket.filter(context => conflicts.get(context).size > 0)
+                .map(context => context.contextId).sort());
+            const anchorContext = bucket.find(context => conflicts.get(context).size > 0);
             const occurrenceId = 'elk-occurrence:' + JSON.stringify([p.id, contextKey]);
             const id = bucket === original ? p.id : freshId(p.id, familyIds[0]);
             if (bucket === expandedBucket) owners.set(p.id, id);
@@ -174,10 +230,12 @@ function projectElkTreeOccurrences(canonicalPeople, canonicalFamilies, preferenc
                     primary: bucket === original,
                     occurrenceCount: buckets.length,
                     contextKey,
-                    contextFamilyIds: familyIds,
+                    contextFamilyIds: [...new Set(fs.map(family => family.canonicalFamilyId))].sort(),
+                    contextFamilyOccurrenceIds: familyIds,
                     hasParents,
                     expanded: hasParents && bucket === expandedBucket,
-                    preferredPeer: bucket.find(context => conflicts.get(context).size > 0)?.peer,
+                    preferredPeer: anchorContext?.peer,
+                    preferredContext: anchorContext?.contextId,
                     contextRoots: [...new Set(evidence.filter(item => item.families.some(group =>
                         group.some(familyId => familyIds.includes(familyId)))).flatMap(item => item.commonDescendants))].sort()
                 },
@@ -198,29 +256,32 @@ function projectElkTreeOccurrences(canonicalPeople, canonicalFamilies, preferenc
         decisions.push(
         {
             personId: p.id,
-            reason: 'Distinct co-parent households reconverge in ancestry',
+            reason: 'Distinct child branches reconverge in ancestry',
             evidence,
             appearances
         });
     }
     entries.sort((a, b) => a.position - b.position || a.person.id.localeCompare(b.person.id));
     const people = entries.map(e => e.person);
-    const families = canonicalFamilies.map(f => (
+    const families = visualFamilies.map(f => (
     {
         ...f,
         parents: f.parents.map(id => overrides.get(f.id)?.get(id) ?? id),
         children: f.children.map(id => owners.get(id) ?? id)
     }));
     const canonicalByOccurrence = new Map(people.map(person => [person.id, person.personId]));
-    families.forEach((family, index) =>
+    const canonicalByFamily = new Map(canonicalFamilies.map(family => [family.id, family]));
+    const memberships = new Map(canonicalFamilies.map(family => [family.id, new Set(family.children)]));
+    for (const family of families)
     {
-        const canonical = canonicalFamilies[index];
-        for (const role of ['parents', 'children'])
-        {
-            if (family[role].some((id, position) => canonicalByOccurrence.get(id) !== canonical[role][position]))
-                throw Error('Family identity lost: ' + family.id);
-        }
-    });
+        const canonical = canonicalByFamily.get(family.canonicalFamilyId);
+        const remaining = memberships.get(canonical.id);
+        if (family.parents.some((id, index) => canonicalByOccurrence.get(id) !== canonical.parents[index])
+            || family.children.some(id => !remaining.delete(canonicalByOccurrence.get(id))))
+            throw Error('Family identity lost: ' + canonical.id);
+    }
+    if ([...memberships.values()].some(children => children.size))
+        throw Error('Missing family child membership');
     return {
         people,
         families,

@@ -7,6 +7,7 @@ Architecture planning (#398) is merged. Implementation and verification are trac
 - [x] Record approved layout/duplicate/card/date/zoom/color requirements and retire artificial 0–200 target.
 - [x] #404: make vertical ELK the sole provider, remove Classic, and verify the offline Tree workflow.
 - [x] #399: project stable occurrences and attach visible ancestry to one transferable owner.
+- [x] #408: support reconverging sibling branches and visual family instances.
 - [ ] #400: incremental D3 renderer and actual-scale viewport.
 - [ ] #401: local derivatives and image lifecycle.
 - [ ] #402: implement approved cards/date/zoom, verify thresholds and accessibility.
@@ -32,3 +33,9 @@ Inspected current pushed default, repository and OpenSpec guidance, preview desi
 - The full extended fixture contained 52 canonical people, 53 appearances and 20 families. The Alex view contained 50 canonical people and 19 visible families before placeholders. Both owner choices laid out without overlapping cards or missing child routes. The approved ELK fixture and localization regressions passed.
 - Edge on an offline file URL verified both Louise badges, one F20 attachment, a Space-key transfer and click transfer back, selection and inspector identity, Edit and Add relative, stable focus control dimensions and placement, no false parent placeholder, retained zoom, depth supersession, project isolation, and English/dark and Russian/light badge labels.
 - One anonymized local private-import check rendered 98 cards with zero repeated people or layout diagnostics in the tested scope. The transfer itself was verified on the synthetic fixture.
+
+## Verification of #408
+
+- The #399 projection matrix passed all 12,852 cases. Seven additional vertical ELK solves covered reconverging siblings with one or two known parents, distinct single-parent records, and both upstream owner choices. Targeted checks covered the third compatible sibling, ordinary unrelated sibling groups, canonical coverage and stable keys, and competing or invalid context preferences. Approved ELK and localization regressions passed.
+- Edge opened the local app file with HTTP and HTTPS blocked. The synthetic single-parent family rendered two appearances, and the two-parent family rendered four appearances across two visual families. Each branch had a child route at the correct endpoints, with no overlapping cards or routing diagnostics. Verified count badges, canonical selection and Edit, no false parent placeholders, separate project preferences, and independent transfer of upstream ancestry for each parent.
+- The founder will verify the private imported case. No private data was used for this task. Alternative parent and ancestor/descendant overlap cases remain diagnosed rather than unfolded.
