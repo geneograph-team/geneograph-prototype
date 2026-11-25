@@ -83,6 +83,8 @@ function disposeTreeRenderer()
     const runtime = treeRenderRuntime;
     if (!runtime) return;
     treeRenderRuntime = null;
+    clearTreePortraits(runtime);
+    runtime.portraitCache?.dispose();
     runtime.resize.disconnect();
     if (runtime.frame !== null) cancelAnimationFrame(runtime.frame);
     runtime.controller.abort();

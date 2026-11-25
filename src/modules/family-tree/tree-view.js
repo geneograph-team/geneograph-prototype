@@ -406,6 +406,7 @@ function renderFamilyTree(readyProjection = null)
     runtime.stage.hidden = !treeLayout;
     if (!treeLayout)
     {
+        clearTreePortraits(runtime);
         runtime.scene = null;
         if (runtime.stage.contains(document.activeElement)) runtime.canvas.focus({ preventScroll: true });
         return;
@@ -494,9 +495,7 @@ function renderTreeFocusControl(control)
     return `<button class="tree-focus-control" type="button" style="left:${control.x}px;top:${control.y}px" data-tree-card-focus="${escapeHtml(person.id)}" data-i18n-skip aria-label="${escapeHtml(accessibleLabel)}">${icon.focus}<span>${visibleLabel}</span></button>`;
 }
 
-function renderTreePersonCard(
-    person, { portrait = true } = {}
-)
+function renderTreePersonCard(person)
 {
     const personId = person.canonicalPersonId || person.id;
     const repeated = person.occurrenceCount > 1;
@@ -550,10 +549,9 @@ function renderTreePersonCard(
               ? `<button type="button" class="tree-occurrence-badge" data-tree-expand-ancestry aria-label="${escapeHtml(t('Show ancestry here'))}" title="${escapeHtml(t('Show ancestry here'))}">×${person.occurrenceCount}</button>`
               : repeated ? `<span class="tree-occurrence-badge" ${person.hasParents ? `title="${escapeHtml(t('Ancestry shown here'))}"` : 'aria-hidden="true"'}>×${person.occurrenceCount}</span>` : ''}
           <div class="tree-card-avatar-stack">
-            ${portrait ? renderPersonAvatar(
-                person.canonicalPersonId ? { ...person, id: personId } : person,
-                'tree-avatar'
-            ) : '<div class="person-avatar tree-avatar" aria-hidden="true"></div>'}
+            <div class="person-avatar tree-avatar ${escapeHtml(personAvatarClass(person))}" aria-hidden="true">
+              <span class="person-avatar-initials">${escapeHtml(personAvatarInitials(person))}</span>
+            </div>
 
             ${
                 focused && primary

@@ -259,30 +259,19 @@ function renderTreeViewport(runtime)
     const focusedKey = stage.contains(active) ? active.closest('[data-tree-occurrence-id]')?.dataset.treeOccurrenceId : null;
     const isVisible = entry => treeSceneIntersects(viewport, entry.bounds);
     const cards = scene.cards.filter(entry => entry.key === focusedKey || isVisible(entry));
-    const fullPortrait = detail === 'full';
     const portraitSize = Math.round(TREE_GEOMETRY.avatarSize * transform.k);
     const generation = runtime.contentRevision;
     joinTreeHtml(runtime.cards, cards, 'article', entry =>
     {
-        const demand = fullPortrait && treeSceneIntersects(visible, entry.bounds);
-        const contentKey = generation + '|' + demand + '|' + (state.selectedPersonId === (entry.canonicalPersonId || entry.id));
+        const contentKey = generation + '|' + (state.selectedPersonId === (entry.canonicalPersonId || entry.id));
         if (entry.markupKey !== contentKey)
         {
-            entry.markup = renderTreePersonCard(entry, { portrait: demand });
+            entry.markup = renderTreePersonCard(entry);
             entry.markupKey = contentKey;
         }
         return entry.markup;
     });
-    for (const node of runtime.cards.children)
-    {
-        const demand = fullPortrait && treeSceneIntersects(visible, node.__data__.bounds);
-        if (demand)
-        {
-            if (node.dataset.treePortraitSize !== String(portraitSize))
-                node.dataset.treePortraitSize = String(portraitSize);
-        }
-        else if (node.hasAttribute('data-tree-portrait-size')) delete node.dataset.treePortraitSize;
-    }
+    updateTreePortraits(runtime, visible, detail, portraitSize);
     if (focusedKey && document.activeElement === document.body)
         runtime.cards.querySelector('[data-tree-occurrence-id="' + CSS.escape(focusedKey) + '"]')?.focus({ preventScroll: true });
     const controls = transform.k > .60 ? scene.controls.filter(isVisible) : [];
