@@ -134,6 +134,56 @@ function prepareElkTreeInput(projection, preferences)
     return model;
 }
 
+// Resolve anonymous layout IDs only in the application, never in the solver frame.
+function describeElkTreeDiagnostics(model, layout, projection)
+{
+    const canonical = new Map(projection.people.map(p => [p.id, p]));
+    const occurrences = new Map(model.people.map(p => [p.id, p]));
+    const families = new Map(model.families.map(f => [f.id, f]));
+    const originalFamilies = new Map(projection.families.map(f => [f.id, f]));
+    const orderDetails = new Map((layout.orderDetails || []).map(d => [d.message, d]));
+    const name = id => canonical.get(id)?.name || canonical.get(id)?.compactName || id;
+    const label = id =>
+    {
+        const person = occurrences.get(id);
+        if (person?.placeholder)
+            return t(person.placeholder.label) + ' — ' + translateText(name(person.placeholder.personId));
+        return person ? translateText(name(person.personId)) : translateText(name(id));
+    };
+    const subjects = ids => [...new Set(ids.map(label))].join(' / ');
+    const diagnostics = [];
+    for (const message of layout.issues)
+    {
+        const order = orderDetails.get(message);
+        const suffix = message.slice(message.indexOf(': ') + 2);
+        const family = order ? families.get(order.familyId) : [...families.values()]
+            .find(f => suffix === f.id || suffix.startsWith(f.id + ':'));
+        const person = [...occurrences.keys()].find(id => suffix === id || suffix.startsWith(id + ':'));
+        const group = suffix.startsWith('group:') ? layout.groups.find(g => g.id === suffix) : null;
+        const ids = order?.personIds || (family ? [...family.parents, ...family.children]
+            : person ? [person] : group ? layout.boxes.filter(b => b.x >= group.x && b.y >= group.y
+                && b.x + b.w <= group.x + group.w + .02 && b.y + b.h <= group.y + group.h + .02).map(b => b.id) : []);
+        diagnostics.push({
+            subject: subjects(ids),
+            reason: t(order ? 'Parent or principal partner order could not be satisfied.'
+                : 'The layout could not safely position or connect this relationship.'),
+            technical: order ? '' : message
+        });
+    }
+    for (const item of model.deferred)
+    {
+        const family = originalFamilies.get(item.familyId);
+        const ids = item.personId ? [item.personId] : family ? [family.left, family.right, ...family.children].filter(Boolean) : [];
+        diagnostics.push({
+            subject: [...new Set(ids.map(id => translateText(name(id))))].join(' / '),
+            reason: t(item.personId ? 'Overlapping or incomplete co-parent contexts were retained without splitting.'
+                : 'Overlapping sibling or alternative parent contexts were retained without splitting.'),
+            technical: ''
+        });
+    }
+    return diagnostics;
+}
+
 function adaptElkTreeLayout(model, layout, projection)
 {
     const boxes = new Map(layout.boxes.map(box => [box.id, box]));
@@ -185,7 +235,7 @@ function adaptElkTreeLayout(model, layout, projection)
     return { orientation: layout.direction === 'RIGHT' ? 'horizontal' : 'vertical',
         stageWidth: Math.ceil(layout.width), stageHeight: Math.ceil(layout.height), colorFamilies,
         positionedPeople, parentPlaceholders, focusControls, connectorDescriptors,
-        diagnostics: [...layout.issues, ...model.deferred.map(item => item.reason)] };
+        diagnostics: describeElkTreeDiagnostics(model, layout, projection) };
 }
 
 function treeElkLayoutForProjection(projectId, projection, view)

@@ -134,8 +134,22 @@ const RU_UI_FAMILY_TREE = {
     "ELK could not lay out this tree.":
         "ELK не удалось построить это дерево.",
 
+    'Tree layout': 'Расположение древа',
+
     "Some relationships require review.":
         "Некоторые связи требуют проверки.",
+
+    'Parent or principal partner order could not be satisfied.':
+        'Не удалось соблюсти порядок родителей или основных партнёров.',
+
+    'The layout could not safely position or connect this relationship.':
+        'Не удалось безопасно расположить или соединить участников этой связи.',
+
+    'Overlapping or incomplete co-parent contexts were retained without splitting.':
+        'Пересекающиеся или неполные семейные контексты сохранены без разделения.',
+
+    'Overlapping sibling or alternative parent contexts were retained without splitting.':
+        'Пересекающиеся ветви братьев и сестёр или альтернативные родительские связи сохранены без разделения.',
 
     'Show cousins of the focus person':
         'Показывать двоюродных родственников основного человека',

@@ -1827,3 +1827,29 @@ button.timeline-evidence-name:hover, button.timeline-evidence-name:focus-visible
     border-radius: 6px;
     z-index: 2;
 }
+
+.tree-layout-status details {
+    min-width: 0;
+    max-width: 460px;
+}
+
+.tree-layout-status summary {
+    cursor: pointer;
+}
+
+.tree-layout-status ul {
+    max-height: min(40vh, 320px);
+    overflow: auto;
+    margin: 8px 0 0;
+    padding-inline-start: 20px;
+    overflow-wrap: anywhere;
+}
+
+.tree-layout-status li + li {
+    margin-top: 8px;
+}
+
+.tree-layout-status small {
+    display: block;
+    margin-top: 2px;
+}

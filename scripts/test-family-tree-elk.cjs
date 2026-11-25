@@ -8,7 +8,9 @@ const ELK = require('../src/vendor/elkjs-0.12.1/lib/elk.bundled.js');
 const fixtures = require('./fixtures/elk-tree-approved.json');
 const context = vm.createContext(
 {
-    performance
+    performance,
+    t: value => value,
+    translateText: value => value
 });
 const source = path.join(__dirname, '../src/modules/family-tree/tree-elk-model.js');
 vm.runInContext(fs.readFileSync(source, 'utf8'), context);
@@ -435,8 +437,10 @@ function inspect(layout, peopleById, families)
             [a.layoutOptions[index], b.layoutOptions[index]] = [b.layoutOptions[index], a.layoutOptions[index]];
             return solver.layout(input);
         });
-        assert.equal(layout.issues.length, 1);
-        assert.match(layout.issues[0], /^Principal partner order: primary /);
+        assert.equal(layout.issues.length, 0, layout.issues.join('; '));
+        const ordered = new Map(layout.boxes.map(box => [box.id, box]));
+        const axis = direction === 'DOWN' ? 'x' : 'y';
+        assert.ok(ordered.get('a')[axis] < ordered.get('b')[axis]);
         assert.ok(layout.underpasses);
         const { report } = inspect(layout, new Map(warningPeople.map(person => [person.id, person])), warningFamilies);
         assert.equal(report.cardHits, 0);
@@ -618,12 +622,101 @@ function inspect(layout, peopleById, families)
         }
     console.log(JSON.stringify({ centeringCases }));
 
+    // Missing-parent roles, including an unknown-gender recorded parent, are
+    // ordered independently of canonical gender and input iteration order.
+    let placeholderCases = 0;
+    for (const direction of ['DOWN', 'RIGHT'])
+        for (const missing of ['father', 'mother', 'both'])
+            for (const reverse of [false, true])
+            {
+                const father = { id: 'father', generation: 0, width: missing === 'both' ? 124 : 300, height: 124,
+                    ...(missing !== 'mother' ? { placeholder: { rel: 'father' } } : {}) };
+                const mother = { id: 'mother', generation: 0, width: missing === 'both' ? 124 : 300, height: 124,
+                    ...(missing !== 'father' ? { placeholder: { rel: 'mother' } } : {}) };
+                const parents = reverse ? [mother, father] : [father, mother];
+                const people = [...parents, { id: 'child', generation: 1, width: 300, height: 124 }];
+                const families = [{ id: 'parents', parents: parents.map(p => p.id), children: ['child'] }];
+                const original = JSON.stringify(people);
+                const layout = await solvePair(people, families, direction);
+                const boxes = new Map(layout.boxes.map(b => [b.id, b]));
+                const axis = direction === 'DOWN' ? 'x' : 'y';
+                assert.ok(boxes.get('father')[axis] < boxes.get('mother')[axis]);
+                assert.deepEqual([...layout.issues], []);
+                assert.equal(JSON.stringify(people), original);
+                assert.ok(layout.passes <= 2);
+                placeholderCases++;
+            }
+    // A missing-parent slot may belong to a secondary household rather than
+    // the principal couple. It still has a mandatory parent-side role.
+    for (const direction of ['DOWN', 'RIGHT'])
+        for (const missing of ['father', 'mother'])
+        {
+            const knownGender = missing === 'father' ? 'female' : 'male';
+            const people = [
+                { id: 'known', gender: knownGender, generation: 0, width: 300, height: 124 },
+                { id: 'partner', gender: knownGender === 'male' ? 'female' : 'male', generation: 0, width: 300, height: 124 },
+                { id: 'slot', placeholder: { rel: missing }, generation: 0, width: 300, height: 124 },
+                { id: 'child', generation: 1, width: 300, height: 124 },
+                { id: 'half', generation: 1, width: 300, height: 124 }
+            ];
+            const families = [
+                { id: 'primary', parents: ['known', 'partner'], children: ['child'] },
+                { id: 'secondary', parents: ['known', 'slot'], children: ['half'] }
+            ];
+            const layout = await solvePair(people, families, direction);
+            const byId = new Map(layout.boxes.map(b => [b.id, b]));
+            const axis = direction === 'DOWN' ? 'x' : 'y';
+            const left = missing === 'father' ? 'slot' : 'known';
+            const right = missing === 'father' ? 'known' : 'slot';
+            assert.ok(byId.get(left)[axis] < byId.get(right)[axis], 'Secondary parent-slot order');
+            assert.equal(layout.issues.length, 0, layout.issues.join('; '));
+            const { report } = inspect(layout, new Map(people.map(p => [p.id, p])), families);
+            assert.equal(report.cardOverlaps, 0);
+            assert.equal(report.cardHits, 0);
+            assert.equal(report.falseJunctions, 0);
+            assert.ok(layout.passes <= 2);
+            placeholderCases++;
+        }
+    console.log(JSON.stringify({ placeholderCases }));
+
+    // Presentation resolves anonymous IDs and occurrence contexts locally.
+    const diagnostic = 'Principal partner order: f0 (400, 60)';
+    const explanations = context.describeElkTreeDiagnostics({
+        people: [{ id: 'p0', personId: 'record-a' }, { id: 'p1', personId: 'record-b' },
+            { id: 'p2', personId: 'record-c' }],
+        families: [{ id: 'f0', parents: ['p0', 'p1'], children: ['p2'] }],
+        deferred: [{ personId: 'record-c' }, { familyId: 'household' }]
+    }, {
+        issues: [diagnostic, 'Missing route: f0:child:p2', 'Unexpected geometry'],
+        orderDetails: [{ message: diagnostic, familyId: 'f0', personIds: ['p0', 'p1'] }]
+    }, {
+        people: [{ id: 'record-a', name: 'Alice' }, { id: 'record-b', name: 'Bob' },
+            { id: 'record-c', name: 'Charlie' }],
+        families: [{ id: 'household', left: 'record-a', right: 'record-b', children: ['record-c'] }]
+    });
+    assert.equal(explanations[0].subject, 'Alice / Bob');
+    assert.equal(explanations[1].subject, 'Alice / Bob / Charlie');
+    assert.equal(explanations[2].subject, '');
+    assert.equal(explanations[3].subject, 'Charlie');
+    assert.equal(explanations[4].subject, 'Alice / Bob / Charlie');
+
     const reversal = require('./fixtures/elk-principal-order-reversal.json');
     for (const direction of ['DOWN', 'RIGHT'])
     {
         const layout = await solvePair(reversal.people, reversal.families, direction);
         assert.ok(layout.underpasses, layout.issues.join('; '));
-        assert.ok(layout.issues.every(issue => issue.startsWith('Principal partner order: z1 ')));
+        assert.equal(layout.issues.length, 0, layout.issues.join('; '));
+        const byId = new Map(layout.boxes.map(box => [box.id, box]));
+        const axis = direction === 'DOWN' ? 'x' : 'y';
+        const size = direction === 'DOWN' ? 'w' : 'h';
+        assert.ok(byId.get('p10')[axis] < byId.get('p11')[axis]);
+        assert.ok(byId.get('p11')[axis] - byId.get('p10')[axis] - byId.get('p10')[size] >= 40 - EPS);
+        const { report } = inspect(layout, new Map(reversal.people.map(p => [p.id, p])), reversal.families);
+        assert.equal(report.cardHits, 0);
+        assert.equal(report.cardOverlaps, 0);
+        assert.equal(report.coincident, 0);
+        assert.equal(report.falseJunctions, 0);
+        assert.equal(report.routedEdges, report.expectedEdges);
         assert.ok(layout.passes <= 2);
         console.log(JSON.stringify({ direction, compoundOrderingDiagnostics: layout.issues }));
     }

@@ -13,8 +13,8 @@ Architecture planning (#398) is merged. Implementation and verification are trac
 - [x] #402: implement approved cards/date/zoom, verify thresholds and accessibility.
 - [x] #405: project-level coloring and channel/legend behavior.
 - [x] #409: apply descendant depth consistently to sibling and cousin branches.
-- [ ] #403 reopened: inline routing correction verified. Mandatory principal order remains unresolved for the compound fixture below.
-- [ ] PR #410: upgrade to tested ELK.js 0.12.1 and guarded ancestry-first centering; native browser/offline and real-project QA pending.
+- [ ] #403 reopened: inline routing, principal/placeholder ordering and diagnostic disclosure implemented in PR #410; synthetic reversal fixtures now pass. Founder private-tree and browser acceptance pending.
+- [ ] PR #410: ELK.js 0.12.1 and guarded ancestry-first centering implemented and algorithm approved by founder; native browser/offline and real-project QA pending.
 - [ ] #407: remove remaining legacy paths, reconcile current specs and preview change, final documentation, QA and archive.
 
 ## Verification of this architecture change
@@ -93,3 +93,8 @@ Inspected current pushed default, repository and OpenSpec guidance, preview desi
 - The upstream ELK.js 0.12.1 bundle and license were copied unchanged (matching Git blob IDs); retained the local frame and at most two solves. Removed the ineffective favorStraightEdges experiment.
 - Executed the existing ELK regression assertions and 16 new centering cases against the real 0.12.1 bundle in an isolated JavaScript environment with a small Node assertion/VM harness substitute. 4,323 assertions passed. The 16 cases covered complete pedigrees, maternal/paternal siblings with and without descendants, bilateral siblings and extended mirrored branches in DOWN and RIGHT. All main offsets reached zero; generation coordinates, card dimensions, partner spacing and other measured couple errors did not regress. No card overlaps, card hits, coincident unrelated segments, false junctions or non-orthogonal routes were reported. The known compound z1 reversal still emits its existing diagnostic; it remains unresolved.
 - Full Node invocation, the separate occurrence suite, offline browser integration, the complete standalone matrix, private projects and large-scene performance have not been verified in this environment. Keep the migration active and PR draft pending review.
+
+## PR #410 ordering and diagnostic follow-up
+
+- Missing father/mother slots use presentation roles even when the recorded co-parent has unknown gender, including secondary households. Required principal/slot order is requested through native ports first; bounded in-footprint reordering with existing inline routing corrects remaining safe reversals. No extra ELK solves. Secondary real-partner order remains flexible; unresolved constraints remain diagnosed. Proper crossings can be necessary for mandatory order, but added card hits, coincident unrelated segments and false junctions are rejected.
+- The real ELK.js 0.12.1 regression assertions ran in the isolated JavaScript harness: 4,414 passed, including 64 ordinary/multi-partner order cases, the two known reversal fixtures in both directions, 16 missing-parent scenarios (including secondary households), and all 16 centering scenarios. Diagnostic name and context mapping assertions passed. Browser UI disclosure, actual keyboard interaction, private-tree warning and direct Node/occurrence/large-scene checks remain pending. The localization catalog startup was checked in script order before the final fallback-label addition; repeat the repository localization check before merge.

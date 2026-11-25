@@ -398,20 +398,52 @@ function renderFamilyTree(readyProjection = null)
     runtime.shell.querySelector('.tree-people-status').textContent = familyPeopleCountLabel;
     updateTreeInspector(runtime, selected);
     const status = runtime.canvas.querySelector('.tree-layout-status');
-    status.hidden = Boolean(treeLayout && !treeLayout.diagnostics?.length);
-    status.replaceChildren();
-    if (!status.hidden)
+    const diagnostics = treeLayout?.diagnostics || [];
+    status.hidden = Boolean(treeLayout && !diagnostics.length);
+    // Retain disclosure state while the same request is displayed, not across projects.
+    const expanded = runtime.diagnosticRequest === treeElkRequest && Boolean(status.querySelector('details')?.open);
+    runtime.diagnosticRequest = treeElkRequest;
+    const signature = JSON.stringify([state.language, diagnostics, Boolean(treeLayout), Boolean(treeElkRequest?.error)]);
+    if (status.dataset.signature !== signature)
     {
-        status.textContent = t(treeLayout ? 'Some relationships require review.' :
-            treeElkRequest?.error ? 'ELK could not lay out this tree.' : 'Calculating tree layout…');
-        if (!treeLayout && treeElkRequest?.error)
+        status.dataset.signature = signature;
+        status.replaceChildren();
+        if (diagnostics.length)
         {
-            const retry = document.createElement('button');
-            retry.type = 'button';
-            retry.className = 'button secondary';
-            retry.dataset.treeRetryLayout = '';
-            retry.textContent = t('Retry');
-            status.append(retry);
+            const details = document.createElement('details');
+            details.open = expanded;
+            const summary = document.createElement('summary');
+            summary.textContent = t('Some relationships require review.') + ' (' + diagnostics.length + ')';
+            const list = document.createElement('ul');
+            for (const diagnostic of diagnostics)
+            {
+                const item = document.createElement('li');
+                const subject = document.createElement('strong');
+                subject.textContent = diagnostic.subject || t('Tree layout');
+                item.append(subject, document.createTextNode(' — ' + diagnostic.reason));
+                if (diagnostic.technical)
+                {
+                    const technical = document.createElement('small');
+                    technical.textContent = diagnostic.technical;
+                    item.append(technical);
+                }
+                list.append(item);
+            }
+            details.append(summary, list);
+            status.append(details);
+        }
+        else if (!status.hidden)
+        {
+            status.textContent = t(treeElkRequest?.error ? 'ELK could not lay out this tree.' : 'Calculating tree layout…');
+            if (treeElkRequest?.error)
+            {
+                const retry = document.createElement('button');
+                retry.type = 'button';
+                retry.className = 'button secondary';
+                retry.dataset.treeRetryLayout = '';
+                retry.textContent = t('Retry');
+                status.append(retry);
+            }
         }
     }
     runtime.stage.hidden = !treeLayout;

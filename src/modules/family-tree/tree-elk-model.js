@@ -377,10 +377,7 @@ async function solveElkTree(people, families, direction, calculate)
                 anchor,
                 primary: primary.id,
                 primaryPeople: [...primary.parents],
-                orderedPeople: primary.parents.some(id => peopleById.get(id).gender === 'male')
-                    && primary.parents.some(id => peopleById.get(id).gender === 'female')
-                    ? [...primary.parents].sort((a, b) => Number(peopleById.get(b).gender === 'male')
-                        - Number(peopleById.get(a).gender === 'male')) : null,
+                orderedPeople: elkOrderedPartners(primary.parents, peopleById),
                 secondary: secondary.map(f => f.id),
                 secondaryPeople: [...new Set(secondary.flatMap(f => f.parents.filter(id => id !== anchor && !primary.parents.includes(id))))]
             });
@@ -550,6 +547,12 @@ async function solveElkTree(people, families, direction, calculate)
         }
         const ordered = new Map(primaryPairs.filter(pair => pair.orderedPeople).map(pair => [pair.primary, pair.orderedPeople]));
         for (const f of families)
+            if (f.parents.some(id => peopleById.get(id).placeholder))
+            {
+                const order = elkOrderedPartners(f.parents, peopleById);
+                if (order) ordered.set(f.id, order);
+            }
+        for (const f of families)
         {
             const order = ordered.get(f.id);
             // ELK numbers fixed ports clockwise. North runs left to right;
@@ -597,7 +600,8 @@ async function solveElkTree(people, families, direction, calculate)
             placementScope,
             mechanism,
             secondarySpacing,
-            primaryPairs
+            primaryPairs,
+            ordered
         };
     }
 
@@ -1226,17 +1230,6 @@ async function solveElkTree(people, families, direction, calculate)
         final = buildGraph(spacingPlan.requested);
         raw = flatten(await calculate(final.graph), final);
     }
-    // Order warnings do not invalidate otherwise usable connector geometry.
-    const orderIssues = [];
-    const finalCards = new Map(raw.boxes.map(box => [box.id, box]));
-    for (const pair of final.primaryPairs)
-    {
-        if (!pair.orderedPeople) continue;
-        const [male, female] = pair.orderedPeople.map(id => finalCards.get(id));
-        const cross = direction === 'DOWN' ? 'x' : 'y';
-        if (male && female && male[cross] >= female[cross])
-            orderIssues.push(`Principal partner order: ${pair.primary} (${male[cross]}, ${female[cross]})`);
-    }
     let layout;
     try
     {
@@ -1251,7 +1244,34 @@ async function solveElkTree(people, families, direction, calculate)
             issues: [...raw.issues, error.message]
         };
     }
-    if (layout.underpasses && !orderIssues.length)
+    if (layout.underpasses)
+    {
+        try
+        {
+            const ordered = refineElkPartnerOrder(raw, final, peopleById, spacingPlan.requested, layout, inlinePartnerships);
+            raw = ordered.raw;
+            layout = ordered.layout;
+        }
+        catch (error)
+        {
+            layout = { ...layout, issues: [...layout.issues, 'Partner ordering refinement: ' + error.message] };
+        }
+    }
+    const orderIssues = [];
+    const orderDetails = [];
+    const finalCards = new Map(layout.boxes.map(box => [box.id, box]));
+    for (const [familyId, orderedPeople] of final.ordered)
+    {
+        const [male, female] = orderedPeople.map(id => finalCards.get(id));
+        const cross = direction === 'DOWN' ? 'x' : 'y';
+        if (male && female && male[cross] >= female[cross])
+        {
+            const message = `Principal partner order: ${familyId} (${male[cross]}, ${female[cross]})`;
+            orderIssues.push(message);
+            orderDetails.push({ message, familyId, personIds: orderedPeople });
+        }
+    }
+    if (layout.underpasses)
     {
         try
         {
@@ -1266,6 +1286,7 @@ async function solveElkTree(people, families, direction, calculate)
     return {
         ...layout,
         issues: [...layout.issues, ...orderIssues],
+        orderDetails,
         direction,
         elapsed: performance.now() - started,
         passes: final === first ? 1 : 2,
@@ -1273,6 +1294,125 @@ async function solveElkTree(people, families, direction, calculate)
         primaryPairs: final.primaryPairs
     };
 }
+// Parent-slot roles are presentation metadata, not canonical gender changes.
+function elkOrderedPartners(ids, people)
+{
+    if (ids.length !== 2) return null;
+    const fatherSlot = ids.find(id => people.get(id).placeholder?.rel === 'father');
+    const motherSlot = ids.find(id => people.get(id).placeholder?.rel === 'mother');
+    if (fatherSlot) return [fatherSlot, ids.find(id => id !== fatherSlot)];
+    if (motherSlot) return [ids.find(id => id !== motherSlot), motherSlot];
+    const male = ids.find(id => people.get(id).gender === 'male');
+    const female = ids.find(id => people.get(id).gender === 'female');
+    return male && female ? [male, female] : null;
+}
+
+// Correct a reversed principal pair within its existing compound footprint.
+// Try bounded permutations; keep ELK's generation and group positions, and
+// publish only a complete reroute with no added harmful geometry conflicts.
+function refineElkPartnerOrder(raw, model, people, requested, baseline, route)
+{
+    if (baseline.issues.length || baseline.paths.some(p => p.native)) return { raw, layout: baseline };
+    const axis = model.direction === 'DOWN' ? 'x' : 'y';
+    const size = axis === 'x' ? 'w' : 'h';
+    const EPS = .02;
+    let current = raw, layout = baseline, conflicts;
+    for (const pair of model.primaryPairs)
+    {
+        const group = model.groups.find(g => g.id === pair.group);
+        const constraints = [...model.ordered.values()].filter(ids => ids.every(id => group.members.includes(id)));
+        const cards = current.boxes.filter(b => group.members.includes(b.id)).sort((a, b) => a[axis] - b[axis]);
+        const ids = cards.map(b => b.id);
+        const satisfies = order => constraints.every(([a, b]) => order.indexOf(a) < order.indexOf(b));
+        const reversed = constraints.find(([a, b]) => ids.indexOf(a) > ids.indexOf(b));
+        if (!reversed) continue;
+        const [male, female] = reversed;
+        const mi = ids.indexOf(male), fi = ids.indexOf(female);
+        const swapped = [...ids];
+        [swapped[mi], swapped[fi]] = [swapped[fi], swapped[mi]];
+        const orders = [swapped, [...ids].reverse()];
+        // Stable topological order also handles a group with several required
+        // parent-slot constraints. A cycle is left diagnosed, not forced.
+        for (const preference of [ids, [...ids].reverse()])
+        {
+            const sorted = [], remaining = [...preference];
+            while (remaining.length)
+            {
+                const index = remaining.findIndex(id => !constraints.some(([a, b]) => b === id && remaining.includes(a)));
+                if (index < 0) break;
+                sorted.push(remaining.splice(index, 1)[0]);
+            }
+            if (!remaining.length) orders.push(sorted);
+        }
+        const rest = ids.filter(id => id !== male && id !== female);
+        for (let i = 0; i <= rest.length; i++)
+            orders.push([...rest.slice(0, i), male, female, ...rest.slice(i)]);
+        const byId = new Map(cards.map(b => [b.id, b]));
+        conflicts ??= elkCenteringConflicts(layout, axis);
+        let best = null;
+        for (const order of orders)
+        {
+            if (!satisfies(order)) continue;
+            const gaps = [], minima = [];
+            for (let i = 1; i < order.length; i++)
+            {
+                const a = order[i - 1], b = order[i];
+                const pa = people.get(a), pb = people.get(b);
+                const minimum = Math.max(pa.placeholder || pb.placeholder ? 0 : 40,
+                    requested.get(a) || 0, requested.get(b) || 0,
+                    axis === 'y' ? pa.focusClearance || 0 : 0, axis === 'y' ? pb.focusClearance || 0 : 0,
+                    pair.secondaryPeople.includes(a) || pair.secondaryPeople.includes(b) ? model.secondarySpacing : 0);
+                minima.push(minimum);
+                gaps.push(Math.max(minimum, cards[i][axis] - cards[i - 1][axis] - cards[i - 1][size]));
+            }
+            const span = cards.at(-1)[axis] + cards.at(-1)[size] - cards[0][axis];
+            const cardSpan = order.reduce((sum, id) => sum + byId.get(id)[size], 0);
+            let excess = cardSpan + gaps.reduce((a, b) => a + b, 0) - span;
+            for (let i = 0; i < gaps.length && excess > EPS; i++)
+            {
+                const reduction = Math.min(excess, gaps[i] - minima[i]);
+                gaps[i] -= reduction;
+                excess -= reduction;
+            }
+            // The footprint may not grow or consume adjacent group clearance.
+            // Redistribute only the available gap budget, never below minima.
+            if (excess > EPS) continue;
+            let cursor = cards[0][axis];
+            const shifts = new Map();
+            for (let i = 0; i < order.length; i++)
+            {
+                const card = byId.get(order[i]);
+                shifts.set(card.id, cursor - card[axis]);
+                cursor += card[size] + (gaps[i] || 0);
+            }
+            if (Math.abs(cursor - cards[0][axis] - span) > EPS) continue;
+            const move = (shape, id) => shifts.has(id) ? { ...shape, [axis]: shape[axis] + shifts.get(id) } : shape;
+            const trial = { ...current,
+                boxes: current.boxes.map(b => move(b, b.id)),
+                ports: current.ports.map(p => move(p, p.node)) };
+            let candidate;
+            try { candidate = route(trial, model); }
+            catch (error) { continue; }
+            if (candidate.issues.length || candidate.paths.some(p => p.native)) continue;
+            const next = elkCenteringConflicts(candidate, axis);
+            if ([...next].some(([key, count]) => !key.startsWith('["crossing",') && count > (conflicts.get(key) || 0))) continue;
+            // Proper crossings are sometimes unavoidable to honor mandatory
+            // ordering. Prefer fewer crossings, then adjacent principal cards.
+            const score = [...next].reduce((sum, [key, count]) => sum + (key.startsWith('["crossing",') ? count : 0), 0);
+            const distance = constraints.reduce((sum, [a, b]) => sum + order.indexOf(b) - order.indexOf(a), 0);
+            if (!best || score < best.score || (score === best.score && distance < best.distance))
+                best = { trial, candidate, next, score, distance };
+        }
+        if (best)
+        {
+            current = best.trial;
+            layout = best.candidate;
+            conflicts = best.next;
+        }
+    }
+    return { raw: current, layout };
+}
+
 // Refine the cross-axis position of ordinary family groups only. The native
 // solver still determines generations, internal geometry and model order.
 // The existing inline router is the only publisher of refined connectors.
