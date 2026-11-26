@@ -9,13 +9,13 @@ Architecture planning (#398) is merged. Implementation and verification are trac
 - [x] #399: project stable occurrences and attach visible ancestry to one transferable owner.
 - [x] #408: support reconverging sibling branches and visual family instances.
 - [x] #400: incremental D3 renderer and actual-scale viewport.
-- [ ] #401: local derivatives and image lifecycle implemented. Packaged photos under direct file opening remain a browser compatibility gap.
+- [x] #401: local derivatives and image lifecycle implemented. Founder accepted the packaged-photo initials fallback under direct-file Edge access; loopback decoding was verified.
 - [x] #402: implement approved cards/date/zoom, verify thresholds and accessibility.
 - [x] #405: project-level coloring and channel/legend behavior.
 - [x] #409: apply descendant depth consistently to sibling and cousin branches.
 - [x] #403: both orientations, preferred native principal/placeholder ordering and diagnostic disclosure accepted. Keep the native ordering exceptions as nonfatal diagnostics.
 - [x] PR #410: ELK.js 0.12.1 and guarded ancestry-first centering approved by founder and rerun in the integrated #423 checks.
-- [ ] #407 and #397: founder acceptance and archival. #423 records integrated verification and current-spec reconciliation below.
+- [x] #423: integrated verification and current-spec reconciliation recorded; founder accepted the residual portrait limitation and authorized closeout. Archive with this change. #407/#397 issue closure remains with the founder after merge.
 
 ## Verification of this architecture change
 
@@ -194,7 +194,7 @@ Inspected current pushed default, repository and OpenSpec guidance, preview desi
 
 ## Integrated verification (#423)
 
-- PR #424 is merged and #425 and #426 are integrated. The current Family Tree, semantic zoom, and person card specifications own the verified behavior. This change and the historical ELK preview remain active until founder acceptance.
+- PR #424 is merged and #425 and #426 are integrated. The current Family Tree, semantic zoom, and person card specifications own the verified behavior. The founder authorized closeout after the verification report and accepted the direct-file portrait limitation. The historical preview and this migration are archived together.
 - Direct Node runs passed the ELK suite (4,813 assertion calls), visual occurrences (16,524 projections and 11 solves), ancestor reservations and sibling order (24 layouts each), and collateral compaction (10 matched layouts and 108 conflict comparisons). Rails, renderer, recent layouts, recorder, display settings, collateral depth, branch attribution, catalog, GEDCOM, and the 1,023-person stress fixture also passed. The ELK assertions normalize values returned from its VM before strict comparison.
 - Offline Edge on direct file and loopback checked focus and recents, duplicate ancestry transfer, Add relative, project switching, wheel, drag, keyboard, synthetic pinch, Fit, resize, fullscreen, mobile controls at 390 px, semantic zoom, and branch colors in light and dark themes. Reload restored the saved focus and settings. The 511-card rendered stress scene completed with one solve and zero reported diagnostics in each orientation.
 - Six local GEDCOM layout checks covering the #420 routing cases and a #426 marriage-loop case completed with zero reported geometric conflicts, child-family pair contacts, or diagnostics. Each used two ELK passes. Pan and zoom preserved geometry. Coincident connector intervals that represent distinct relationships remain an accepted visual limitation where they cannot be separated by placement.
@@ -202,3 +202,8 @@ Inspected current pushed default, repository and OpenSpec guidance, preview desi
 - Packaged portraits decoded over loopback. Direct file opening still uses the initials fallback for packaged portraits (#401). Generated portrait derivatives passed crop, cache, and project-isolation checks in Edge. Physical touch and other browser engines were outside this run.
 - The broader project-data contract script stops at its legacy board-photo assertion (line 852). The board validator rejects the forbidden field before reaching the expected image-reference error. The Tree checks above ran independently.
 
+## Closeout — 26 November 2026
+
+- Final verification and current specifications were committed at `de8aa305`. The recorded integrated runs above supersede earlier pending integration notes; individual historical claims and unchecked items remain as evidence, not claims of additional test execution.
+- The founder accepted the packaged-portrait initials fallback in Edge direct-file mode (#401). Physical touch and other browser engines were not covered by the final run. The broader project-data contract suite did not pass; #436 separately owns the legacy board-photo assertion investigation. No further Tree testing or runtime changes were performed for this documentation closeout.
+- The current Family Tree, zoom and card specifications retain the verified behavior and known limitations. Archive both ELK change records together; the founder can close #423, #407 and #397 after integration. Retain the internal stress fixture until its separate removal task #381.

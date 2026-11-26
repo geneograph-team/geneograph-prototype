@@ -1,6 +1,6 @@
 # Historical migration delta
 
-Current requirements are consolidated in the [current specification](../../../../specs/family-tree/spec.md). The text below retains the migration proposal and lab decisions for traceability.
+Current requirements are consolidated in the [current specification](../../../../../specs/family-tree/spec.md). The text below retains the migration proposal and lab decisions for traceability.
 
 ## ADDED Requirements
 

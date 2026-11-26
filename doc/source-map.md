@@ -49,4 +49,4 @@ Family Tree styles are loaded in functional order from `src/index.html`.
 
 These four files consolidate the former two Tree stylesheets. Shared inspector controls live in `shared/controls.css`, mobile relationship form rules in `shared/relationship-forms.css`, and application and Projects breakpoints in `core/foundation.css`. People-only rules live with their directory or profile.
 
-Current behavior is recorded in the [Family Tree specification](../openspec/specs/family-tree/spec.md). The [ELK/D3 migration design](../openspec/changes/elk-d3-tree-migration/design.md) retains design decisions and verification history pending archival.
+Current behavior is recorded in the [Family Tree specification](../openspec/specs/family-tree/spec.md). The [ELK/D3 migration design](../openspec/changes/archive/2026-11-26-elk-d3-tree-migration/design.md) retains historical design decisions and verification evidence.
