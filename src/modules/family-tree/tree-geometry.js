@@ -4,7 +4,6 @@ const TREE_GEOMETRY = Object.freeze({
     cardPadding: 10,
     cardContentGap: 10,
     avatarSize: 68,
-    parentPlaceholderHeight: 110,
     partnerGap: 40,
     partnerDashLength: 10,
     partnerDashGap: 8,

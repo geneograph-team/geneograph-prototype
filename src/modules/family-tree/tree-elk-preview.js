@@ -126,7 +126,7 @@ function prepareElkTreeInput(projection, preferences, direction = 'DOWN')
             generations.set(id, generation);
             family.parents[rel === 'father' ? 'unshift' : 'push'](id);
             model.people.push({ id, width: treeParentPlaceholderWidth(roles.length, direction),
-                height: direction === 'RIGHT' || roles.length === 1 ? TREE_CARD_H : TREE_GEOMETRY.parentPlaceholderHeight,
+                height: TREE_CARD_H,
                 placeholder: { personId: canonicalId, rel, label: rel === 'father' ? 'Add father' : 'Add mother' } });
         }
     }

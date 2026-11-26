@@ -321,7 +321,7 @@ function renderFamilyTree(readyProjection = null)
               ${treeParentPlaceholderWidth(2)}px;
 
             --tree-placeholder-height:
-              ${TREE_GEOMETRY.parentPlaceholderHeight}px;
+              ${TREE_CARD_H}px;
 
             --tree-focus-control-width:
               ${TREE_GEOMETRY.focusControlWidth}px;

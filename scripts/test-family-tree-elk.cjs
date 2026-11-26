@@ -443,6 +443,7 @@ function inspect(layout, peopleById, families)
             if (missing === 'both' && direction === 'DOWN')
             {
                 assert.ok(same(father.w, 130) && same(mother.w, 130));
+                assert.ok(same(father.h, child.h) && same(mother.h, child.h));
                 assert.ok(same(mother.x + mother.w - father.x, child.w));
             }
             else
