@@ -4,14 +4,15 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 const vm = require('node:vm');
-const ELK = require('../src/vendor/elkjs-0.12.1/lib/elk.bundled.js');
-const fixtures = require('./fixtures/elk-tree-approved.json');
+const ELK = require('../../src/vendor/elkjs-0.12.1/lib/elk.bundled.js');
+const { approvedTreeCases } = require('./tree-cases.cjs');
+const fixtures = approvedTreeCases();
 const context = vm.createContext({ performance, clampNumber: (value, minimum, maximum) =>
     Math.max(minimum, Math.min(maximum, value)) });
 for (const file of ['shared/genealogy-dates.js', 'core/state-tree-core.js', 'modules/family-tree/tree-geometry.js',
     'modules/family-tree/tree-elk-model.js', 'modules/family-tree/tree-elk-layout.js'])
 {
-    const source = fs.readFileSync(path.join(__dirname, '../src', file), 'utf8');
+    const source = fs.readFileSync(path.join(__dirname, '../../src', file), 'utf8');
     vm.runInContext(file === 'core/state-tree-core.js' ? source.slice(source.indexOf('function currentTreePeople('), source.indexOf('const topbar =')) : source, context);
 }
 

@@ -44,7 +44,7 @@ This is synchronous, memory-only and works over HTTP(S) or direct `file://` with
 
 ## Verification
 
-Run `node scripts/test-family-tree-stress-fixture.cjs`. The test uses the project's actual canonical validator, checks every numbered parent relationship and every complete ancestor level (2, 4, 8, …, 512 people), validates the graph's connectivity **and** lack of cycles, verifies first-open lazy materialization, stable IDs, determinism, Whiskerfield isolation, reopen-with-edits behavior, unique Tree view adapter records and People directory records with absent optional `meta` fields.
+Run `node tests/family-tree/test-family-tree-stress-fixture.cjs`. The test uses the project's actual canonical validator, checks every numbered parent relationship and every complete ancestor level (2, 4, 8, …, 512 people), validates the graph's connectivity **and** lack of cycles, verifies first-open lazy materialization, stable IDs, determinism, Whiskerfield isolation, reopen-with-edits behavior, unique Tree view adapter records and People directory records with absent optional `meta` fields.
 
 For manual browser QA, fully reload the updated PR branch, open the technical project, focus `Person 0001` and verify:
 
@@ -61,7 +61,7 @@ Source/Node timings are not real browser rendering benchmarks. Report any visual
 - [ ] Remove `p-family-tree-stress` metadata and lazy-count special case from `src/seed/sample-data.js`.
 - [ ] Remove the test-project first-open hook from `src/shared/shared-actions.js`.
 - [ ] Remove technical project name and description translations from `src/localization/shared-projects.js`.
-- [ ] Remove `scripts/test-family-tree-stress-fixture.cjs`, this guide, the dedicated OpenSpec requirement and temporary references in `README.md`, `AGENTS.md` and `doc/source-map.md`.
+- [ ] Remove `tests/family-tree/test-family-tree-stress-fixture.cjs`, this guide, the dedicated OpenSpec requirement and temporary references in `README.md`, `AGENTS.md` and `doc/source-map.md`.
 - [ ] Verify the user-testing build contains no `p-family-tree-stress` or `stress-person-` records; run core project validation and browser smoke tests, including `file://`.
 - [ ] Document and review the full removal in the pre-open-testing release PR.
 

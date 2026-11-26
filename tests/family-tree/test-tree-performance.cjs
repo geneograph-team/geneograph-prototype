@@ -5,7 +5,7 @@ const path = require('node:path');
 const vm = require('node:vm');
 let clock = 100;
 const context = vm.createContext({ performance: { now: () => clock } });
-vm.runInContext(fs.readFileSync(path.join(__dirname, '../src/modules/family-tree/tree-performance.js'), 'utf8'), context);
+vm.runInContext(fs.readFileSync(path.join(__dirname, '../../src/modules/family-tree/tree-performance.js'), 'utf8'), context);
 const perf = vm.runInContext('treePerf', context);
 const view = { orientation: 'horizontal', ancestorGenerations: 5, descendantGenerations: 3, showCousins: true };
 assert.equal(perf.begin('private-project', 'focus', view), null);

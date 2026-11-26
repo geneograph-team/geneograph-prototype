@@ -29,8 +29,9 @@ if (require.main === module)
 {
     const assert = require('node:assert/strict');
     const fs = require('node:fs');
+const path = require('node:path');
     const vm = require('node:vm');
-    const source = fs.readFileSync('src/core/state-tree-core.js', 'utf8');
+    const source = fs.readFileSync(path.join(__dirname, '../../src/core/state-tree-core.js'), 'utf8');
     const context = vm.createContext({ clampNumber: (n, min, max) => Math.min(max, Math.max(min, n)) });
     vm.runInContext(source.slice(source.indexOf('function currentTreePeople('), source.indexOf('const topbar =')), context);
     const { people, families } = collateralFixture();

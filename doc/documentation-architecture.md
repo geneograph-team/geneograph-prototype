@@ -16,6 +16,7 @@
 | --- | --- | --- |
 | `README.md` | Repository introduction, basic run instructions and navigation to documentation | Detailed requirements or implementation history |
 | `AGENTS.md` | Agent permissions, investigation, implementation, verification and protected operations | Product roadmap, exhaustive feature descriptions or duplicated specifications |
+| `tests/README.md` | Test organization, reusable local checks, execution and disposable-test conventions | Feature requirements or historical test results |
 | `doc/product-vision.md` | Product purpose, audience, principles and long-term possibilities | Claims that the prototype already ships every described capability |
 | `doc/design-document.md` | Current prototype overview, shared UX conventions, interaction principles and high-level capability boundaries | Authoritative field-level data schema, repeated agent policies or issue-by-issue implementation history |
 | `doc/source-map.md` | Code ownership, dependency boundaries and non-obvious load-order constraints | Historical QA snapshots or feature acceptance checklists |

@@ -1,0 +1,3 @@
+# Disposable local experiments and test outputs; never commit their contents.
+*
+!.gitignore

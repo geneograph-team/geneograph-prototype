@@ -1,14 +1,14 @@
 'use strict';
 
 // TEMPORARY INTERNAL QA FIXTURE. Remove before open user testing.
-// Run: node scripts/test-family-tree-stress-fixture.cjs
+// Run: node tests/family-tree/test-family-tree-stress-fixture.cjs
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 const vm = require('node:vm');
 const { performance } = require('node:perf_hooks');
 
-const source = file => fs.readFileSync(path.join(__dirname, '../src', file + '.js'), 'utf8');
+const source = file => fs.readFileSync(path.join(__dirname, '../../src', file + '.js'), 'utf8');
 const context = vm.createContext({
     console,
     state: { language: 'en' },

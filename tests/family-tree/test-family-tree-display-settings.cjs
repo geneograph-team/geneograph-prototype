@@ -1,8 +1,9 @@
 'use strict';
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
+const path = require('node:path');
 const vm = require('node:vm');
-const source = fs.readFileSync('src/core/state-tree-core.js', 'utf8');
+const source = fs.readFileSync(path.join(__dirname, '../../src/core/state-tree-core.js'), 'utf8');
 const store = new Map();
 const localStorage = { getItem: key => store.get(key), setItem: (key, value) => store.set(key, value), removeItem: key => store.delete(key) };
 const people = [{ id: 'a', projectId: 'p1' }, { id: 'b', projectId: 'p2' }];

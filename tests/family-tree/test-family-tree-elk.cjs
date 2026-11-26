@@ -4,15 +4,16 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 const vm = require('node:vm');
-const ELK = require('../src/vendor/elkjs-0.12.1/lib/elk.bundled.js');
-const fixtures = require('./fixtures/elk-tree-approved.json');
+const ELK = require('../../src/vendor/elkjs-0.12.1/lib/elk.bundled.js');
+const { approvedTreeCases, principalOrderReversalCase } = require('./tree-cases.cjs');
+const fixtures = approvedTreeCases();
 const context = vm.createContext(
 {
     performance,
     t: value => value,
     translateText: value => value
 });
-const source = path.join(__dirname, '../src/modules/family-tree/tree-elk-model.js');
+const source = path.join(__dirname, '../../src/modules/family-tree/tree-elk-model.js');
 vm.runInContext(fs.readFileSync(source, 'utf8'), context);
 
 for (const file of ['tree-geometry.js', 'tree-elk-layout.js'])
@@ -908,7 +909,7 @@ function inspect(layout, peopleById, families)
     assert.equal(explanations[3].subject, 'Charlie');
     assert.equal(explanations[4].subject, 'Alice / Bob / Charlie');
 
-    const reversal = require('./fixtures/elk-principal-order-reversal.json');
+    const reversal = principalOrderReversalCase();
     for (const direction of ['DOWN', 'RIGHT'])
     {
         const layout = await solvePair(reversal.people, reversal.families, direction);

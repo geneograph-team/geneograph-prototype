@@ -28,7 +28,7 @@ const files = [
     'assets/boards/whiskerfield-tree-research', 'seed/seed-boards', 'core/validation',
     'modules/people/relationship-editor', 'modules/people/controls', 'modules/publish/drafts-model'
 ];
-const sourceDirectory = path.join(__dirname, '../src');
+const sourceDirectory = path.join(__dirname, '../../src');
 const indexHtml = fs.readFileSync(path.join(sourceDirectory, 'index.html'), 'utf8');
 const orderedScripts = Array.from(indexHtml.matchAll(/<script\b[^>]*\bsrc="([^"]+\.js)"/g), match => match[1]);
 const scriptOrder = new Map(orderedScripts.map((name, index) => [name, index]));
@@ -37,7 +37,7 @@ files.sort((left, right) => scriptOrder.get(left + '.js') - scriptOrder.get(righ
 
 for (const file of files)
 {
-    const filename = path.join(__dirname, '../src', file + '.js');
+    const filename = path.join(__dirname, '../../src', file + '.js');
     vm.runInContext(fs.readFileSync(filename, 'utf8'), context, { filename });
 }
 
@@ -71,7 +71,7 @@ for (const photo of sample.media)
 assert.equal(fs.statSync(path.join(sourceDirectory, 'assets/documents/silver_luna_marriage_packet.pdf')).size, 6723);
 assert.equal(sample.media.find(photo => photo.id === 'photo-family-table').date.first.year, 2010);
 const startupEvidence = JSON.stringify([sample.sourceLinks, sample.archiveFiles, sample.notes]);
-vm.runInContext(fs.readFileSync(path.join(__dirname, '../src/seed/seed-genealogy.js'), 'utf8'), context);
+vm.runInContext(fs.readFileSync(path.join(__dirname, '../../src/seed/seed-genealogy.js'), 'utf8'), context);
 assert.equal(JSON.stringify([sample.sourceLinks, sample.archiveFiles, sample.notes]), startupEvidence);
 assert.ok(sample.events.length > 0);
 const project = sample.projects[0];
@@ -483,7 +483,7 @@ assert.deepEqual(Array.from(restoredMetadata.records.media, photo => photo.id),
     Array.from(restored.media, photo => photo.id));
 assert.deepEqual(JSON.stringify(restoredMetadata.records.boards[0].diagram.nodes),
     JSON.stringify(restored.boards[0].diagram.nodes));
-const boardCore = fs.readFileSync(path.join(__dirname, '../src/modules/geneograph/geneograph-editor-core.js'), 'utf8');
+const boardCore = fs.readFileSync(path.join(__dirname, '../../src/modules/geneograph/geneograph-editor-core.js'), 'utf8');
 context.PHOTO_UPLOAD_ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 context.geneoNumber = (value, fallback) => Number.isFinite(Number(value)) ? Number(value) : fallback;
 for (const [start, end] of [
@@ -720,9 +720,9 @@ assert.ok(context.validateProjectDraft(project, restored).some(error => error.in
 restored.boards[0].diagram.nodes.pop();
 restored.boards[0].diagram.connections[0].source = { nodeId: 'missing', port: 'bottom' };
 assert.ok(context.validateProjectDraft(project, restored).some(error => error.includes('.source.nodeId references missing ID missing')));
-const syncModel = fs.readFileSync(path.join(__dirname, '../src/modules/geneograph/geneograph-tree-review-model.js'), 'utf8');
+const syncModel = fs.readFileSync(path.join(__dirname, '../../src/modules/geneograph/geneograph-tree-review-model.js'), 'utf8');
 vm.runInContext(syncModel, context);
-vm.runInContext(fs.readFileSync(path.join(__dirname, '../src/modules/geneograph/geneograph-relationships.js'), 'utf8'), context);
+vm.runInContext(fs.readFileSync(path.join(__dirname, '../../src/modules/geneograph/geneograph-relationships.js'), 'utf8'), context);
 const mixedTreeFamily = { ...union, parentChildTypes: { 'silver|oliver': 'Adoptive', 'luna|oliver': 'Guardian' } };
 const mixedBoardFamily = { partnerIds: ['board-silver', 'board-luna'],
     children: [{ personId: 'board-oliver', parentageType: 'unknown',

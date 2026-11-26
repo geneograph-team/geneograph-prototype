@@ -1,5 +1,6 @@
 'use strict';
 const fs = require('node:fs');
+const path = require('node:path');
 const vm = require('node:vm');
 const assert = require('node:assert/strict');
 
@@ -18,7 +19,7 @@ const sandbox = vm.createContext({
     }
 });
 let project = 'p1', solves = 0, pending;
-vm.runInContext(fs.readFileSync('src/modules/family-tree/tree-elk-layout.js', 'utf8'), sandbox);
+vm.runInContext(fs.readFileSync(path.join(__dirname, '../../src/modules/family-tree/tree-elk-layout.js'), 'utf8'), sandbox);
 sandbox.prepareElkTreeInput = p => ({ people: [{ id: p.focusPersonId }], families: [], focusId: p.focusPersonId });
 sandbox.solveElkTree = (people, _families, direction) =>
 {

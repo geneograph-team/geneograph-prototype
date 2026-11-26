@@ -2,7 +2,7 @@ const fs = require('node:fs');
 const vm = require('node:vm');
 const assert = require('node:assert/strict');
 const { performance } = require('node:perf_hooks');
-const code = fs.readFileSync(require('node:path').join(__dirname, '../src/modules/people/person-match-engine.js'), 'utf8');
+const code = fs.readFileSync(require('node:path').join(__dirname, '../../src/modules/people/person-match-engine.js'), 'utf8');
 const Engine = vm.runInNewContext(code + '\nPersonMatchEngine;');
 const date = (year, month, day, type = 'Exact date', placeId = '') => ({
     state: year || month || day ? 'known' : 'empty', dateType: type, calendar: 'Gregorian',

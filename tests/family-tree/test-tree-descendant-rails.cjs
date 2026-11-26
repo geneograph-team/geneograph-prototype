@@ -5,7 +5,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const vm = require('node:vm');
 
-const source = fs.readFileSync(path.join(__dirname, '../src/modules/family-tree/tree-elk-model.js'), 'utf8');
+const source = fs.readFileSync(path.join(__dirname, '../../src/modules/family-tree/tree-elk-model.js'), 'utf8');
 const start = source.indexOf('    function allocateUnifiedRails(');
 const end = source.indexOf('    function planDynamicSpacing(', start);
 const allocate = vm.runInNewContext(

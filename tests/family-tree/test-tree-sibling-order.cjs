@@ -4,11 +4,11 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 const vm = require('node:vm');
-const ELK = require('../src/vendor/elkjs-0.12.1/lib/elk.bundled.js');
+const ELK = require('../../src/vendor/elkjs-0.12.1/lib/elk.bundled.js');
 const context = vm.createContext({ performance });
 for (const file of ['shared/genealogy-dates.js', 'modules/family-tree/tree-geometry.js',
     'modules/family-tree/tree-elk-model.js', 'modules/family-tree/tree-elk-layout.js'])
-    vm.runInContext(fs.readFileSync(path.join(__dirname, '../src', file), 'utf8'), context);
+    vm.runInContext(fs.readFileSync(path.join(__dirname, '../../src', file), 'utf8'), context);
 
 const date = (year, month = null, day = null, dateType = 'Exact date') =>
     ({ state: 'known', dateType, calendar: 'Gregorian', first: { year, month, day } });

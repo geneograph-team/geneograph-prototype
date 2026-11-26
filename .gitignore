@@ -4,5 +4,7 @@
 .DS_Store
 Thumbs.db
 .agents
-tests
 temp
+
+# Keep the disposable test directory; its local ignore rules exclude its contents.
+!/tests/temp/

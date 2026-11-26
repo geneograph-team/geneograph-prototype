@@ -5,9 +5,9 @@ const fs = require('node:fs');
 const path = require('node:path');
 const vm = require('node:vm');
 const context = vm.createContext({});
-vm.runInContext(fs.readFileSync(path.join(__dirname, '../src/modules/family-tree/tree-performance.js'), 'utf8'), context);
-vm.runInContext(fs.readFileSync(path.join(__dirname, '../src/modules/family-tree/tree-geometry.js'), 'utf8'), context);
-vm.runInContext(fs.readFileSync(path.join(__dirname, '../src/modules/family-tree/tree-renderer.js'), 'utf8'), context);
+vm.runInContext(fs.readFileSync(path.join(__dirname, '../../src/modules/family-tree/tree-performance.js'), 'utf8'), context);
+vm.runInContext(fs.readFileSync(path.join(__dirname, '../../src/modules/family-tree/tree-geometry.js'), 'utf8'), context);
+vm.runInContext(fs.readFileSync(path.join(__dirname, '../../src/modules/family-tree/tree-renderer.js'), 'utf8'), context);
 const point = (x, y) => ({ x, y });
 
 const viewport = context.treeSceneViewport({ x: -40, y: 20, k: 2 }, 300, 200, 0);
@@ -84,7 +84,7 @@ const identity = { translate: () => identity, scale: k => ({ k }) };
 context.d3 = { zoom: () => behavior, select: () => selection, zoomIdentity: identity };
 context.state = { treeZoom: 100 };
 context.ResizeObserver = class { observe() {} };
-vm.runInContext(fs.readFileSync(path.join(__dirname, '../src/modules/family-tree/tree-viewport.js'), 'utf8'), context);
+vm.runInContext(fs.readFileSync(path.join(__dirname, '../../src/modules/family-tree/tree-viewport.js'), 'utf8'), context);
 const runtime = { canvas: { clientWidth: 800, clientHeight: 600 }, scene: {} };
 context.bindTreeViewport(runtime);
 const target = (...matches) => ({ closest: selectors => matches.some(match =>

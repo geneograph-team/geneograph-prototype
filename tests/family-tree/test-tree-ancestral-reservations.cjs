@@ -4,10 +4,10 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 const vm = require('node:vm');
-const ELK = require('../src/vendor/elkjs-0.12.1/lib/elk.bundled.js');
+const ELK = require('../../src/vendor/elkjs-0.12.1/lib/elk.bundled.js');
 const context = vm.createContext({ performance });
 for (const file of ['tree-geometry.js', 'tree-elk-model.js'])
-    vm.runInContext(fs.readFileSync(path.join(__dirname, '../src/modules/family-tree', file), 'utf8'), context);
+    vm.runInContext(fs.readFileSync(path.join(__dirname, '../../src/modules/family-tree', file), 'utf8'), context);
 
 const EPS = .02;
 function fixture(direction, pattern, depth = 4)

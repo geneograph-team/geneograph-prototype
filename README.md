@@ -11,6 +11,12 @@ Static browser prototype for genealogy research. Open `src/index.html` directly 
 - `src/assets/photos/`, `documents/`, `covers/`, and `ui/` hold static media. `src/assets/boards/whiskerfield-tree-research.js` registers the seeded board before `src/seed/seed-boards.js` loads.
 - `src/vendor/` holds pinned local browser libraries, including `html-to-image`. MapLibre CSS and Quill load from pinned CDNs; the Places renderer imports the pinned MapLibre ES module only on hosted HTTP(S) pages. Opening via file:// retains the Places list and manual coordinates without an interactive map.
 
+## Tests and scripts
+
+- [`tests/`](tests/README.md): reusable regression checks grouped by domain; run locally with Node.js.
+- `tests/temp/`: ignored disposable experiments and outputs.
+- `scripts/`: pipeline-critical utilities, currently the localization catalog check.
+
 ## Documentation
 
 [Documentation architecture](doc/documentation-architecture.md) defines which documents are authoritative and when to update them.

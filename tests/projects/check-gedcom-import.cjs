@@ -19,7 +19,7 @@ for (const file of [
     'modules/archive/archive-sources', 'core/validation', 'modules/archive/archive-documents', 'modules/projects/gedcom-import'
 ])
 {
-    const filename = path.join(__dirname, '../src', file + '.js');
+    const filename = path.join(__dirname, '../../src', file + '.js');
     vm.runInContext(fs.readFileSync(filename, 'utf8'), context, { filename });
 }
 

@@ -14,7 +14,7 @@ const ctx = vm.createContext({
     placesMapRuntime: {}, structuredClone, console
 });
 for (const file of ['place-record-helpers.js', 'filters.js'])
-    vm.runInContext(fs.readFileSync(path.join(__dirname, '../src/modules/places', file), 'utf8'), ctx, { filename: file });
+    vm.runInContext(fs.readFileSync(path.join(__dirname, '../../src/modules/places', file), 'utf8'), ctx, { filename: file });
 const run = code => vm.runInContext(code, ctx);
 const place = { id: 'p', projectId: 'p1', name: 'Town', alternativeNames: [], coordinates: null };
 const other = { id: 'other', projectId: 'p1', name: 'Town', alternativeNames: [], coordinates: null };
