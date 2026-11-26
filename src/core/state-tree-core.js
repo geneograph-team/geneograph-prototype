@@ -808,13 +808,7 @@ function openTreeRecentPeopleMenu(anchor)
 
             closeMenu();
 
-            navigateFamilyTreeToPerson(
-                personId,
-                {
-                    focusBranch: false,
-                    center: true
-                }
-            );
+            setTreeFocusPerson(personId);
         });
     });
 

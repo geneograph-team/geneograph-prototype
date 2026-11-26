@@ -351,16 +351,9 @@ function bindTreeRenderer(runtime)
         else if (button.dataset.cardEdit) openEditPersonModal(button.dataset.cardEdit);
         else if (button.dataset.cardAdd && personId)
         {
-            if (treeProjectViewState().focusPersonId !== personId)
-            {
-                treeRelativeIntent = { projectId: runtime.projectId, personId };
-                focusTreeBranchForRelative(personId);
-            }
-            else
-            {
+            if (treeProjectViewState(runtime.projectId).focusPersonId === personId)
                 selectVisibleTreePerson(personId, { center: false });
-                openRelativePopover(button, personId);
-            }
+            openRelativePopover(button, personId, { focusTreeBranch: false });
         }
         else if (button.dataset.treeView) setTreeOrientation(button.dataset.treeView);
         else if (button.dataset.treeCardFocus) setTreeFocusPerson(button.dataset.treeCardFocus);

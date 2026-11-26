@@ -576,7 +576,6 @@ function render()
         disposeTreeRenderer();
         treePerf.stop();
         treePerf.project(currentProjectId());
-        treeRelativeIntent = null;
     }
     if (typeof archiveImageSyncLifecycle === 'function') archiveImageSyncLifecycle();
     appNavigationObserve();

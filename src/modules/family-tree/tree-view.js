@@ -89,7 +89,6 @@ document.addEventListener('fullscreenchange', () =>
     updateTreeFullscreenButton();
 });
 
-let treeRelativeIntent = null;
 
 let treeMobileMenuController = null;
 
@@ -197,7 +196,8 @@ function openTreePersonPicker(anchor)
     const choose = personId =>
     {
         closeMenu();
-        navigateFamilyTreeToPerson(personId);
+        if (input.value.trim()) navigateFamilyTreeToPerson(personId);
+        else setTreeFocusPerson(personId);
     };
     input.addEventListener('input', renderResults);
     input.addEventListener('keydown', event =>
@@ -524,15 +524,6 @@ function renderFamilyTree(readyProjection = null, trace = null, preparation = {}
         delete treeViewState.ancestryFocusReturn;
         if (!runtime.cards.querySelector(selector)) centerTreeOnOccurrence(runtime.scene.byOccurrence.get(occurrenceId));
         runtime.cards.querySelector(selector)?.focus({ preventScroll: true });
-    }
-    if (treeRelativeIntent && (treeRelativeIntent.projectId !== treeProjectId || treeRelativeIntent.personId !== focusPersonId))
-        treeRelativeIntent = null;
-    if (treeRelativeIntent)
-    {
-        const { personId } = treeRelativeIntent;
-        treeRelativeIntent = null;
-        const button = treePrimaryPersonCard(personId)?.querySelector('[data-card-add="relative"]');
-        if (button) requestAnimationFrame(() => { if (button.isConnected) openRelativePopover(button, personId); });
     }
     if (trace)
     {

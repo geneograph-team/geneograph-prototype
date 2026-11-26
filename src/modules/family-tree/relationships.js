@@ -1221,7 +1221,8 @@ function openConnectRelativeModal(anchorPersonId, options = {})
 
 function openRelativePopover(
     anchor,
-    anchorPersonId
+    anchorPersonId,
+    { focusTreeBranch = true } = {}
 )
 {
     const openPopover = document.getElementById('relativePopover');
@@ -1260,7 +1261,7 @@ function openRelativePopover(
         {
             const rel = button.dataset.rel;
             closeMenu();
-            focusTreeBranchForRelative(person.id);
+            if (focusTreeBranch) focusTreeBranchForRelative(person.id);
             openAddPersonModal(`Add ${rel}`, `Create a new person and add as ${person.name.split(' ')[0]}'s ${rel}`, {
                 relativeType: rel,
                 connectRelationshipType: addPersonConnectionTypeFromRelativeType(rel),
@@ -1274,7 +1275,7 @@ function openRelativePopover(
     popover.querySelector('[data-connect-existing]')?.addEventListener('click', () =>
     {
         closeMenu();
-        focusTreeBranchForRelative(person.id);
+        if (focusTreeBranch) focusTreeBranchForRelative(person.id);
         openConnectRelativeModal(person.id, { relationshipType: 'parent' });
     });
 
