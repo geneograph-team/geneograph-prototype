@@ -1,8 +1,3 @@
-function treePersonToPeopleRecordId(person)
-{
-    return person && getPerson(person.id) ? person.id : null;
-}
-
 const CONNECTED_NOTES_PREVIEW_LIMIT = 3;
 
 function personResourceDisplayName(person)
@@ -11,21 +6,6 @@ function personResourceDisplayName(person)
         formatPersonFullName(person)
         || person?.name
         || 'Person'
-    );
-}
-
-function resourceLabelsIncludePerson(
-    labels,
-    person
-)
-{
-    const name =
-        personResourceDisplayName(person);
-
-    return (labels || []).some(
-        label =>
-            String(label || '').trim()
-          === name
     );
 }
 
@@ -1252,13 +1232,6 @@ function timelineEventColor(event)
 function timelineEventIsLasting(event)
 {
     return event?.dateKind === 'span' || ['education', 'occupation'].includes(event?.type);
-}
-
-function timelineDateParts(value)
-{
-    const model = normalizeGenealogyDateInput(value);
-    if (model.state !== 'known') return null;
-    return { ...model.first, precision: model.first.year && model.first.month && model.first.day ? 'day' : 'partial' };
 }
 
 function timelineAgeAtEvent(event, personId)

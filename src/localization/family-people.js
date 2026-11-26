@@ -22,38 +22,11 @@ const RU_UI_FAMILY_TREE = {
     'Vacant branch origin': 'Предок не указан',
     'Choose a branch reference in Tree Settings.': 'Выберите исходного человека в настройках древа.',
     'Neutral includes missing, unrelated and ambiguous paths.': 'Нейтральный цвет обозначает отсутствующие, неродственные и неоднозначные ветви.',
-    'Recently viewed people selector will open here.':
-        'Здесь откроется список недавно просмотренных людей.',
-
     'Tree view mode':
         'Режим отображения древа',
 
-    'Classic':
-        'Классический',
-
-    'Pedigree':
-        'Родословная',
-
     'Fan':
         'Веер',
-
-    'Classic view':
-        'Классический вид',
-
-    'Pedigree view will be added later.':
-        'Режим родословной будет добавлен позже.',
-
-    'Fan view will be added later.':
-        'Веерный вид будет добавлен позже.',
-
-    'Export is planned for the Publish iteration.':
-        'Экспорт запланирован для этапа разработки модуля «Публикация».',
-
-    'Print preview will be added later.':
-        'Предпросмотр печати будет добавлен позже.',
-
-    'Tree settings are not part of this build yet.':
-        'Настройки древа пока не входят в эту сборку.',
 
     'Tree Settings':
         'Настройки древа',

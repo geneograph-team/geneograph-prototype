@@ -361,7 +361,7 @@ function bindTreeRenderer(runtime)
         {
             const target = personById(button.dataset.personId);
             if (!target) return;
-            focusTreeBranchForRelative(target.id);
+            setTreeFocusPerson(target.id);
             const role = button.dataset.addRelative;
             openAddPersonModal('Add ' + role, 'Create a new person and add as ' + target.name.split(' ')[0] + "'s " + role,
                 { relativeType: role, personId: target.id });

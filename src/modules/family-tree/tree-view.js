@@ -90,54 +90,6 @@ document.addEventListener('fullscreenchange', () =>
 });
 
 
-let treeMobileMenuController = null;
-
-function closeTreeMobileMenu()
-{
-    treeMobileMenuController?.abort();
-    treeMobileMenuController = null;
-    document.querySelector('#treeMobileMenu')?.remove();
-    main.querySelector('[data-tree-mobile-more]')?.setAttribute('aria-expanded', 'false');
-}
-
-function openTreeMobileMenu(anchor)
-{
-    if (document.querySelector('#treeMobileMenu'))
-    {
-        closeTreeMobileMenu();
-        return;
-    }
-    const menu = document.createElement('div');
-    menu.id = 'treeMobileMenu';
-    menu.className = 'menu-popover app-action-menu tree-mobile-menu';
-    menu.setAttribute('role', 'menu');
-    menu.innerHTML = `<button type="button" role="menuitem" data-tree-mobile-action="settings">${icon.settings}<span>${escapeHtml(t('Tree Settings'))}</span></button>
-        <button type="button" role="menuitem" data-tree-mobile-action="export">${icon.export}<span>${escapeHtml(t('Export'))}</span></button>
-        <button type="button" role="menuitem" data-tree-mobile-action="print">${icon.print}<span>${escapeHtml(t('Print'))}</span></button>`;
-    document.body.appendChild(menu);
-    positionAnchoredActionMenu(menu, anchor);
-    anchor.setAttribute('aria-expanded', 'true');
-    const controller = new AbortController();
-    treeMobileMenuController = controller;
-    menu.addEventListener('click', event =>
-    {
-        const action = event.target.closest('[data-tree-mobile-action]')?.dataset.treeMobileAction;
-        if (!action) return;
-        closeTreeMobileMenu();
-        const original = action === 'settings' ? '[data-tree-settings]' : `[data-tree-mobile-original="${action}"]`;
-        main.querySelector(original)?.click();
-    });
-    document.addEventListener('pointerdown', event =>
-    {
-        if (!menu.contains(event.target) && !anchor.contains(event.target)) closeTreeMobileMenu();
-    }, { signal: controller.signal });
-    document.addEventListener('keydown', event =>
-    {
-        if (event.key === 'Escape') closeTreeMobileMenu();
-    }, { signal: controller.signal });
-    menu.querySelector('button')?.focus();
-}
-
 function treePersonPickerResults(query)
 {
     if (!query) return treeRecentPeople();
@@ -238,7 +190,6 @@ function renderFamilyTree(readyProjection = null, trace = null, preparation = {}
         trace = treePerf.begin(projectId, 'render', treeProjectViewState(projectId));
     const renderStarted = trace && treePerf.now();
     appNavigationObserve();
-    closeTreeMobileMenu();
     sidebar.innerHTML = '';
     const treeProjectId =
         currentFamilyTreeProjectId();

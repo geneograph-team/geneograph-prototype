@@ -84,7 +84,7 @@ const identity = { translate: () => identity, scale: k => ({ k }) };
 context.d3 = { zoom: () => behavior, select: () => selection, zoomIdentity: identity };
 context.state = { treeZoom: 100 };
 context.ResizeObserver = class { observe() {} };
-vm.runInContext(fs.readFileSync(path.join(__dirname, '../src/modules/family-tree/tree-scroll.js'), 'utf8'), context);
+vm.runInContext(fs.readFileSync(path.join(__dirname, '../src/modules/family-tree/tree-viewport.js'), 'utf8'), context);
 const runtime = { canvas: { clientWidth: 800, clientHeight: 600 }, scene: {} };
 context.bindTreeViewport(runtime);
 const target = (...matches) => ({ closest: selectors => matches.some(match =>

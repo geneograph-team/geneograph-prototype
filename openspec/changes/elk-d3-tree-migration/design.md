@@ -2,9 +2,9 @@
 
 **Migration target.** The approved vertical ELK layout is already the sole provider after #404. The remaining architecture below describes later work. The names below describe minimal contracts, not mandated new global bindings or a generic framework. Preserve the static, classic deferred-script application and existing project commands.
 
-## 1. Current code and migration boundaries
+## 1. Historical baseline and migration boundaries
 
-| Current source under src/ | Observed baseline | Target |
+| Baseline source under src/ | Observed baseline | Target |
 | --- | --- | --- |
 | `core/state-tree-core.js`: treeProjectViewState, buildFamilyTreeProjection, deriveTreeBranchRoles, navigateFamilyTreeToPerson | Project-local view, canonical selection, focus/depth/cousin context and command routing | Retain semantic rules; detach context and preferences from geometry |
 | `core/app-shell.js`: render and navigation capture/restore | Calls renderFamilyTree; disposes the ELK request on exit; captures focus, selection, zoom and scroll | Own presentation lifecycle and semantic navigation |

@@ -762,60 +762,6 @@ function setTreeFocusPerson(personId, { center = true } = {})
     );
 }
 
-function focusTreeBranchForRelative(personId)
-{
-    return navigateFamilyTreeToPerson(
-        personId,
-        {
-            focusBranch: true,
-            center: true
-        }
-    );
-}
-
-function openTreeRecentPeopleMenu(anchor)
-{
-    closeMenu();
-    if (!anchor) return;
-    anchor.setAttribute('aria-expanded', 'true');
-
-    const people = treeRecentPeople();
-    const rect = anchor.getBoundingClientRect();
-    const menu = document.createElement('div');
-    menu.className = 'menu-popover tree-recent-people-menu';
-    menu.id = 'projectMenu';
-    menu.setAttribute('role', 'menu');
-    menu.setAttribute('aria-label', 'Recently selected people');
-    menu.style.top = `${rect.bottom + 6}px`;
-    menu.style.left = `${Math.max(12, Math.min(rect.left, window.innerWidth - 344))}px`;
-    menu.innerHTML = `<div class="tree-recent-people-head">Recently selected people</div>
-        ${people.length
-            ? people.map(person => `<button class="tree-recent-person" type="button" role="menuitem" data-tree-recent-person="${escapeHtml(person.id)}">
-              ${renderPersonAvatar(person, 'small-avatar')}
-              <span><strong>${escapeHtml(connectPersonName(person))}</strong><small>${escapeHtml(connectPersonLifeLine(person))}</small></span>
-              ${person.id === state.selectedPersonId ? `<span class="tree-recent-current" aria-label="Selected">${icon.check}</span>` : ''}
-            </button>`).join('')
-            : `<div class="tree-recent-people-empty">No recently selected people</div>`}`;
-
-    document.body.appendChild(menu);
-    localizeUI(menu, { suppressObserverReplay: true });
-
-    menu.querySelectorAll('[data-tree-recent-person]').forEach(button =>
-    {
-        button.addEventListener('click', () =>
-        {
-            const personId = button.dataset.treeRecentPerson;
-
-            closeMenu();
-
-            setTreeFocusPerson(personId);
-        });
-    });
-
-    bindMenuLifecycle(anchor);
-    requestAnimationFrame(() => menu.querySelector('[role="menuitem"]')?.focus({ preventScroll: true }));
-}
-
 function openTreeSettingsModal()
 {
     const projectId = currentFamilyTreeProjectId();

@@ -15,7 +15,7 @@ const context = vm.createContext(
 const source = path.join(__dirname, '../src/modules/family-tree/tree-elk-model.js');
 vm.runInContext(fs.readFileSync(source, 'utf8'), context);
 
-for (const file of ['tree-geometry.js', 'tree-elk-preview.js'])
+for (const file of ['tree-geometry.js', 'tree-elk-layout.js'])
 {
     vm.runInContext(fs.readFileSync(path.join(path.dirname(source), file), 'utf8'), context);
 }

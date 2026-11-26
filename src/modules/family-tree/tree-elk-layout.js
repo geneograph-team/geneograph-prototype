@@ -16,15 +16,15 @@ function disposeTreeElkLayout({ retainRecent = false } = {})
     }
 }
 
-function calculateLocalElkGraph(preview, graph)
+function calculateLocalElkGraph(request, graph)
 {
     return new Promise((resolve, reject) =>
     {
-        if (preview !== treeElkRequest) return reject(new Error('Layout superseded'));
+        if (request !== treeElkRequest) return reject(new Error('Layout superseded'));
         const frame = document.createElement('iframe');
         frame.hidden = true;
         frame.title = 'Local graph layout';
-        const trace = preview.trace;
+        const trace = request.trace;
         const started = trace && treePerf.now();
         const timings = {};
         let posted = 0;
@@ -34,7 +34,7 @@ function calculateLocalElkGraph(preview, graph)
             clearTimeout(timeout);
             window.removeEventListener('message', receive);
             frame.remove();
-            preview.cancel = null;
+            request.cancel = null;
             if (trace)
             {
                 timings.roundTripMs = treePerf.now() - started;
@@ -69,7 +69,7 @@ function calculateLocalElkGraph(preview, graph)
             }
         }
         const timeout = setTimeout(() => finish('ELK layout timed out'), 45000);
-        preview.cancel = () => finish('Layout superseded');
+        request.cancel = () => finish('Layout superseded');
         window.addEventListener('message', receive);
         document.body.append(frame);
     });
@@ -312,37 +312,37 @@ function treeElkLayoutForProjection(projectId, projection, view, trace = null)
             treeElkRecentLayouts.delete(key);
             treeElkRecentLayouts.set(key, cached);
         }
-        const preview = { key, projection, orientation, ...cached, trace };
-        treeElkRequest = preview;
-        treePerf.cache(trace, preview.geometry ? 'hit' : 'miss');
+        const request = { key, projection, orientation, ...cached, trace };
+        treeElkRequest = request;
+        treePerf.cache(trace, request.geometry ? 'hit' : 'miss');
         // Defer even input errors until the pending presentation is mounted.
-        if (!preview.geometry) Promise.resolve().then(async () =>
+        if (!request.geometry) Promise.resolve().then(async () =>
         {
             try
             {
-                if (treeElkRequest !== preview) return;
+                if (treeElkRequest !== request) return;
                 const measure = (stage, fn) => treePerf.measure(trace, stage, fn);
-                preview.model = measure('input', () => prepareElkTreeInput(projection, expansion, direction, measure));
-                preview.geometry = await solveElkTree(preview.model.people, preview.model.families, direction,
-                    graph => calculateLocalElkGraph(preview, graph), preview.model.focusId, measure);
-                if (treeElkRequest !== preview) return;
+                request.model = measure('input', () => prepareElkTreeInput(projection, expansion, direction, measure));
+                request.geometry = await solveElkTree(request.model.people, request.model.families, direction,
+                    graph => calculateLocalElkGraph(request, graph), request.model.focusId, measure);
+                if (treeElkRequest !== request) return;
                 // Native fallback geometry can be displayed with its diagnosis, but is not a reusable solve.
-                if (Array.isArray(preview.geometry.underpasses))
+                if (Array.isArray(request.geometry.underpasses))
                 {
-                    treeElkRecentLayouts.set(key, { model: preview.model, geometry: preview.geometry });
+                    treeElkRecentLayouts.set(key, { model: request.model, geometry: request.geometry });
                     if (treeElkRecentLayouts.size > TREE_ELK_RECENT_LIMIT)
                         treeElkRecentLayouts.delete(treeElkRecentLayouts.keys().next().value);
                 }
             }
             catch (error)
             {
-                if (treeElkRequest !== preview) return;
-                preview.error = true;
+                if (treeElkRequest !== request) return;
+                request.error = true;
                 console.warn('ELK layout:', error.message);
             }
-            if (treeElkRequest === preview && state.activeModule === 'Family Tree'
+            if (treeElkRequest === request && state.activeModule === 'Family Tree'
                 && currentFamilyTreeProjectId() === projectId)
-                renderFamilyTree(preview.projection, preview.trace);
+                renderFamilyTree(request.projection, request.trace);
         });
     }
     else if (trace && treeElkRequest.trace !== trace) treePerf.cache(trace, treeElkRequest.geometry ? 'hit' : 'pending');

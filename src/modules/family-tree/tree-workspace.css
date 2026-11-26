@@ -177,13 +177,6 @@
     color: var(--text-primary);
 }
 
-.tree-recent-people-menu {
-    width: min(332px, calc(100vw - 24px));
-    max-height: min(520px, calc(100vh - 24px));
-    overflow-y: auto;
-    padding: 6px;
-}
-
 .tree-recent-people-head {
     padding: 8px 10px 7px;
     color: var(--text-tertiary);
@@ -362,12 +355,6 @@
 }
 
 .people-count-number {
-    display: none;
-}
-
-.tree-mobile-search-trigger,
-.tree-mobile-search-close,
-.tree-mobile-more {
     display: none;
 }
 
@@ -999,34 +986,6 @@ html.tree-fullscreen .tree-shell {
     .tree-toolbar .people-count,
     .tree-toolbar .tree-toolbar-right .app-search-field {
         display: none;
-    }
-
-    .tree-toolbar .tree-mobile-search-trigger,
-    .tree-toolbar .tree-mobile-more {
-        display: inline-flex;
-        flex: 0 0 38px;
-    }
-
-    .tree-toolbar.mobile-search-open .tree-toolbar-left,
-    .tree-toolbar.mobile-search-open .tree-mobile-search-trigger,
-    .tree-toolbar.mobile-search-open .tree-mobile-more {
-        display: none;
-    }
-
-    .tree-toolbar.mobile-search-open .tree-toolbar-right {
-        flex: 1 1 auto;
-        min-width: 0;
-    }
-
-    .tree-toolbar.mobile-search-open .tree-toolbar-right .app-search-field {
-        display: flex;
-        flex: 1 1 auto;
-        min-width: 0;
-    }
-
-    .tree-toolbar.mobile-search-open .tree-mobile-search-close {
-        display: inline-flex;
-        flex: 0 0 38px;
     }
 
     .tree-toolbar .view-modes {

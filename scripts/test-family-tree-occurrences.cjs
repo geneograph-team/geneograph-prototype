@@ -9,7 +9,7 @@ const fixtures = require('./fixtures/elk-tree-approved.json');
 const context = vm.createContext({ performance, clampNumber: (value, minimum, maximum) =>
     Math.max(minimum, Math.min(maximum, value)) });
 for (const file of ['core/state-tree-core.js', 'modules/family-tree/tree-geometry.js',
-    'modules/family-tree/tree-elk-model.js', 'modules/family-tree/tree-elk-preview.js'])
+    'modules/family-tree/tree-elk-model.js', 'modules/family-tree/tree-elk-layout.js'])
 {
     const source = fs.readFileSync(path.join(__dirname, '../src', file), 'utf8');
     vm.runInContext(file === 'core/state-tree-core.js' ? source.slice(source.indexOf('function currentTreePeople('), source.indexOf('const topbar =')) : source, context);

@@ -130,11 +130,6 @@ function zoomTreeViewport(factor)
     d3.select(runtime.canvas).call(runtime.behavior.scaleBy, factor);
 }
 
-function treePrimaryPersonCard(personId)
-{
-    return treeRenderRuntime?.cards.querySelector('[data-tree-primary="true"][data-person-id="' + CSS.escape(personId) + '"]');
-}
-
 function centerTreeOnOccurrence(entry, immediate = true)
 {
     const runtime = treeRenderRuntime;

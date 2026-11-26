@@ -17,7 +17,7 @@ const sandbox = vm.createContext({
     }
 });
 let project = 'p1', solves = 0, pending;
-vm.runInContext(fs.readFileSync('src/modules/family-tree/tree-elk-preview.js', 'utf8'), sandbox);
+vm.runInContext(fs.readFileSync('src/modules/family-tree/tree-elk-layout.js', 'utf8'), sandbox);
 sandbox.prepareElkTreeInput = p => ({ people: [{ id: p.focusPersonId }], families: [], focusId: p.focusPersonId });
 sandbox.solveElkTree = (people, _families, direction) =>
 {
