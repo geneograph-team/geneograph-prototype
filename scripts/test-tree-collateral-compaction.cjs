@@ -16,6 +16,47 @@ let compact = true;
 // Suppress only the final objective for the matched reference solve, in this test VM.
 context.refineElkTreeCentering = (...args) => refine(...(compact ? args : args.slice(0, 6)));
 
+const conflictsFor = context.elkCenteringConflicts;
+function conflictsTouching(conflicts, affected)
+{
+    return [...conflicts].filter(([key]) => JSON.parse(key).slice(1).some(id => affected.has(id))).sort();
+}
+let partialChecks = 0;
+context.elkCenteringConflicts = (layout, axis, affected) =>
+{
+    const actual = conflictsFor(layout, axis, affected);
+    if (affected)
+    {
+        assert.deepEqual([...actual].sort(), conflictsTouching(conflictsFor(layout, axis), affected));
+        partialChecks++;
+    }
+    return actual;
+};
+
+const segment = (id, family, a, b) => ({ id, family, points: [a, b] });
+const point = (x, y) => ({ x, y });
+const boxes = [{ id: 'card', x: 2, y: 2, w: 8, h: 8 }];
+const original = { boxes, paths: [
+    segment('rail', 'a', point(0, 6), point(20, 6)),
+    segment('rail', 'a', point(20, 6), point(26, 6)),
+    segment('drop', 'b', point(6, 0), point(6, 16)),
+    segment('removed', 'c', point(8, 0), point(8, 16))
+] };
+const edited = { boxes, paths: [
+    segment('rail', 'a', point(0, 6), point(19, 6)),
+    original.paths[2],
+    segment('added', 'd', point(1, 1), point(9, 9))
+] };
+const affected = context.elkCenteringChangedIds(context.elkCenteringGeometry(original), context.elkCenteringGeometry(edited));
+assert.deepEqual([...affected].sort(), ['added', 'rail', 'removed']);
+for (const axis of ['x', 'y'])
+{
+    const before = conflictsFor(original, axis);
+    const after = context.elkCenteringConflicts(edited, axis, affected);
+    const unchanged = [...before].filter(([key]) => !JSON.parse(key).slice(1).some(id => affected.has(id)));
+    assert.deepEqual([...unchanged, ...after].sort(), [...conflictsFor(edited, axis)].sort());
+}
+
 function fixture(sides, descendants = false)
 {
     const people = [], families = [], branches = [];
@@ -138,5 +179,6 @@ function fixture(sides, descendants = false)
             assert.deepEqual(edgeIds(after.layout), edgeIds(before.layout));
             cases++;
         }
-    console.log('Collateral compaction: ' + cases + ' matched layouts passed.');
+    assert.ok(partialChecks > 2);
+    console.log('Collateral compaction: ' + cases + ' matched layouts and ' + partialChecks + ' incremental conflict checks passed.');
 })().catch(error => { console.error(error); process.exitCode = 1; });

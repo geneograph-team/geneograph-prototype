@@ -1194,6 +1194,8 @@ async function solveElkTree(people, families, direction, calculate, focusId = nu
         return Math.max(leftEdge + clearance, Math.min(rightEdge - clearance, target));
     }
 
+    // Translation trials keep the native sections as immutable endpoint and rail hints.
+    let indexedNativePaths = null, nativePathsByFamily;
     function inlinePartnerships(raw, model)
     {
         const vertical = model.direction === 'DOWN',
@@ -1225,6 +1227,23 @@ async function solveElkTree(people, families, direction, calculate, focusId = nu
         });
         const byId = new Map(raw.boxes.map(b => [b.id, box(b)])),
             oldJunctions = new Map(raw.junctions.map(b => [b.id, box(b)]));
+        if (raw.paths !== indexedNativePaths)
+        {
+            indexedNativePaths = raw.paths;
+            nativePathsByFamily = new Map();
+            for (const path of raw.paths)
+            {
+                if (!nativePathsByFamily.has(path.family)) nativePathsByFamily.set(path.family, []);
+                nativePathsByFamily.get(path.family).push(path);
+            }
+        }
+        const nativePorts = new Map();
+        for (const port of raw.ports)
+        {
+            if (!nativePorts.has(port.node)) nativePorts.set(port.node, new Map());
+            const ports = nativePorts.get(port.node);
+            if (!ports.has(port.id)) ports.set(port.id, port);
+        }
         const paths = [],
             junctions = [],
             underpasses = [],
@@ -1258,11 +1277,18 @@ async function solveElkTree(people, families, direction, calculate, focusId = nu
         {
             throw Error(message);
         };
+        const familiesByGroup = new Map();
+        for (const family of families)
+        {
+            const group = model.owner.get(family.id);
+            if (!familiesByGroup.has(group)) familiesByGroup.set(group, []);
+            familiesByGroup.get(group).push(family);
+        }
         for (const group of model.groups)
         {
+            const fs = familiesByGroup.get(group.id);
+            if (!fs) continue;
             const cards = group.members.map(id => byId.get(id)).sort((a, b) => a.u - b.u);
-            const fs = families.filter(f => f.parents.every(id => group.members.includes(id)));
-            if (!fs.length) continue;
             const center = cards[0].v + cards[0].h / 2;
             if (cards.some(c => Math.abs(c.v + c.h / 2 - center) > EPS)) fail('Partnership group not aligned: ' + group.id);
             const entries = fs.map(f =>
@@ -1354,7 +1380,7 @@ async function solveElkTree(people, families, direction, calculate, focusId = nu
                 } = e;
                 if (e.native)
                 {
-                    paths.push(...raw.paths.filter(path => path.family === f.id).map(path => (
+                    paths.push(...(nativePathsByFamily.get(f.id) || []).map(path => (
                     {
                         ...path,
                         native: true
@@ -1408,13 +1434,13 @@ async function solveElkTree(people, families, direction, calculate, focusId = nu
                         ...pp
                     });
                 }
-                const fpaths = raw.paths.filter(p => p.family === f.id && p.role === 'child');
+                const fpaths = (nativePathsByFamily.get(f.id) || []).filter(p => p.role === 'child');
                 // Unified routing needs only the native endpoints, not a particular
                 // bend pattern. Three or more children can have different ELK rails.
                 if (raw.issues.length) fail('ELK output has unresolved geometry or endpoint issues');
                 const targets = f.children.map(person =>
                 {
-                    const port = raw.ports.find(p => p.id === person + ':in:' + f.id && p.node === person);
+                    const port = nativePorts.get(person)?.get(person + ':in:' + f.id);
                     if (!port || !fpaths.some(p => p.person === person)) fail('Missing ELK child endpoint: ' + f.id + ':' + person);
                     return {
                         person,
@@ -1509,11 +1535,18 @@ async function solveElkTree(people, families, direction, calculate, focusId = nu
             if (!bands.has(g)) bands.set(g, []);
             bands.get(g).push(e);
         }
+        const cardsByGeneration = new Map();
+        for (const card of cards)
+        {
+            const generation = peopleById.get(card.id).generation;
+            if (!cardsByGeneration.has(generation)) cardsByGeneration.set(generation, []);
+            cardsByGeneration.get(generation).push(card);
+        }
         const summaries = [];
         for (const [g, items] of [...bands].sort((a, b) => a[0] - b[0]))
         {
-            const parents = cards.filter(c => peopleById.get(c.id).generation === g);
-            const children = cards.filter(c => peopleById.get(c.id).generation === g + 1);
+            const parents = cardsByGeneration.get(g) || [];
+            const children = cardsByGeneration.get(g + 1) || [];
             const low = Math.max(...parents.map(c => c.v + c.h)) + clearance;
             const high = Math.min(...children.map(c => c.v), ...items.flatMap(e => e.targets.map(t => t.target.v))) - clearance;
             if (high < low) throw Error('No shared clear rail corridor between generations ' + (g + 1) + ' and ' + (g + 2));
@@ -1851,6 +1884,7 @@ function refineElkTreeCentering(raw, model, people, families, baseline, route, f
     let offsets = errors(current);
     const accepted = [];
     let conflicts = null;
+    let conflictGeometry = null;
     // Reservations travel with their owning household and participate in the
     // same displacement bounds as ordinary compounds, at their own generation.
     const occupiedByOwner = new Map(model.groups.map(g => [g.id, []]));
@@ -1920,12 +1954,19 @@ function refineElkTreeCentering(raw, model, people, families, baseline, route, f
         }
         if (candidate.issues.length || candidate.paths.some(p => p.native)) return false;
         conflicts ??= elkCenteringConflicts(layout, axis);
-        const nextConflicts = elkCenteringConflicts(candidate, axis);
+        // Unchanged relations retain the same conflict keys and multiplicities.
+        const candidateGeometry = elkCenteringGeometry(candidate);
+        conflictGeometry ??= elkCenteringGeometry(layout);
+        const affected = elkCenteringChangedIds(conflictGeometry, candidateGeometry);
+        const nextConflicts = elkCenteringConflicts(candidate, axis, affected);
         if ([...nextConflicts].some(([key, count]) => count > (conflicts.get(key) || 0))) return false;
         current = trial;
         layout = candidate;
         offsets = nextOffsets;
-        conflicts = nextConflicts;
+        for (const key of conflicts.keys())
+            if (JSON.parse(key).slice(1).some(id => affected.has(id))) conflicts.delete(key);
+        for (const [key, count] of nextConflicts) conflicts.set(key, count);
+        conflictGeometry = candidateGeometry;
         shapes = new Map([...current.groups, ...current.reservations].map(g => [g.id, g]));
         return true;
     }
@@ -2085,7 +2126,35 @@ function orderElkSiblingGroups(nodes, siblingOrders, owner)
 // Compare conflict multiplicity by relationship/card identity, not absolute
 // coordinates: an existing crossing may translate, but no new one is allowed.
 // Sweep bounding intervals on the cross axis to avoid comparing distant rails.
-function elkCenteringConflicts(layout, axis)
+function elkCenteringGeometry(layout)
+{
+    const geometry = new Map();
+    for (const item of [...layout.boxes, ...layout.paths])
+    {
+        if (!geometry.has(item.id)) geometry.set(item.id, []);
+        geometry.get(item.id).push(item);
+    }
+    return geometry;
+}
+
+function elkCenteringChangedIds(previous, current)
+{
+    const affected = new Set();
+    const same = (a, b) => a === b || (a.points && b.points
+        ? a.family === b.family && a.points.length === b.points.length &&
+            a.points.every((point, index) => point.x === b.points[index].x && point.y === b.points[index].y)
+        : !a.points && !b.points && a.x === b.x && a.y === b.y && a.w === b.w && a.h === b.h);
+    for (const [id, items] of current)
+    {
+        const old = previous.get(id);
+        if (old?.length !== items.length || items.some((item, index) => !same(item, old[index]))) affected.add(id);
+    }
+    for (const id of previous.keys())
+        if (!current.has(id)) affected.add(id);
+    return affected;
+}
+
+function elkCenteringConflicts(layout, axis, affected = null)
 {
     const EPS = .02;
     const conflicts = new Map();
@@ -2105,18 +2174,29 @@ function elkCenteringConflicts(layout, axis)
             const y0 = Math.min(a.y, b.y), y1 = Math.max(a.y, b.y);
             if (![x0, x1, y0, y1].every(Number.isFinite) || (x1 - x0 > EPS && y1 - y0 > EPS))
             {
-                add('invalid segment', [p.id]);
+                if (!affected || affected.has(p.id)) add('invalid segment', [p.id]);
                 continue;
             }
             if (x1 - x0 <= EPS && y1 - y0 <= EPS) continue;
             items.push({ id: p.id, family: p.family, x0, x1, y0, y1 });
         }
-    items.sort((a, b) => a[axis + '0'] - b[axis + '0']);
+    const start = axis + '0', end = axis + '1';
+    items.sort((a, b) => a[start] - b[start]);
+    const nextAffected = affected && new Int32Array(items.length + 1);
+    if (nextAffected)
+    {
+        nextAffected[items.length] = items.length;
+        for (let i = items.length - 1; i >= 0; i--)
+            nextAffected[i] = affected.has(items[i].id) ? i : nextAffected[i + 1];
+    }
     for (let i = 0; i < items.length; i++)
-        for (let j = i + 1; j < items.length; j++)
+    {
+        const a = items[i];
+        const next = affected && !affected.has(a.id) ? nextAffected : null;
+        for (let j = next ? next[i + 1] : i + 1; j < items.length; j = next ? next[j + 1] : j + 1)
         {
-            const a = items[i], b = items[j];
-            if (b[axis + '0'] > a[axis + '1'] + EPS) break;
+            const b = items[j];
+            if (b[start] > a[end] + EPS) break;
             const x = Math.min(a.x1, b.x1) - Math.max(a.x0, b.x0);
             const y = Math.min(a.y1, b.y1) - Math.max(a.y0, b.y0);
             if (x < -EPS || y < -EPS) continue;
@@ -2148,5 +2228,6 @@ function elkCenteringConflicts(layout, axis)
                 && h.y0 > v.y0 + EPS && h.y0 < v.y1 - EPS;
             add(interior ? 'crossing' : 'contact', [a.id, b.id]);
         }
+    }
     return conflicts;
 }
