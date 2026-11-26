@@ -70,6 +70,17 @@ if (require.main === module)
                         assert.equal(family.children.join(), 'P');
                 }
             }
+    // A projected single child is not necessarily the only recorded child.
+    const narrow = project(2, 0, false);
+    const paternal = narrow.families.find(family => family.id === 'paternal');
+    assert.equal(paternal.children.join(), 'P');
+    assert.equal(paternal.recordedChildCount, 2);
+    const hiddenAncestry = project(1, 0, false, people, [...families,
+        { id: 'hidden-mate-parents', left: 'OutsideParent', right: '', children: ['FMate'] }]);
+    assert.equal(hiddenAncestry.visiblePersonIds.has('FMate'), true);
+    assert.equal(hiddenAncestry.visiblePersonIds.has('OutsideParent'), false);
+    assert.equal(hiddenAncestry.branchRoles.recordedParentFamilyCountByPerson.get('FMate'), 1);
+    assert.equal(narrow.branchRoles.recordedParentFamilyCountByPerson.get('FMate'), 0);
     assert.equal(JSON.stringify({ people, families }), original);
 
     // S is both a branch root and independently encountered through F's descendants.

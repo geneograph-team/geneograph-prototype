@@ -1078,6 +1078,7 @@ function buildFamilyTreeProjection(people, families, options = {})
         .filter(family => visibleFamilyIds.has(family.id))
         .map(family => ({
             ...family,
+            recordedChildCount: (family.children || []).length,
             children: (family.children || []).filter(childId => familyChildren.get(family.id).has(childId))
         }));
     const coherentPersonIds = new Set(visiblePersonIds);
@@ -1101,7 +1102,8 @@ function buildFamilyTreeProjection(people, families, options = {})
         families: projectedFamilies,
         visiblePersonIds: coherentPersonIds,
         visibleFamilyIds,
-        branchRoles: { ...branchRoles, ancestorGenerations }
+        branchRoles: { ...branchRoles, ancestorGenerations,
+            recordedParentFamilyCountByPerson: new Map([...coherentPersonIds].map(id => [id, (parentFamiliesByChild.get(id) || []).length])) }
     };
 }
 

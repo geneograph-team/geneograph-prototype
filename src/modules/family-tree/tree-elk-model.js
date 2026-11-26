@@ -1529,7 +1529,7 @@ function refineElkTreeCentering(raw, model, people, families, baseline, route)
     const clearanceByGroup = new Map(model.groups.map(g => [g.id,
         Math.max(TREE_GEOMETRY.partnerGap, ...(vertical ? [] : g.members.map(id => peopleById.get(id).focusClearance || 0)))]));
     const realPair = f => f?.parents.length === 2 && f.parents.every(id => !peopleById.get(id).placeholder);
-    const pairs = families.filter(realPair).map(f =>
+    const ancestorPairs = families.filter(realPair).map(f =>
     {
         const parents = f.parents.map(id => incoming.get(id));
         if (parents.some(fs => fs.length !== 1 || !realPair(fs[0]))) return null;
@@ -1537,6 +1537,25 @@ function refineElkTreeCentering(raw, model, people, families, baseline, route)
         if (a.id === b.id) return null;
         return { f, a, b, group: model.owner.get(f.id), generation: peopleById.get(f.parents[0]).generation };
     }).filter(Boolean).sort((a, b) => a.generation - b.generation || a.f.id.localeCompare(b.f.id));
+    // A sole recorded child with an otherwise unanchored partner may align its
+    // entire household with its parents, after all two-household objectives.
+    const singleChildPairs = families.filter(realPair).flatMap(f =>
+    {
+        const group = model.owner.get(f.id);
+        if (!ordinary.has(group)) return [];
+        const [a, b] = f.parents.map(id => incoming.get(id));
+        if (a.length + b.length !== 1) return [];
+        const parent = a[0] || b[0];
+        const child = f.parents[a.length ? 0 : 1];
+        const partner = peopleById.get(f.parents[a.length ? 1 : 0]);
+        if (!realPair(parent) || !ordinary.has(model.owner.get(parent.id))
+            || parent.children.length !== 1 || parent.children[0] !== child
+            || (parent.recordedChildCount ?? parent.children.length) !== 1
+            || (peopleById.get(child).recordedParentFamilyCount ?? 1) !== 1
+            || partner.recordedParentFamilyCount || partner.hasParents) return [];
+        return [{ f, a: parent, b: parent, group, generation: peopleById.get(child).generation }];
+    }).sort((a, b) => a.generation - b.generation || a.f.id.localeCompare(b.f.id));
+    const pairs = [...ancestorPairs, ...singleChildPairs];
     const errors = geometry =>
     {
         const cards = new Map(geometry.boxes.map(b => [b.id, b]));
@@ -1614,7 +1633,10 @@ function refineElkTreeCentering(raw, model, people, families, baseline, route)
         };
         trial[sceneExtent] = Math.max(current[sceneExtent], ...trial.groups.map(g => g[axis] + g[extent] + (vertical ? 48 : 64)));
         const nextOffsets = errors(trial);
-        if (Math.abs(nextOffsets.get(pair.f.id)) > EPS || pairs.some(p =>
+        // Ancestry-first moves must not be blocked by a secondary objective.
+        // Secondary moves protect every previously measured ancestral balance.
+        const protectedPairs = ancestorPairs.includes(pair) ? ancestorPairs : pairs;
+        if (Math.abs(nextOffsets.get(pair.f.id)) > EPS || protectedPairs.some(p =>
             Math.abs(nextOffsets.get(p.f.id)) > Math.abs(offsets.get(p.f.id)) + EPS)) continue;
         // Native path sections in trial are read-only depth/coverage hints for
         // inlinePartnerships. Every visible route must be reconstructed by it;

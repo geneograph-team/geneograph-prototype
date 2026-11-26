@@ -81,7 +81,8 @@ function prepareElkTreeInput(projection, preferences, direction = 'DOWN', measur
     const semantic = measure('occurrences', () => projectElkTreeOccurrences(
         projection.people.map(({ id }) => ({ id })),
         projection.families.map(family => ({ id: family.id,
-            parents: [family.left, family.right].filter(Boolean), children: family.children })),
+            parents: [family.left, family.right].filter(Boolean), children: family.children,
+            recordedChildCount: family.recordedChildCount ?? family.children.length })),
         preferences, projection.focusPersonId
     ));
     // Stable canonical context stays in the presentation. Only anonymous IDs
@@ -91,11 +92,13 @@ function prepareElkTreeInput(projection, preferences, direction = 'DOWN', measur
         ...semantic,
         people: semantic.people.map(person => ({ ...person, id: ids.get(person.id),
             gender: genderById.get(person.personId), width: TREE_CARD_W, height: TREE_CARD_H,
+            recordedParentFamilyCount: projection.branchRoles.recordedParentFamilyCountByPerson?.get(person.personId),
             focusClearance: projection.branchRoles.focusActionPersonIds?.has(person.personId)
                 ? TREE_FOCUS_CONTROL_H + TREE_FOCUS_CONTROL_GAP : 0 })),
         families: semantic.families.map((family, index) => ({
             id: 'f' + index, canonicalFamilyId: family.canonicalFamilyId, familyOccurrenceId: family.familyOccurrenceId,
-            parents: family.parents.map(id => ids.get(id)), children: family.children.map(id => ids.get(id))
+            parents: family.parents.map(id => ids.get(id)), children: family.children.map(id => ids.get(id)),
+            recordedChildCount: family.recordedChildCount
         }))
     };
     const relations = new Map(model.people.map(person => [person.id, []]));
@@ -301,7 +304,8 @@ function treeElkLayoutForProjection(projectId, projection, view, trace = null)
     }
     const key = JSON.stringify([projectId, orientation, TREE_GEOMETRY, projection.focusPersonId, view.ancestorGenerations,
         view.descendantGenerations, view.showCousins, projection.people.map(person => [person.id, person.gender]),
-        projection.families.map(({ id, left, right, children }) => [id, left, right, children]),
+        projection.families.map(({ id, left, right, children, recordedChildCount }) => [id, left, right, children, recordedChildCount]),
+        [...projection.branchRoles.recordedParentFamilyCountByPerson || []],
         [...projection.branchRoles.parentPresenceByPerson], [...projection.branchRoles.focusActionPersonIds || []], [...expansion].sort()]);
     if (treeElkRequest?.key !== key)
     {

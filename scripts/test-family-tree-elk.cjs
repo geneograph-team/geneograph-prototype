@@ -758,7 +758,8 @@ function inspect(layout, peopleById, families)
             {
                 assert.ok(newErrors.get('parents:R') < EPS, 'Main couple must be centered');
                 if (side.length !== 1)
-                    assert.deepEqual([...after.values()], [...before.values()], 'Balanced tree must remain native');
+                    assert.deepEqual([...after.values()].filter(b => !['R', 'S'].includes(b.id)),
+                        [...before.values()].filter(b => !['R', 'S'].includes(b.id)), 'Balanced ancestors must remain native');
             }
             console.log(JSON.stringify({ direction, depth, side, descendants, extended,
                 nativeOffset: oldErrors.get('parents:R'), refinedOffset: newErrors.get('parents:R'),
@@ -766,6 +767,42 @@ function inspect(layout, peopleById, families)
             centeringCases++;
         }
     console.log(JSON.stringify({ centeringCases }));
+
+    // A single recorded child and an unanchored partner align as a rigid pair.
+    for (const direction of ['DOWN', 'RIGHT'])
+        for (const [recordedChildCount, recordedPartnerParents, expected] of [[1, 0, true], [2, 0, false], [1, 1, false]])
+        {
+            const { people, families } = pedigree(3, '', false);
+            const parental = families.find(f => f.id === 'parents:R');
+            parental.recordedChildCount = recordedChildCount;
+            people.find(p => p.id === 'S').recordedParentFamilyCount = recordedPartnerParents;
+            let native;
+            const layout = await context.solveElkTree(people, families, direction, async graph =>
+            {
+                native = await solver.layout(JSON.parse(JSON.stringify(graph)));
+                return native;
+            }, 'R');
+            const before = cardCoordinates(native, people);
+            const after = new Map(layout.boxes.map(b => [b.id, b]));
+            const axis = direction === 'DOWN' ? 'x' : 'y';
+            const extent = direction === 'DOWN' ? 'w' : 'h';
+            const midpoint = (cards, family) => family.parents.reduce((sum, id) =>
+                sum + cards.get(id)[axis] + cards.get(id)[extent] / 2, 0) / 2;
+            const couple = families.find(f => f.id === 'couple:R');
+            assert.ok(layout.passes <= 2);
+            assert.deepEqual([...layout.issues], []);
+            assert.deepEqual([...after.values()].filter(b => !['R', 'S'].includes(b.id)),
+                [...before.values()].filter(b => !['R', 'S'].includes(b.id)));
+            const beforeOffset = Math.abs(midpoint(before, couple) - midpoint(before, parental));
+            const afterOffset = Math.abs(midpoint(after, couple) - midpoint(after, parental));
+            if (expected) assert.ok(afterOffset < EPS, 'Single child partnership is centered');
+            else assert.ok(same(afterOffset, beforeOffset), 'Hidden siblings or recorded partner ancestry block alignment');
+            assert.ok(same(after.get('R')[axis] - after.get('S')[axis], before.get('R')[axis] - before.get('S')[axis]));
+            const { report } = inspect(layout, new Map(people.map(p => [p.id, p])), families);
+            for (const key of ['cardOverlaps', 'cardHits', 'coincident', 'falseJunctions', 'nonOrthogonal', 'crossings'])
+                assert.equal(report[key], 0, key);
+            console.log(JSON.stringify({ direction, recordedChildCount, recordedPartnerParents, beforeOffset, afterOffset }));
+        }
 
     // Missing-parent roles, including an unknown-gender recorded parent, are
     // ordered independently of canonical gender and input iteration order.
