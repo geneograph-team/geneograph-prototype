@@ -290,7 +290,7 @@ function projectElkTreeOccurrences(canonicalPeople, canonicalFamilies, preferenc
     };
 }
 
-async function solveElkTree(people, families, direction, calculate)
+async function solveElkTree(people, families, direction, calculate, focusId = null)
 {
     const nominalPartnerGap = 40;
     const secondarySpacing = 80;
@@ -338,14 +338,64 @@ async function solveElkTree(people, families, direction, calculate)
             owner
         };
     }
-    // Shared native placement settings for the root and its compound groups.
+    // Shared native layout settings for the root and its compound groups.
     const placementOptions = Object.freeze(
     {
         'elk.layered.nodePlacement.strategy': 'BRANDES_KOEPF',
-        'elk.layered.nodePlacement.bk.fixedAlignment': 'BALANCED'
+        'elk.layered.nodePlacement.bk.fixedAlignment': 'BALANCED',
+        'elk.layered.crossingMinimization.hierarchicalSweepiness': '-1'
     });
-    // The first family of the highest-degree partner is the principal pair.
-    // This is a presentation decision and never changes family records.
+    // Rank the visible occurrences relative to the focus, not canonical identities.
+    const parentFamilies = new Map(people.map(person => [person.id, []]));
+    const memberships = new Map(people.map(person => [person.id, []]));
+    for (const family of families)
+    {
+        for (const child of family.children) parentFamilies.get(child).push(family);
+        for (const id of [...family.parents, ...family.children]) memberships.get(id).push(family);
+    }
+    const direct = new Set(), ancestryOrder = new Map(), distance = new Map();
+    if (peopleById.has(focusId))
+    {
+        const ancestors = [focusId], seen = new Set(ancestors);
+        for (const id of ancestors)
+            for (const family of parentFamilies.get(id))
+            {
+                direct.add(family.id);
+                for (const parent of family.parents)
+                    if (!seen.has(parent))
+                    {
+                        seen.add(parent);
+                        ancestors.push(parent);
+                    }
+            }
+        const queue = [focusId], visitedFamilies = new Set();
+        distance.set(focusId, 0);
+        for (const id of queue)
+            for (const family of memberships.get(id))
+            {
+                if (visitedFamilies.has(family.id)) continue;
+                visitedFamilies.add(family.id);
+                for (const peer of [...family.parents, ...family.children])
+                    if (!distance.has(peer))
+                    {
+                        distance.set(peer, distance.get(id) + 1);
+                        queue.push(peer);
+                    }
+            }
+        function visit(id)
+        {
+            if (ancestryOrder.has(id)) return;
+            ancestryOrder.set(id, ancestryOrder.size);
+            for (const family of parentFamilies.get(id))
+                for (const parent of elkOrderedPartners(family.parents, peopleById) || family.parents)
+                    visit(parent);
+        }
+        visit(focusId);
+    }
+    const familyDistance = family => Math.min(...family.parents.map(id => distance.get(id) ?? Infinity));
+    // One principal pair per connected group. Prefer direct ancestral households,
+    // then proximity to the focus and visible children; stable input order breaks ties.
+    // Without a supplied focus (standalone fixtures), retain the stable degree-based choice.
     function primaryPartnerships(groups)
     {
         const result = [];
@@ -359,8 +409,12 @@ async function solveElkTree(people, families, direction, calculate)
             }));
             counts.sort((a, b) => b.count - a.count);
             if (!counts.length || !counts[0].count) continue;
-            const anchor = counts[0].id,
-                primary = fs.find(f => f.parents.includes(anchor));
+            const primary = distance.size
+                ? fs.slice().sort((a, b) => Number(direct.has(b.id)) - Number(direct.has(a.id))
+                    || familyDistance(a) - familyDistance(b)
+                    || Number(b.children.length > 0) - Number(a.children.length > 0))[0]
+                : fs.find(f => f.parents.includes(counts[0].id));
+            const anchor = counts.find(entry => primary.parents.includes(entry.id)).id;
             const secondary = fs.filter(f => f.id !== primary.id && f.parents.includes(anchor));
             result.push(
             {
@@ -572,6 +626,11 @@ async function solveElkTree(people, families, direction, calculate)
             const rank = new Map([...sorted, ...remaining].map((id, i) => [id, i]));
             group.children.sort((a, b) => (rank.get(a.id) ?? members.length) - (rank.get(b.id) ?? members.length));
         }
+        // Prefer paternal-before-maternal ancestral households at the root.
+        // The bottom-up sweep keeps internal ordering local while ELK can still
+        // optimize the relative positions of the compound groups.
+        const groupRank = group => Math.min(...group.children.map(node => ancestryOrder.get(node.id) ?? Infinity));
+        graph.children.sort((a, b) => groupRank(a) - groupRank(b));
         return {
             graph,
             groups,

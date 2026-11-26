@@ -76,6 +76,7 @@ function prepareElkTreeInput(projection, preferences)
         for (const child of family.children) connect(family.parents[0], child, 1);
     }
     const focus = model.people.find(person => person.personId === projection.focusPersonId && person.primary)?.id;
+    model.focusId = focus;
     const generations = new Map([[focus, 0]]);
     const queue = [focus];
     for (const id of queue)
@@ -261,7 +262,7 @@ function treeElkLayoutForProjection(projectId, projection, view)
                 if (treeElkRequest !== preview) return;
                 preview.model = prepareElkTreeInput(projection, expansion);
                 preview.geometry = await solveElkTree(preview.model.people, preview.model.families, direction,
-                    graph => calculateLocalElkGraph(preview, graph));
+                    graph => calculateLocalElkGraph(preview, graph), preview.model.focusId);
                 if (treeElkRequest !== preview) return;
                 treeElkOrientationCache.set(orientation, { key, model: preview.model, geometry: preview.geometry });
             }

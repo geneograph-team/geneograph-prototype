@@ -210,7 +210,7 @@ function verifySiblingSplit(fixture, options, preferences)
         assert.equal(nodes.find(person => person.expanded).contextKey, owner.contextKey);
         assert.ok(!input.people.some(person => person.placeholder?.personId === 'ha08'));
         const result = await context.solveElkTree(input.people, input.families, 'DOWN',
-            graph => solver.layout(JSON.parse(JSON.stringify(graph))));
+            graph => solver.layout(JSON.parse(JSON.stringify(graph))), input.focusId);
         assert.equal(result.boxes.length, input.people.length);
         assert.equal(result.issues.length, 0, result.issues.join('; '));
         for (const box of result.boxes)
@@ -250,7 +250,7 @@ function verifySiblingSplit(fixture, options, preferences)
             assert.ok(input.families.filter(family => ['F','F-other'].includes(family.canonicalFamilyId))
                 .every(family => family.parents.length === (options.couple ? 2 : 1)));
             const layout = await context.solveElkTree(input.people, input.families, 'DOWN',
-                graph => solver.layout(JSON.parse(JSON.stringify(graph))));
+                graph => solver.layout(JSON.parse(JSON.stringify(graph))), input.focusId);
             assert.equal(layout.boxes.length, input.people.length);
             assert.equal(layout.issues.length, 0, layout.issues.join('; '));
             for (const group of input.families)

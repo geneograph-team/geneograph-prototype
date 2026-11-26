@@ -35,6 +35,7 @@ const projection = {
 const originalFamily = JSON.stringify(partialFamily);
 const shallow = context.prepareElkTreeInput(projection);
 assert.equal(JSON.stringify(partialFamily), originalFamily);
+assert.equal(shallow.people.find(person => person.id === shallow.focusId).personId, 'focus');
 assert.equal(shallow.people.filter(person => person.placeholder).length, 1);
 assert.equal(shallow.people.find(person => person.placeholder).placeholder.personId, 'focus');
 projection.branchRoles.ancestorGenerations = 2;
@@ -412,6 +413,54 @@ function inspect(layout, peopleById, families)
         assert.ok(layout.passes <= 2);
     }
     console.log(JSON.stringify({ orderedCases, bilateralCases: 2, nominalGap: 40 }));
+
+    // Both households stay visible when focus changes between half-siblings.
+    // The same recorded partnerships must exchange principal/secondary roles.
+    const focusPeople = [
+        { id: 'father-a', gender: 'male' }, { id: 'mother', gender: 'female' },
+        { id: 'father-b', gender: 'male' }, { id: 'child-a' }, { id: 'child-b' }
+    ];
+    const focusFamilies = [
+        { id: 'family-a', left: 'father-a', right: 'mother', children: ['child-a'] },
+        { id: 'family-b', left: 'father-b', right: 'mother', children: ['child-b'] }
+    ];
+    const snapshot = JSON.stringify([focusPeople, focusFamilies]);
+    for (const focusPersonId of ['child-a', 'child-b'])
+        for (const direction of ['DOWN', 'RIGHT'])
+        {
+            const input = context.prepareElkTreeInput({
+                people: focusPeople, families: focusFamilies, focusPersonId,
+                branchRoles: { ancestorGenerations: 1, parentPresenceByPerson: new Map([
+                    [focusPersonId, { father: true, mother: true }]
+                ]) }
+            });
+            assert.equal(input.people.find(person => person.id === input.focusId).personId, focusPersonId);
+            const expected = input.families.find(family => family.canonicalFamilyId ===
+                (focusPersonId === 'child-a' ? 'family-a' : 'family-b'));
+            const layout = await context.solveElkTree(input.people, input.families, direction, graph =>
+            {
+                const sweep = 'elk.layered.crossingMinimization.hierarchicalSweepiness';
+                assert.equal(graph.layoutOptions[sweep], '-1');
+                assert.ok(graph.children.every(group => group.layoutOptions[sweep] === '-1'));
+                assert.ok(!graph.layoutOptions['elk.layered.crossingMinimization.forceNodeModelOrder']);
+                return solver.layout(JSON.parse(JSON.stringify(graph)));
+            }, input.focusId);
+            const pair = layout.primaryPairs.find(pair => pair.primary === expected.id);
+            assert.ok(pair, 'Principal family follows the focus ancestry');
+            assert.equal(pair.secondary.length, 1);
+            const boxes = new Map(layout.boxes.map(box => [box.id, box]));
+            const axis = direction === 'DOWN' ? 'x' : 'y';
+            assert.ok(boxes.get(pair.orderedPeople[0])[axis] < boxes.get(pair.orderedPeople[1])[axis]);
+            assert.deepEqual(layout.issues, []);
+            assert.ok(layout.passes <= 2);
+            const { report } = inspect(layout, new Map(input.people.map(person => [person.id, person])), input.families);
+            assert.equal(report.cardOverlaps, 0);
+            assert.equal(report.cardHits, 0);
+            assert.equal(report.falseJunctions, 0);
+            assert.equal(report.coincident, 0);
+            assert.equal(report.routedEdges, report.expectedEdges);
+        }
+    assert.equal(JSON.stringify([focusPeople, focusFamilies]), snapshot);
 
     // Reverse an ordered junction in ELK's input so its output is valid geometry
     // with a deliberately reversed principal pair, alongside unaffected families.
