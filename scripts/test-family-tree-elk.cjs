@@ -768,14 +768,31 @@ function inspect(layout, peopleById, families)
         }
     console.log(JSON.stringify({ centeringCases }));
 
-    // A single recorded child and an unanchored partner align as a rigid pair.
+    // Only actual incoming occurrence edges anchor the partner. Hidden recorded
+    // ancestry does not; visible parents (including placeholders) do.
     for (const direction of ['DOWN', 'RIGHT'])
-        for (const [recordedChildCount, recordedPartnerParents, expected] of [[1, 0, true], [2, 0, false], [1, 1, false]])
+        for (const [recordedChildCount, recordedPartnerParents, visibleParents, collapsed, expected] of [
+            [1, 0, '', false, true],
+            [2, 0, '', false, false],
+            [1, 1, '', false, true],
+            [1, 1, '', true, true],
+            [1, 1, 'real', false, false],
+            [1, 0, 'missing', false, false]
+        ])
         {
             const { people, families } = pedigree(3, '', false);
             const parental = families.find(f => f.id === 'parents:R');
             parental.recordedChildCount = recordedChildCount;
-            people.find(p => p.id === 'S').recordedParentFamilyCount = recordedPartnerParents;
+            const partner = people.find(p => p.id === 'S');
+            partner.recordedParentFamilyCount = recordedPartnerParents;
+            partner.hasParents = collapsed;
+            if (visibleParents)
+            {
+                const missing = visibleParents === 'missing';
+                people.push({ id: 'SP', generation: 2, gender: 'male', width: 300, height: 124,
+                    ...(missing ? { placeholder: { rel: 'father' } } : {}) });
+                families.push({ id: 'parents:S', parents: ['SP'], children: ['S'] });
+            }
             let native;
             const layout = await context.solveElkTree(people, families, direction, async graph =>
             {
@@ -796,12 +813,12 @@ function inspect(layout, peopleById, families)
             const beforeOffset = Math.abs(midpoint(before, couple) - midpoint(before, parental));
             const afterOffset = Math.abs(midpoint(after, couple) - midpoint(after, parental));
             if (expected) assert.ok(afterOffset < EPS, 'Single child partnership is centered');
-            else assert.ok(same(afterOffset, beforeOffset), 'Hidden siblings or recorded partner ancestry block alignment');
+            else assert.ok(same(afterOffset, beforeOffset), 'Recorded siblings or visible partner ancestry block alignment');
             assert.ok(same(after.get('R')[axis] - after.get('S')[axis], before.get('R')[axis] - before.get('S')[axis]));
             const { report } = inspect(layout, new Map(people.map(p => [p.id, p])), families);
             for (const key of ['cardOverlaps', 'cardHits', 'coincident', 'falseJunctions', 'nonOrthogonal', 'crossings'])
                 assert.equal(report[key], 0, key);
-            console.log(JSON.stringify({ direction, recordedChildCount, recordedPartnerParents, beforeOffset, afterOffset }));
+            console.log(JSON.stringify({ direction, recordedChildCount, recordedPartnerParents, visibleParents, collapsed, beforeOffset, afterOffset }));
         }
 
     // Missing-parent roles, including an unknown-gender recorded parent, are

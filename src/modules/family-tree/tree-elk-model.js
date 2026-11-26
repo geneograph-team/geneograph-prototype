@@ -1537,8 +1537,9 @@ function refineElkTreeCentering(raw, model, people, families, baseline, route)
         if (a.id === b.id) return null;
         return { f, a, b, group: model.owner.get(f.id), generation: peopleById.get(f.parents[0]).generation };
     }).filter(Boolean).sort((a, b) => a.generation - b.generation || a.f.id.localeCompare(b.f.id));
-    // A sole recorded child with an otherwise unanchored partner may align its
-    // entire household with its parents, after all two-household objectives.
+    // A sole recorded child may align its household with its parents when the
+    // partner has no incoming connection in this occurrence layout. Process
+    // this objective after the two-household ancestry objectives.
     const singleChildPairs = families.filter(realPair).flatMap(f =>
     {
         const group = model.owner.get(f.id);
@@ -1547,12 +1548,10 @@ function refineElkTreeCentering(raw, model, people, families, baseline, route)
         if (a.length + b.length !== 1) return [];
         const parent = a[0] || b[0];
         const child = f.parents[a.length ? 0 : 1];
-        const partner = peopleById.get(f.parents[a.length ? 1 : 0]);
         if (!realPair(parent) || !ordinary.has(model.owner.get(parent.id))
             || parent.children.length !== 1 || parent.children[0] !== child
             || (parent.recordedChildCount ?? parent.children.length) !== 1
-            || (peopleById.get(child).recordedParentFamilyCount ?? 1) !== 1
-            || partner.recordedParentFamilyCount || partner.hasParents) return [];
+            || (peopleById.get(child).recordedParentFamilyCount ?? 1) !== 1) return [];
         return [{ f, a: parent, b: parent, group, generation: peopleById.get(child).generation }];
     }).sort((a, b) => a.generation - b.generation || a.f.id.localeCompare(b.f.id));
     const pairs = [...ancestorPairs, ...singleChildPairs];
