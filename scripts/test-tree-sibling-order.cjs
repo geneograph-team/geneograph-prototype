@@ -119,5 +119,70 @@ assert.equal(context.treeChronologicalFamilies(projection)[0], projection.famili
             assert.equal(context.elkCenteringConflicts(result, axis).size, 0);
             cases++;
         }
+    // Unequal numbers of ordered child ports give sibling compounds different
+    // depth extents. The generation must still share one depth coordinate.
+    for (const direction of ['DOWN', 'RIGHT'])
+    {
+        const people = [], families = [];
+        const add = (id, generation, gender) =>
+        {
+            people.push({ id, generation, gender, width: 300, height: 124 });
+            return id;
+        };
+        const parents = [add('P', 0, 'male'), add('Q', 0, 'female')];
+        const children = Array.from({ length: 5 }, (_, i) => add('C' + i, 1, 'male'));
+        families.push({ id: 'parent-family', parents, children, chronological: true });
+        for (const [i, count] of [1, 2, 8, 4].entries())
+        {
+            const mate = add('M' + i, 1, 'female');
+            families.push({ id: 'union' + i, parents: [children[i], mate],
+                children: Array.from({ length: count }, (_, j) => add('D' + i + '-' + j, 2, 'male')),
+                chronological: true });
+        }
+        const depth = direction === 'DOWN' ? 'y' : 'x';
+        const cross = direction === 'DOWN' ? 'x' : 'y';
+        const byId = new Map(people.map(person => [person.id, person]));
+        function assertAligned(boxes)
+        {
+            const rows = new Map();
+            for (const box of boxes)
+            {
+                const person = byId.get(box.id);
+                if (!person) continue;
+                if (!rows.has(person.generation)) rows.set(person.generation, []);
+                rows.get(person.generation).push(box[depth]);
+            }
+            assert.equal(rows.size, 3);
+            assert.equal([...rows.values()].reduce((sum, row) => sum + row.length, 0), people.length);
+            for (const [generation, row] of rows)
+                assert.ok(Math.max(...row) - Math.min(...row) <= .02,
+                    'Generation ' + generation + ' is not aligned in ' + direction);
+        }
+        let calls = 0;
+        const result = await context.solveElkTree(people, families, direction, async graph =>
+        {
+            calls++;
+            const native = await elk.layout(JSON.parse(JSON.stringify(graph)));
+            const boxes = [];
+            function walk(node, x = 0, y = 0)
+            {
+                x += node.x || 0;
+                y += node.y || 0;
+                boxes.push({ id: node.id, x, y });
+                for (const child of node.children || []) walk(child, x, y);
+            }
+            walk(native);
+            assertAligned(boxes);
+            return native;
+        }, 'C2');
+        assertAligned(result.boxes);
+        const cards = new Map(result.boxes.map(box => [box.id, box]));
+        for (const family of families)
+            assert.deepEqual([...family.children].sort((a, b) => cards.get(a)[cross] - cards.get(b)[cross]), family.children);
+        assert.equal(result.issues.length, 0, result.issues.join('; '));
+        assert.equal(context.elkCenteringConflicts(result, cross).size, 0);
+        assert.ok(calls <= 2);
+        cases++;
+    }
     console.log('Chronological sibling preference: ' + cases + ' layouts passed.');
 })().catch(error => { console.error(error); process.exitCode = 1; });

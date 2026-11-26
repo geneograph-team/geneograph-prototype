@@ -591,6 +591,8 @@ async function solveElkTree(people, families, direction, calculate, focusId = nu
                 layoutOptions:
                 {
                     ...partition(group.generation),
+                    // Align card starts even when ordered child ports give compounds different depths.
+                    'elk.alignment': direction === 'DOWN' ? 'TOP' : 'LEFT',
                     'elk.partitioning.activate': 'true',
                     'elk.padding': '[top=18,left=18,bottom=18,right=18]',
                     ...placementOptions
