@@ -13,3 +13,7 @@ Duplicate findings currently look like two separately selectable Places. Selecti
 ## Boundaries
 
 Duplicate matching, merge decisions, coordinate detection, and stored dismissal semantics remain unchanged. Browser QA is performed by the user.
+
+## Closeout — 26 November 2026
+
+Founder accepted the implemented change (#282) as complete on 26 November 2026. Previously delegated browser QA is not claimed executed by this archival.

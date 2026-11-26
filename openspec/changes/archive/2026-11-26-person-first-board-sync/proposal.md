@@ -12,3 +12,7 @@ Make board sync a person-first comparison and prevent one relationship transfer 
 ### New Capabilities
 
 - `geneograph-person-sync-review`: Person-first board and Family Tree comparison with staged field transfers.
+
+## Closeout — 26 November 2026
+
+Founder accepted the implemented change (#308) as complete on 26 November 2026. The earlier browser matrix is not verified by the recorded evidence; administrative closeout is not a test result.

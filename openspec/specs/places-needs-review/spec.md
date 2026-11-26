@@ -4,7 +4,8 @@
 
 ### Requirement: Issue groups reflect current records
 Needs review SHALL show active invalid-coordinate items only when they
-exist, missing map positions separately, possible duplicate pairs, and
+exist, missing map positions for referenced Places, unlinked Places,
+possible duplicate pairs, and
 a Dismissed group for review decisions. Groups SHALL respect project
 scope and the review search.
 
@@ -36,6 +37,10 @@ Place ID and show the ordinary Place inspector.
 - **THEN** its row shows No map position, its name and linked count without a
   No broader place recorded placeholder
 
+#### Scenario: Dismissed Place without broader Place
+- **WHEN** a dismissed missing-position Place has no broader Place
+- **THEN** the row shows No map position, its Place name, linked count and dismissal reason without a placeholder line
+
 ### Requirement: Dismissal and restoration
 A dismissed item SHALL move out of the active group; restoring it SHALL
 return a still-relevant issue to review. Duplicate dismissal SHALL be
@@ -62,3 +67,14 @@ overflow. Existing review, fix, and dismissal behavior SHALL be preserved.
 - **WHEN** a Place has possible duplicate candidates
 - **THEN** the inspector renders the same warning-card structure and
   navigation control without an empty action row or duplicate counter
+
+### Requirement: Unlinked Places review
+The prototype SHALL identify Places without live authored references in their owning project, independently of the five display counters. It SHALL present an Unlinked places group with Keep/Restore and confirmed Delete place. Review deletion SHALL refuse if a reference exists at confirmation. A Place without a map position and without live references SHALL appear in the unlinked group, not additionally as missing position. Active review totals SHALL count distinct affected Places. Keep decisions SHALL expire when the Place gains a live reference.
+
+#### Scenario: A board-only dependency
+- **WHEN** the only reference is a project-scoped Place node or board fact
+- **THEN** the Place is not unlinked
+
+#### Scenario: A stale delete confirmation
+- **WHEN** a previously unlinked Place acquires a reference before confirmation
+- **THEN** no Place or reference is deleted.

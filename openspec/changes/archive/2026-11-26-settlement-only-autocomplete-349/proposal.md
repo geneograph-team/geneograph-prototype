@@ -18,3 +18,7 @@ used for genealogical facts and make near-duplicate suggestions look equivalent.
   external map suggestions.
 
 Tracked by #349; saved-place duplicate review #316 is separate.
+
+## Closeout — 26 November 2026
+
+Founder accepted the implemented change (#349, merged PR #354) as complete on 26 November 2026. The recorded isolated provider checks passed; live hosted/provider and direct-file checks are not claimed executed by this archival.
