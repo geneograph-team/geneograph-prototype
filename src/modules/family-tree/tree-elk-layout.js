@@ -75,14 +75,39 @@ function calculateLocalElkGraph(request, graph)
     });
 }
 
-function prepareElkTreeInput(projection, preferences, direction = 'DOWN', measure = (_, fn) => fn())
+// Derive the native ordering once per request without altering recorded membership.
+function treeChronologicalFamilies(projection)
+{
+    const people = new Map(projection.people.map(person => [person.id, person]));
+    const dates = new Map();
+    function birthOrder(id)
+    {
+        if (!dates.has(id))
+        {
+            const fact = people.get(id)?.birthFact;
+            dates.set(id, fact ? genealogyDateSortValue(fact) : Infinity);
+        }
+        return dates.get(id);
+    }
+    return projection.families.map(family =>
+    {
+        if (family.children.length < 2 || !family.children.some(id => Number.isFinite(birthOrder(id)))) return family;
+        // Stable ties (including undated children) retain the recorded sequence.
+        return { ...family, chronological: true, children: family.children.slice()
+            .sort((a, b) => birthOrder(a) - birthOrder(b)) };
+    });
+}
+
+function prepareElkTreeInput(projection, preferences, direction = 'DOWN', measure = (_, fn) => fn(),
+    orderedFamilies = treeChronologicalFamilies(projection))
 {
     const genderById = new Map(projection.people.map(person => [person.id, person.gender]));
     const semantic = measure('occurrences', () => projectElkTreeOccurrences(
         projection.people.map(({ id }) => ({ id })),
-        projection.families.map(family => ({ id: family.id,
+        orderedFamilies.map(family => ({ id: family.id,
             parents: [family.left, family.right].filter(Boolean), children: family.children,
-            recordedChildCount: family.recordedChildCount ?? family.children.length })),
+            recordedChildCount: family.recordedChildCount ?? family.children.length,
+            chronological: Boolean(family.chronological) })),
         preferences, projection.focusPersonId
     ));
     // Stable canonical context stays in the presentation. Only anonymous IDs
@@ -98,7 +123,8 @@ function prepareElkTreeInput(projection, preferences, direction = 'DOWN', measur
         families: semantic.families.map((family, index) => ({
             id: 'f' + index, canonicalFamilyId: family.canonicalFamilyId, familyOccurrenceId: family.familyOccurrenceId,
             parents: family.parents.map(id => ids.get(id)), children: family.children.map(id => ids.get(id)),
-            recordedChildCount: family.recordedChildCount
+            recordedChildCount: family.recordedChildCount,
+            chronological: family.chronological && family.children.length > 1
         }))
     };
     const relations = new Map(model.people.map(person => [person.id, []]));
@@ -302,9 +328,11 @@ function treeElkLayoutForProjection(projectId, projection, view, trace = null)
         disposeTreeElkLayout();
         treeElkCacheProjectId = projectId;
     }
+    const orderedFamilies = treeChronologicalFamilies(projection);
     const key = JSON.stringify([projectId, orientation, TREE_GEOMETRY, projection.focusPersonId, view.ancestorGenerations,
         view.descendantGenerations, view.showCousins, projection.people.map(person => [person.id, person.gender]),
-        projection.families.map(({ id, left, right, children, recordedChildCount }) => [id, left, right, children, recordedChildCount]),
+        orderedFamilies.map(({ id, left, right, children, recordedChildCount, chronological }) =>
+            [id, left, right, children, recordedChildCount, Boolean(chronological)]),
         [...projection.branchRoles.recordedParentFamilyCountByPerson || []],
         [...projection.branchRoles.parentPresenceByPerson], [...projection.branchRoles.focusActionPersonIds || []], [...expansion].sort()]);
     if (treeElkRequest?.key !== key)
@@ -326,7 +354,7 @@ function treeElkLayoutForProjection(projectId, projection, view, trace = null)
             {
                 if (treeElkRequest !== request) return;
                 const measure = (stage, fn) => treePerf.measure(trace, stage, fn);
-                request.model = measure('input', () => prepareElkTreeInput(projection, expansion, direction, measure));
+                request.model = measure('input', () => prepareElkTreeInput(projection, expansion, direction, measure, orderedFamilies));
                 request.geometry = await solveElkTree(request.model.people, request.model.families, direction,
                     graph => calculateLocalElkGraph(request, graph), request.model.focusId, measure);
                 if (treeElkRequest !== request) return;

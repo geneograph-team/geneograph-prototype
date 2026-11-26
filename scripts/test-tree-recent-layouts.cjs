@@ -6,6 +6,7 @@ const assert = require('node:assert/strict');
 const metrics = { status: '', passes: -1 };
 const sandbox = vm.createContext({
     TREE_GEOMETRY: { cardWidth: 300 }, state: { activeModule: 'Family Tree' },
+    genealogyDateSortValue: value => value,
     currentFamilyTreeProjectId: () => project,
     renderFamilyTree() {},
     console: { warn() {} },
@@ -125,6 +126,20 @@ async function complete(id, name, gender)
     await tick();
     changedFamily.branchRoles.recordedParentFamilyCountByPerson = new Map([['a', 1]]);
     assert.equal(sandbox.treeElkLayoutForProjection(project, changedFamily, view, {}), null);
+    await tick();
+    pending.resolve();
+    await tick();
+    const chronological = { ...changed, people: [...changed.people, { id: 'c', birthFact: 2 }, { id: 'd' }],
+        families: [{ id: 'f', left: 'a', right: '', children: ['c', 'd'] }] };
+    assert.equal(sandbox.treeElkLayoutForProjection(project, chronological, view, {}), null);
+    await tick();
+    pending.resolve();
+    await tick();
+    const orderedGeometry = request().geometry;
+    chronological.people[1].birthFact = 1;
+    assert.equal(sandbox.treeElkLayoutForProjection(project, chronological, view, {}).geometry, orderedGeometry);
+    chronological.people[2].birthFact = .5;
+    assert.equal(sandbox.treeElkLayoutForProjection(project, chronological, view, {}), null);
     await tick();
     const lateModule = pending;
     sandbox.disposeTreeElkLayout();

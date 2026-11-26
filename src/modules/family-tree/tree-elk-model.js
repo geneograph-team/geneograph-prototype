@@ -664,22 +664,38 @@ async function solveElkTree(people, families, direction, calculate, focusId = nu
                 const order = elkOrderedPartners(f.parents, peopleById);
                 if (order) ordered.set(f.id, order);
             }
+        const groupsById = new Map(groups.map(group => [group.id, group]));
         for (const f of families)
         {
             const order = ordered.get(f.id);
-            // ELK numbers fixed ports clockwise. North runs left to right;
-            // west runs bottom to top. Fixed port order expresses the preferred card order.
-            if (order) nodes.get(f.id).layoutOptions['elk.portConstraints'] = 'FIXED_ORDER';
-            const join = order ? null : port(f.id, f.id + ':parents', incoming);
-            const descendants = port(f.id, f.id + ':children', outgoing, order ? (direction === 'DOWN' ? 2 : 0) : null);
+            const childGroups = f.children.map(id => owner.get(id));
+            // Distinct ordered child ports give ELK a chronological feed for
+            // independently anchored households. Shared or multiply anchored
+            // sibling groups keep the flexible common feed and model preference.
+            const chronological = f.chronological && childGroups.length > 1
+                && new Set(childGroups).size === childGroups.length
+                && childGroups.every(id => groupsById.get(id).members.every(person =>
+                    parentFamilies.get(person).every(parent => parent === f)));
+            // ELK numbers fixed ports clockwise: north/east follow the visual
+            // cross axis; south/west reverse it.
+            if (order || chronological) nodes.get(f.id).layoutOptions['elk.portConstraints'] = 'FIXED_ORDER';
+            const join = order ? null : port(f.id, f.id + ':parents', incoming,
+                chronological ? (direction === 'DOWN' ? 0 : f.children.length) : null);
+            const descendants = chronological ? null : port(f.id, f.id + ':children', outgoing,
+                order ? (direction === 'DOWN' ? 2 : 0) : null);
             for (const parent of f.parents)
             {
                 const index = order?.indexOf(parent);
                 const target = join || port(f.id, f.id + ':parents:' + parent, incoming,
-                    direction === 'DOWN' ? index : 2 - index);
+                    direction === 'DOWN' ? index : (chronological ? f.children.length + 1 : 2) - index);
                 edge(f, 'parent', parent, port(parent, parent + ':out:' + f.id, outgoing), target);
             }
-            for (const child of f.children) edge(f, 'child', child, descendants, port(child, child + ':in:' + f.id, incoming));
+            for (const [index, child] of f.children.entries())
+            {
+                const source = descendants || port(f.id, f.id + ':children:' + child, outgoing,
+                    direction === 'DOWN' ? (order ? 2 : 1) + f.children.length - 1 - index : index);
+                edge(f, 'child', child, source, port(child, child + ':in:' + f.id, incoming));
+            }
         }
         // Per-element minimum node spacing: this is not a flexible maximum or
         // guaranteed descendant alignment. Test the documented IndividualSpacings string.
@@ -765,6 +781,10 @@ async function solveElkTree(people, families, direction, calculate, focusId = nu
         // optimize the relative positions of the compound groups.
         const groupRank = group => Math.min(...group.children.map(node => ancestryOrder.get(node.id) ?? Infinity));
         graph.children.sort((a, b) => groupRank(a) - groupRank(b));
+        // The existing ancestry order is the stable tie-break for compatible
+        // chronological constraints on root groups. ELK still minimizes crossings.
+        if (families.some(f => f.chronological))
+            graph.children = orderElkSiblingGroups(graph.children, families, owner);
         return {
             graph,
             groups,
@@ -1758,6 +1778,42 @@ function elkCollateralCompactionJobs(model, families, focusId, shapes, axis, ext
     }
     // Move nearer siblings first, preserving their order on either side.
     return jobs.sort((a, b) => a.gap - b.gap || a.id.localeCompare(b.id));
+}
+
+// Order native input groups, not solved coordinates. Skip shared-group
+// and contradictory sibling constraints; the preferred graph stays acyclic.
+function orderElkSiblingGroups(nodes, families, owner)
+{
+    const successors = new Map(nodes.map(node => [node.id, new Set()]));
+    const predecessors = new Map(nodes.map(node => [node.id, new Set()]));
+    function precedes(a, b)
+    {
+        const seen = new Set([b]), queue = [b];
+        for (const id of queue)
+        {
+            if (id === a) return;
+            for (const next of successors.get(id))
+                if (!seen.has(next)) { seen.add(next); queue.push(next); }
+        }
+        successors.get(a).add(b);
+        predecessors.get(b).add(a);
+    }
+    for (const family of families)
+    {
+        if (!family.chronological) continue;
+        const ids = family.children.map(id => owner.get(id));
+        if (new Set(ids).size !== ids.length) continue;
+        for (let index = 1; index < ids.length; index++) precedes(ids[index - 1], ids[index]);
+    }
+    const remaining = [...nodes], sorted = [];
+    while (remaining.length)
+    {
+        const index = remaining.findIndex(node => !predecessors.get(node.id).size);
+        const [node] = remaining.splice(index, 1);
+        sorted.push(node);
+        for (const id of successors.get(node.id)) predecessors.get(id).delete(node.id);
+    }
+    return sorted;
 }
 
 // Compare conflict multiplicity by relationship/card identity, not absolute
