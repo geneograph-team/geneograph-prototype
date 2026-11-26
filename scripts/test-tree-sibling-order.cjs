@@ -83,5 +83,41 @@ assert.equal(context.treeChronologicalFamilies(projection)[0], projection.famili
                 assert.equal(context.elkCenteringConflicts(result, axis).size, 0);
                 cases++;
             }
+    // The focus is descended from the multiply anchored sibling. The spouse's
+    // parental branch decides which side is preferred, not the sibling's age.
+    for (const direction of ['DOWN', 'RIGHT'])
+        for (const gender of ['male', 'female'])
+        {
+            const data = fixture(true, true);
+            data.focusPersonId = 'Cc';
+            data.people.find(p => p.id === 'C').gender = gender;
+            data.people.find(p => p.id === 'Cm').gender = gender === 'male' ? 'female' : 'male';
+            const model = context.prepareElkTreeInput(data, new Map(), direction);
+            const peopleById = new Map(model.people.map(person => [person.id, person]));
+            const family = model.families.find(f => f.canonicalFamilyId === 'parents');
+            const expected = gender === 'male' ? ['A', 'B', 'D', 'E', 'C'] : ['C', 'A', 'B', 'D', 'E'];
+            let calls = 0;
+            const result = await context.solveElkTree(model.people, model.families, direction, graph =>
+            {
+                calls++;
+                const junction = graph.children.flatMap(g => g.children).find(n => n.id === family.id);
+                const ports = junction.ports.filter(port => port.id.startsWith(family.id + ':children:'));
+                assert.equal(ports.length, order.length);
+                const preferred = ports.slice().sort((a, b) => (direction === 'DOWN' ? -1 : 1)
+                    * (Number(a.layoutOptions['elk.port.index']) - Number(b.layoutOptions['elk.port.index'])))
+                    .map(port => peopleById.get(port.id.slice((family.id + ':children:').length)).personId);
+                assert.deepEqual([...preferred], expected);
+                return elk.layout(JSON.parse(JSON.stringify(graph)));
+            }, model.focusId);
+            assert.ok(calls <= 2);
+            assert.equal(result.issues.length, 0, result.issues.join('; '));
+            const axis = direction === 'DOWN' ? 'x' : 'y';
+            const cards = new Map(result.boxes.map(box => [box.id, box]));
+            const actual = [...family.children].sort((a, b) => cards.get(a)[axis] - cards.get(b)[axis])
+                .map(id => peopleById.get(id).personId);
+            assert.deepEqual([...actual], expected);
+            assert.equal(context.elkCenteringConflicts(result, axis).size, 0);
+            cases++;
+        }
     console.log('Chronological sibling preference: ' + cases + ' layouts passed.');
 })().catch(error => { console.error(error); process.exitCode = 1; });
