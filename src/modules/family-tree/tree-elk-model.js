@@ -292,7 +292,7 @@ function projectElkTreeOccurrences(canonicalPeople, canonicalFamilies, preferenc
 
 async function solveElkTree(people, families, direction, calculate, focusId = null)
 {
-    const nominalPartnerGap = 40;
+    const nominalPartnerGap = TREE_GEOMETRY.partnerGap;
     const secondarySpacing = 80;
     const JUNCTION = 12;
     const EPS = .02;
@@ -452,7 +452,7 @@ async function solveElkTree(people, families, direction, calculate, focusId = nu
             'elk.partitioning.activate': 'true',
             'elk.layered.mergeHierarchyEdges': 'false',
             'elk.layered.mergeEdges': 'false',
-            'elk.spacing.nodeNode': '40',
+            'elk.spacing.nodeNode': String(nominalPartnerGap),
             'elk.layered.spacing.nodeNodeBetweenLayers': '52',
             'elk.spacing.edgeNode': '14',
             'elk.layered.spacing.edgeNodeBetweenLayers': '14',
@@ -595,8 +595,7 @@ async function solveElkTree(people, families, direction, calculate, focusId = nu
         }
         // Per-element minimum node spacing: this is not a flexible maximum or
         // guaranteed descendant alignment. Test the documented IndividualSpacings string.
-        const partnered = new Set(families.filter(family => family.parents.length === 2
-            && family.parents.every(id => !peopleById.get(id).placeholder)).flatMap(family => family.parents));
+        const partnered = new Set(families.filter(family => family.parents.length === 2).flatMap(family => family.parents));
         for (const person of people)
         {
             const minimum = Math.max(partnered.has(person.id) ? nominalPartnerGap : 0,
@@ -1400,7 +1399,7 @@ function refineElkTreeCentering(raw, model, people, families, baseline, route)
         && g.members.length <= 2 && unions.get(g.id).length <= 1).map(g => g.id));
     const generations = new Map(model.groups.map(g => [g.id, g.generation]));
     const clearanceByGroup = new Map(model.groups.map(g => [g.id,
-        Math.max(40, ...(vertical ? [] : g.members.map(id => peopleById.get(id).focusClearance || 0)))]));
+        Math.max(TREE_GEOMETRY.partnerGap, ...(vertical ? [] : g.members.map(id => peopleById.get(id).focusClearance || 0)))]));
     const realPair = f => f?.parents.length === 2 && f.parents.every(id => !peopleById.get(id).placeholder);
     const pairs = families.filter(realPair).map(f =>
     {

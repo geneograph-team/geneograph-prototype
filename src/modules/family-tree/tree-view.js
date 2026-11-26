@@ -311,6 +311,12 @@ function renderFamilyTree(readyProjection = null)
             --tree-avatar-size:
               ${TREE_GEOMETRY.avatarSize}px;
 
+            --tree-partner-dash-length:
+              ${TREE_GEOMETRY.partnerDashLength};
+
+            --tree-partner-dash-gap:
+              ${TREE_GEOMETRY.partnerDashGap};
+
             --tree-placeholder-width:
               ${treeParentPlaceholderWidth(2)}px;
 

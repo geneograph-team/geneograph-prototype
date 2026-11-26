@@ -41,7 +41,7 @@ function calculateLocalElkGraph(preview, graph)
     });
 }
 
-function prepareElkTreeInput(projection, preferences)
+function prepareElkTreeInput(projection, preferences, direction = 'DOWN')
 {
     const genderById = new Map(projection.people.map(person => [person.id, person.gender]));
     const semantic = projectElkTreeOccurrences(
@@ -125,8 +125,8 @@ function prepareElkTreeInput(projection, preferences)
             const id = person.id + '-missing-' + rel;
             generations.set(id, generation);
             family.parents[rel === 'father' ? 'unshift' : 'push'](id);
-            model.people.push({ id, width: treeParentPlaceholderWidth(roles.length),
-                height: roles.length === 1 ? TREE_CARD_H : TREE_GEOMETRY.parentPlaceholderHeight,
+            model.people.push({ id, width: treeParentPlaceholderWidth(roles.length, direction),
+                height: direction === 'RIGHT' || roles.length === 1 ? TREE_CARD_H : TREE_GEOMETRY.parentPlaceholderHeight,
                 placeholder: { personId: canonicalId, rel, label: rel === 'father' ? 'Add father' : 'Add mother' } });
         }
     }
@@ -216,12 +216,28 @@ function adaptElkTreeLayout(model, layout, projection)
     }
     const semanticFamilies = new Map(model.families.map(family => [family.id, family]));
     const canonicalFamilies = new Map(projection.families.map(family => [family.id, family]));
+    const junctions = new Map(layout.junctions.map(junction => [junction.id, junction]));
+    const cross = layout.direction === 'RIGHT' ? 'y' : 'x';
+    const extent = layout.direction === 'RIGHT' ? 'h' : 'w';
     const connectorDescriptors = layout.paths.map(path =>
     {
         const occurrence = semanticFamilies.get(path.family);
         const family = canonicalFamilies.get(occurrence?.canonicalFamilyId);
         const partner = path.role === 'parent' && layout.underpasses && !path.native;
+        // All visible fragments of one partnership share a single dash origin.
+        // Direct pairs use the physical gap midpoint; extended pairs use their
+        // existing routed junction rather than the midpoint of an obscured span.
+        let dashCenter;
+        if (partner && occurrence?.parents.length === 2)
+        {
+            const [first, second] = occurrence.parents.map(id => boxes.get(id)).sort((a, b) => a[cross] - b[cross]);
+            const junction = junctions.get(path.family);
+            dashCenter = path.extended && junction
+                ? junction[cross] + junction[extent] / 2
+                : (first[cross] + first[extent] + second[cross]) / 2;
+        }
         return { familyId: family?.id || path.family, familyOccurrenceId: occurrence?.familyOccurrenceId || path.family, points: path.points,
+            dashCenter,
             d: treeConnectorPath(path.points), role: partner ? 'partner' : 'descendant',
             className: partner && family ? treePartnerConnectorClass(family) : partner ? 'tree-line partner' : 'tree-line descendant',
             childId: path.role === 'child' ? records.get(path.person)?.id : undefined };
@@ -260,7 +276,7 @@ function treeElkLayoutForProjection(projectId, projection, view)
             try
             {
                 if (treeElkRequest !== preview) return;
-                preview.model = prepareElkTreeInput(projection, expansion);
+                preview.model = prepareElkTreeInput(projection, expansion, direction);
                 preview.geometry = await solveElkTree(preview.model.people, preview.model.families, direction,
                     graph => calculateLocalElkGraph(preview, graph), preview.model.focusId);
                 if (treeElkRequest !== preview) return;

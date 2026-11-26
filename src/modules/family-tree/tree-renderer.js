@@ -152,7 +152,20 @@ function treeSceneConnectors(descriptors, obstacles, horizontal = false)
     return routes.map(route =>
     {
         const { points } = route;
-        if (route.role === 'partner') return { ...route, bounds: treeScenePathBounds(points) };
+        if (route.role === 'partner')
+        {
+            const dashed = route.className.split(' ').includes('is-separated-or-divorced');
+            let dashOffset = null;
+            if (dashed && Number.isFinite(route.dashCenter))
+            {
+                const start = points[0][cross];
+                const sign = Math.sign(points.at(-1)[cross] - start);
+                const period = TREE_GEOMETRY.partnerDashLength + TREE_GEOMETRY.partnerDashGap;
+                const phase = TREE_GEOMETRY.partnerDashLength / 2 - sign * (route.dashCenter - start);
+                dashOffset = ((phase % period) + period) % period;
+            }
+            return { ...route, dashOffset, bounds: treeScenePathBounds(points) };
+        }
         const related = familyOf(route);
         const pieces = [[points[0]]];
         for (let i = 1; i < points.length; i++)
@@ -292,6 +305,7 @@ function renderTreeViewport(runtime)
         .attr('data-tree-family-occurrence-id', path => path.familyOccurrenceId || path.familyId)
         .attr('data-tree-child-id', path => path.childIds?.length === 1 ? path.childIds[0] : null)
         .attr('data-tree-child-ids', path => path.childIds?.length > 1 ? JSON.stringify(path.childIds) : null)
+        .attr('stroke-dashoffset', path => path.dashOffset ?? null)
         .attr('d', path => path.d);
     paintTreeColors(runtime);
 }

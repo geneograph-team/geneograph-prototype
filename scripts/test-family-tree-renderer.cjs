@@ -4,7 +4,8 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 const vm = require('node:vm');
-const context = vm.createContext({ TREE_GEOMETRY: { connectorLaneGap: 16 } });
+const context = vm.createContext({});
+vm.runInContext(fs.readFileSync(path.join(__dirname, '../src/modules/family-tree/tree-geometry.js'), 'utf8'), context);
 vm.runInContext(fs.readFileSync(path.join(__dirname, '../src/modules/family-tree/tree-renderer.js'), 'utf8'), context);
 const point = (x, y) => ({ x, y });
 
@@ -46,4 +47,30 @@ const underpass = context.treeSceneConnectors([
     { familyId: 'unrelated', className: 'tree-line descendant', role: 'descendant', points: [point(50, 0), point(50, 100)] }
 ], []);
 assert.equal(underpass.find(route => route.familyId === 'family').d, 'M0 50 L42 50 M58 50 L100 50');
-console.log('Tree Fit, spanning culling, rounded terminals, square junctions and underpasses passed.');
+// Separate inline partner fragments must share one dash phase.
+for (const horizontal of [false, true])
+    for (const length of [20, 40, 63, 80])
+        for (const reverse of [false, true])
+        {
+            const at = u => horizontal ? point(10, u) : point(u, 10);
+            const center = length / 2;
+            const make = (a, b, familyId, dashed, dashCenter = center) => ({
+                familyId, role: 'partner', className: 'tree-line partner' + (dashed ? ' is-separated-or-divorced' : ''),
+                points: (reverse ? [b, a] : [a, b]).map(at), dashCenter
+            });
+            const routes = context.treeSceneConnectors([
+                make(0, center, 'divorced', true), make(center, length, 'divorced', true),
+                make(-100, -60, 'divorced', true), make(0, length, 'married', false),
+                ...descriptors([[at(0), at(length)]])
+            ], [], horizontal);
+            for (const route of routes.filter(route => route.familyId === 'divorced'))
+            {
+                const cross = horizontal ? 'y' : 'x';
+                const start = route.points[0][cross], end = route.points.at(-1)[cross];
+                const phase = ((route.dashOffset + Math.sign(end - start) * (center - start)) % 18 + 18) % 18;
+                assert.ok(Math.abs(phase - 5) < .0001);
+            }
+            assert.equal(routes.find(route => route.familyId === 'married').dashOffset, null);
+            assert.equal(routes.find(route => route.familyId === 'family').dashOffset, undefined);
+        }
+console.log('Tree Fit, spanning culling, rounded terminals, square junctions, underpasses and centered partner dashes passed.');

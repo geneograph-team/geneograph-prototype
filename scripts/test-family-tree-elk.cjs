@@ -414,6 +414,53 @@ function inspect(layout, peopleById, families)
     }
     console.log(JSON.stringify({ orderedCases, bilateralCases: 2, nominalGap: 40 }));
 
+    // Measure actual native spacing, not just requested node dimensions.
+    for (const direction of ['DOWN', 'RIGHT'])
+        for (const missing of ['both', 'father', 'mother', 'none'])
+        {
+            const people = [{ id: 'child', gender: 'female' }];
+            const hasFather = !['both', 'father'].includes(missing);
+            const hasMother = !['both', 'mother'].includes(missing);
+            if (hasFather) people.push({ id: 'father', gender: 'male' });
+            if (hasMother) people.push({ id: 'mother', gender: 'female' });
+            const families = hasFather || hasMother ? [{ id: 'parents', left: hasFather ? 'father' : '',
+                right: hasMother ? 'mother' : '', children: ['child'] }] : [];
+            const source = { people, families, focusPersonId: 'child', branchRoles: {
+                ancestorGenerations: 1, focusActionPersonIds: new Set(people.slice(1).map(p => p.id)),
+                parentPresenceByPerson: new Map([['child', { father: hasFather, mother: hasMother }]])
+            } };
+            const snapshot = JSON.stringify([people, families]);
+            const input = context.prepareElkTreeInput(source, undefined, direction);
+            const layout = await context.solveElkTree(input.people, input.families, direction,
+                graph => solver.layout(JSON.parse(JSON.stringify(graph))), input.focusId);
+            const boxes = new Map(layout.boxes.map(box => [box.id, box]));
+            const axis = direction === 'DOWN' ? 'x' : 'y';
+            const extent = direction === 'DOWN' ? 'w' : 'h';
+            const [father, mother] = input.families[0].parents.map(id => boxes.get(id));
+            const child = boxes.get(input.focusId);
+            assert.ok(same(mother[axis] - father[axis] - father[extent], 40));
+            assert.ok(same((father[axis] + mother[axis] + mother[extent]) / 2, child[axis] + child[extent] / 2));
+            if (missing === 'both' && direction === 'DOWN')
+            {
+                assert.ok(same(father.w, 130) && same(mother.w, 130));
+                assert.ok(same(mother.x + mother.w - father.x, child.w));
+            }
+            else
+                for (const parent of [father, mother])
+                {
+                    assert.ok(same(parent.w, child.w));
+                    assert.ok(same(parent.h, child.h));
+                }
+            const { report } = inspect(layout, new Map(input.people.map(person => [person.id, person])), input.families);
+            assert.equal(report.cardHits, 0);
+            assert.equal(report.cardOverlaps, 0);
+            assert.equal(report.falseJunctions, 0);
+            assert.equal(report.routedEdges, report.expectedEdges);
+            assert.equal(layout.passes, 1);
+            assert.deepEqual(layout.issues, []);
+            assert.equal(JSON.stringify([people, families]), snapshot);
+        }
+
     // Both households stay visible when focus changes between half-siblings.
     // The same recorded partnerships must exchange principal/secondary roles.
     const focusPeople = [

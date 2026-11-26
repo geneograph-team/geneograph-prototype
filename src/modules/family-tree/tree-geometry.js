@@ -5,7 +5,9 @@ const TREE_GEOMETRY = Object.freeze({
     cardContentGap: 10,
     avatarSize: 68,
     parentPlaceholderHeight: 110,
-    parentPlaceholderGap: 48,
+    partnerGap: 40,
+    partnerDashLength: 10,
+    partnerDashGap: 8,
     connectorLaneGap: 16,
     focusControlWidth: 84,
     focusControlHeight: 32,
@@ -20,8 +22,9 @@ const {
     focusControlGap: TREE_FOCUS_CONTROL_GAP
 } = TREE_GEOMETRY;
 
-function treeParentPlaceholderWidth(roleCount)
+function treeParentPlaceholderWidth(roleCount, direction = 'DOWN')
 {
+    if (direction === 'RIGHT') return TREE_CARD_W;
     const count = Math.max(1, Math.min(2, Number(roleCount) || 1));
-    return (TREE_CARD_W - (count - 1) * TREE_GEOMETRY.parentPlaceholderGap) / count;
+    return (TREE_CARD_W - (count - 1) * TREE_GEOMETRY.partnerGap) / count;
 }
