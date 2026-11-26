@@ -1,3 +1,20 @@
+/* Collapsed People sidebar */
+.people-person-sidebar.collapsed {
+    width: 54px;
+    min-width: 54px;
+    overflow: hidden;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding: var(--space-3) 8px;
+}
+
+.people-person-sidebar.collapsed .person-sidebar-restore-button {
+    position: static;
+    display: grid;
+    margin-top: 0;
+}
+
 /* People module */
 .people-layout {
     height: 100%;

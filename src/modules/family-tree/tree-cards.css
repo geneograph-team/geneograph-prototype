@@ -1,0 +1,704 @@
+/* Family Tree cards, portraits and semantic detail */
+.tree-person-card,
+.add-parent-card {
+    position: absolute;
+    border: 1px solid color-mix(in srgb, var(--gg-primary) 22%, transparent);
+    background: var(--surface-card);
+    border-radius: var(--radius-sm);
+    color: var(--text-primary);
+    text-align: left;
+    box-shadow: 0 5px 16px color-mix(in srgb, var(--gg-scrim) 12%, transparent);
+    transition:
+        border-color var(--ease),
+        background var(--ease),
+        transform var(--ease),
+        box-shadow var(--ease);
+}
+
+.tree-person-card,
+.add-parent-card {
+    cursor: pointer;
+}
+
+.tree-person-card {
+    box-sizing: border-box;
+    width:
+        var(--tree-card-width,
+            300px);
+    min-width:
+        var(--tree-card-width,
+            300px);
+    max-width:
+        var(--tree-card-width,
+            300px);
+    height:
+        var(--tree-card-height,
+            124px);
+    min-height:
+        var(--tree-card-height,
+            124px);
+    max-height:
+        var(--tree-card-height,
+            124px);
+    padding:
+        var(--tree-card-padding,
+            10px);
+    display: grid;
+    grid-template-columns: 54px minmax(0, 1fr);
+    grid-template-rows: 72px minmax(0, 1fr);
+    column-gap:
+        var(--tree-card-content-gap,
+            10px);
+    row-gap: 2px;
+    overflow: hidden;
+    --tree-gender-border: var(--gg-accent-creative-blue-outline);
+    border: 2px solid var(--tree-outline-category, var(--tree-gender-border));
+    --tree-card-category: var(--tree-gender-border);
+    --tree-placeholder-tint: var(--tree-card-category);
+    --tree-overview-fill: 13%;
+    --tree-action-size: 28px;
+}
+
+.tree-card-avatar-stack {
+    min-width: 0;
+    min-height: 0;
+    grid-column:
+        1;
+    grid-row: 1;
+    display:
+        grid;
+    grid-template-rows: 72px;
+    row-gap:
+        var(--tree-card-content-gap,
+            10px);
+    justify-items:
+        center;
+    align-items:
+        center;
+}
+
+.tree-card-avatar-stack>.tree-avatar {
+    grid-row:
+        1;
+}
+
+.tree-avatar > .tree-portrait-image {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.tree-avatar.has-photo > .person-avatar-initials {
+    visibility: hidden;
+}
+
+.tree-card-avatar-stack>.tree-focus-badge {
+    grid-row:
+        2;
+
+    align-self:
+        center;
+}
+
+.tree-focus-badge {
+    min-height: 17px;
+    max-width: 100%;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    border: 1px solid color-mix(in srgb, var(--gg-primary) 42%, transparent);
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--gg-primary) 10%, transparent);
+    color: var(--text-on-selected);
+    padding: 1px 6px;
+    font-size: 10px;
+    font-weight: 800;
+    line-height: 1;
+    pointer-events: none;
+}
+
+.tree-focus-badge svg {
+    width: 11px;
+    height: 11px;
+}
+
+.tree-card-content {
+    min-width:
+        0;
+
+    min-height:
+        0;
+
+    grid-column:
+        2;
+
+    grid-row:
+        1;
+
+    display:
+        flex;
+
+    flex-direction:
+        column;
+
+    justify-content:
+        center;
+
+    padding:
+        0;
+
+    overflow:
+        hidden;
+}
+
+.tree-given-name {
+    display: none;
+}
+
+.tree-name {
+    /*
+    * Use one line when the name fits and add a
+    * second line only when wrapping is required.
+    */
+    min-height:
+        0;
+    height:
+        auto;
+    max-height:
+        2.36em;
+    margin:
+        0;
+    overflow:
+        hidden;
+    display:
+        -webkit-box;
+    -webkit-box-orient:
+        vertical;
+    -webkit-line-clamp:
+        2;
+    line-clamp:
+        2;
+    text-overflow:
+        ellipsis;
+    overflow-wrap:
+        anywhere;
+    word-break:
+        normal;
+    font-size:
+        13px;
+    line-height:
+        1.18;
+    letter-spacing:
+        .01em;
+}
+
+.tree-dates>span {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.tree-dates {
+    min-width:
+        0;
+    display:
+        grid;
+    gap:
+        1px;
+    margin:
+        4px 0 0;
+    color:
+        var(--text-secondary);
+    font-size:
+        12px;
+    overflow:
+        hidden;
+}
+
+.status-dot {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--text-secondary);
+    font-size: 12px;
+}
+
+.status-dot::before {
+    content: "";
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--gg-living-dot);
+}
+
+.status-dot.deceased::before {
+    background: var(--gg-deceased-dot);
+}
+
+.status-dot.unknown::before {
+    background: var(--gg-unknown-dot);
+}
+
+.card-actions {
+    position:
+        static;
+
+    grid-column:
+        2;
+
+    grid-row:
+        2;
+
+    align-self:
+        center;
+
+    justify-self:
+        end;
+
+    display:
+        flex;
+
+    gap:
+        4px;
+}
+
+.card-action {
+    width: 26px;
+    height: 26px;
+    border: 0;
+    border-radius: 6px;
+    background: transparent;
+    color: var(--text-secondary);
+    display: grid;
+    place-items: center;
+}
+
+.card-action svg {
+    width: 16px;
+    height: 16px;
+}
+
+.card-action:hover {
+    background: color-mix(in srgb, var(--gg-text) 6%, transparent);
+    color: var(--text-primary);
+}
+
+.card-action:focus-visible {
+    outline: 2px solid var(--brand-green-300);
+    outline-offset: 1px;
+}
+
+.tree-focus-control {
+    position: absolute;
+    z-index: 24;
+    width:
+        var(--tree-focus-control-width,
+            84px);
+
+    height:
+        var(--tree-focus-control-height,
+            32px);
+    padding: 0 8px;
+    border: 1px solid var(--border-default);
+    border-radius: 8px;
+    background: var(--surface-card);
+    color: var(--text-primary);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    font-size: 12px;
+    font-weight: 700;
+    line-height: 1;
+    box-shadow: 0 2px 8px color-mix(in srgb, var(--gg-scrim) 10%, transparent);
+    white-space: nowrap;
+    cursor: pointer;
+}
+
+.tree-focus-control::after {
+    content: "";
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    width: 2px;
+    height: 8px;
+    background: var(--tree-canvas-dot);
+    transform: translateX(-50%);
+    pointer-events: none;
+}
+
+.tree-focus-control svg {
+    width: 14px;
+    height: 14px;
+    flex: 0 0 14px;
+}
+
+.tree-focus-control:hover {
+    border-color: var(--border-strong);
+    background: var(--surface-card-hover);
+}
+
+.tree-focus-control:focus-visible {
+    outline: 2px solid var(--brand-green-300);
+    outline-offset: 2px;
+}
+
+.add-parent-card {
+    width: var(--tree-placeholder-width);
+    min-width: var(--tree-placeholder-width);
+    max-width: var(--tree-placeholder-width);
+    height:
+        var(--tree-placeholder-height,
+            110px);
+    min-height:
+        var(--tree-placeholder-height,
+            110px);
+    max-height:
+        var(--tree-placeholder-height,
+            110px);
+    display: grid;
+    align-items: center;
+    justify-content: center;
+    border-style: dashed;
+    color: var(--text-primary);
+    background: color-mix(in srgb, var(--gg-topbar) 86%, transparent);
+    font-size: 16px;
+    font-weight: 800;
+    text-align: center;
+    padding: 8px;
+    grid-template-columns: 1fr;
+    place-items: center;
+    line-height: 1.1;
+    border-color: var(--tree-connection);
+}
+
+.add-parent-card .add-plus {
+    display: block;
+    font-size: 32px;
+    line-height: 1;
+    margin-bottom: 4px;
+}
+
+.add-parent-card .add-label {
+    display: block;
+    line-height: 1.05;
+    font-size: 15px;
+    font-weight: 900;
+}
+
+.tree-person-card.female {
+    --tree-gender-border: var(--gg-accent-investigation-purple-outline);
+}
+
+.tree-person-card.unknown-gender {
+    --tree-gender-border: var(--gg-status-offline-outline);
+}
+
+.tree-person-card.selected {
+    border-color: var(--gg-selected-border);
+    background: var(--tree-selected-card);
+    box-shadow: 0 8px 22px color-mix(in srgb, var(--gg-scrim) 18%, transparent);
+    z-index: 20;
+}
+
+.tree-person-card.is-focus-person:not(.selected) {
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--gg-primary) 48%, transparent),
+        0 5px 16px color-mix(in srgb, var(--gg-scrim) 12%, transparent);
+}
+
+.tree-person-card:focus-visible {
+    outline: 2px solid var(--gg-primary);
+    outline-offset: 3px;
+}
+
+.tree-person-card:not(.selected):hover {
+    background: var(--tree-card-hover);
+    box-shadow: 0 8px 22px color-mix(in srgb, var(--gg-scrim) 16%, transparent);
+}
+
+.tree-person-card.is-focus-person:not(.selected):hover {
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--gg-primary) 34%, transparent), 0 8px 22px color-mix(in srgb, var(--gg-scrim) 16%, transparent);
+}
+
+.tree-occurrence-badge {
+    position: absolute;
+    inset-block-start: 5px;
+    inset-inline-end: 5px;
+    padding: 1px 5px;
+    border: 1px solid var(--border-default);
+    border-radius: 5px;
+    background: var(--surface-card);
+    color: var(--text-primary);
+    font-size: 13px;
+    font-weight: 800;
+    line-height: 1.2;
+    pointer-events: none;
+}
+
+[data-tree-expand-ancestry].tree-occurrence-badge {
+    pointer-events: auto;
+    cursor: pointer;
+    border-style: dashed;
+}
+
+.has-tree-occurrences .tree-card-content {
+    padding-inline-end: 32px;
+}
+
+.tree-stage[data-detail-level="label"] .tree-occurrence-badge,
+.tree-stage[data-detail-level="marker"] .tree-occurrence-badge {
+    font-size: var(--tree-overview-name-size);
+}
+
+.tree-stage[data-detail-level="label"] .has-tree-occurrences .tree-card-content {
+    padding-inline: 58px;
+}
+
+.tree-stage[data-detail-level="marker"] .tree-occurrence-badge {
+    position: static;
+}
+
+.tree-stage[data-hide-focus="true"] .tree-focus-control {
+    display: none;
+}
+
+.tree-stage[data-compact-parent="true"] .add-parent-card {
+    background: color-mix(in srgb, var(--surface-card) 55%, transparent);
+    border-style: solid;
+    border-width: var(--tree-overview-parent-border-width);
+    border-color: color-mix(in srgb, var(--tree-connection) 55%, var(--tree-canvas-surface));
+}
+
+.tree-stage[data-compact-parent="true"] .add-parent-card:hover {
+    background: var(--tree-card-hover);
+    border-color: var(--tree-connection);
+}
+
+.tree-stage[data-detail-level="marker"] .add-parent-card .add-plus svg,
+.tree-stage[data-detail-level="label"] .add-parent-card .add-plus svg {
+    width: var(--tree-overview-plus-size);
+    height: var(--tree-overview-plus-size);
+}
+
+.tree-stage[data-detail-level="label"] .tree-person-card,
+.tree-stage[data-detail-level="marker"] .tree-person-card {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.tree-stage[data-detail-level="label"] .tree-card-avatar-stack,
+.tree-stage[data-detail-level="marker"] .tree-card-avatar-stack,
+.tree-stage[data-detail-level="label"] .tree-person-card .tree-name,
+.tree-stage[data-detail-level="marker"] .tree-person-card .tree-name,
+.tree-stage[data-detail-level="label"] .tree-person-card .tree-dates,
+.tree-stage[data-detail-level="marker"] .tree-person-card .tree-dates,
+.tree-stage[data-detail-level="label"] .tree-person-card .card-actions,
+.tree-stage[data-detail-level="marker"] .tree-person-card .card-actions {
+    display: none;
+}
+
+.tree-stage[data-detail-level="label"] .tree-card-content {
+    width: 100%;
+    align-items: center;
+}
+
+.tree-stage[data-detail-level="label"] .tree-given-name {
+    display: block;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: var(--tree-overview-name-size);
+    font-weight: 800;
+}
+
+.tree-stage[data-detail-level="marker"] .tree-card-content {
+    display: none;
+}
+
+.tree-stage[data-detail-level="marker"] .tree-person-card {
+    border-width: 5px;
+    border-radius: 20px;
+    --tree-overview-fill: 99%;
+}
+
+.tree-stage[data-detail-level="marker"] .tree-person-card.is-focus-person:not(.selected) {
+    outline: 3px solid var(--gg-primary);
+    outline-offset: 2px;
+}
+
+.tree-stage[data-detail-level="marker"] .tree-person-card:focus-visible {
+    outline: 4px solid var(--gg-primary);
+    outline-offset: 4px;
+}
+
+.tree-stage[data-detail-level="label"] .add-parent-card .add-label,
+.tree-stage[data-detail-level="marker"] .add-parent-card .add-label,
+.tree-stage[data-detail-level="label"] .tree-focus-control span,
+.tree-stage[data-detail-level="marker"] .tree-focus-control span {
+    display: none;
+}
+
+.tree-stage[data-detail-level="label"] .add-parent-card .add-plus,
+.tree-stage[data-detail-level="marker"] .add-parent-card .add-plus {
+    margin-bottom: 0;
+}
+
+.tree-workspace:not(.has-color-fill) .tree-person-card {
+    --tree-placeholder-tint: var(--gg-status-offline-outline);
+}
+
+.tree-workspace.has-color-fill .tree-person-card:not(.selected) {
+    background: color-mix(in oklab, var(--tree-card-category) var(--tree-overview-fill), var(--surface-card));
+}
+
+.tree-workspace.has-color-fill .tree-person-card:not(.selected):hover {
+    background: color-mix(in oklab, var(--tree-card-category) var(--tree-overview-fill), var(--tree-card-hover));
+}
+
+.tree-person-card > .tree-focus-badge {
+    position: absolute;
+    inset-inline-start: 10px;
+    inset-block-end: 8px;
+}
+
+.tree-stage:is([data-detail-level="actions"], [data-detail-level="label"], [data-detail-level="marker"]) .tree-focus-badge {
+    display: none;
+}
+
+.tree-card-avatar-stack > .tree-avatar {
+    --person-avatar-width: 54px;
+    --person-avatar-height: 72px;
+    aspect-ratio: 3 / 4;
+    border: 0;
+    color: var(--text-primary);
+    font-size: 23px;
+    background: color-mix(in oklab, var(--tree-placeholder-tint) 33%, var(--surface-card));
+}
+
+.tree-card-avatar-stack > .tree-avatar.has-photo {
+    background: var(--surface-card);
+}
+
+.tree-avatar > .tree-initial-single,
+.tree-stage[data-single-initial="true"] .tree-initial-pair,
+.tree-name-compact,
+.tree-dates-compact {
+    display: none;
+}
+
+.tree-stage[data-single-initial="true"] .tree-initial-single {
+    display: grid;
+}
+
+.tree-stage:not([data-detail-level="full"]) .tree-name-full,
+.tree-stage:not([data-detail-level="full"]) .tree-dates-full {
+    display: none;
+}
+
+.tree-stage:is([data-detail-level="short"], [data-detail-level="compact"], [data-detail-level="actions"]) .tree-name-compact {
+    display: -webkit-box;
+}
+
+.tree-stage:is([data-detail-level="short"], [data-detail-level="compact"]) .tree-dates-compact {
+    display: grid;
+}
+
+.tree-dates:empty {
+    display: none;
+}
+
+.tree-person-card .card-actions {
+    position: absolute;
+    inset-inline-end: 8px;
+    inset-block-end: 6px;
+}
+
+.tree-person-card .card-action {
+    width: var(--tree-action-size);
+    height: var(--tree-action-size);
+}
+
+.tree-stage[data-detail-level="short"] .tree-person-card {
+    --tree-action-size: 32px;
+}
+
+.tree-stage:is([data-detail-level="compact"], [data-detail-level="actions"]) .tree-person-card {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr);
+}
+
+.tree-stage:is([data-detail-level="compact"], [data-detail-level="actions"]) .tree-card-avatar-stack,
+.tree-stage:is([data-detail-level="label"], [data-detail-level="marker"]) :is(.tree-card-avatar-stack, .card-actions) {
+    display: none;
+}
+
+.tree-stage:is([data-detail-level="compact"], [data-detail-level="actions"]) .tree-card-content {
+    grid-column: 1;
+}
+
+.tree-stage[data-detail-level="compact"] .tree-person-card {
+    --tree-action-size: 42px;
+    padding-bottom: 45px;
+}
+
+.tree-stage[data-detail-level="compact"] .tree-name {
+    font-size: 20px;
+    -webkit-line-clamp: 1;
+    line-clamp: 1;
+}
+
+.tree-stage[data-detail-level="compact"] .tree-dates {
+    font-size: 17px;
+}
+
+.tree-stage[data-detail-level="actions"] .tree-person-card {
+    --tree-action-size: 66px;
+    --tree-overview-fill: 25%;
+    padding-inline-end: 156px;
+}
+
+.tree-stage[data-detail-level="actions"] .tree-name {
+    font-size: 30px;
+}
+
+.tree-stage[data-detail-level="actions"] .card-action svg {
+    width: 32px;
+    height: 32px;
+}
+
+.tree-stage[data-detail-level="compact"] .card-action svg {
+    width: 23px;
+    height: 23px;
+}
+
+.tree-stage[data-detail-level="label"] .tree-person-card {
+    --tree-overview-fill: 90%;
+}
+
+.tree-workspace.has-color-fill .tree-stage[data-detail-level="label"] .tree-person-card:not(.selected) {
+    color: var(--surface-card);
+}
+
+.add-parent-card:hover {
+    background: var(--tree-card-hover);
+    box-shadow: 0 8px 22px color-mix(in srgb, var(--gg-scrim) 16%, transparent);
+}
+
+.add-parent-card:focus-visible {
+    outline: 2px solid var(--gg-primary);
+    outline-offset: 3px;
+}
+
+.tree-workspace[data-tree-fill="neutral"] .tree-stage:not([data-detail-level="label"], [data-detail-level="marker"]) .tree-person-card {
+    --tree-overview-fill: 0%;
+}
+
+:root[data-theme="light"] .tree-workspace:is([data-tree-fill="branch"], [data-tree-fill="neutral"])
+.tree-stage[data-detail-level="label"] .tree-person-card:not(.selected) {
+    color: black;
+}

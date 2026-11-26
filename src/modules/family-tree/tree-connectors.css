@@ -1,0 +1,30 @@
+/* Family Tree connector strokes */
+.tree-lines {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    overflow: visible;
+    width: 100%;
+    height: 100%;
+}
+
+.tree-line {
+    fill: none;
+    stroke: var(--tree-branch-stroke, var(--tree-connection));
+    stroke-width: 3.2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.tree-line.partner {
+    stroke: var(--tree-branch-stroke, var(--tree-connection-partner));
+}
+
+.tree-line.partner.is-separated-or-divorced {
+    stroke-dasharray: var(--tree-partner-dash-length, 10) var(--tree-partner-dash-gap, 8);
+}
+
+.tree-stage[data-detail-level="marker"] .tree-line,
+.tree-stage[data-detail-level="label"] .tree-line {
+    stroke-width: var(--tree-overview-connection-width);
+}

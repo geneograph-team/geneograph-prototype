@@ -1,3 +1,9 @@
+/* Profile status chips */
+.person-profile-chips {
+    margin-top:
+        var(--space-3);
+}
+
 /* =========================================================
     People Profile — canonical component styles
     ========================================================= */

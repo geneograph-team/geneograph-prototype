@@ -3583,3 +3583,34 @@ body.mobile-person-details-open .relative-popover-body {
     }
 }
 
+/* Responsive relationship editor */
+@media (max-width: 900px) {
+    .add-person-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .two-col-form {
+        grid-template-columns: 1fr;
+    }
+
+    .add-person-name-fields > .field:nth-child(2),
+    .add-person-name-fields > .field:nth-child(3) {
+        grid-column: 1;
+    }
+
+    .add-person-name-fields > .field:nth-child(2) {
+        grid-row: 3;
+    }
+
+    .add-person-name-fields > .field:nth-child(3) {
+        grid-row: 2;
+    }
+
+    .add-person-name-fields > .field:nth-child(4) {
+        grid-row: 4;
+    }
+
+    .add-person-fact-grid {
+        grid-template-columns: 1fr;
+    }
+}

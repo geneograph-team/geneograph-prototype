@@ -682,3 +682,372 @@
         display: none;
     }
 }
+
+/* Shared inspector controls */
+.panel-section {
+    border-bottom: 1px solid var(--border-default);
+    padding: 0;
+}
+
+.panel-section-header {
+    width: 100%;
+    min-height: 58px;
+    border: 0;
+    background: transparent;
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
+    padding: 0 var(--space-4);
+    text-align: left;
+}
+
+.panel-section-header:hover {
+    background: color-mix(in srgb, var(--gg-text) 2.5%, transparent);
+}
+
+.panel-section-header-row {
+    min-height: 58px;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: var(--space-3);
+}
+
+.panel-section-header-row .panel-section-header {
+    min-height: 58px;
+}
+
+.panel-section-header-row .panel-section-extra {
+    padding-right: 0;
+}
+
+.panel-section-chevron-toggle {
+    width: 40px;
+    height: 44px;
+    flex: 0 0 40px;
+    display: grid;
+    place-items: center;
+    padding: 0;
+    border: 0;
+    border-radius: var(--radius-sm);
+    background: transparent;
+    color: var(--text-tertiary);
+    cursor: pointer;
+}
+
+.panel-section-chevron-toggle:hover {
+    background: var(--surface-card-hover);
+    color: var(--text-primary);
+}
+
+.panel-section-chevron-toggle:focus-visible {
+    outline: 2px solid var(--brand-green-400);
+    outline-offset: -2px;
+}
+
+.panel-section-heading {
+    display: inline-flex;
+    align-items: baseline;
+    gap: var(--space-3);
+    min-width: 0;
+    max-width: 100%;
+    white-space: nowrap;
+}
+
+.panel-section-heading h3 {
+    min-width: 0;
+    flex: 0 1 auto;
+    margin: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 16px;
+    letter-spacing: .03em;
+}
+
+.panel-section-heading .panel-section-count {
+    min-width: 0;
+    flex: 0 1 auto;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+@media (max-width: 420px) {
+    .panel-section-header-row:has([data-toggle-section="relationships"]) .panel-button-text { display: none; }
+
+    .panel-section-header-row:has([data-toggle-section="relationships"]) .panel-section-inline-action button { min-width: 36px; min-height: 44px; display: grid; place-items: center; }
+}
+
+.panel-section-heading span,
+.panel-muted {
+    color: var(--text-tertiary);
+    font-size: 12px;
+}
+
+.panel-section-arrow {
+    width: 8px;
+    height: 8px;
+    display: block;
+    border-right: 1.6px solid currentColor;
+    border-bottom: 1.6px solid currentColor;
+    transform: rotate(45deg);
+    transition: transform var(--ease);
+}
+
+.panel-section.is-open .panel-section-arrow {
+    transform: rotate(225deg);
+}
+
+.panel-button-label {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-2);
+    min-width: 0;
+    line-height: 1;
+}
+
+.panel-button-icon {
+    width: 18px;
+    height: 18px;
+    display: inline-grid;
+    place-items: center;
+    flex: 0 0 18px;
+    line-height: 1;
+}
+
+.panel-button-icon svg {
+    width: 18px;
+    height: 18px;
+    display: block;
+}
+
+.panel-button-text {
+    line-height: 20px;
+}
+
+.panel-section-extra {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-3);
+    color: var(--text-tertiary);
+    font-size: 13px;
+}
+
+.panel-section-body {
+    padding: 0 var(--space-4) var(--space-4);
+}
+
+.panel-section-action {
+    display: flex;
+    justify-content: flex-end;
+    margin: -2px 0 var(--space-3);
+}
+
+.panel-section-action .panel-action,
+.panel-section-inline-action {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-2);
+}
+
+.panel-section-inline-action {
+    border: 0;
+    background: transparent;
+    color: var(--brand-green-300);
+    border-radius: var(--radius-sm);
+    padding: 4px 2px;
+    font-size: 13px;
+    font-weight: 900;
+    white-space: nowrap;
+}
+
+.panel-section-inline-action:hover,
+.panel-section-inline-action:focus-visible {
+    color: var(--text-primary);
+    outline: none;
+}
+
+.panel-section-inline-action svg,
+.panel-section-inline-action .panel-button-icon {
+    width: 16px;
+    height: 16px;
+    flex-basis: 16px;
+}
+
+.panel-section-inline-action #albumsEditPhoto,
+.panel-section-inline-action #archiveEditFile,
+.panel-section-inline-action [data-archive-edit-source-details] {
+    text-decoration: none;
+}
+
+.inspector-name-heading {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 44px;
+    align-items: start;
+    gap: 6px;
+    min-width: 0;
+}
+
+.inspector-name-editor {
+    display: grid;
+    gap: 10px;
+    min-width: 0;
+}
+
+.inspector-name-editor-actions {
+    display: flex;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.inspector-name-edit-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    min-height: 40px;
+    padding: 0 12px;
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-sm);
+    background: var(--surface-card-hover);
+    color: var(--text-primary);
+    font: inherit;
+    font-size: 13px;
+    font-weight: 800;
+    cursor: pointer;
+}
+
+.inspector-name-edit-button svg { width: 16px; height: 16px; flex: 0 0 16px; }
+
+.inspector-name-edit-button:hover,
+.inspector-name-edit-button:focus-visible {
+    border-color: var(--brand-green-300);
+    outline: 2px solid var(--brand-green-300);
+    outline-offset: 2px;
+}
+
+.inspector-name-save {
+    border-color: color-mix(in srgb, var(--gg-primary) 35%, transparent);
+    background: var(--brand-green-500);
+    color: var(--gg-on-primary);
+}
+
+.inspector-name-save:hover,
+.inspector-name-save:focus-visible {
+    background: var(--brand-green-300);
+    color: var(--gg-on-primary);
+}
+
+.inspector-name-heading h2 { min-width: 0; }
+
+.inspector-name-editor input {
+    box-sizing: border-box;
+    width: 100%;
+    min-width: 0;
+    min-height: 44px;
+    padding: 8px 10px;
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-sm);
+    background: var(--surface-input);
+    color: var(--text-primary);
+    font: inherit;
+}
+
+.inspector-name-command {
+    display: grid;
+    place-items: center;
+    width: 44px;
+    height: 44px;
+    border: 0;
+    border-radius: var(--radius-sm);
+    background: transparent;
+    color: var(--text-tertiary);
+    cursor: pointer;
+}
+
+.inspector-name-command:hover,
+.inspector-name-command:focus-visible {
+    background: var(--surface-hover, color-mix(in srgb, var(--gg-text) 6%, transparent));
+    color: var(--brand-green-300);
+    outline: 2px solid var(--brand-green-300);
+    outline-offset: -2px;
+}
+
+.inspector-name-command svg { width: 16px; height: 16px; }
+
+.panel-section-footer {
+    margin-top: var(--space-3);
+    padding-top: var(--space-2);
+    border-top:
+        1px solid var(--border-default);
+}
+
+.panel-section-view-all {
+    width: 100%;
+    min-height: 40px;
+    padding: 0;
+    border: 0;
+    border-radius: var(--radius-sm);
+    background: transparent;
+    color: var(--brand-green-300);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
+    font-size: 13px;
+    font-weight: 800;
+    text-align: left;
+    cursor: pointer;
+    transition:
+        background var(--ease),
+        color var(--ease);
+}
+
+.panel-section-view-all:hover {
+    background:
+        color-mix(in srgb, var(--gg-text) 3.5%, transparent);
+
+    color:
+        var(--text-primary);
+}
+
+.panel-section-view-all:focus-visible {
+    outline:
+        2px solid var(--brand-green-300);
+
+    outline-offset: 2px;
+}
+
+.panel-section-view-all-icon {
+    width: 18px;
+    height: 18px;
+    flex: 0 0 18px;
+
+    display: grid;
+    place-items: center;
+
+    color:
+        var(--text-tertiary);
+}
+
+.panel-section-view-all-icon svg {
+    width: 16px;
+    height: 16px;
+    display: block;
+}
+
+.people-sidebar-toggle-icon svg {
+    width: 18px;
+    height: 18px;
+    display: block;
+}
+
+.people-sidebar-toggle-restore svg {
+    transform: rotate(180deg);
+}
