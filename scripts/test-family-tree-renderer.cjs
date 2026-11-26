@@ -73,4 +73,38 @@ for (const horizontal of [false, true])
             assert.equal(routes.find(route => route.familyId === 'married').dashOffset, null);
             assert.equal(routes.find(route => route.familyId === 'family').dashOffset, undefined);
         }
-console.log('Tree Fit, spanning culling, rounded terminals, square junctions, underpasses and centered partner dashes passed.');
+// Exercise the filter actually registered by the viewport, without a DOM.
+let zoomFilter;
+const behavior = Object.fromEntries(['extent', 'scaleExtent', 'touchable', 'clickDistance', 'on']
+    .map(name => [name, () => behavior]));
+behavior.filter = callback => { zoomFilter = callback; return behavior; };
+const selection = { call: () => selection, on: () => selection };
+const identity = { translate: () => identity, scale: k => ({ k }) };
+context.d3 = { zoom: () => behavior, select: () => selection, zoomIdentity: identity };
+context.state = { treeZoom: 100 };
+context.ResizeObserver = class { observe() {} };
+vm.runInContext(fs.readFileSync(path.join(__dirname, '../src/modules/family-tree/tree-scroll.js'), 'utf8'), context);
+const runtime = { canvas: { clientWidth: 800, clientHeight: 600 }, scene: {} };
+context.bindTreeViewport(runtime);
+const target = (...matches) => ({ closest: selectors => matches.some(match =>
+    selectors.split(', ').includes(match)) ? {} : null });
+const event = (type, target, extra = {}) => ({ type, target, button: 0, ctrlKey: false, ...extra });
+for (const control of [target('button'), target('a'), target()])
+{
+    assert.ok(zoomFilter(event('wheel', control)));
+    assert.ok(zoomFilter(event('wheel', control, { ctrlKey: true })));
+}
+for (const control of [target('button'), target('a')])
+    for (const type of ['mousedown', 'touchstart'])
+        assert.equal(zoomFilter(event(type, control)), false);
+for (const control of [target('input'), target('select'), target('textarea'),
+    target('[contenteditable="true"]'), target('.tree-layout-status'), target('button', '.tree-layout-status')])
+    for (const type of ['wheel', 'mousedown', 'touchstart'])
+        assert.equal(zoomFilter(event(type, control)), false);
+assert.ok(zoomFilter(event('mousedown', target())));
+assert.ok(zoomFilter(event('touchstart', target())));
+assert.equal(zoomFilter(event('mousedown', target(), { button: 2 })), false);
+assert.equal(zoomFilter(event('mousedown', target(), { ctrlKey: true })), false);
+runtime.scene = null;
+assert.equal(zoomFilter(event('wheel', target('button'))), false);
+console.log('Tree Fit, spanning culling, rounded terminals, square junctions, underpasses, centered partner dashes and zoom filter passed.');

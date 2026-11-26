@@ -45,7 +45,8 @@ function bindTreeViewport(runtime)
         .touchable(() => true)
         .clickDistance(5)
         .filter(event => !!runtime.scene && !event.button
-            && !event.target.closest('button, a, input, select, textarea, .tree-layout-status, [contenteditable="true"]')
+            && !event.target.closest('input, select, textarea, .tree-layout-status, [contenteditable="true"]')
+            && (event.type === 'wheel' || !event.target.closest('button, a'))
             && (!event.ctrlKey || event.type === 'wheel'))
         .on('start.tree', event =>
         {
