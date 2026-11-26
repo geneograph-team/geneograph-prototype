@@ -581,6 +581,7 @@ async function solveElkTree(people, families, direction, calculate, focusId = nu
             nodes.set(id, node);
             return node;
         }
+        const groupPadding = 18;
         for (const group of groups)
         {
             // INCLUDE_CHILDREN is inherited throughout.
@@ -594,7 +595,7 @@ async function solveElkTree(people, families, direction, calculate, focusId = nu
                     // Align card starts even when ordered child ports give compounds different depths.
                     'elk.alignment': direction === 'DOWN' ? 'TOP' : 'LEFT',
                     'elk.partitioning.activate': 'true',
-                    'elk.padding': '[top=18,left=18,bottom=18,right=18]',
+                    'elk.padding': `[top=${groupPadding},left=${groupPadding},bottom=${groupPadding},right=${groupPadding}]`,
                     ...placementOptions
                 }
             };
@@ -807,10 +808,53 @@ async function solveElkTree(people, families, direction, calculate, focusId = nu
         // chronological constraints on root groups. ELK still minimizes crossings.
         if (siblingOrders.size)
             graph.children = orderElkSiblingGroups(graph.children, siblingOrders, owner);
+        // A missing-parent slot reserves a single non-branching footprint in
+        // each earlier visible generation. These are native layout constraints,
+        // never people, occurrence families, or visible relationship edges.
+        const reservationNodes = new Map();
+        const reservationEdges = new Set();
+        const reservationPorts = new Set();
+        for (const person of people)
+        {
+            if (!person.placeholder || person.generation <= 0) continue;
+            let target = port(person.id, person.id + ':reserve-in', incoming);
+            reservationPorts.add(target);
+            for (let generation = person.generation - 1; generation >= 0; generation--)
+            {
+                const id = 'reservation:' + person.id + ':' + generation;
+                const out = id + ':out', input = id + ':in';
+                const node = {
+                    id,
+                    width: person.width + 2 * groupPadding,
+                    height: person.height + 2 * groupPadding,
+                    layoutOptions:
+                    {
+                        ...partition(generation),
+                        'elk.portConstraints': 'FIXED_SIDE',
+                        'elk.alignment': direction === 'DOWN' ? 'TOP' : 'LEFT'
+                    },
+                    ports: [
+                        { id: input, width: 0, height: 0, layoutOptions: { 'elk.port.side': incoming } },
+                        { id: out, width: 0, height: 0, layoutOptions: { 'elk.port.side': outgoing } }
+                    ]
+                };
+                reservationNodes.set(id, { owner: owner.get(person.id), generation });
+                graph.children.push(node);
+                const edgeId = id + ':edge';
+                // Prefer straight reservation chains; native crossing minimization remains enabled.
+                graph.edges.push({ id: edgeId, sources: [out], targets: [target],
+                    layoutOptions: { 'elk.layered.priority.straightness': '100' } });
+                reservationEdges.add(edgeId);
+                target = input;
+            }
+        }
         return {
             graph,
             groups,
             owner,
+            reservationNodes,
+            reservationEdges,
+            reservationPorts,
             edgeInfo,
             direction,
             primaryPairs,
@@ -826,6 +870,7 @@ async function solveElkTree(people, families, direction, calculate, focusId = nu
             ports = [],
             paths = [],
             issues = [],
+            reservations = [],
             seenEdges = new Set(),
             allShapes = new Map();
         const finite = (...values) => values.every(Number.isFinite);
@@ -847,12 +892,18 @@ async function solveElkTree(people, families, direction, calculate, focusId = nu
                 w: node.width,
                 h: node.height
             };
+            if (model.reservationNodes.has(node.id))
+            {
+                reservations.push({ ...shape, ...model.reservationNodes.get(node.id) });
+                return;
+            }
             allShapes.set(node.id, shape);
             if (peopleById.has(node.id)) boxes.push(shape);
             else if (familyById.has(node.id)) junctions.push(shape);
             else if (!isRoot) groups.push(shape);
             for (const port of node.ports || [])
             {
+                if (model.reservationPorts.has(port.id)) continue;
                 if (!finite(port.x, port.y)) issues.push('Missing port coordinate: ' + port.id);
                 else ports.push(
                 {
@@ -864,6 +915,7 @@ async function solveElkTree(people, families, direction, calculate, focusId = nu
             }
             for (const edge of node.edges || [])
             {
+                if (model.reservationEdges.has(edge.id)) continue;
                 const info = model.edgeInfo.get(edge.id);
                 if (!info)
                 {
@@ -900,6 +952,8 @@ async function solveElkTree(people, families, direction, calculate, focusId = nu
             for (const child of node.children || []) walk(child, x, y);
         }
         walk(graph, 0, 0, true);
+        if (reservations.length !== model.reservationNodes.size || new Set(reservations.map(r => r.id)).size !== reservations.length)
+            issues.push('Missing or repeated reservation geometry');
         for (const id of model.edgeInfo.keys())
             if (!seenEdges.has(id)) issues.push('Missing edge: ' + id);
         for (const person of people)
@@ -937,6 +991,7 @@ async function solveElkTree(people, families, direction, calculate, focusId = nu
         }
         return {
             boxes,
+            reservations,
             junctions,
             groups,
             ports,
@@ -1567,7 +1622,6 @@ function refineElkTreeCentering(raw, model, people, families, baseline, route, f
     }
     const ordinary = new Set(model.groups.filter(g => g.members.every(id => !peopleById.get(id).placeholder)
         && g.members.length <= 2 && unions.get(g.id).length <= 1).map(g => g.id));
-    const generations = new Map(model.groups.map(g => [g.id, g.generation]));
     const clearanceByGroup = new Map(model.groups.map(g => [g.id,
         Math.max(TREE_GEOMETRY.partnerGap, ...(vertical ? [] : g.members.map(id => peopleById.get(id).focusClearance || 0)))]));
     const realPair = f => f?.parents.length === 2 && f.parents.every(id => !peopleById.get(id).placeholder);
@@ -1614,33 +1668,41 @@ function refineElkTreeCentering(raw, model, people, families, baseline, route, f
     let offsets = errors(current);
     const accepted = [];
     let conflicts = null;
-    const groupsByGeneration = new Map();
-    for (const g of model.groups)
+    // Reservations travel with their owning household and participate in the
+    // same displacement bounds as ordinary compounds, at their own generation.
+    const occupiedByOwner = new Map(model.groups.map(g => [g.id, []]));
+    const occupiedByGeneration = new Map();
+    function occupy(id, owner, generation)
     {
-        if (!groupsByGeneration.has(g.generation)) groupsByGeneration.set(g.generation, []);
-        groupsByGeneration.get(g.generation).push(g.id);
+        const item = { id, owner, generation };
+        occupiedByOwner.get(owner).push(item);
+        if (!occupiedByGeneration.has(generation)) occupiedByGeneration.set(generation, []);
+        occupiedByGeneration.get(generation).push(item);
     }
-    let shapes = new Map(current.groups.map(g => [g.id, g]));
+    for (const g of model.groups) occupy(g.id, g.id, g.generation);
+    for (const r of raw.reservations || []) occupy(r.id, r.owner, r.generation);
+    let shapes = new Map([...current.groups, ...(current.reservations || [])].map(g => [g.id, g]));
     // The same feasible displacement interval protects every centering objective.
     function translationBounds(moved)
     {
         let min = -Infinity, max = Infinity;
         for (const id of moved)
-        {
-            const a = shapes.get(id);
-            min = Math.max(min, -a[axis]);
-            for (const other of groupsByGeneration.get(generations.get(id)))
+            for (const item of occupiedByOwner.get(id))
             {
-                if (moved.has(other)) continue;
-                const b = shapes.get(other);
-                const before = a[axis] <= b[axis];
-                const gap = before ? b[axis] - a[axis] - a[extent] : a[axis] - b[axis] - b[extent];
-                const clearance = Math.max(clearanceByGroup.get(id), clearanceByGroup.get(other));
-                const available = gap - Math.min(clearance, Math.max(0, gap));
-                if (before) max = Math.min(max, available);
-                else min = Math.max(min, -available);
+                const a = shapes.get(item.id);
+                min = Math.max(min, -a[axis]);
+                for (const other of occupiedByGeneration.get(item.generation))
+                {
+                    if (moved.has(other.owner)) continue;
+                    const b = shapes.get(other.id);
+                    const before = a[axis] <= b[axis];
+                    const gap = before ? b[axis] - a[axis] - a[extent] : a[axis] - b[axis] - b[extent];
+                    const clearance = Math.max(clearanceByGroup.get(id), clearanceByGroup.get(other.owner));
+                    const available = gap - Math.min(clearance, Math.max(0, gap));
+                    if (before) max = Math.min(max, available);
+                    else min = Math.max(min, -available);
+                }
             }
-        }
         return { min, max };
     }
     function tryTranslation(moved, delta, bounds, protectedPairs, exactFamily = null)
@@ -1651,10 +1713,11 @@ function refineElkTreeCentering(raw, model, people, families, baseline, route, f
             ...current,
             boxes: current.boxes.map(b => translate(b, model.owner.get(b.id))),
             groups: current.groups.map(g => translate(g, g.id)),
+            reservations: (current.reservations || []).map(r => translate(r, r.owner)),
             junctions: current.junctions.map(j => translate(j, model.owner.get(j.id))),
             ports: current.ports.map(p => translate(p, model.owner.get(p.node)))
         };
-        trial[sceneExtent] = Math.max(current[sceneExtent], ...trial.groups.map(g => g[axis] + g[extent] + (vertical ? 48 : 64)));
+        trial[sceneExtent] = Math.max(current[sceneExtent], ...[...trial.groups, ...trial.reservations].map(g => g[axis] + g[extent] + (vertical ? 48 : 64)));
         const nextOffsets = errors(trial);
         // Ancestry-first moves must not be blocked by a secondary objective.
         // Secondary moves protect every previously measured ancestral balance.
@@ -1680,7 +1743,7 @@ function refineElkTreeCentering(raw, model, people, families, baseline, route, f
         layout = candidate;
         offsets = nextOffsets;
         conflicts = nextConflicts;
-        shapes = new Map(current.groups.map(g => [g.id, g]));
+        shapes = new Map([...current.groups, ...current.reservations].map(g => [g.id, g]));
         return true;
     }
     for (const pair of pairs)
