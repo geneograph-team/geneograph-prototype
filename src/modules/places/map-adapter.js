@@ -28,7 +28,7 @@ const placesMapAdapter = (function ()
         if (!supportedProtocol()) throw new Error('Map requires a hosted HTTP(S) page.');
         if (!libraryPromise)
         {
-            libraryPromise = import(PLACES_MAP_CONFIG.moduleUrl)
+            libraryPromise = import(new URL(PLACES_MAP_CONFIG.moduleUrl, document.baseURI).href)
                 .then(module =>
                 {
                     if (typeof module.Map !== 'function'

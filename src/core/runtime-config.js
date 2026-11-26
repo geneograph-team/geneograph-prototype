@@ -4,7 +4,7 @@ const PLACE_MAP_MODES = Object.freeze(['browse', 'add', 'move', 'center']);
 
 const PLACES_MAP_CONFIG = Object.freeze({
     provider: 'openfreemap',
-    moduleUrl: 'https://unpkg.com/maplibre-gl@6.16.0/dist/maplibre-gl.mjs',
+    moduleUrl: 'vendor/maplibre-gl-6.16.0/dist/maplibre-gl.mjs',
     styles: Object.freeze({
         light: 'https://tiles.openfreemap.org/styles/liberty',
         dark: 'assets/map-styles/liberty-dark.json'
