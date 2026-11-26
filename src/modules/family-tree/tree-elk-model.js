@@ -1473,7 +1473,7 @@ async function solveElkTree(people, families, direction, calculate, focusId = nu
         try
         {
             layout = measure('centering', () => refineElkTreeCentering(raw, final, people, families, layout,
-                (...args) => measure('centeringReroute', () => inlinePartnerships(...args))));
+                (...args) => measure('centeringReroute', () => inlinePartnerships(...args)), focusId));
         }
         catch (error)
         {
@@ -1505,10 +1505,10 @@ function elkOrderedPartners(ids, people)
     return male && female ? [male, female] : null;
 }
 
-// Refine the cross-axis position of ordinary family groups only. The native
-// solver still determines generations, internal geometry and model order.
+// Refine family group positions along the cross axis. The native solver still
+// determines generations, internal geometry and model order.
 // The existing inline router is the only publisher of refined connectors.
-function refineElkTreeCentering(raw, model, people, families, baseline, route)
+function refineElkTreeCentering(raw, model, people, families, baseline, route, focusId = null)
 {
     const EPS = .02;
     const vertical = model.direction === 'DOWN';
@@ -1572,6 +1572,75 @@ function refineElkTreeCentering(raw, model, people, families, baseline, route)
     let offsets = errors(current);
     const accepted = [];
     let conflicts = null;
+    const groupsByGeneration = new Map();
+    for (const g of model.groups)
+    {
+        if (!groupsByGeneration.has(g.generation)) groupsByGeneration.set(g.generation, []);
+        groupsByGeneration.get(g.generation).push(g.id);
+    }
+    let shapes = new Map(current.groups.map(g => [g.id, g]));
+    // The same feasible displacement interval protects every centering objective.
+    function translationBounds(moved)
+    {
+        let min = -Infinity, max = Infinity;
+        for (const id of moved)
+        {
+            const a = shapes.get(id);
+            min = Math.max(min, -a[axis]);
+            for (const other of groupsByGeneration.get(generations.get(id)))
+            {
+                if (moved.has(other)) continue;
+                const b = shapes.get(other);
+                const before = a[axis] <= b[axis];
+                const gap = before ? b[axis] - a[axis] - a[extent] : a[axis] - b[axis] - b[extent];
+                const clearance = Math.max(clearanceByGroup.get(id), clearanceByGroup.get(other));
+                const available = gap - Math.min(clearance, Math.max(0, gap));
+                if (before) max = Math.min(max, available);
+                else min = Math.max(min, -available);
+            }
+        }
+        return { min, max };
+    }
+    function tryTranslation(moved, delta, bounds, protectedPairs, exactFamily = null)
+    {
+        if (delta < bounds.min - EPS || delta > bounds.max + EPS) return false;
+        const translate = (shape, owner) => moved.has(owner) ? { ...shape, [axis]: shape[axis] + delta } : shape;
+        const trial = {
+            ...current,
+            boxes: current.boxes.map(b => translate(b, model.owner.get(b.id))),
+            groups: current.groups.map(g => translate(g, g.id)),
+            junctions: current.junctions.map(j => translate(j, model.owner.get(j.id))),
+            ports: current.ports.map(p => translate(p, model.owner.get(p.node)))
+        };
+        trial[sceneExtent] = Math.max(current[sceneExtent], ...trial.groups.map(g => g[axis] + g[extent] + (vertical ? 48 : 64)));
+        const nextOffsets = errors(trial);
+        // Ancestry-first moves must not be blocked by a secondary objective.
+        // Secondary moves protect every previously measured ancestral balance.
+        if ((exactFamily !== null && Math.abs(nextOffsets.get(exactFamily)) > EPS) || protectedPairs.some(p =>
+            Math.abs(nextOffsets.get(p.f.id)) > Math.abs(offsets.get(p.f.id)) + EPS)) return false;
+        // Native path sections in trial are read-only depth/coverage hints for
+        // inlinePartnerships. Every visible route must be reconstructed by it;
+        // never publish a candidate that reuses native sections.
+        let candidate;
+        try
+        {
+            candidate = route(trial, model);
+        }
+        catch (error)
+        {
+            return false;
+        }
+        if (candidate.issues.length || candidate.paths.some(p => p.native)) return false;
+        conflicts ??= elkCenteringConflicts(layout, axis);
+        const nextConflicts = elkCenteringConflicts(candidate, axis);
+        if ([...nextConflicts].some(([key, count]) => count > (conflicts.get(key) || 0))) return false;
+        current = trial;
+        layout = candidate;
+        offsets = nextOffsets;
+        conflicts = nextConflicts;
+        shapes = new Map(current.groups.map(g => [g.id, g]));
+        return true;
+    }
     for (const pair of pairs)
     {
         const delta = -offsets.get(pair.f.id);
@@ -1594,72 +1663,101 @@ function refineElkTreeCentering(raw, model, people, families, baseline, route)
                 }
             }
         }
-        const shapes = new Map(current.groups.map(g => [g.id, g]));
-        // Preserve order and at least the existing clearance up to the nominal
-        // spacing (including horizontal Focus-control clearance).
-        let safe = true;
-        for (const id of moved)
+        const bounds = translationBounds(moved);
+        const protectedPairs = ancestorPairs.includes(pair) ? ancestorPairs : pairs;
+        if (tryTranslation(moved, delta, bounds, protectedPairs, pair.f.id)) accepted.push(pair.f.id);
+    }
+
+    // Freeze the accepted main branch. Compact only connected collateral groups
+    // with one protected parental household and an unambiguous inward direction.
+    let compacted = false;
+    if (model.owner.has(focusId))
+    {
+        const jobs = elkCollateralCompactionJobs(model, families, focusId, shapes, axis, extent);
+        // Bound the extra routing work even for a very broad collateral tree.
+        let remainingAttempts = 24;
+        for (const { moved, direction, anchors } of jobs)
         {
-            const a = shapes.get(id);
-            if (!a || a[axis] + delta < 0)
+            if (!remainingAttempts) break;
+            const bounds = translationBounds(moved);
+            const limit = Math.min(direction > 0 ? bounds.max : -bounds.min,
+                ...anchors.map(({ outer, inner }) =>
+                {
+                    const a = shapes.get(outer), b = shapes.get(inner);
+                    const gap = direction > 0 ? b[axis] - a[axis] - a[extent] : a[axis] - b[axis] - b[extent];
+                    return gap - TREE_GEOMETRY.partnerGap;
+                }));
+            if (limit <= EPS) continue;
+            for (const fraction of [1, .75, .5, .25, .125])
             {
-                safe = false;
+                if (!remainingAttempts || limit * fraction <= EPS) break;
+                remainingAttempts--;
+                if (!tryTranslation(moved, direction * limit * fraction, bounds, pairs)) continue;
+                compacted = true;
                 break;
             }
-            for (const b of current.groups)
-            {
-                if (moved.has(b.id) || generations.get(id) !== generations.get(b.id)) continue;
-                const before = a[axis] <= b[axis];
-                const gap = before ? b[axis] - a[axis] - a[extent] : a[axis] - b[axis] - b[extent];
-                const clearance = Math.max(clearanceByGroup.get(id), clearanceByGroup.get(b.id));
-                const next = gap + (before ? -delta : delta);
-                if (next < Math.min(clearance, Math.max(0, gap)) - EPS)
-                {
-                    safe = false;
-                    break;
-                }
-            }
-            if (!safe) break;
         }
-        if (!safe) continue;
-        const translate = (shape, owner) => moved.has(owner) ? { ...shape, [axis]: shape[axis] + delta } : shape;
-        const trial = {
-            ...current,
-            boxes: current.boxes.map(b => translate(b, model.owner.get(b.id))),
-            groups: current.groups.map(g => translate(g, g.id)),
-            junctions: current.junctions.map(j => translate(j, model.owner.get(j.id))),
-            ports: current.ports.map(p => translate(p, model.owner.get(p.node)))
-        };
-        trial[sceneExtent] = Math.max(current[sceneExtent], ...trial.groups.map(g => g[axis] + g[extent] + (vertical ? 48 : 64)));
-        const nextOffsets = errors(trial);
-        // Ancestry-first moves must not be blocked by a secondary objective.
-        // Secondary moves protect every previously measured ancestral balance.
-        const protectedPairs = ancestorPairs.includes(pair) ? ancestorPairs : pairs;
-        if (Math.abs(nextOffsets.get(pair.f.id)) > EPS || protectedPairs.some(p =>
-            Math.abs(nextOffsets.get(p.f.id)) > Math.abs(offsets.get(p.f.id)) + EPS)) continue;
-        // Native path sections in trial are read-only depth/coverage hints for
-        // inlinePartnerships. Every visible route must be reconstructed by it;
-        // never publish a candidate that reuses native sections.
-        let candidate;
-        try
-        {
-            candidate = route(trial, model);
-        }
-        catch (error)
-        {
-            continue;
-        }
-        if (candidate.issues.length || candidate.paths.some(p => p.native)) continue;
-        conflicts ??= elkCenteringConflicts(layout, axis);
-        const nextConflicts = elkCenteringConflicts(candidate, axis);
-        if ([...nextConflicts].some(([key, count]) => count > (conflicts.get(key) || 0))) continue;
-        current = trial;
-        layout = candidate;
-        offsets = nextOffsets;
-        conflicts = nextConflicts;
-        accepted.push(pair.f.id);
     }
-    return accepted.length ? { ...layout, centeredFamilies: accepted } : baseline;
+    return accepted.length || compacted ? { ...layout, centeredFamilies: accepted } : baseline;
+}
+
+// Connected components outside the focus household, its descendants and all
+// their ancestors are candidates; never shift the protected spine itself.
+function elkCollateralCompactionJobs(model, families, focusId, shapes, axis, extent)
+{
+    const { owner, groups } = model;
+    const incoming = new Map(groups.map(g => [g.id, new Set()]));
+    const outgoing = new Map(groups.map(g => [g.id, new Set()]));
+    const familiesByGroup = new Map(groups.map(g => [g.id, []]));
+    for (const f of families)
+    {
+        const parent = owner.get(f.id);
+        const children = [...new Set(f.children.map(child => owner.get(child)))];
+        familiesByGroup.get(parent).push(children);
+        for (const child of children)
+        {
+            incoming.get(child).add(parent);
+            outgoing.get(parent).add(child);
+        }
+    }
+    function closure(seeds, links)
+    {
+        const seen = new Set(seeds), queue = [...seen];
+        for (const id of queue)
+            for (const next of links.get(id))
+                if (!seen.has(next)) { seen.add(next); queue.push(next); }
+        return seen;
+    }
+    const protectedGroups = closure(closure([owner.get(focusId)], outgoing), incoming);
+    const seen = new Set(protectedGroups);
+    const jobs = [];
+    for (const { id } of groups)
+    {
+        if (seen.has(id)) continue;
+        const moved = new Set([id]), queue = [id];
+        seen.add(id);
+        for (const g of queue)
+            for (const next of [...incoming.get(g), ...outgoing.get(g)])
+                if (!seen.has(next)) { seen.add(next); moved.add(next); queue.push(next); }
+        const parents = new Set([...moved].flatMap(g => [...incoming.get(g)].filter(p => protectedGroups.has(p))));
+        if (parents.size !== 1) continue;
+        const anchors = [];
+        for (const children of familiesByGroup.get(parents.values().next().value))
+        {
+            for (const outer of children.filter(g => moved.has(g)))
+                for (const inner of children.filter(g => protectedGroups.has(g)))
+                {
+                    const a = shapes.get(outer), b = shapes.get(inner);
+                    const direction = a[axis] < b[axis] ? 1 : -1;
+                    const gap = direction > 0 ? b[axis] - a[axis] - a[extent] : a[axis] - b[axis] - b[extent];
+                    anchors.push({ outer, inner, direction, gap });
+                }
+        }
+        if (!anchors.length || anchors.some(a => a.direction !== anchors[0].direction)) continue;
+        jobs.push({ moved, direction: anchors[0].direction, anchors, gap: Math.min(...anchors.map(a => a.gap)), id });
+    }
+    // Move nearer siblings first, preserving their order on either side.
+    return jobs.sort((a, b) => a.gap - b.gap || a.id.localeCompare(b.id));
 }
 
 // Compare conflict multiplicity by relationship/card identity, not absolute
