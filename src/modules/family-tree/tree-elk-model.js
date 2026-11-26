@@ -1237,90 +1237,46 @@ async function solveElkTree(people, families, direction, calculate, focusId = nu
             const low = Math.max(...parents.map(c => c.v + c.h)) + clearance;
             const high = Math.min(...children.map(c => c.v), ...items.flatMap(e => e.targets.map(t => t.target.v))) - clearance;
             if (high < low) throw Error('No shared clear rail corridor between generations ' + (g + 1) + ' and ' + (g + 2));
-            const lanes = [];
-            // Sorted interval partitioning gives a minimum lane count at the requested clearance.
+            // A clearance-separated interval cannot interact with any earlier
+            // interval. Reuse the band levels, but order each such component locally.
             const order = [...items].sort((a, b) => a.lo - b.lo || a.hi - b.hi || a.f.id.localeCompare(b.f.id));
-            for (const e of order)
+            const components = [];
+            let rightmost = -Infinity;
+            for (const entry of order)
             {
-                let lane = lanes.findIndex(l => l.at(-1).hi + clearance <= e.lo + tolerance);
-                if (lane < 0)
-                {
-                    lane = lanes.length;
-                    lanes.push([]);
-                }
-                lanes[lane].push(e);
+                if (rightmost + clearance <= entry.lo + tolerance) components.push([]);
+                const lanes = components.at(-1);
+                // Greedy interval partitioning uses the minimum number of lanes.
+                const available = lanes.find(lane => lane.at(-1).hi + clearance <= entry.lo + tolerance);
+                if (available) available.push(entry);
+                else lanes.push([entry]);
+                rightmost = Math.max(rightmost, entry.hi);
             }
-            const spacing = lanes.length > 1 ? Math.min(laneGap, (high - low) / (lanes.length - 1)) : laneGap;
+            const count = Math.max(...components.map(lanes => lanes.length));
+            const spacing = count > 1 ? Math.min(laneGap, (high - low) / (count - 1)) : laneGap;
             if (spacing < clearance) throw Error('Insufficient space for distinct descendant rails');
             const nativeLevels = items.map(e => e.rail).sort((a, b) => a - b);
             const preferred = nativeLevels[Math.floor(nativeLevels.length / 2)];
-            const span = (lanes.length - 1) * spacing;
+            const span = (count - 1) * spacing;
             const base = Math.max(low, Math.min(high - span, preferred - span / 2));
-            // Choose a deterministic lane order that minimizes rail/trunk/drop intersections.
-            // A trunk descends from above; a child drop descends below. Intersections may
-            // still be unavoidable for interleaved families and are reported, never hidden.
-            const score = permutation =>
+            const levels = Array.from({ length: count }, (_, index) => ({ level: base + index * spacing, families: [] }));
+            let bestScore = 0;
+            for (const lanes of components)
             {
-                let total = 0;
-                for (let i = 0; i < permutation.length; i++)
-                    for (let j = i + 1; j < permutation.length; j++)
-                    {
-                        for (const upper of lanes[permutation[i]])
-                            for (const lower of lanes[permutation[j]])
-                            {
-                                const inSpan = (u, e) => u >= e.lo - tolerance && u <= e.hi + tolerance;
-                                if (inSpan(lower.u, upper)) total++;
-                                for (const t of upper.targets)
-                                    if (inSpan(t.target.u, lower)) total++;
-                            }
-                    }
-                return total;
-            };
-            let best = lanes.map((_, i) => i),
-                bestScore = score(best);
-            if (lanes.length <= 7)
-            {
-                function visit(prefix, remaining)
+                const local = orderRailLanes(lanes, tolerance);
+                bestScore += local.score;
+                // Center a smaller component near the native level using shared rails.
+                const offset = Math.floor((count - lanes.length) / 2);
+                for (const [index, lane] of local.order.entries())
                 {
-                    if (!remaining.length)
+                    const level = levels[offset + index];
+                    for (const entry of lanes[lane])
                     {
-                        const s = score(prefix);
-                        if (s < bestScore)
-                        {
-                            best = [...prefix];
-                            bestScore = s;
-                        }
-                        return;
+                        entry.rail = level.level;
+                        level.families.push(entry.f.id);
                     }
-                    for (const i of remaining) visit([...prefix, i], remaining.filter(j => j !== i));
                 }
-                if (bestScore) visit([], best);
             }
-            else
-            {
-                // Avoid factorial search for dense graphs; deterministic adjacent improvements.
-                for (let pass = 0; pass < lanes.length; pass++)
-                    for (let i = 0; i < best.length - 1; i++)
-                    {
-                        const next = [...best];
-                        [next[i], next[i + 1]] = [next[i + 1], next[i]];
-                        const s = score(next);
-                        if (s < bestScore)
-                        {
-                            best = next;
-                            bestScore = s;
-                        }
-                    }
-            }
-            const levels = best.map((lane, i) =>
-            {
-                const rail = base + i * spacing;
-                for (const e of lanes[lane]) e.rail = rail;
-                return {
-                    level: rail,
-                    families: lanes[lane].map(e => e.f.id)
-                };
-            });
             summaries.push(
             {
                 generation: g + 1,
@@ -1330,6 +1286,87 @@ async function solveElkTree(people, families, direction, calculate, focusId = nu
             });
         }
         return summaries;
+    }
+
+    function orderRailLanes(lanes, tolerance)
+    {
+        const count = lanes.length;
+        const costs = lanes.map(() => Array(count).fill(0));
+        const inSpan = (u, entry) => u >= entry.lo - tolerance && u <= entry.hi + tolerance;
+        for (const [i, lane] of lanes.entries())
+            for (let j = i + 1; j < count; j++)
+            {
+                const other = lanes[j];
+                let first = 0;
+                for (const a of lane)
+                {
+                    while (first < other.length && other[first].hi < a.lo - tolerance) first++;
+                    for (let k = first; k < other.length && other[k].lo <= a.hi + tolerance; k++)
+                    {
+                        const b = other[k];
+                        // An upper rail meets a lower trunk or drops across a lower rail.
+                        costs[i][j] += Number(inSpan(b.u, a))
+                            + a.targets.filter(t => inSpan(t.target.u, b)).length;
+                        costs[j][i] += Number(inSpan(a.u, b))
+                            + b.targets.filter(t => inSpan(t.target.u, a)).length;
+                    }
+                }
+            }
+        const order = lanes.map((_, index) => index);
+        let score = order.reduce((total, i) =>
+            total + order.slice(i + 1).reduce((sum, j) => sum + costs[i][j], 0), 0);
+        if (!score) return { order, score };
+
+        if (count <= 10)
+        {
+            // The first lane contributes its cost to every remaining lane below it.
+            // Solve each subset once. Lowest original index wins ties.
+            const size = 1 << count;
+            const best = new Float64Array(size);
+            const first = new Uint8Array(size);
+            for (let mask = 1; mask < size; mask++)
+            {
+                best[mask] = Infinity;
+                for (let i = 0; i < count; i++)
+                {
+                    const bit = 1 << i;
+                    if (!(mask & bit)) continue;
+                    const rest = mask ^ bit;
+                    let cost = best[rest];
+                    for (let j = 0; j < count; j++)
+                        if (rest & (1 << j)) cost += costs[i][j];
+                    if (cost >= best[mask]) continue;
+                    best[mask] = cost;
+                    first[mask] = i;
+                }
+            }
+            score = best[size - 1];
+            let mask = size - 1;
+            for (let index = 0; index < count; index++)
+            {
+                order[index] = first[mask];
+                mask ^= 1 << order[index];
+            }
+        }
+        else
+        {
+            // Adjacent swaps only affect the swapped pair. Bound dense work.
+            for (let pass = 0; pass < count; pass++)
+            {
+                let changed = false;
+                for (let i = 0; i < count - 1; i++)
+                {
+                    const a = order[i], b = order[i + 1];
+                    const delta = costs[b][a] - costs[a][b];
+                    if (delta >= 0) continue;
+                    [order[i], order[i + 1]] = [b, a];
+                    score += delta;
+                    changed = true;
+                }
+                if (!changed) break;
+            }
+        }
+        return { order, score };
     }
 
     function planDynamicSpacing(raw, model)
