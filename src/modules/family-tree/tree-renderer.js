@@ -256,6 +256,8 @@ function joinTreeHtml(layer, entries, tag, render)
 function renderTreeViewport(runtime)
 {
     if (!runtime.scene) return;
+    const trace = runtime.performanceTrace || runtime.performanceGesture;
+    const started = trace && treePerf.now();
     const { canvas, stage, transform, scene } = runtime;
     const visible = treeSceneViewport(transform, canvas.clientWidth, canvas.clientHeight);
     const viewport = treeSceneViewport(transform, canvas.clientWidth, canvas.clientHeight, 96);
@@ -279,7 +281,7 @@ function renderTreeViewport(runtime)
     const isVisible = entry => treeSceneIntersects(viewport, entry.bounds);
     const cards = scene.cards.filter(entry => entry.key === focusedKey || isVisible(entry));
     const generation = runtime.contentRevision;
-    joinTreeHtml(runtime.cards, cards, 'article', entry =>
+    treePerf.measure(trace, 'cards', () => joinTreeHtml(runtime.cards, cards, 'article', entry =>
     {
         const contentKey = generation + '|' + (state.selectedPersonId === (entry.canonicalPersonId || entry.id));
         if (entry.markupKey !== contentKey)
@@ -288,8 +290,8 @@ function renderTreeViewport(runtime)
             entry.markupKey = contentKey;
         }
         return entry.markup;
-    });
-    updateTreePortraits(runtime, visible, detail, .75);
+    }));
+    treePerf.measure(trace, 'portraitDemand', () => updateTreePortraits(runtime, visible, detail, .75, trace));
     if (focusedKey && document.activeElement === document.body)
         runtime.cards.querySelector('[data-tree-occurrence-id="' + CSS.escape(focusedKey) + '"]')?.focus({ preventScroll: true });
     const controls = transform.k > .60 ? scene.controls.filter(isVisible) : [];
@@ -297,17 +299,28 @@ function renderTreeViewport(runtime)
         && stage.contains(active) && ![...controls, ...scene.placeholders.filter(isVisible)].some(entry =>
             Number.parseFloat(active.style.left) === entry.bounds.left && Number.parseFloat(active.style.top) === entry.bounds.top))
         canvas.focus({ preventScroll: true });
-    joinTreeHtml(runtime.placeholders, scene.placeholders.filter(isVisible), 'button', renderTreeParentPlaceholder);
-    joinTreeHtml(runtime.controls, controls, 'button', renderTreeFocusControl);
-    d3.select(runtime.lines).selectAll('path').data(scene.paths.filter(path => path.segmentBounds.some(bounds => treeSceneIntersects(viewport, bounds))), path => path.key).join('path')
-        .attr('class', path => path.className).attr('data-tree-family-id', path => path.familyId)
-        .attr('data-tree-connection-role', path => path.role)
-        .attr('data-tree-family-occurrence-id', path => path.familyOccurrenceId || path.familyId)
-        .attr('data-tree-child-id', path => path.childIds?.length === 1 ? path.childIds[0] : null)
-        .attr('data-tree-child-ids', path => path.childIds?.length > 1 ? JSON.stringify(path.childIds) : null)
-        .attr('stroke-dashoffset', path => path.dashOffset ?? null)
-        .attr('d', path => path.d);
-    paintTreeColors(runtime);
+    treePerf.measure(trace, 'connectors', () =>
+    {
+        joinTreeHtml(runtime.placeholders, scene.placeholders.filter(isVisible), 'button', renderTreeParentPlaceholder);
+        joinTreeHtml(runtime.controls, controls, 'button', renderTreeFocusControl);
+        d3.select(runtime.lines).selectAll('path').data(scene.paths.filter(path => path.segmentBounds.some(bounds => treeSceneIntersects(viewport, bounds))), path => path.key).join('path')
+            .attr('class', path => path.className).attr('data-tree-family-id', path => path.familyId)
+            .attr('data-tree-connection-role', path => path.role)
+            .attr('data-tree-family-occurrence-id', path => path.familyOccurrenceId || path.familyId)
+            .attr('data-tree-child-id', path => path.childIds?.length === 1 ? path.childIds[0] : null)
+            .attr('data-tree-child-ids', path => path.childIds?.length > 1 ? JSON.stringify(path.childIds) : null)
+            .attr('stroke-dashoffset', path => path.dashOffset ?? null)
+            .attr('d', path => path.d);
+    });
+    treePerf.measure(trace, 'colors', () => paintTreeColors(runtime));
+    if (trace)
+    {
+        treePerf.count(trace, 'mountedCards', runtime.cards.children.length);
+        treePerf.count(trace, 'mountedPlaceholders', runtime.placeholders.children.length);
+        treePerf.count(trace, 'mountedControls', runtime.controls.children.length);
+        treePerf.count(trace, 'mountedPaths', runtime.lines.children.length);
+        treePerf.span(trace, 'viewport', treePerf.now() - started);
+    }
 }
 function bindTreeRenderer(runtime)
 {

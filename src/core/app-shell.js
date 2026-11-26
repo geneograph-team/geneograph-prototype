@@ -574,6 +574,8 @@ function render()
         exitTreeFullscreen();
         disposeTreeElkLayout();
         disposeTreeRenderer();
+        treePerf.stop();
+        treePerf.project(currentProjectId());
         treeRelativeIntent = null;
     }
     if (typeof archiveImageSyncLifecycle === 'function') archiveImageSyncLifecycle();

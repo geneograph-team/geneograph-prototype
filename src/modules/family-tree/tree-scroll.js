@@ -50,7 +50,11 @@ function bindTreeViewport(runtime)
             && (!event.ctrlKey || event.type === 'wheel'))
         .on('start.tree', event =>
         {
-            if (event.sourceEvent) closeMenu();
+            if (event.sourceEvent)
+            {
+                runtime.performanceGesture = treePerf.begin(runtime.projectId, event.sourceEvent.type === 'wheel' ? 'zoom' : 'pan', treeProjectViewState(runtime.projectId));
+                closeMenu();
+            }
             if (event.sourceEvent?.type === 'mousedown') runtime.dragWindow = event.sourceEvent.view;
             if (event.sourceEvent && event.sourceEvent.type !== 'wheel') canvas.classList.add('is-panning');
         })
@@ -63,6 +67,8 @@ function bindTreeViewport(runtime)
         })
         .on('end.tree', () =>
         {
+            treePerf.finish(runtime.performanceGesture, 'completed');
+            runtime.performanceGesture = null;
             runtime.dragWindow = null;
             canvas.classList.remove('is-panning');
         });
@@ -86,6 +92,7 @@ function disposeTreeRenderer()
     const runtime = treeRenderRuntime;
     if (!runtime) return;
     treeRenderRuntime = null;
+    treePerf.finish(runtime.performanceGesture, 'canceled');
     clearTreePortraits(runtime);
     runtime.portraitCache?.dispose();
     runtime.resize.disconnect();

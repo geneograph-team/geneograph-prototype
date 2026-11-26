@@ -1,9 +1,13 @@
 <!doctype html>
 <meta charset="utf-8">
 <title>Local ELK graph layout</title>
+<script>const recordPerformance = location.hash === '#performance'; const bundleStarted = recordPerformance ? performance.now() : 0;</script>
 <script src="lib/elk.bundled.js"></script>
 <script>
+    const constructorStarted = recordPerformance ? performance.now() : 0;
     const solver = typeof ELK === 'function' ? new ELK() : null;
+    const readyTiming = recordPerformance ? { bundleMs: constructorStarted - bundleStarted,
+        constructorMs: performance.now() - constructorStarted } : {};
     window.addEventListener('message', async event =>
     {
         if (event.source !== window.parent || event.data?.type !== 'layout-graph') return;
@@ -11,13 +15,15 @@
         try
         {
             if (!solver) throw new Error('ELK bundle was unavailable');
+            const started = recordPerformance ? performance.now() : 0;
             const layout = await solver.layout(graph);
-            event.source.postMessage({ type: 'layout-result', id, layout }, '*');
+            const timing = recordPerformance ? { solverMs: performance.now() - started } : {};
+            event.source.postMessage({ type: 'layout-result', id, layout, ...timing }, '*');
         }
         catch (error)
         {
             event.source.postMessage({ type: 'layout-result', id, error: String(error.message || error) }, '*');
         }
     });
-    window.parent.postMessage({ type: 'layout-ready' }, '*');
+    window.parent.postMessage({ type: 'layout-ready', ...readyTiming }, '*');
 </script>

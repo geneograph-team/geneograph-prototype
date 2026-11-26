@@ -38,7 +38,7 @@ function treePortraitDescriptor(runtime, id)
     return descriptor;
 }
 
-function updateTreePortraits(runtime, visible, detail, aspect)
+function updateTreePortraits(runtime, visible, detail, aspect, trace = null)
 {
     const leases = runtime.portraitLeases ||= new Map();
     const demand = new Map();
@@ -68,6 +68,7 @@ function updateTreePortraits(runtime, visible, detail, aspect)
     }
     if (!demand.size) return;
     const cache = runtime.portraitCache ||= createPortraitThumbnailCache();
+    const before = trace ? { ...cache.stats } : null;
     for (const [avatar, { base, key, tier, descriptor }] of demand)
     {
         let lease = leases.get(avatar);
@@ -79,23 +80,29 @@ function updateTreePortraits(runtime, visible, detail, aspect)
                 .map(value => base + '|' + value)
                 .find(candidate => cache.hasReady(candidate));
             if (compatible && compatible !== key)
-                subscribeTreePortrait(runtime, avatar, lease, compatible, null, true);
+                subscribeTreePortrait(runtime, avatar, lease, compatible, null, true, trace);
         }
         if (lease.pending?.key === key) continue;
         lease.pending?.release?.();
         lease.pending = null;
         if (lease.current?.key !== key)
-            subscribeTreePortrait(runtime, avatar, lease, key, { ...descriptor.request, aspect, tier });
+            subscribeTreePortrait(runtime, avatar, lease, key, { ...descriptor.request, aspect, tier }, false, trace);
     }
+    if (before)
+        for (const [metric, key] of [['portraitHits', 'hits'], ['portraitMisses', 'misses'], ['portraitJobs', 'jobs']])
+            treePerf.count(trace, metric, Math.max(0, cache.stats[key] - before[key]), true);
 }
 
-function subscribeTreePortrait(runtime, avatar, lease, key, request, fallback = false)
+function subscribeTreePortrait(runtime, avatar, lease, key, request, fallback = false, trace = null)
 {
+    const subscribed = trace && treePerf.now();
     const subscription = { key };
     if (fallback) lease.fallback = subscription;
     else lease.pending = subscription;
     subscription.release = runtime.portraitCache.subscribe(key, request, url =>
     {
+        const decodeStarted = trace && treePerf.now();
+        if (trace) treePerf.span(trace, 'portraitWait', decodeStarted - subscribed);
         const image = document.createElement('img');
         image.className = 'tree-portrait-image';
         image.alt = '';
@@ -107,6 +114,11 @@ function subscribeTreePortrait(runtime, avatar, lease, key, request, fallback = 
             if (runtime.portraitLeases.get(avatar) !== lease || !avatar.isConnected || runtime.stage.hidden) return;
             if (fallback ? lease.fallback !== subscription || lease.current : lease.pending !== subscription) return;
 
+            if (trace)
+            {
+                treePerf.span(trace, 'portraitDecode', treePerf.now() - decodeStarted);
+                treePerf.count(trace, 'portraitReady', 1, true);
+            }
             const previous = lease.current;
             avatar.querySelector('img')?.remove();
             avatar.append(image);
@@ -116,7 +128,7 @@ function subscribeTreePortrait(runtime, avatar, lease, key, request, fallback = 
             lease.fallback = null;
             if (!fallback) lease.pending = null;
             previous?.release();
-        }).catch(() => {});
+        }).catch(() => { if (trace) treePerf.count(trace, 'portraitDecodeFailures', 1, true); });
     });
     if (!subscription.release) lease[fallback ? 'fallback' : 'pending'] = null;
 }

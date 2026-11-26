@@ -290,7 +290,7 @@ function projectElkTreeOccurrences(canonicalPeople, canonicalFamilies, preferenc
     };
 }
 
-async function solveElkTree(people, families, direction, calculate, focusId = null)
+async function solveElkTree(people, families, direction, calculate, focusId = null, measure = (_, fn) => fn())
 {
     const nominalPartnerGap = TREE_GEOMETRY.partnerGap;
     const secondarySpacing = 80;
@@ -1304,19 +1304,21 @@ async function solveElkTree(people, families, direction, calculate, focusId = nu
         };
     }
     const started = performance.now();
-    const first = buildGraph();
-    let raw = flatten(await calculate(first.graph), first);
-    const spacingPlan = planDynamicSpacing(raw, first);
+    const first = measure('graph', () => buildGraph());
+    const firstResult = await calculate(first.graph);
+    let raw = measure('flatten', () => flatten(firstResult, first));
+    const spacingPlan = measure('spacing', () => planDynamicSpacing(raw, first));
     let final = first;
     if (spacingPlan.changed)
     {
-        final = buildGraph(spacingPlan.requested);
-        raw = flatten(await calculate(final.graph), final);
+        final = measure('graph', () => buildGraph(spacingPlan.requested));
+        const finalResult = await calculate(final.graph);
+        raw = measure('flatten', () => flatten(finalResult, final));
     }
     let layout;
     try
     {
-        layout = inlinePartnerships(raw, final);
+        layout = measure('routing', () => inlinePartnerships(raw, final));
     }
     catch (error)
     {
@@ -1345,7 +1347,8 @@ async function solveElkTree(people, families, direction, calculate, focusId = nu
     {
         try
         {
-            layout = refineElkTreeCentering(raw, final, people, families, layout, inlinePartnerships);
+            layout = measure('centering', () => refineElkTreeCentering(raw, final, people, families, layout,
+                (...args) => measure('centeringReroute', () => inlinePartnerships(...args))));
         }
         catch (error)
         {

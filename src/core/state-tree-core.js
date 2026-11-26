@@ -520,8 +520,9 @@ function setTreeOrientation(orientation)
     view.orientation = orientation;
     view.canvasScroll = null;
     state.treeCenterTargetId = '';
+    const trace = treePerf.begin(projectId, 'orientation', view);
     saveTreeDisplaySettings(projectId, view);
-    renderFamilyTree();
+    renderFamilyTree(null, trace);
 }
 
 function treeProjectViewState(projectId = currentFamilyTreeProjectId())
@@ -633,14 +634,19 @@ function navigateFamilyTreeToPerson(
     }
 
     const view = treeProjectViewState(projectId);
-    if (!focusBranch && selectVisibleTreePerson(personId, { center })) return true;
-    const nextFocusPersonId = treeNavigationFocusForPerson(
+    const trace = treePerf.begin(projectId, focusBranch ? 'focus' : 'selection', view);
+    if (!focusBranch && treePerf.measure(trace, 'navigation', () => selectVisibleTreePerson(personId, { center })))
+    {
+        treePerf.finish(trace, 'completed');
+        return true;
+    }
+    const nextFocusPersonId = treePerf.measure(trace, 'navigation', () => treeNavigationFocusForPerson(
         personId,
         {
             focusBranch,
             projectId
         }
-    );
+    ));
 
     const selectionChanged =
         state.selectedPersonId !== personId;
@@ -651,9 +657,11 @@ function navigateFamilyTreeToPerson(
     if (!selectionChanged && !focusChanged)
     {
         if (center) centerTreeOnPerson(personId);
+        treePerf.finish(trace, 'unchanged');
         return false;
     }
 
+    if (focusChanged) treePerf.kind(trace, 'focus');
     appNavigationMarkIntent();
 
     view.focusPersonId = nextFocusPersonId;
@@ -665,11 +673,11 @@ function navigateFamilyTreeToPerson(
 
     if (center)
     {
-        renderFamilyTree();
+        renderFamilyTree(null, trace);
     }
     else
     {
-        renderFamilyTreePreserveScroll();
+        renderFamilyTreePreserveScroll(trace);
     }
 
     return true;
@@ -828,6 +836,7 @@ function openTreeSettingsModal()
               <div class="tree-color-channels">${channel('fill', 'Fill', true)}${channel('outline', 'Outline', true)}
                 ${channel('connectors', 'Connectors', false)}</div>
             </fieldset>
+            ${treePerformanceSettingsMarkup()}
           </div>
           <div class="modal-footer">
             <button class="button secondary" type="button" data-close>Cancel</button>
@@ -836,6 +845,7 @@ function openTreeSettingsModal()
         </form>
       </div>`);
 
+    bindTreePerformanceSettings(modalBackdrop, projectId);
     bindSharedFilterFields(modalBackdrop, { ...referencePicker, onChange: next => { reference = next.reference; } });
     modalBackdrop.querySelector('#treeSettingsForm')?.addEventListener('submit', event =>
     {
@@ -865,7 +875,7 @@ function openTreeSettingsModal()
             || view.showCousins !== previousStructure[2])
         {
             state.treeCenterTargetId = view.focusPersonId;
-            renderFamilyTree();
+            renderFamilyTree(null, treePerf.begin(projectId, 'depth', view));
         }
         else refreshTreeColors(treeRenderRuntime);
     });

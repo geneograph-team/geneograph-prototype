@@ -5,6 +5,7 @@ function disposeTreeElkLayout()
 {
     const previous = treeElkRequest;
     treeElkRequest = null;
+    if (previous?.trace) treePerf.finish(previous.trace, 'canceled');
     previous?.cancel?.();
 }
 
@@ -16,13 +17,22 @@ function calculateLocalElkGraph(preview, graph)
         const frame = document.createElement('iframe');
         frame.hidden = true;
         frame.title = 'Local graph layout';
-        frame.src = 'vendor/elkjs-0.12.1/layout.html';
+        const trace = preview.trace;
+        const started = trace && treePerf.now();
+        const timings = {};
+        let posted = 0;
+        frame.src = 'vendor/elkjs-0.12.1/layout.html' + (trace ? '#performance' : '');
         function finish(error, layout)
         {
             clearTimeout(timeout);
             window.removeEventListener('message', receive);
             frame.remove();
             preview.cancel = null;
+            if (trace)
+            {
+                timings.roundTripMs = treePerf.now() - started;
+                treePerf.pass(trace, timings);
+            }
             if (error) reject(new Error(error));
             else resolve(layout);
         }
@@ -30,9 +40,26 @@ function calculateLocalElkGraph(preview, graph)
         {
             if (event.source !== frame.contentWindow) return;
             if (event.data?.type === 'layout-ready')
+            {
+                if (trace)
+                {
+                    timings.startupMs = treePerf.now() - started;
+                    timings.bundleMs = event.data.bundleMs;
+                    timings.constructorMs = event.data.constructorMs;
+                    posted = treePerf.now();
+                }
                 frame.contentWindow.postMessage({ type: 'layout-graph', id: 1, graph }, '*');
+                if (trace) timings.postMs = treePerf.now() - posted;
+            }
             else if (event.data?.type === 'layout-result' && event.data.id === 1)
+            {
+                if (trace)
+                {
+                    timings.waitMs = treePerf.now() - posted;
+                    timings.solverMs = event.data.solverMs;
+                }
                 finish(event.data.error, event.data.layout);
+            }
         }
         const timeout = setTimeout(() => finish('ELK layout timed out'), 45000);
         preview.cancel = () => finish('Layout superseded');
@@ -41,15 +68,15 @@ function calculateLocalElkGraph(preview, graph)
     });
 }
 
-function prepareElkTreeInput(projection, preferences, direction = 'DOWN')
+function prepareElkTreeInput(projection, preferences, direction = 'DOWN', measure = (_, fn) => fn())
 {
     const genderById = new Map(projection.people.map(person => [person.id, person.gender]));
-    const semantic = projectElkTreeOccurrences(
+    const semantic = measure('occurrences', () => projectElkTreeOccurrences(
         projection.people.map(({ id }) => ({ id })),
         projection.families.map(family => ({ id: family.id,
             parents: [family.left, family.right].filter(Boolean), children: family.children })),
         preferences
-    );
+    ));
     // Stable canonical context stays in the presentation. Only anonymous IDs
     // and geometry are passed into the solver frame.
     const ids = new Map(semantic.people.map((person, index) => [person.id, 'p' + index]));
@@ -185,7 +212,7 @@ function describeElkTreeDiagnostics(model, layout, projection)
     return diagnostics;
 }
 
-function adaptElkTreeLayout(model, layout, projection)
+function adaptElkTreeLayout(model, layout, projection, measure = (_, fn) => fn())
 {
     const boxes = new Map(layout.boxes.map(box => [box.id, box]));
     const canonical = new Map(projection.people.map(person => [person.id, person]));
@@ -252,10 +279,10 @@ function adaptElkTreeLayout(model, layout, projection)
     return { orientation: layout.direction === 'RIGHT' ? 'horizontal' : 'vertical',
         stageWidth: Math.ceil(layout.width), stageHeight: Math.ceil(layout.height), colorFamilies,
         positionedPeople, parentPlaceholders, focusControls, connectorDescriptors,
-        diagnostics: describeElkTreeDiagnostics(model, layout, projection) };
+        diagnostics: measure('diagnostics', () => describeElkTreeDiagnostics(model, layout, projection)) };
 }
 
-function treeElkLayoutForProjection(projectId, projection, view)
+function treeElkLayoutForProjection(projectId, projection, view, trace = null)
 {
     const expansion = new Map(view.ancestryExpansion);
     const orientation = view.orientation === 'horizontal' ? 'horizontal' : 'vertical';
@@ -268,17 +295,19 @@ function treeElkLayoutForProjection(projectId, projection, view)
     {
         disposeTreeElkLayout();
         const cached = treeElkOrientationCache.get(orientation);
-        const preview = { key, projection, orientation, ...(cached?.key === key ? cached : {}) };
+        const preview = { key, projection, orientation, ...(cached?.key === key ? cached : {}), trace };
         treeElkRequest = preview;
+        treePerf.cache(trace, preview.geometry ? 'hit' : 'miss');
         // Defer even input errors until the pending presentation is mounted.
         if (!preview.geometry) Promise.resolve().then(async () =>
         {
             try
             {
                 if (treeElkRequest !== preview) return;
-                preview.model = prepareElkTreeInput(projection, expansion, direction);
+                const measure = (stage, fn) => treePerf.measure(trace, stage, fn);
+                preview.model = measure('input', () => prepareElkTreeInput(projection, expansion, direction, measure));
                 preview.geometry = await solveElkTree(preview.model.people, preview.model.families, direction,
-                    graph => calculateLocalElkGraph(preview, graph), preview.model.focusId);
+                    graph => calculateLocalElkGraph(preview, graph), preview.model.focusId, measure);
                 if (treeElkRequest !== preview) return;
                 treeElkOrientationCache.set(orientation, { key, model: preview.model, geometry: preview.geometry });
             }
@@ -290,9 +319,21 @@ function treeElkLayoutForProjection(projectId, projection, view)
             }
             if (treeElkRequest === preview && state.activeModule === 'Family Tree'
                 && currentFamilyTreeProjectId() === projectId)
-                renderFamilyTree(preview.projection);
+                renderFamilyTree(preview.projection, preview.trace);
         });
     }
+    else if (trace && treeElkRequest.trace !== trace) treePerf.cache(trace, treeElkRequest.geometry ? 'hit' : 'pending');
     treeElkRequest.projection = projection;
-    return treeElkRequest.geometry ? adaptElkTreeLayout(treeElkRequest.model, treeElkRequest.geometry, projection) : null;
+    const { model, geometry } = treeElkRequest;
+    if (!geometry) return null;
+    if (trace)
+    {
+        const solved = trace.cache === 'miss';
+        treePerf.count(trace, 'passes', solved ? geometry.passes : 0);
+        treePerf.count(trace, 'secondPass', solved && geometry.passes === 2 ? 1 : 0);
+        treePerf.count(trace, 'families', model.families.length);
+        treePerf.count(trace, 'edges', model.families.reduce((n, family) => n + family.parents.length + family.children.length, 0));
+    }
+    const measure = (stage, fn) => treePerf.measure(trace, stage, fn);
+    return measure('adapter', () => adaptElkTreeLayout(model, geometry, projection, measure));
 }

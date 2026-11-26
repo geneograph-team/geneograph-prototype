@@ -1,4 +1,4 @@
-function renderFamilyTreePreserveScroll()
+function renderFamilyTreePreserveScroll(trace = null)
 {
     const scroll = main.querySelector('.tree-stage') ? getTreeCanvasScroll() : null;
 
@@ -6,7 +6,7 @@ function renderFamilyTreePreserveScroll()
     // let that behavior win instead of restoring old scroll.
     const hasPendingCenter = Boolean(state.treeCenterTargetId);
 
-    renderFamilyTree();
+    renderFamilyTree(null, trace);
 
     if (!hasPendingCenter)
     {
@@ -230,17 +230,24 @@ function openTreePersonPicker(anchor)
     input.focus({ preventScroll: true });
 }
 
-function renderFamilyTree(readyProjection = null)
+function renderFamilyTree(readyProjection = null, trace = null)
 {
+    const projectId = currentFamilyTreeProjectId();
+    treePerf.project(projectId);
+    if (!readyProjection && !trace && projectId && treePerf.status().active)
+        trace = treePerf.begin(projectId, 'render', treeProjectViewState(projectId));
+    const renderStarted = trace && treePerf.now();
     appNavigationObserve();
     closeTreeMobileMenu();
     sidebar.innerHTML = '';
     const treeProjectId =
         currentFamilyTreeProjectId();
-    const treePeopleSource = readyProjection?.people || currentTreePeople();
+    const treePeopleSource = readyProjection?.people || treePerf.measure(trace, 'people', currentTreePeople);
+    if (!readyProjection) treePerf.count(trace, 'projectPeople', treePeopleSource.length);
 
     if (!treeProjectId || !treePeopleSource.length)
     {
+        treePerf.finish(trace, 'empty');
         disposeTreeElkLayout();
         disposeTreeRenderer();
         main.innerHTML = `
@@ -267,12 +274,16 @@ function renderFamilyTree(readyProjection = null)
 
     const treeViewState = treeProjectViewState(treeProjectId);
     const focusPersonId = readyProjection?.focusPersonId || resolveTreeFocusPersonId(treePeopleSource, treeProjectId);
-    const projection = readyProjection || buildFamilyTreeProjection(treePeopleSource, currentTreeFamilies(), {
+    const treeFamilies = readyProjection ? null : treePerf.measure(trace, 'families', currentTreeFamilies);
+    if (treeFamilies) treePerf.count(trace, 'projectFamilies', treeFamilies.length);
+    const projection = readyProjection || treePerf.measure(trace, 'projection', () => buildFamilyTreeProjection(treePeopleSource, treeFamilies, {
         focusPersonId,
         ancestorGenerations: treeViewState.ancestorGenerations,
         descendantGenerations: treeViewState.descendantGenerations,
         showCousins: treeViewState.showCousins
-    });
+    }));
+    treePerf.count(trace, 'visiblePeople', projection.people.length);
+    treePerf.count(trace, 'visibleFamilies', projection.families.length);
     const familyPeopleCountLabel =
         translateCountPhrase(formatProjectPeopleCount(treeProjectId));
 
@@ -291,7 +302,7 @@ function renderFamilyTree(readyProjection = null)
         );
     }
 
-    const treeLayout = treeElkLayoutForProjection(treeProjectId, projection, treeViewState);
+    const treeLayout = treeElkLayoutForProjection(treeProjectId, projection, treeViewState, trace);
     const shellMarkup = () => `
         <div
           class="tree-shell"
@@ -402,7 +413,7 @@ function renderFamilyTree(readyProjection = null)
     }
     runtime.shell.querySelector('[data-tree-orientation]').value = treeViewState.orientation;
     runtime.shell.querySelector('.tree-people-status').textContent = familyPeopleCountLabel;
-    updateTreeInspector(runtime, selected);
+    treePerf.measure(trace, 'inspector', () => updateTreeInspector(runtime, selected));
     const status = runtime.canvas.querySelector('.tree-layout-status');
     const diagnostics = treeLayout?.diagnostics || [];
     status.hidden = Boolean(treeLayout && !diagnostics.length);
@@ -458,13 +469,24 @@ function renderFamilyTree(readyProjection = null)
         clearTreePortraits(runtime);
         runtime.scene = null;
         if (runtime.stage.contains(document.activeElement)) runtime.canvas.focus({ preventScroll: true });
+        if (trace)
+        {
+            treePerf.span(trace, 'renderSync', treePerf.now() - renderStarted);
+            treePerf.mark(trace, 'pendingFeedback');
+            if (treeElkRequest?.error) treePerf.finish(trace, 'failed');
+            else if (treeElkRequest?.trace !== trace) treePerf.finish(trace, 'unchanged');
+        }
         return;
     }
     runtime.contentRevision++;
     const orientationChanged = runtime.sceneOrientation !== treeLayout.orientation;
     runtime.sceneOrientation = treeLayout.orientation;
-    runtime.scene = createTreeRenderScene(treeLayout);
-    refreshTreeColors(runtime);
+    runtime.scene = treePerf.measure(trace, 'scene', () => createTreeRenderScene(treeLayout));
+    treePerf.count(trace, 'cards', runtime.scene.cards.length);
+    treePerf.count(trace, 'placeholders', runtime.scene.placeholders.length);
+    treePerf.count(trace, 'paths', runtime.scene.paths.length);
+    treePerf.count(trace, 'diagnostics', diagnostics.length);
+    treePerf.measure(trace, 'colors', () => refreshTreeColors(runtime));
     runtime.request = treeElkRequest;
     runtime.focusId = focusPersonId;
     runtime.ancestors = treeViewState.ancestorGenerations;
@@ -488,7 +510,9 @@ function renderFamilyTree(readyProjection = null)
         runtime.bookmark = bookmark;
     }
     runtime.hasScene = true;
+    runtime.performanceTrace = trace;
     flushTreeViewport(runtime);
+    runtime.performanceTrace = null;
     if (treeViewState.ancestryFocusReturn)
     {
         const occurrenceId = treeViewState.ancestryFocusReturn;
@@ -505,6 +529,18 @@ function renderFamilyTree(readyProjection = null)
         treeRelativeIntent = null;
         const button = treePrimaryPersonCard(personId)?.querySelector('[data-card-add="relative"]');
         if (button) requestAnimationFrame(() => { if (button.isConnected) openRelativePopover(button, personId); });
+    }
+    if (trace)
+    {
+        treePerf.span(trace, 'renderSync', treePerf.now() - renderStarted);
+        treePerf.mark(trace, 'scenePublished');
+        treePerf.finish(trace, 'completed');
+        const scene = runtime.scene;
+        requestAnimationFrame(() =>
+        {
+            if (treeRenderRuntime === runtime && runtime.scene === scene && !runtime.stage.hidden)
+                treePerf.mark(trace, 'frameOpportunity');
+        });
     }
 }
 
