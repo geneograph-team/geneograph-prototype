@@ -228,6 +228,8 @@ OpenSpec is initialized here with Codex integration. Keep its config short and w
 
 The prototype should not accumulate permanent scripts, test harnesses, or tooling for one-off investigations. Keep temporary checks outside the final PR unless they provide clear lasting regression protection; preserve existing valuable coverage for data integrity and recurring failures. Scope verification to the actual risk, report untested behavior, and keep unrelated cleanup separate.
 
+For Family Tree changes, retain the repeatable Node regressions in `scripts/` and use a disposable browser session for integration checks that require live rendering. In particular, verify focus preparation and fresh resource counts after edits, off-tree focus and project isolation; portrait crop/rotation, visibility/tier changes, bounded cache and disposal, original-photo editing, and the known Edge direct-file fallback; and semantic zoom stage boundaries, localized dates and names, keyboard focus when controls disappear, and portrait continuity without a layout solve. The retired implementation browser harnesses remain available in the repository history if a focused check needs to be reconstructed. Do not run such instrumented checks against a working research session.
+
 Deployment and CI infrastructure are protected: **every change requires explicit founder approval**, including changes made only to run tests. Current Pages publishing, secret injection, and workflow triggers must not be altered as a side effect of product work. The detailed agent rules and PR cleanup gate are in `AGENTS.md`.
 
 ### CSS ownership
