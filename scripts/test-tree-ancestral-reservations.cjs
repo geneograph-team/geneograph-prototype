@@ -10,7 +10,7 @@ for (const file of ['tree-geometry.js', 'tree-elk-model.js'])
     vm.runInContext(fs.readFileSync(path.join(__dirname, '../src/modules/family-tree', file), 'utf8'), context);
 
 const EPS = .02;
-function fixture(direction, pattern)
+function fixture(direction, pattern, depth = 4)
 {
     const people = [], families = [];
     const add = (id, generation, gender, role = null, paired = false) =>
@@ -19,7 +19,7 @@ function fixture(direction, pattern)
             height: 124, ...(role ? { placeholder: { rel: role } } : {}) });
         return id;
     };
-    add('R', 4, 'male');
+    add('R', depth, 'male');
     function ancestors(id, generation)
     {
         if (!generation) return;
@@ -30,7 +30,7 @@ function fixture(direction, pattern)
         if (cut !== 'both' && cut !== 'father') ancestors(father, generation - 1);
         if (cut !== 'both' && cut !== 'mother') ancestors(mother, generation - 1);
     }
-    ancestors('R', 4);
+    ancestors('R', depth);
     const oldest = Math.min(...people.map(person => person.generation));
     for (const person of people) person.generation -= oldest;
     return { people, families };
@@ -58,6 +58,14 @@ function fixture(direction, pattern)
                 calls++;
                 assert.equal(graph.children.filter(node => node.id.startsWith('reservation:')).length, expectedCount);
                 assert.equal(graph.edges.filter(edge => edge.id.startsWith('reservation:')).length, expectedCount);
+                for (const person of people.filter(person => person.placeholder))
+                    for (let generation = 0; generation < person.generation; generation++)
+                    {
+                        const node = graph.children.find(node => node.id === 'reservation:' + person.id + ':' + generation);
+                        assert.ok(node);
+                        assert.equal(node.width, person.width + (direction === 'DOWN' ? 0 : 36));
+                        assert.equal(node.height, person.height + 36);
+                    }
                 native = await elk.layout(JSON.parse(JSON.stringify(graph)));
                 return native;
             }, 'R');
@@ -145,5 +153,45 @@ function fixture(direction, pattern)
             }
             cases++;
         }
+    // A single missing partner reserves space beside the known parent's
+    // complete parent pair. Its invisible width must not push that pair aside.
+    for (const [pattern, targets] of [
+        [{ RF: 'both', RM: 'mother', RMF: 'both' }, ['RMF']],
+        [{ RF: 'mother', RFF: 'both', RM: 'mother', RMF: 'both' }, ['RFF', 'RMF']],
+        [{ RF: 'father', RFM: 'both' }, ['RFM']]
+    ])
+    {
+        const { people, families } = fixture('DOWN', pattern, 3);
+        const byId = new Map(people.map(person => [person.id, person]));
+        let calls = 0;
+        const result = await context.solveElkTree(people, families, 'DOWN', graph =>
+        {
+            calls++;
+            return elk.layout(JSON.parse(JSON.stringify(graph)));
+        }, 'R');
+        assert.ok(calls <= 2);
+        assert.equal(result.issues.length, 0, result.issues.join('; '));
+        assert.equal(context.elkCenteringConflicts(result, 'x').size, 0);
+        const cards = new Map(result.boxes.map(box => [box.id, box]));
+        const midpoint = id => cards.get(id).x + cards.get(id).w / 2;
+        for (const id of targets)
+        {
+            const family = families.find(f => f.children[0] === id);
+            assert.ok(Math.abs((midpoint(family.parents[0]) + midpoint(family.parents[1])) / 2
+                - midpoint(id)) <= EPS, 'Reservation displaced complete parent pair: ' + id);
+        }
+        const rows = new Map();
+        for (const box of result.boxes)
+        {
+            const person = byId.get(box.id);
+            if (!rows.has(person.generation)) rows.set(person.generation, []);
+            rows.get(person.generation).push(box.y);
+            if (!person.placeholder) continue;
+            for (const older of result.boxes.filter(other => byId.get(other.id).generation < person.generation))
+                assert.ok(Math.min(box.x + box.w, older.x + older.w) - Math.max(box.x, older.x) <= EPS);
+        }
+        for (const row of rows.values()) assert.ok(Math.max(...row) - Math.min(...row) <= EPS);
+        cases++;
+    }
     console.log('Ancestral reservations: ' + cases + ' layouts passed.');
 })().catch(error => { console.error(error); process.exitCode = 1; });

@@ -829,7 +829,8 @@ async function solveElkTree(people, families, direction, calculate, focusId = nu
                 const out = id + ':out', input = id + ':in';
                 const node = {
                     id,
-                    width: person.width + 2 * groupPadding,
+                    // Vertical reservations match the visible slot width; side spacing is native.
+                    width: person.width + (direction === 'DOWN' ? 0 : 2 * groupPadding),
                     height: person.height + 2 * groupPadding,
                     layoutOptions:
                     {
