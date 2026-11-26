@@ -845,20 +845,42 @@ for (const field of ['canvas.backgroundOverride', 'connectionDefaults.lineOverri
 invalidThemeDiagram.themeProvenanceVersion = 2;
 assert.ok(context.prepareProjectDraft(project, invalidBoardTheme).errors.some(error =>
     error.includes('themeProvenanceVersion is unsupported')));
-const imageOnlyLegacyFile = structuredClone(context.window.GENEO_SEED_BOARD_ASSETS[0].payload);
-const imageOnlyLegacyNode = imageOnlyLegacyFile.board.diagram.nodes.find(node => node.type === 'image');
-imageOnlyLegacyNode.photoId = imageOnlyLegacyNode.imageRef.id;
-delete imageOnlyLegacyNode.imageRef;
-assert.throws(() => context.validateGeneographBoardFile(imageOnlyLegacyFile), /board image reference is invalid/);
 const currentBoardFile = structuredClone(context.window.GENEO_SEED_BOARD_ASSETS[0].payload);
 const currentBoardFileBefore = JSON.stringify(currentBoardFile);
 let openedBoardId;
+let boardImportEditCount = 0;
 Object.assign(context, {
     validProjectById: id => id === project.id ? project : null,
     createRuntimeId: () => 'test-imported-board',
-    markPrototypeSessionEdited() {},
+    markPrototypeSessionEdited() { boardImportEditCount++; },
     openGeneographBoard: id => { openedBoardId = id; }
 });
+const imageOnlyLegacyFile = structuredClone(currentBoardFile);
+const imageOnlyLegacyNode = imageOnlyLegacyFile.board.diagram.nodes.find(node => node.type === 'image');
+imageOnlyLegacyNode.photoId = imageOnlyLegacyNode.imageRef.id;
+delete imageOnlyLegacyNode.imageRef;
+const missingImageRefFile = structuredClone(currentBoardFile);
+delete missingImageRefFile.board.diagram.nodes.find(node => node.type === 'image').imageRef;
+const invalidImageRefFile = structuredClone(currentBoardFile);
+const invalidImageRefNode = invalidImageRefFile.board.diagram.nodes.find(node => node.type === 'image');
+invalidImageRefNode.imageRef = { scope: 'board', id: 'missing-test-board-image-asset' };
+assert.ok(!invalidImageRefFile.board.diagram.assets.some(asset => asset.id === invalidImageRefNode.imageRef.id));
+
+const beforeRejectedImageImports = JSON.stringify(sample);
+const beforeRejectedImageImportState = JSON.stringify(context.state);
+for (const [invalidFile, expectedError] of [
+    [imageOnlyLegacyFile, /This is not a supported Geneograph board file\./],
+    [missingImageRefFile, /A board image reference is invalid\./],
+    [invalidImageRefFile, /A board image reference is invalid\./]
+])
+{
+    assert.throws(() => context.validateGeneographBoardFile(invalidFile), expectedError);
+    assert.throws(() => context.importGeneographBoardPayload(invalidFile, project.id), expectedError);
+    assert.equal(JSON.stringify(sample), beforeRejectedImageImports);
+    assert.equal(JSON.stringify(context.state), beforeRejectedImageImportState);
+    assert.equal(openedBoardId, undefined);
+    assert.equal(boardImportEditCount, 0);
+}
 const unsupportedBoardFile = structuredClone(currentBoardFile);
 unsupportedBoardFile.board.diagram.themeProvenanceVersion = 0;
 assert.throws(() => context.importGeneographBoardPayload(unsupportedBoardFile, project.id), /invalid theme color settings/);
@@ -875,6 +897,7 @@ assert.equal(sample.boards[0], seededBoard);
 const importedBoard = context.importGeneographBoardPayload(currentBoardFile, project.id);
 const currentBoardDiagram = importedBoard.diagram;
 assert.equal(openedBoardId, importedBoard.id);
+assert.equal(boardImportEditCount, 1);
 assert.equal(sample.boards[0], importedBoard);
 assert.equal(JSON.stringify(currentBoardFile), currentBoardFileBefore);
 assert.equal(currentBoardDiagram.themeProvenanceVersion, 1);

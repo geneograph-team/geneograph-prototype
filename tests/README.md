@@ -20,7 +20,7 @@ node tests/people/test-person-match-engine.cjs
 node tests/places/test-unlinked-places.cjs
 ```
 
-Select the checks relevant to the change. A nonzero exit means failure. The known project-data contract assertion failure is tracked in #436; do not treat it as a successful run. `tree-cases.cjs` is a shared topology builder, not an executable test. The internal stress-project check must be removed with its temporary application fixture before open user testing; see the [removal guide](../doc/family-tree-stress-test.md).
+Select the checks relevant to the change. A nonzero exit means failure. `tree-cases.cjs` is a shared topology builder, not an executable test. The internal stress-project check must be removed with its temporary application fixture before open user testing; see the [removal guide](../doc/family-tree-stress-test.md).
 
 ## Test data and temporary work
 
