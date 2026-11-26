@@ -82,7 +82,7 @@ function prepareElkTreeInput(projection, preferences, direction = 'DOWN', measur
         projection.people.map(({ id }) => ({ id })),
         projection.families.map(family => ({ id: family.id,
             parents: [family.left, family.right].filter(Boolean), children: family.children })),
-        preferences
+        preferences, projection.focusPersonId
     ));
     // Stable canonical context stays in the presentation. Only anonymous IDs
     // and geometry are passed into the solver frame.

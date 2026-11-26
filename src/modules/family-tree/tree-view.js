@@ -642,9 +642,9 @@ function renderTreePersonCard(person)
                     : ''
             }>
 
-          ${collapsed
+          ${collapsed && person.preferredContext
               ? `<button type="button" class="tree-occurrence-badge" data-tree-expand-ancestry aria-label="${escapeHtml(t('Show ancestry here'))}" title="${escapeHtml(t('Show ancestry here'))}">×${person.occurrenceCount}</button>`
-              : repeated ? `<span class="tree-occurrence-badge" ${person.hasParents ? `title="${escapeHtml(t('Ancestry shown here'))}"` : 'aria-hidden="true"'}>×${person.occurrenceCount}</span>` : ''}
+              : repeated ? `<span class="tree-occurrence-badge" ${person.hasParents && person.expanded ? `title="${escapeHtml(t('Ancestry shown here'))}"` : 'aria-hidden="true"'}>×${person.occurrenceCount}</span>` : ''}
           <div class="tree-card-avatar-stack">
             <div class="person-avatar tree-avatar" aria-hidden="true">
               <span class="person-avatar-initials tree-initial-pair">${escapeHtml(initials.pair)}</span>

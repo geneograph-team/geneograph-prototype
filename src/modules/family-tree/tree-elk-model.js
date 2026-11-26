@@ -1,5 +1,5 @@
 // Ported from the approved standalone ELK and automatic-occurrence experiments.
-function projectElkTreeOccurrences(canonicalPeople, canonicalFamilies, preferences = new Map())
+function projectElkTreeOccurrences(canonicalPeople, canonicalFamilies, preferences = new Map(), focusId = null)
 {
     const byId = new Map(canonicalPeople.map((p, i) => [p.id,
     {
@@ -269,6 +269,7 @@ function projectElkTreeOccurrences(canonicalPeople, canonicalFamilies, preferenc
         parents: f.parents.map(id => overrides.get(f.id)?.get(id) ?? id),
         children: f.children.map(id => owners.get(id) ?? id)
     }));
+    separateElkGenerationConflicts(people, families, focusId, freshId);
     const canonicalByOccurrence = new Map(people.map(person => [person.id, person.personId]));
     const canonicalByFamily = new Map(canonicalFamilies.map(family => [family.id, family]));
     const memberships = new Map(canonicalFamilies.map(family => [family.id, new Set(family.children)]));
@@ -288,6 +289,93 @@ function projectElkTreeOccurrences(canonicalPeople, canonicalFamilies, preferenc
         decisions,
         deferred
     };
+}
+
+function separateElkGenerationConflicts(people, families, focusId, freshId)
+{
+    const focus = people.find(person => person.primary && person.personId === focusId);
+    if (!focus) return;
+
+    const byId = new Map(people.map(person => [person.id, person]));
+    const memberships = new Map(people.map(person => [person.id, []]));
+    for (const family of families)
+        for (const [ids, offset] of [[family.parents, 0], [family.children, 1]])
+            ids.forEach(id => memberships.get(id).push({ family, offset }));
+
+    const queue = [focus.id];
+    const rows = new Map([[focus.id, 0]]);
+    const visitedFamilies = new Set();
+    const copies = new Map();
+    const affected = new Set();
+    // Each household gets its row from the first path that reaches it. Keep that
+    // path attached and give incompatible endpoints an appearance on the new row.
+    for (const id of queue)
+        for (const { family, offset } of memberships.get(id))
+        {
+            if (visitedFamilies.has(family)) continue;
+            visitedFamilies.add(family);
+            const parentRow = rows.get(id) - offset;
+            for (const [ids, row] of [[family.parents, parentRow], [family.children, parentRow + 1]])
+                for (let index = 0; index < ids.length; index++)
+                {
+                    const endpoint = ids[index];
+                    if (!rows.has(endpoint))
+                    {
+                        rows.set(endpoint, row);
+                        queue.push(endpoint);
+                    }
+                    if (rows.get(endpoint) === row) continue;
+                    if (!copies.has(endpoint)) copies.set(endpoint, new Map());
+                    const appearances = copies.get(endpoint);
+                    if (!appearances.has(row))
+                    {
+                        const person = byId.get(endpoint);
+                        const contextKey = JSON.stringify(['generation', person.occurrenceId, family.familyOccurrenceId]);
+                        const copy = {
+                            ...person,
+                            id: freshId(person.personId, contextKey),
+                            occurrenceId: 'elk-occurrence:' + contextKey,
+                            contextKey,
+                            primary: false,
+                            preferredPeer: undefined,
+                            preferredContext: undefined
+                        };
+                        appearances.set(row, copy);
+                        people.push(copy);
+                        affected.add(person.personId);
+                    }
+                    ids[index] = appearances.get(row).id;
+                }
+        }
+
+    if (!affected.size) return;
+    const counts = new Map();
+    const appearances = new Map();
+    for (const person of people)
+        if (affected.has(person.personId))
+        {
+            counts.set(person.personId, (counts.get(person.personId) ?? 0) + 1);
+            appearances.set(person.id, { parents: false, families: [] });
+        }
+    for (const family of families)
+    {
+        for (const id of family.children)
+            if (appearances.has(id)) appearances.get(id).parents = true;
+        for (const id of family.parents)
+            appearances.get(id)?.families.push(family);
+    }
+    const withParents = new Set(people.filter(person => appearances.get(person.id)?.parents)
+        .map(person => person.personId));
+    for (const person of people)
+    {
+        const appearance = appearances.get(person.id);
+        if (!appearance) continue;
+        person.occurrenceCount = counts.get(person.personId);
+        person.hasParents = withParents.has(person.personId);
+        person.expanded = appearance.parents;
+        person.contextFamilyIds = [...new Set(appearance.families.map(family => family.canonicalFamilyId))].sort();
+        person.contextFamilyOccurrenceIds = appearance.families.map(family => family.familyOccurrenceId).sort();
+    }
 }
 
 async function solveElkTree(people, families, direction, calculate, focusId = null, measure = (_, fn) => fn())

@@ -15,6 +15,40 @@ for (const file of ['core/state-tree-core.js', 'modules/family-tree/tree-geometr
     vm.runInContext(file === 'core/state-tree-core.js' ? source.slice(source.indexOf('function currentTreePeople('), source.indexOf('const topbar =')) : source, context);
 }
 
+const crossGenerationFamilies = [
+    { id: 'focus-family', parents: ['father', 'mother'], children: ['focus'] },
+    { id: 'paternal-family', parents: ['grandfather-a'], children: ['father', 'aunt-a'] },
+    { id: 'maternal-family', parents: ['grandfather-b'], children: ['mother', 'aunt-b'] },
+    { id: 'aunt-a-family', parents: ['aunt-a', 'older'], children: ['younger'] },
+    { id: 'aunt-b-family', parents: ['aunt-b', 'younger'], children: [] }
+];
+const crossGenerationPeople = [...new Set(crossGenerationFamilies.flatMap(family =>
+    [...family.parents, ...family.children]))].map(id => ({ id }));
+const crossGenerationProjection = {
+    focusPersonId: 'focus',
+    people: crossGenerationPeople,
+    families: crossGenerationFamilies.map(family => ({
+        id: family.id, left: family.parents[0], right: family.parents[1], children: family.children
+    })),
+    branchRoles: { parentPresenceByPerson: new Map() }
+};
+for (const direction of ['DOWN', 'RIGHT'])
+{
+    const model = context.prepareElkTreeInput(crossGenerationProjection, new Map(), direction);
+    const copies = model.people.filter(person => person.personId === 'younger');
+    assert.equal(copies.length, 2);
+    assert.equal(copies.filter(person => person.primary).length, 1);
+    assert.ok(copies.every(person => person.occurrenceCount === 2));
+    const parentFamily = model.families.find(family => family.canonicalFamilyId === 'aunt-a-family');
+    const partnerFamily = model.families.find(family => family.canonicalFamilyId === 'aunt-b-family');
+    const child = copies.find(person => parentFamily.children.includes(person.id));
+    const partner = copies.find(person => partnerFamily.parents.includes(person.id));
+    assert.equal(child.generation, partner.generation + 1);
+    assert.equal(child.expanded, true);
+    const occurrences = context.projectElkTreeOccurrences(crossGenerationPeople, crossGenerationFamilies, new Map(), 'focus');
+    verify(crossGenerationPeople, crossGenerationFamilies, occurrences);
+}
+
 const [basePeople, baseFamilies] = fixtures['automatic-duplicates'];
 const people = [...basePeople, { id: 'la01', name: 'Agnes' }, { id: 'la02', name: 'Frederick' }];
 const families = [...baseFamilies, { id: 'F20', parents: ['la01', 'la02'], children: ['ha08'] }];
@@ -133,7 +167,10 @@ assert.equal(projectOccurrences(smallPeople('a b c d e f'), nestedChildren).defe
 assert.throws(() => projectOccurrences(smallPeople('a b'), [family('first', 'a', 'b'), family('second', 'b', 'a')]), /Ancestry cycle/);
 const incompatible = project(smallPeople('a b c'), [family('up', 'a', 'b'), family('partner', 'a b', 'c')],
     { focusPersonId: 'b', ancestorGenerations: 3, descendantGenerations: 3, showCousins: true });
-assert.throws(() => context.prepareElkTreeInput(incompatible), /incompatible generations/);
+const resolved = context.prepareElkTreeInput(incompatible);
+const resolvedCopies = [...new Set(resolved.people.filter(person => person.occurrenceCount === 2)
+    .map(person => person.personId))];
+assert.equal(resolvedCopies.length, 1);
 
 
 function siblingFixture({ couple = false, upstream = false, separate = false, reconverges = true } = {})
