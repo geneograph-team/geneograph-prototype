@@ -2,9 +2,9 @@ const sampleData = {
     projects: [
         { id: 'p1', name: 'Whiskerfield Family Tree', defaultPersonId: 'silver', createdAt: '2026-05-01T00:00:00Z', modifiedAt: '2026-05-24T10:42:00Z', status: 'Local project', cover: 'golden-tree', desc: 'Research into the Whiskerfield and Purrington family lines from Pawford, Meowbridge, Fishmarket Row, and Old Cattery.' },
         { id: 'p-family-tree-stress', name: 'Family Tree Stress Test [TEST ONLY]',
-            defaultPersonId: 'stress-person-0001', createdAt: '2026-11-23T00:00:00Z',
+            defaultPersonId: 'p-family-tree-stress-person-1', createdAt: '2026-11-23T00:00:00Z',
             modifiedAt: '2026-11-23T00:00:00Z', status: 'Local project', cover: 'tree',
-            desc: 'INTERNAL TECHNICAL FIXTURE: 1,023 synthetic people, 9 fully populated ancestor levels. Remove before open user testing.' }
+            desc: 'INTERNAL TECHNICAL FIXTURE: 6,481 pseudonymized people, 1,950 families. Remove before open user testing.' }
     ],
     projectContinuation: {
         projectId: 'p1',

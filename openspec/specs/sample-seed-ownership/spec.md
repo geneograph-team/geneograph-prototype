@@ -29,39 +29,27 @@ project-consistent and available to their connected views.
 ### Requirement: Temporary large-scale technical fixture remains isolated and lazy
 
 While internal Family Tree stress testing is in progress, the **temporary**
-second sample project (issue #381) SHALL expose only metadata at startup,
-then deterministically construct and validate its **1,023-person, 10-level
-ancestor pedigree** upon first project activation. **Person 0001 SHALL be
-the bottom focal person; persons 0002 and 0003 are their parents; each numbered
-person n with parents has father 2n and mother 2n+1** through nine complete
-ancestral levels (2, 4, 8, ... 512 ancestors in each successive level).
-Every person belongs to at most one family as a child and at most one family
-as a partner; the person-family membership graph SHALL be connected and
-acyclic. No branches may reconverge or require repeated visual appearances.
-Multiple-partner, half-sibling, descendant-heavy or pedigree-collapse cases
-are not part of this baseline fixture. It SHALL NOT modify Whiskerfield, duplicate records
-on reopening, or overwrite in-session edits. The fixture and its references
-**MUST be removed before open user testing**. This requirement is temporary
-and must be deleted with the fixture.
+second sample project (issue #446, replacing #381) SHALL expose lightweight
+project metadata and a data-only pseudonymized GEDCOM asset at startup.
+It SHALL use the existing GEDCOM parser and mapper to validate and derive
+canonical records on first activation, preserving 6,481 people and 1,950
+nonempty families. Generic names and shifted dates SHALL remain intact.
+The first exported individual SHALL be the default focus. The fixture SHALL
+NOT modify Whiskerfield, duplicate records on reopening, overwrite in-session
+edits or install any partial invalid draft. The data asset, fixture and its
+references **MUST be removed before open user testing**. This requirement
+is temporary and must be deleted with the fixture.
 
 #### Scenario: Startup and first activation
 - **WHEN** the app starts before the internal test project is opened
 - **THEN** Whiskerfield records are present but no stress-test people or families exist
-- **AND** its project card advertises its intended person count
+- **AND** its project card advertises 6,481 people
 - **WHEN** the tester opens the technical project
-- **THEN** all 1,023 synthetic people and their 511 valid parent families are available atomically
+- **THEN** 6,481 people, 1,950 families and derived timeline events are available atomically
 - **AND** a second opening does not regenerate or discard edits
-- **AND** file-based startup requires no network fetch
+- **AND** file-based startup and first activation require no network fetch
 
-#### Scenario: Fully populated ancestors above the proband
-- **WHEN** the tester selects Person 0001 in Family Tree
-- **THEN** Person 0002 is the recorded father and Person 0003 the recorded mother
-- **AND** their recorded parents are Person 0004–0007, and every row up to nine ancestor levels is fully populated with 2^level distinct people
-- **AND** Person 0001 has no descendants in this baseline fixture
-- **AND** all ancestry remains navigable despite the Tree UI's existing six-level-at-once limit
-
-#### Scenario: Single-appearance Family Tree baseline
-- **WHEN** the tester focuses anywhere in the technical project's pedigree
-- **THEN** each canonical person appears at most once in that view
-- **AND** there are no membership loops, repeated parent families or repeated partner families
-- **AND** any unknown-parent placeholders represent missing evidence, not duplicate person records
+#### Scenario: Complex genealogy
+- **WHEN** the tester navigates the technical project's genealogy
+- **THEN** incomplete ancestry, multiple partnerships, siblings and repeated visual contexts use the canonical family memberships
+- **AND** Tree and People views reference the same canonical identities
