@@ -16,3 +16,7 @@ Connecting an existing person as Parent currently bypasses the family picker ava
 - `existing-parent-family-selection`: Explicit reciprocal family selection when connecting an existing parent.
 
 Related: #324. Coordinate with sibling unknown-parent choices #333 in this PR.
+
+## Closeout — 26 November 2026
+
+Founder accepted the implemented change (#324, merged PR #350) as complete on 26 November 2026. The earlier browser matrix is not verified by the recorded evidence; administrative closeout is not a test result.

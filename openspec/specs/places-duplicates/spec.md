@@ -120,3 +120,7 @@ selection only when the selected pair remains visible and valid.
 #### Scenario: View one Place
 - **WHEN** the user chooses View Place for B in the pair inspector
 - **THEN** pair selection clears and B appears in the ordinary Place inspector
+
+#### Scenario: Selected pair disappears
+- **WHEN** search or a record edit removes the selected pair from visible findings
+- **THEN** pair selection clears without selecting an unrelated pair
