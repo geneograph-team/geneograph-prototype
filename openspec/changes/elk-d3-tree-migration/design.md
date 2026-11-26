@@ -131,3 +131,19 @@ The shared geometry contract defines a 40-unit nominal ordinary partner gap for 
 The Tree projects ordered canonical people and normalized family edges first. A request-local person index is reused when off-tree navigation needs to inspect visibility before rendering. A compatible mounted scene answers visibility directly. Resource counts and name/date/place display values are collected only for visible canonical people. The inspector and Add parent labels can reuse those display records. These indexes are rebuilt per request, and the scene fast path checks the project, settings and committed-edit revision.
 
 Offline Edge on the local 6,481-person, 1,950-family import recorded 15 completed focus changes per orientation at 7 ancestor and 3 descendant generations with cousins on. Median people preparation was 2.0 ms Vertical and 2.7 ms Horizontal. Median warm scene publication was 389.1 ms Vertical and 749.0 ms Horizontal. The same-sequence legacy hydration control recorded 2,006.0 and 2,031.3 ms preparation and 2,749.5 and 2,739.7 ms warm scene publication. The founder's separate Vertical run recorded 1,294.6 ms preparation and 1,663.0 ms scene publication. It used a different sequence. The local runs had the same incompatible-generation failures and zero diagnostics in completed samples. No solver settings changed.
+
+### #417 local evidence — 26 Nov 2026
+
+Tree keeps up to eight completed layouts for the active project in a single in-memory LRU across orientations. The geometry key includes ordered topology, visibility, occurrence expansion, gender and Focus clearance. Hits use current display records. Errors, native fallback results, canceled work and superseded responses stay out of the store. Leaving Tree or switching projects clears it.
+
+Offline Edge, local 6,481-person import, 1,950 families, 7 ancestors, 3 descendants and cousins on. The same controlled A→B→A and A→B→C→A sequence completed 18 times per orientation. Baseline missed all 18 and performed 24 solves per orientation. The new cache hit 15/18 and performed four solves per orientation, all on misses.
+
+| Metric (ms) | Vertical | Horizontal |
+| --- | ---: | ---: |
+| Baseline miss median | 413.9 | 381.8 |
+| New miss median (three samples) | 394.4 | 377.5 |
+| New hit median | 23.0 | 21.8 |
+| New hit range | 16.5–26.6 | 16.6–25.3 |
+| Cold first scene, baseline → new | 627.9 → 610.0 | 544.0 → 533.6 |
+
+New miss pending feedback medians were 10.5 ms Vertical and 8.2 ms Horizontal. All hits recorded zero solver passes. The sampled cache matched a fresh solve on boxes, paths, diagnostics, dimensions, principal pairs and spacing. Six entries occupied 1,415,763 serialized UTF-8 bytes. This is a footprint proxy, not browser heap usage. The deterministic tests covered capacity, LRU refresh, compatibility, fresh display, ordering of pending responses, failure/native fallback exclusion and disposal. Occurrence, renderer and recorder checks passed. The existing ELK test harness stopped at the cross-realm empty-array assertion after its approved layouts and 64 ordering cases. The issue remains open for founder acceptance.

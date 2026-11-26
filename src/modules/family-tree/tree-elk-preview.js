@@ -1,12 +1,19 @@
 let treeElkRequest = null;
-const treeElkOrientationCache = new Map();
+const treeElkRecentLayouts = new Map();
+const TREE_ELK_RECENT_LIMIT = 8;
+let treeElkCacheProjectId = null;
 
-function disposeTreeElkLayout()
+function disposeTreeElkLayout({ retainRecent = false } = {})
 {
     const previous = treeElkRequest;
     treeElkRequest = null;
     if (previous?.trace) treePerf.finish(previous.trace, 'canceled');
     previous?.cancel?.();
+    if (!retainRecent)
+    {
+        treeElkRecentLayouts.clear();
+        treeElkCacheProjectId = null;
+    }
 }
 
 function calculateLocalElkGraph(preview, graph)
@@ -287,15 +294,25 @@ function treeElkLayoutForProjection(projectId, projection, view, trace = null)
     const expansion = new Map(view.ancestryExpansion);
     const orientation = view.orientation === 'horizontal' ? 'horizontal' : 'vertical';
     const direction = orientation === 'horizontal' ? 'RIGHT' : 'DOWN';
-    const key = JSON.stringify([projectId, orientation, projection.focusPersonId, view.ancestorGenerations,
-        view.descendantGenerations, view.showCousins, projection.people.map(person => [person.id, person.gender]),
-        projection.families.map(({ id, left, right, children }) => [id, left, right, children]),
-        [...projection.branchRoles.parentPresenceByPerson], [...expansion].sort()]);
-    if (treeElkRequest?.key !== key)
+    if (treeElkCacheProjectId !== projectId)
     {
         disposeTreeElkLayout();
-        const cached = treeElkOrientationCache.get(orientation);
-        const preview = { key, projection, orientation, ...(cached?.key === key ? cached : {}), trace };
+        treeElkCacheProjectId = projectId;
+    }
+    const key = JSON.stringify([projectId, orientation, TREE_GEOMETRY, projection.focusPersonId, view.ancestorGenerations,
+        view.descendantGenerations, view.showCousins, projection.people.map(person => [person.id, person.gender]),
+        projection.families.map(({ id, left, right, children }) => [id, left, right, children]),
+        [...projection.branchRoles.parentPresenceByPerson], [...projection.branchRoles.focusActionPersonIds || []], [...expansion].sort()]);
+    if (treeElkRequest?.key !== key)
+    {
+        disposeTreeElkLayout({ retainRecent: true });
+        const cached = treeElkRecentLayouts.get(key);
+        if (cached)
+        {
+            treeElkRecentLayouts.delete(key);
+            treeElkRecentLayouts.set(key, cached);
+        }
+        const preview = { key, projection, orientation, ...cached, trace };
         treeElkRequest = preview;
         treePerf.cache(trace, preview.geometry ? 'hit' : 'miss');
         // Defer even input errors until the pending presentation is mounted.
@@ -309,7 +326,13 @@ function treeElkLayoutForProjection(projectId, projection, view, trace = null)
                 preview.geometry = await solveElkTree(preview.model.people, preview.model.families, direction,
                     graph => calculateLocalElkGraph(preview, graph), preview.model.focusId, measure);
                 if (treeElkRequest !== preview) return;
-                treeElkOrientationCache.set(orientation, { key, model: preview.model, geometry: preview.geometry });
+                // Native fallback geometry can be displayed with its diagnosis, but is not a reusable solve.
+                if (Array.isArray(preview.geometry.underpasses))
+                {
+                    treeElkRecentLayouts.set(key, { model: preview.model, geometry: preview.geometry });
+                    if (treeElkRecentLayouts.size > TREE_ELK_RECENT_LIMIT)
+                        treeElkRecentLayouts.delete(treeElkRecentLayouts.keys().next().value);
+                }
             }
             catch (error)
             {
