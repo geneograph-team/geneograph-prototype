@@ -128,8 +128,8 @@ function fixture(direction, pattern, depth = 4)
                 {
                     if (!group.children) continue;
                     const members = group.children.filter(node => byId.has(node.id));
-                    const paired = members.length === 2 && members.every(node => byId.get(node.id).placeholder);
-                    const padding = direction === 'DOWN' && paired ? 0 : 18;
+                    const hasPlaceholder = members.some(node => byId.get(node.id).placeholder);
+                    const padding = direction === 'DOWN' && hasPlaceholder ? 0 : 18;
                     assert.equal(group.layoutOptions['elk.padding'],
                         '[top=18,left=' + padding + ',bottom=18,right=' + padding + ']');
                 }
@@ -155,18 +155,31 @@ function fixture(direction, pattern, depth = 4)
         }
     // A single missing partner reserves space beside the known parent's
     // complete parent pair. Its invisible width must not push that pair aside.
-    for (const [pattern, targets] of [
-        [{ RF: 'both', RM: 'mother', RMF: 'both' }, ['RMF']],
-        [{ RF: 'mother', RFF: 'both', RM: 'mother', RMF: 'both' }, ['RFF', 'RMF']],
-        [{ RF: 'father', RFM: 'both' }, ['RFM']]
+    for (const [pattern, targets, depth] of [
+        [{ RF: 'both', RM: 'mother', RMF: 'both' }, ['RMF'], 3],
+        [{ RF: 'mother', RFF: 'both', RM: 'mother', RMF: 'both' }, ['RFF', 'RMF'], 3],
+        [{ RF: 'father', RFM: 'both' }, ['RFM'], 3],
+        // Consecutive missing-partner households at different generations.
+        [{ RFF: 'mother', RFFF: 'both', RFM: 'mother', RFMF: 'mother', RFMFF: 'both',
+            RMFF: 'mother', RMFFF: 'both', RMFM: 'mother', RMFMF: 'both',
+            RMMF: 'mother', RMMFF: 'mother', RMMFFF: 'both', RMMM: 'both' },
+            ['RFFF', 'RFMFF', 'RMFFF', 'RMFMF', 'RMMFFF'], 6]
     ])
     {
-        const { people, families } = fixture('DOWN', pattern, 3);
+        const { people, families } = fixture('DOWN', pattern, depth);
         const byId = new Map(people.map(person => [person.id, person]));
         let calls = 0;
         const result = await context.solveElkTree(people, families, 'DOWN', graph =>
         {
             calls++;
+            for (const group of graph.children)
+            {
+                if (!group.children) continue;
+                const hasPlaceholder = group.children.some(node => byId.get(node.id)?.placeholder);
+                const padding = hasPlaceholder ? 0 : 18;
+                assert.equal(group.layoutOptions['elk.padding'],
+                    '[top=18,left=' + padding + ',bottom=18,right=' + padding + ']');
+            }
             return elk.layout(JSON.parse(JSON.stringify(graph)));
         }, 'R');
         assert.ok(calls <= 2);

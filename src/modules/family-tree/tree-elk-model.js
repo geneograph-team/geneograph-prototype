@@ -584,10 +584,10 @@ async function solveElkTree(people, families, direction, calculate, focusId = nu
         const groupPadding = 18;
         for (const group of groups)
         {
-            // Two Vertical missing-parent slots already span one regular card.
-            // Do not widen their native footprint with invisible side padding.
-            const sidePadding = direction === 'DOWN' && group.members.length === 2
-                && group.members.every(id => peopleById.get(id).placeholder) ? 0 : groupPadding;
+            // Vertical missing-parent compounds and reservation nodes use the
+            // visible cross-axis footprint; ELK supplies the side spacing.
+            const sidePadding = direction === 'DOWN'
+                && group.members.some(id => peopleById.get(id).placeholder) ? 0 : groupPadding;
             // INCLUDE_CHILDREN is inherited throughout.
             const node = {
                 id: group.id,
