@@ -8,6 +8,6 @@ The ELK 0.12.1 browser bundle runs in its own local HTML document. Its interface
 
 ## Third-party distribution
 
-The EPL-2.0 ELK bundle is distributed unchanged as a separate graph-layout program alongside the GPL-3.0 application. Neither license is used to relicense the other program. The programs exchange ordinary ELK layout JSON and maintain separate execution contexts. The upstream license remains beside the distribution.
+The unchanged ELK bundle is distributed as a separate graph-layout program alongside the GPL-3.0 application. Upstream elkjs 0.12.1 declares EPL-2.0 OR GPL-3.0-or-later in its package metadata and source notices; the secondary license is available subject to its terms. The programs exchange ordinary ELK layout JSON and maintain separate execution contexts. Preserve the upstream license and source references beside the distribution; exact bundled-source and notice verification remains tracked under #428.
 
 The unchanged browser distribution and license are copied from the upstream [elkjs 0.12.1 tag](https://github.com/kieler/elkjs/tree/0.12.1) (`lib/elk.bundled.js` and `LICENSE.md`) into `src/vendor/elkjs-0.12.1/`. The Git blob IDs are `fbebd45cfd9cd1fe10c5e5165e3ba16653e129bd` and `91dd37eefbe62d3d9fb7a1e7e2c7a9a1e2cdcbcc`, respectively, verified identical after copying. No package installation or network access is needed at runtime. Upstream layout source is available from [Eclipse ELK](https://github.com/eclipse-elk/elk). Version 0.12.1 is the version used in the founder-approved standalone centering experiments.

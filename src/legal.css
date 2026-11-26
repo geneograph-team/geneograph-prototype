@@ -1,0 +1,63 @@
+body {
+    margin: 0;
+    background: var(--gg-background, Canvas);
+    color: var(--gg-text, CanvasText);
+    font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+    line-height: 1.6;
+}
+
+main {
+    max-width: 52rem;
+    margin: 0 auto;
+    padding: 1.5rem;
+    overflow-wrap: anywhere;
+}
+
+section {
+    margin: 2.5rem 0;
+    scroll-margin-top: 1rem;
+}
+
+a {
+    color: var(--gg-primary, LinkText);
+    text-underline-offset: .15em;
+}
+
+a:focus-visible {
+    outline: 2px solid var(--gg-primary, Highlight);
+    outline-offset: 2px;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    text-align: left;
+    font-size: .95rem;
+}
+
+caption {
+    text-align: left;
+    font-weight: 600;
+    margin-bottom: .5rem;
+}
+
+th, td {
+    padding: .5rem;
+    border-bottom: 1px solid var(--gg-border, GrayText);
+    vertical-align: top;
+}
+
+footer {
+    border-top: 1px solid var(--gg-border, GrayText);
+    padding-top: 1rem;
+}
+
+@media (max-width: 480px) {
+    main {
+        padding: 1rem;
+    }
+
+    th, td {
+        padding: .3rem;
+    }
+}
