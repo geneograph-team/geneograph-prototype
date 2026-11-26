@@ -1,7 +1,7 @@
-# Prototype license and data-use notices
+# Shared website and prototype legal notices
 
-Provide local, bilingual access to the first-party GPL-3.0 text, source repository, known third-party license notices and factual prototype data-use information. Preserve the current public repository, Pages deployment, existing libraries and provider behavior. This is the first distribution-facing step of #431, related to #427–#432 and geneograph-team/geneograph-landing#2. It does not complete the upstream bundle, asset, map or GDPR review.
+The GeneoGraph website is the single user-facing home for the privacy policy and license notices covering both the website and prototype. Settings → About links to the matching English or Russian section. The separate prototype legal document and stylesheet are removed. Preserve the public repository, existing deployment, libraries, providers and contextual attribution. Related: #427–#432, #434 and geneograph-team/geneograph-landing#4.
 
-The notice page uses only local assets and existing theme support. About retains the existing privacy policy link and gains links to the prototype-specific data-use notice and license section. The GPL text is copied byte-for-byte from the root license because deployment copies only src/. No deployment change is included.
+The landing retains the known component and map-license index and byte-identical copies of the primary license files. Original distributed license files and the GPL text remain alongside the prototype. Keep the shared notices synchronized when dependencies change. The prototype remains usable from local files; the website notices require a network connection. Publish landing changes before the dependent prototype update.
 
-Remaining gates: #428–#430 evidence, exact deployed-revision source correspondence, owner/controller and provider account confirmations, and final browser verification. Keep this change active until those applicable distribution gates are resolved.
+Remaining gates: bundle-level source and notice evidence, asset and provider review, applicable privacy requirements, exact deployed source correspondence and browser verification. Keep this change active until applicable distribution gates are resolved. No workflow or provider change.

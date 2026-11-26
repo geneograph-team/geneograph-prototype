@@ -12,5 +12,5 @@ These pinned browser distributions are served locally by the prototype:
 
 The primary license files are included here. Full bundle-level transitive notice and corresponding-source verification remains tracked under #428.
 
-The hosted runtime also uses Quill `2.0.3` (BSD-3-Clause, jsDelivr) and MapLibre GL JS `6.16.0` (BSD-3-Clause, unpkg). Their exact tagged upstream license texts are copied as `quill-2.0.3-LICENSE.txt` and `maplibre-gl-6.16.0-LICENSE.txt`; their runtime files are not vendored. See [the published notice index](../legal.html#licenses-en).
-Replacing a distribution should update its version note or versioned filename, license, and references in `index.html` or `archive-documents.js` together.
+The hosted runtime also uses Quill `2.0.3` (BSD-3-Clause, jsDelivr) and MapLibre GL JS `6.16.0` (BSD-3-Clause, unpkg). Their exact tagged upstream license texts are copied as `quill-2.0.3-LICENSE.txt` and `maplibre-gl-6.16.0-LICENSE.txt`; their runtime files are not vendored. See [the shared website notice index](https://geneograph.com/legal.html#licenses).
+Replacing a distribution should update its version note or versioned filename, license, and references in `index.html` or `archive-documents.js` together. Reconcile the website's published component index and exact license copies in the same release.
