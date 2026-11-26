@@ -1,3 +1,7 @@
+# Historical migration delta
+
+Current requirements are consolidated in the [current specification](../../../../specs/family-tree-zoom/spec.md). The text below retains the migration proposal and lab decisions for traceability.
+
 The founder retired the former 0–200% display-range requirement on 2026-11-25; it has already been removed from the baseline spec in #398. Remove the legacy mapping and tests tied solely to artificial endpoints during #400/#402, with final cleanup in #407.
 
 ## MODIFIED Requirements

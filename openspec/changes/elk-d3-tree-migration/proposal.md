@@ -1,6 +1,6 @@
 # ELK/D3 Family Tree migration
 
-**Status:** Approved product direction; target design for implementation, not current runtime behavior. [Umbrella #397](https://github.com/geneograph-team/geneograph-prototype/issues/397); architecture [#398](https://github.com/geneograph-team/geneograph-prototype/issues/398). Source baseline `0d1ed1347da14ccd9642d5ef98af8529fce1aa31`.
+**Status:** Implemented. #423 reconciles verified behavior in the [current Family Tree specification](../../specs/family-tree/spec.md). Founder acceptance remains the archival gate. [Umbrella #397](https://github.com/geneograph-team/geneograph-prototype/issues/397); architecture [#398](https://github.com/geneograph-team/geneograph-prototype/issues/398). Source baseline `0d1ed1347da14ccd9642d5ef98af8529fce1aa31`.
 
 The founder accepted the integrated vertical ELK preview (#396), focus/duplicate experiment, card/date/zoom lab and branch-color lab on 2026-11-25. ELK is the target engine. Classic is not a required comparison or recovery mode. Remove it early after dependency audit, retaining temporary legacy helpers only with a concrete benefit and removal condition.
 
@@ -16,4 +16,4 @@ Reuse canonical genealogy, commands, visibility projection and approved ELK layo
 - #399 occurrences; #400 renderer; #401 derivatives; #402 cards/date/zoom; #403 orientation/integration; #404 early Classic removal; #405 coloring; #407 final cleanup and acceptance.
 - Approved standalone attachments: `elk-d3-focus-duplicates.html`, `geneograph-card-zoom-lab.html`, `geneograph-branch-color-lab.html`. Supply to implementation agents for visual comparison. The fixtures are reference evidence, not production integration tests. Decisions are recorded in the feature deltas and design below; exact palette reference also in #405.
 
-Current verified specs remain current-behavior records until corresponding implementation and acceptance; the migration deltas supersede incompatible old target requirements. Preserve earlier preview verification, including unperformed checks. Reconcile preview and migration changes and archive only when verified, as required by [OpenSpec workflow](../../README.md).
+The [current Family Tree specification](../../specs/family-tree/spec.md) records current requirements. Preserve earlier preview verification and its outstanding checks as historical evidence. Archive after founder acceptance under the [OpenSpec workflow](../../README.md).

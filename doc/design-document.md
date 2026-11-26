@@ -102,7 +102,7 @@ Names include given, middle, surname, and where recorded a maiden surname. Livin
 
 Family Tree is the structured relationship view. It uses layout and connector logic to render people, partner groups, parents, children, and family junctions. Card actions open the established person and relationship workflows. The tree and People/Profile views refer to the same underlying records. Tree geometry and relationship constraints are implementation-owned in `src/modules/family-tree/`; do not copy dimensions from the 2026-08 snapshot.
 
-Family Tree uses the local vertical ELK provider. The layout resolves visible family occurrences into card, placeholder and connector geometry. The renderer distinguishes connector crossings from family junctions, and the canvas offers Retry if layout calculation fails. See the [source map](source-map.md#family-tree-layout) for ownership.
+The local ELK provider lays out Vertical and Horizontal views, and one D3 renderer presents the result. Visual occurrences share canonical records; navigation distinguishes selection from explicit Focus. The viewport uses actual scale and full-scene Fit. The canvas offers Retry when layout fails. See the [Family Tree specification](../openspec/specs/family-tree/spec.md) and [source map](source-map.md#family-tree-layout).
 
 The GEDCOM importer builds a detached canonical project before opening Family Tree. GEDCOM export and round-trip interchange remain outside the import scope.
 

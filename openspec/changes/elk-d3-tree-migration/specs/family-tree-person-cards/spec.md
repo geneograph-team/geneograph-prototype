@@ -1,3 +1,7 @@
+# Historical migration delta
+
+Current requirements are consolidated in the [current specification](../../../../specs/family-tree-person-cards/spec.md). The text below retains the migration proposal and lab decisions for traceability.
+
 ## MODIFIED Requirements
 
 ### Requirement: Distinct gender cues

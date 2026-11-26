@@ -458,7 +458,7 @@ function inspect(layout, peopleById, families)
             assert.equal(report.falseJunctions, 0);
             assert.equal(report.routedEdges, report.expectedEdges);
             assert.equal(layout.passes, 1);
-            assert.deepEqual(layout.issues, []);
+            assert.deepEqual([...layout.issues], []);
             assert.equal(JSON.stringify([people, families]), snapshot);
         }
 
@@ -499,7 +499,7 @@ function inspect(layout, peopleById, families)
             const boxes = new Map(layout.boxes.map(box => [box.id, box]));
             const axis = direction === 'DOWN' ? 'x' : 'y';
             assert.ok(boxes.get(pair.orderedPeople[0])[axis] < boxes.get(pair.orderedPeople[1])[axis]);
-            assert.deepEqual(layout.issues, []);
+            assert.deepEqual([...layout.issues], []);
             assert.ok(layout.passes <= 2);
             const { report } = inspect(layout, new Map(input.people.map(person => [person.id, person])), input.families);
             assert.equal(report.cardOverlaps, 0);
@@ -532,13 +532,13 @@ function inspect(layout, peopleById, families)
             const layout = await context.solveElkTree(people, chainFamilies, direction, graph =>
             {
                 const group = graph.children.find(group => group.children.some(node => node.id === 'primary'));
-                assert.deepEqual(group.children.filter(node => chainFamilies.some(family => family.id === node.id))
-                    .map(node => node.id), ['secondary-a', 'primary', 'secondary-b']);
+                assert.deepEqual(Array.from(group.children.filter(node => chainFamilies.some(family => family.id === node.id)),
+                    node => node.id), ['secondary-a', 'primary', 'secondary-b']);
                 assert.ok(!graph.layoutOptions['elk.layered.crossingMinimization.forceNodeModelOrder']);
                 return solver.layout(JSON.parse(JSON.stringify(graph)));
             }, 'y');
             assert.ok(layout.primaryPairs.some(pair => pair.primary === 'primary'));
-            assert.deepEqual(layout.issues, []);
+            assert.deepEqual([...layout.issues], []);
             const boxes = new Map(layout.boxes.map(box => [box.id, box]));
             const axis = direction === 'DOWN' ? 'x' : 'y';
             const extent = direction === 'DOWN' ? 'w' : 'h';
@@ -583,8 +583,8 @@ function inspect(layout, peopleById, families)
         const axis = direction === 'DOWN' ? 'x' : 'y';
         assert.ok(ordered.get('a')[axis] > ordered.get('b')[axis], 'Injected reversal must remain native');
         assert.equal(layout.issues.length, 1);
-        assert.deepEqual(layout.orderDetails.map(detail => detail.familyId), ['primary']);
-        assert.deepEqual(layout.orderDetails[0].personIds, ['a', 'b']);
+        assert.deepEqual(Array.from(layout.orderDetails, detail => detail.familyId), ['primary']);
+        assert.deepEqual([...layout.orderDetails[0].personIds], ['a', 'b']);
         assert.equal(layout.orderDetails[0].message, layout.issues[0]);
         assert.ok(layout.underpasses);
         const { report } = inspect(layout, new Map(warningPeople.map(person => [person.id, person])), warningFamilies);
@@ -758,8 +758,8 @@ function inspect(layout, peopleById, families)
             {
                 assert.ok(newErrors.get('parents:R') < EPS, 'Main couple must be centered');
                 if (side.length !== 1)
-                    assert.deepEqual([...after.values()].filter(b => !['R', 'S'].includes(b.id)),
-                        [...before.values()].filter(b => !['R', 'S'].includes(b.id)), 'Balanced ancestors must remain native');
+                    assert.deepEqual(structuredClone([...after.values()].filter(b => !['R', 'S'].includes(b.id))),
+                        structuredClone([...before.values()].filter(b => !['R', 'S'].includes(b.id))), 'Balanced ancestors must remain native');
             }
             console.log(JSON.stringify({ direction, depth, side, descendants, extended,
                 nativeOffset: oldErrors.get('parents:R'), refinedOffset: newErrors.get('parents:R'),
@@ -808,8 +808,8 @@ function inspect(layout, peopleById, families)
             const couple = families.find(f => f.id === 'couple:R');
             assert.ok(layout.passes <= 2);
             assert.deepEqual([...layout.issues], []);
-            assert.deepEqual([...after.values()].filter(b => !['R', 'S'].includes(b.id)),
-                [...before.values()].filter(b => !['R', 'S'].includes(b.id)));
+            assert.deepEqual(structuredClone([...after.values()].filter(b => !['R', 'S'].includes(b.id))),
+                structuredClone([...before.values()].filter(b => !['R', 'S'].includes(b.id))));
             const beforeOffset = Math.abs(midpoint(before, couple) - midpoint(before, parental));
             const afterOffset = Math.abs(midpoint(after, couple) - midpoint(after, parental));
             if (expected) assert.ok(afterOffset < EPS, 'Single child partnership is centered');
@@ -870,9 +870,9 @@ function inspect(layout, peopleById, families)
             const principal = missing === 'father' ? ['partner', 'known'] : ['known', 'partner'];
             const preferences = [['primary', principal], ['secondary', [left, right]]];
             const reversed = preferences.filter(([, [a, b]]) => byId.get(a)[axis] >= byId.get(b)[axis]);
-            assert.deepEqual(layout.orderDetails.map(detail => detail.familyId), reversed.map(([id]) => id));
-            assert.deepEqual(layout.orderDetails.map(detail => detail.personIds), reversed.map(([, ids]) => ids));
-            assert.deepEqual(layout.issues, layout.orderDetails.map(detail => detail.message));
+            assert.deepEqual(Array.from(layout.orderDetails, detail => detail.familyId), reversed.map(([id]) => id));
+            assert.deepEqual(Array.from(layout.orderDetails, detail => [...detail.personIds]), reversed.map(([, ids]) => ids));
+            assert.deepEqual([...layout.issues], Array.from(layout.orderDetails, detail => detail.message));
             assert.ok(layout.underpasses, 'Ordering preferences must not trigger native route fallback');
             const { report } = inspect(layout, new Map(people.map(p => [p.id, p])), families);
             assert.equal(report.cardOverlaps, 0);

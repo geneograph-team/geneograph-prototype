@@ -13,9 +13,9 @@ Architecture planning (#398) is merged. Implementation and verification are trac
 - [x] #402: implement approved cards/date/zoom, verify thresholds and accessibility.
 - [x] #405: project-level coloring and channel/legend behavior.
 - [x] #409: apply descendant depth consistently to sibling and cousin branches.
-- [ ] #403 reopened: inline routing, principal/placeholder ordering and diagnostic disclosure implemented in PR #410; synthetic reversal fixtures now pass. Founder private-tree and browser acceptance pending.
-- [ ] PR #410: ELK.js 0.12.1 and guarded ancestry-first centering implemented and algorithm approved by founder; native browser/offline and real-project QA pending.
-- [ ] #407: remove remaining legacy paths, reconcile current specs and preview change, final documentation, QA and archive.
+- [x] #403: both orientations, preferred native principal/placeholder ordering and diagnostic disclosure accepted. Keep the native ordering exceptions as nonfatal diagnostics.
+- [x] PR #410: ELK.js 0.12.1 and guarded ancestry-first centering approved by founder and rerun in the integrated #423 checks.
+- [ ] #407 and #397: founder acceptance and archival. #423 records integrated verification and current-spec reconciliation below.
 
 ## Verification of this architecture change
 
@@ -191,3 +191,14 @@ Inspected current pushed default, repository and OpenSpec guidance, preview desi
 - Extend the existing Vertical compound padding rule to every group containing a placeholder. This supersedes the earlier paired-only condition and retained mixed-compound side padding; reservation dimensions, depth padding, real-person-only groups, Horizontal input, ancestry/sibling placement rules and guarded translation/routing remain unchanged.
 - Actual ELK 0.12.1 in isolated JavaScript harnesses with emulated Node interfaces: ancestral reservations 24 layouts / 2,155 assertions; sibling ordering 24 layouts / 185 assertions; existing ELK 4,813 assertions; collateral compaction 10 matched layouts / 11,084 assertions. All passed. The added six-generation fixture eliminates the three offsets and aligns five targeted complete pairs within .02 units, with no projected placeholder stacking, generation spread or detected connector conflicts. Matched comparison retains a separate 85-unit displacement in constrained ancestry; perfect alignment is not forced. The fixture width decreases from 4,629 to 4,476 units, with one solve in each revision.
 - Thirteen matched Horizontal comparisons against the preceding PR revision produce identical native inputs and final geometry (excluding elapsed timing). No additional solves or positioning paths. The private full-project/browser example has not been rerun; direct Node regression, visual acceptance and integrated performance remain pending in #425/#423.
+
+## Integrated verification (#423)
+
+- PR #424 is merged and #425 and #426 are integrated. The current Family Tree, semantic zoom, and person card specifications own the verified behavior. This change and the historical ELK preview remain active until founder acceptance.
+- Direct Node runs passed the ELK suite (4,813 assertion calls), visual occurrences (16,524 projections and 11 solves), ancestor reservations and sibling order (24 layouts each), and collateral compaction (10 matched layouts and 108 conflict comparisons). Rails, renderer, recent layouts, recorder, display settings, collateral depth, branch attribution, catalog, GEDCOM, and the 1,023-person stress fixture also passed. The ELK assertions normalize values returned from its VM before strict comparison.
+- Offline Edge on direct file and loopback checked focus and recents, duplicate ancestry transfer, Add relative, project switching, wheel, drag, keyboard, synthetic pinch, Fit, resize, fullscreen, mobile controls at 390 px, semantic zoom, and branch colors in light and dark themes. Reload restored the saved focus and settings. The 511-card rendered stress scene completed with one solve and zero reported diagnostics in each orientation.
+- Six local GEDCOM layout checks covering the #420 routing cases and a #426 marriage-loop case completed with zero reported geometric conflicts, child-family pair contacts, or diagnostics. Each used two ELK passes. Pan and zoom preserved geometry. Coincident connector intervals that represent distinct relationships remain an accepted visual limitation where they cannot be separated by placement.
+- Eight matched refinement cases retained the accepted #425 geometry hashes, native node counts, and pass counts across both orientations. Median refinement ranged from 0.12 ms on the ordinary fixture to about 40 ms on the deep fixture. All 16 synthetic viewport benchmark cases triggered zero solves during pan and zoom. Fourteen tier-demand signatures matched the prior #418 run. Both differences were in the small portrait-heavy Horizontal scene with fewer mounted portrait rectangles. These are fixture measurements.
+- Packaged portraits decoded over loopback. Direct file opening still uses the initials fallback for packaged portraits (#401). Generated portrait derivatives passed crop, cache, and project-isolation checks in Edge. Physical touch and other browser engines were outside this run.
+- The broader project-data contract script stops at its legacy board-photo assertion (line 852). The board validator rejects the forbidden field before reaching the expected image-reference error. The Tree checks above ran independently.
+

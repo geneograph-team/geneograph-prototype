@@ -2,24 +2,21 @@
 
 ## Requirements
 
-**Current implementation note:** The legacy display mapping is still present in
-code. The founder retired the 0–200% display-range requirement on
-2026-11-25. It is no longer normative; replacement by actual-scale zoom,
-including Fit, is tracked in the [active migration delta](../../changes/elk-d3-tree-migration/specs/family-tree-zoom/spec.md).
+### Actual scale and viewport continuity
 
-### Requirement: Progressive card details
-Family Tree SHALL adapt person detail to zoom, progressing from full
-cards to names, given names, and minimal markers without changing
-genealogical relationships.
+The displayed percentage SHALL use actual scale. At 100%, the ordinary card footprint is 300 × 124 CSS pixels. Supported positive scales extend from the normal overview minimum through 180%; Fit may go lower to include all scene bounds, including controls and connectors. Zoom preserves the interaction anchor where applicable. Explicit focus centers the appropriate occurrence. The viewport supports pointer pan, wheel, pinch, keyboard and resize. Fit, camera movement and scale changes reuse the mounted scene without a solver request or canonical edit.
 
-#### Scenario: View markers
-- **WHEN** the tree is shown at the smallest overview stage
-- **THEN** person selection and the inspector remain usable
+### Progressive detail
 
-### Requirement: Viewport continuity
-Zoom controls SHALL preserve the interaction anchor where possible;
-Home SHALL restore the default level and focused-person context.
+Choose detail from the screen-space size of the fixed card footprint. At marker and label detail, canonical selection and the inspector remain usable. Semantic detail changes do not change layout geometry.
 
-#### Scenario: Zoom by pointer
-- **WHEN** the user zooms around a location
-- **THEN** the tree position remains approximately anchored
+| Stage | Minimum CSS px | Visible detail |
+| --- | --- | --- |
+| Full | 278 × 112 | Portrait, full name, detailed dates, actions |
+| Short | 228 × 92 | Portrait, shorter name, compact dates, actions |
+| Compact | 174 × 70 | Shorter name, compact dates, actions |
+| Actions | 110 × 46 | Name and actions |
+| Label | 48 × 19 | Short name without card actions |
+| Marker | Below Label | Color marker with accessible identity |
+
+Edit and Add relative remain icon-only and right aligned where shown. Standalone Focus controls are anchored above the right side of eligible cards and hidden at overview scales. A focused action that disappears during zoom transfers keyboard focus to the card.

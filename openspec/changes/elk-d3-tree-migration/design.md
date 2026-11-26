@@ -1,6 +1,6 @@
 # Design — presentation boundaries and contracts
 
-**Migration target.** The approved vertical ELK layout is already the sole provider after #404. The remaining architecture below describes later work. The names below describe minimal contracts, not mandated new global bindings or a generic framework. Preserve the static, classic deferred-script application and existing project commands.
+**Current behavior.** The [Family Tree specification](../../specs/family-tree/spec.md) records the integrated ELK/D3 behavior. This design preserves the earlier migration baseline and subsequent decision and verification history.
 
 ## 1. Historical baseline and migration boundaries
 
