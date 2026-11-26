@@ -1,6 +1,6 @@
 # Design — presentation boundaries and contracts
 
-**Current behavior.** The [Family Tree specification](../../specs/family-tree/spec.md) records the integrated ELK/D3 behavior. This design preserves the earlier migration baseline and subsequent decision and verification history.
+**Current behavior.** The [Family Tree specification](../../../specs/family-tree/spec.md) records the integrated ELK/D3 behavior. This design preserves the earlier migration baseline and subsequent decision and verification history.
 
 ## 1. Historical baseline and migration boundaries
 
@@ -13,7 +13,7 @@
 | `modules/family-tree/tree-view.js`: renderFamilyTree, renderTreeLines, renderTreePersonCard, renderTreeFocusControl, treeDetailLevel; `tree-scroll.js` | Rebuilds main HTML, binds events, DOM-dependent centering, synthetic zoom mapping | Incremental renderer, scene-based viewport/search, actual scale and six detail stages |
 | `modules/albums/filters-avatar.js`, `photo-layout-and-crop.js` | Compact avatar uses original photo.src; face positioning scans on scroll | Shared local derivative service; only visible portrait demand |
 
-See [current source map](../../../doc/source-map.md) and [preview design](../elk-tree-preview/design.md). Verify existing consumers before removing helpers, including board transfer, inspector and relationship commands. Do not change canonical validation, data adapters or cross-module commands merely to accommodate the layout.
+See [current source map](../../../../doc/source-map.md) and [preview design](../2026-11-26-elk-tree-preview/design.md). Verify existing consumers before removing helpers, including board transfer, inspector and relationship commands. Do not change canonical validation, data adapters or cross-module commands merely to accommodate the layout.
 
 ## 2. Dependency direction and lifecycle
 
