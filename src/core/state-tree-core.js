@@ -424,6 +424,54 @@ function requireActiveProjectId()
     return projectId;
 }
 
+
+function treeFocusContext(projectId)
+{
+    const peopleById = new Map(sampleData.people.map(person => [person.id, person]));
+    const lookupPerson = id => peopleById.get(id);
+    return { projectId, people: getPeople(projectId), lookupPerson, editRevision: prototypeSessionEditRevision };
+}
+
+function treeContextFamilies(context)
+{
+    return context.families ??= getTreeFamiliesFromSampleData(context.projectId, context.lookupPerson);
+}
+
+function hydrateTreeProjection(projection, context)
+{
+    const { projectId, lookupPerson } = context;
+    const counts = new Map(projection.people.map(person => [person.id, { photos: 0, files: 0, notes: 0 }]));
+    const count = (ids, field) =>
+    {
+        for (const id of new Set(ids))
+            if (counts.has(id)) counts.get(id)[field]++;
+    };
+    for (const photo of getProjectPhotos(projectId))
+        if (Array.isArray(photo.personIds)) count(photo.personIds, 'photos');
+    for (const file of sampleData.archiveFiles || [])
+        if (!file.deleted && (!file.projectId || file.projectId === projectId))
+            count(file.linkedPersonIds || [], 'files');
+    if (projectId === currentProjectId())
+        for (const note of getProjectNotes(projectId))
+            count(noteEntityLinkedIds(note, 'person').filter(id => !lookupPerson(id)?.deleted), 'notes');
+
+    const partnerFamilies = new Map();
+    for (const family of centralFamilyRecords())
+    {
+        const ids = [familyPartnerAId(family), familyPartnerBId(family)];
+        if (!ids.every(id => id && lookupPerson(id))) continue;
+        for (const id of new Set(ids))
+        {
+            if (!counts.has(id)) continue;
+            if (!partnerFamilies.has(id)) partnerFamilies.set(id, []);
+            partnerFamilies.get(id).push(family);
+        }
+    }
+    const display = { lookupPerson, counts, partnerFamilies };
+    return { ...projection, editRevision: context.editRevision,
+        people: projection.people.map(person => toTreePerson(person, display)) };
+}
+
 function currentTreePeople()
 {
     const projectId = currentFamilyTreeProjectId();
@@ -444,7 +492,8 @@ function personById(id)
 {
     const centralPerson = getPerson(id);
     if (centralPerson) return toTreePerson(centralPerson);
-    return currentTreePeople()[0] || null;
+    const first = getPeople(currentFamilyTreeProjectId())[0];
+    return first ? toTreePerson(first) : null;
 }
 
 const TREE_ANCESTOR_GENERATION_MIN = 0;
@@ -588,17 +637,21 @@ function treeNavigationFocusForPerson(
     personId,
     {
         focusBranch = false,
-        projectId = currentFamilyTreeProjectId()
+        projectId = currentFamilyTreeProjectId(),
+        preparation = {}
     } = {}
 )
 {
     const view = treeProjectViewState(projectId);
 
     if (focusBranch) return personId;
+    if (treeSceneMatchesView(treeRenderRuntime, projectId, view))
+        return treeRenderRuntime.scene.primaryByPerson.has(personId) ? view.focusPersonId : personId;
+    const context = preparation.context ||= treeFocusContext(projectId);
 
     const projection = buildFamilyTreeProjection(
-        currentTreePeople(),
-        currentTreeFamilies(),
+        context.people,
+        treeContextFamilies(context),
         {
             focusPersonId: view.focusPersonId,
             ancestorGenerations: view.ancestorGenerations,
@@ -607,9 +660,9 @@ function treeNavigationFocusForPerson(
         }
     );
 
-    return projection.visiblePersonIds.has(personId)
-        ? view.focusPersonId
-        : personId;
+    if (!projection.visiblePersonIds.has(personId)) return personId;
+    preparation.projection = projection;
+    return projection.focusPersonId;
 }
 
 function navigateFamilyTreeToPerson(
@@ -640,11 +693,13 @@ function navigateFamilyTreeToPerson(
         treePerf.finish(trace, 'completed');
         return true;
     }
+    const preparation = {};
     const nextFocusPersonId = treePerf.measure(trace, 'navigation', () => treeNavigationFocusForPerson(
         personId,
         {
             focusBranch,
-            projectId
+            projectId,
+            preparation
         }
     ));
 
@@ -673,11 +728,11 @@ function navigateFamilyTreeToPerson(
 
     if (center)
     {
-        renderFamilyTree(null, trace);
+        renderFamilyTree(null, trace, preparation);
     }
     else
     {
-        renderFamilyTreePreserveScroll(trace);
+        renderFamilyTreePreserveScroll(trace, preparation);
     }
 
     return true;

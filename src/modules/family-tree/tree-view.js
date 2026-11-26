@@ -1,4 +1,4 @@
-function renderFamilyTreePreserveScroll(trace = null)
+function renderFamilyTreePreserveScroll(trace = null, preparation)
 {
     const scroll = main.querySelector('.tree-stage') ? getTreeCanvasScroll() : null;
 
@@ -6,7 +6,7 @@ function renderFamilyTreePreserveScroll(trace = null)
     // let that behavior win instead of restoring old scroll.
     const hasPendingCenter = Boolean(state.treeCenterTargetId);
 
-    renderFamilyTree(null, trace);
+    renderFamilyTree(null, trace, preparation);
 
     if (!hasPendingCenter)
     {
@@ -230,7 +230,7 @@ function openTreePersonPicker(anchor)
     input.focus({ preventScroll: true });
 }
 
-function renderFamilyTree(readyProjection = null, trace = null)
+function renderFamilyTree(readyProjection = null, trace = null, preparation = {})
 {
     const projectId = currentFamilyTreeProjectId();
     treePerf.project(projectId);
@@ -242,7 +242,9 @@ function renderFamilyTree(readyProjection = null, trace = null)
     sidebar.innerHTML = '';
     const treeProjectId =
         currentFamilyTreeProjectId();
-    const treePeopleSource = readyProjection?.people || treePerf.measure(trace, 'people', currentTreePeople);
+    const context = readyProjection ? null : preparation.context
+        || treePerf.measure(trace, 'people', () => treeFocusContext(treeProjectId));
+    const treePeopleSource = readyProjection?.people || context.people;
     if (!readyProjection) treePerf.count(trace, 'projectPeople', treePeopleSource.length);
 
     if (!treeProjectId || !treePeopleSource.length)
@@ -274,14 +276,15 @@ function renderFamilyTree(readyProjection = null, trace = null)
 
     const treeViewState = treeProjectViewState(treeProjectId);
     const focusPersonId = readyProjection?.focusPersonId || resolveTreeFocusPersonId(treePeopleSource, treeProjectId);
-    const treeFamilies = readyProjection ? null : treePerf.measure(trace, 'families', currentTreeFamilies);
+    const treeFamilies = readyProjection ? null : treePerf.measure(trace, 'families', () => treeContextFamilies(context));
     if (treeFamilies) treePerf.count(trace, 'projectFamilies', treeFamilies.length);
-    const projection = readyProjection || treePerf.measure(trace, 'projection', () => buildFamilyTreeProjection(treePeopleSource, treeFamilies, {
+    const topology = readyProjection || preparation.projection || treePerf.measure(trace, 'projection', () => buildFamilyTreeProjection(treePeopleSource, treeFamilies, {
         focusPersonId,
         ancestorGenerations: treeViewState.ancestorGenerations,
         descendantGenerations: treeViewState.descendantGenerations,
         showCousins: treeViewState.showCousins
     }));
+    const projection = readyProjection || treePerf.measure(trace, 'people', () => hydrateTreeProjection(topology, context));
     treePerf.count(trace, 'visiblePeople', projection.people.length);
     treePerf.count(trace, 'visibleFamilies', projection.families.length);
     const familyPeopleCountLabel =
@@ -492,6 +495,7 @@ function renderFamilyTree(readyProjection = null, trace = null)
     runtime.ancestors = treeViewState.ancestorGenerations;
     runtime.descendants = treeViewState.descendantGenerations;
     runtime.cousins = treeViewState.showCousins;
+    runtime.editRevision = projection.editRevision;
     runtime.stage.style.width = runtime.scene.width + 'px';
     runtime.stage.style.height = runtime.scene.height + 'px';
     runtime.lines.setAttribute('viewBox', '0 0 ' + runtime.scene.width + ' ' + runtime.scene.height);
@@ -570,9 +574,8 @@ function treePartnerConnectorClass(family)
     return dashed ? 'tree-line partner is-separated-or-divorced' : 'tree-line partner';
 }
 
-function renderTreeParentPlaceholder(placeholder)
+function renderTreeParentPlaceholder(placeholder, target = personById(placeholder.personId))
 {
-    const target = personById(placeholder.personId);
     const displayLabel = translateText(placeholder.label);
     return `<button class="add-parent-card" type="button" style="left:${placeholder.x}px;top:${placeholder.y}px;--tree-placeholder-width:${placeholder.width}px;--tree-placeholder-height:${placeholder.height}px" data-person-id="${placeholder.personId}" data-add-relative="${placeholder.rel}" aria-label="${escapeHtml(placeholder.label)} for ${escapeHtml(target.name)}"><span><span class="add-plus">${icon.plus}</span><span class="add-label">${escapeHtml(displayLabel).replace(' ', '<br>')}</span></span></button>`;
 }

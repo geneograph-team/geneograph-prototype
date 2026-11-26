@@ -13,7 +13,7 @@ function familyPartnerBId(family)
     return family?.partnerBId || '';
 }
 
-function familyPartnerRole(family, personId, { explicitOnly = false } = {})
+function familyPartnerRole(family, personId, { explicitOnly = false, lookupPerson } = {})
 {
     if (!family || !personId) return '';
     const partnerA = familyPartnerAId(family);
@@ -26,30 +26,30 @@ function familyPartnerRole(family, personId, { explicitOnly = false } = {})
     if (hint === 'HUSB') return 'father';
     if (hint === 'WIFE') return 'mother';
     if (explicitOnly) return '';
-    const gender = String(getPerson(personId)?.gender || '').toLowerCase();
+    const gender = String((lookupPerson || getPerson)(personId)?.gender || '').toLowerCase();
     if (gender === 'male') return 'father';
     if (gender === 'female') return 'mother';
     return '';
 }
 
-function familyFatherId(family)
+function familyFatherId(family, options)
 {
     const ids = [familyPartnerAId(family), familyPartnerBId(family)].filter(Boolean);
-    return ids.find(id => familyPartnerRole(family, id) === 'father') || '';
+    return ids.find(id => familyPartnerRole(family, id, options) === 'father') || '';
 }
 
-function familyMotherId(family)
+function familyMotherId(family, options)
 {
     const ids = [familyPartnerAId(family), familyPartnerBId(family)].filter(Boolean);
-    return ids.find(id => familyPartnerRole(family, id) === 'mother') || '';
+    return ids.find(id => familyPartnerRole(family, id, options) === 'mother') || '';
 }
 
-function normalizedFamilyPair(family)
+function normalizedFamilyPair(family, options)
 {
     const rawA = familyPartnerAId(family);
     const rawB = familyPartnerBId(family);
-    let fatherId = familyFatherId(family);
-    let motherId = familyMotherId(family);
+    let fatherId = familyFatherId(family, options);
+    let motherId = familyMotherId(family, options);
     const ids = [rawA, rawB].filter(Boolean);
 
     // The layout has two slots. Keep both recorded parents even when their

@@ -301,7 +301,8 @@ function renderTreeViewport(runtime)
         canvas.focus({ preventScroll: true });
     treePerf.measure(trace, 'connectors', () =>
     {
-        joinTreeHtml(runtime.placeholders, scene.placeholders.filter(isVisible), 'button', renderTreeParentPlaceholder);
+        joinTreeHtml(runtime.placeholders, scene.placeholders.filter(isVisible), 'button', placeholder =>
+            renderTreeParentPlaceholder(placeholder, scene.primaryByPerson.get(placeholder.personId)));
         joinTreeHtml(runtime.controls, controls, 'button', renderTreeFocusControl);
         d3.select(runtime.lines).selectAll('path').data(scene.paths.filter(path => path.segmentBounds.some(bounds => treeSceneIntersects(viewport, bounds))), path => path.key).join('path')
             .attr('class', path => path.className).attr('data-tree-family-id', path => path.familyId)
@@ -456,7 +457,7 @@ function updateTreeInspector(runtime, selected)
     button.title = translateText(name);
     const previous = runtime.workspace.querySelector('.tree-inspector');
     const template = document.createElement('template');
-    template.innerHTML = renderPersonSidebar(selected?.id, 'tree').trim();
+    template.innerHTML = renderPersonSidebar(selected?.id, 'tree', selected).trim();
     const next = template.content.firstElementChild;
     if (previous) previous.replaceWith(next);
     else runtime.workspace.append(next);
@@ -464,14 +465,18 @@ function updateTreeInspector(runtime, selected)
     localizeUI(next, { suppressObserverReplay: true });
 }
 
+function treeSceneMatchesView(runtime, projectId, view)
+{
+    return Boolean(runtime?.scene && runtime.projectId === projectId && runtime.editRevision === prototypeSessionEditRevision
+        && runtime.request === treeElkRequest && runtime.request.orientation === view.orientation && runtime.focusId === view.focusPersonId
+        && runtime.ancestors === view.ancestorGenerations && runtime.descendants === view.descendantGenerations
+        && runtime.cousins === view.showCousins);
+}
+
 function selectVisibleTreePerson(personId, { center })
 {
     const runtime = treeRenderRuntime;
-    const view = treeProjectViewState();
-    if (!runtime?.scene || runtime.projectId !== currentFamilyTreeProjectId()
-        || runtime.request !== treeElkRequest || runtime.request.orientation !== view.orientation || runtime.focusId !== view.focusPersonId
-        || runtime.ancestors !== view.ancestorGenerations || runtime.descendants !== view.descendantGenerations
-        || runtime.cousins !== view.showCousins) return false;
+    if (!treeSceneMatchesView(runtime, currentFamilyTreeProjectId(), treeProjectViewState())) return false;
     const selected = runtime.scene.primaryByPerson.get(personId);
     if (!selected) return false;
     if (state.selectedPersonId !== personId)

@@ -811,19 +811,20 @@ function renderFamilyTreePersonHero(person, { photoCount, fileCount, noteCount }
 function personSidebarTreePerson(personOrId)
 {
     const personId = typeof personOrId === 'string' ? personOrId : personOrId?.id;
-    return personById(personId) || currentTreePeople()[0] || null;
+    return personById(personId);
 }
 
 
 function renderPersonSidebar(
     personOrId,
-    context = 'tree'
+    context = 'tree',
+    preparedPerson = null
 )
 {
     const isPeopleContext =
         context === 'people';
 
-    const person =
+    const person = preparedPerson ||
         personSidebarTreePerson(
             personOrId
         );

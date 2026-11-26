@@ -46,12 +46,10 @@ function treeMarriageSortKey(
 }
 
 function activeTreeMarriages(
-    personId
+    personId, families = getPartnerRelationships(personId)
 )
 {
-    return getPartnerRelationships(
-        personId
-    )
+    return families
         .filter(family =>
         {
             const relationshipType =
@@ -94,7 +92,7 @@ function activeTreeMarriages(
 }
 
 function marriedSpouseSurnameForTree(
-    person
+    person, context
 )
 {
     if (!person?.id)
@@ -104,16 +102,13 @@ function marriedSpouseSurnameForTree(
 
     const marriage =
         activeTreeMarriages(
-            person.id
+            person.id, context ? context.partnerFamilies.get(person.id) || [] : undefined
         )
             .map(family => ({
                 family,
 
                 spouse:
-              getRelationshipPartner(
-                  family,
-                  person.id
-              )
+              context ? context.lookupPerson(getRelationshipPartnerId(family, person.id)) : getRelationshipPartner(family, person.id)
             }))
             .find(entry =>
                 cleanTreeNamePart(
@@ -131,7 +126,7 @@ function marriedSpouseSurnameForTree(
     );
 }
 
-function treePersonCardNames(person)
+function treePersonCardNames(person, context)
 {
     const names =
         person?.names
@@ -169,7 +164,7 @@ function treePersonCardNames(person)
     {
         effectiveSurname =
             marriedSpouseSurnameForTree(
-                person
+                person, context
             );
     }
 
@@ -205,11 +200,11 @@ function treePersonCardNames(person)
     return { name, compactName: middleName ? format('') : name };
 }
 
-function toTreePerson(person)
+function toTreePerson(person, context)
 {
     return {
         id: person.id,
-        ...treePersonCardNames(person),
+        ...treePersonCardNames(person, context),
         first: cleanTreeNamePart(person.names?.first),
         names: person.names,
         birthFact: person.birth,
@@ -223,15 +218,11 @@ function toTreePerson(person)
         status: person.livingStatus,
         avatar: person.avatarClass,
         primaryPhotoId: person.primaryPhotoId || '',
-        photos: getPersonPhotoCount(person.id),
-        files:
-          getArchiveFilesForPerson(
-              person.id
-          ).length,
-        notes:
-          getNotesForPerson(
-              person.id
-          ).length
+        ...(context ? context.counts.get(person.id) : {
+            photos: getPersonPhotoCount(person.id),
+            files: getArchiveFilesForPerson(person.id).length,
+            notes: getNotesForPerson(person.id).length
+        })
     };
 }
 
@@ -316,7 +307,7 @@ function toPeopleRecord(
 
 function getTreePeopleFromSampleData(projectId)
 {
-    return getPeople(projectId).map(toTreePerson);
+    return getPeople(projectId).map(person => toTreePerson(person));
 }
 
 function getPeopleRecordsFromSampleData(
@@ -346,13 +337,13 @@ function getPeopleRecordsFromSampleData(
         );
 }
 
-function getTreeFamiliesFromSampleData(projectId)
+function getTreeFamiliesFromSampleData(projectId, lookupPerson)
 {
     return centralFamilyRecords()
         .filter(family => Boolean(projectId) && family.projectId === projectId)
         .map(family =>
         {
-            const pair = normalizedFamilyPair(family);
+            const pair = normalizedFamilyPair(family, { lookupPerson });
             const partnerIds = [...new Set([familyPartnerAId(family), familyPartnerBId(family)].filter(Boolean))];
             let leftId = pair.fatherId || null;
             let rightId = pair.motherId || null;
