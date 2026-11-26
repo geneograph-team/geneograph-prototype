@@ -8,7 +8,7 @@ const ELK = require('../src/vendor/elkjs-0.12.1/lib/elk.bundled.js');
 const fixtures = require('./fixtures/elk-tree-approved.json');
 const context = vm.createContext({ performance, clampNumber: (value, minimum, maximum) =>
     Math.max(minimum, Math.min(maximum, value)) });
-for (const file of ['core/state-tree-core.js', 'modules/family-tree/tree-geometry.js',
+for (const file of ['shared/genealogy-dates.js', 'core/state-tree-core.js', 'modules/family-tree/tree-geometry.js',
     'modules/family-tree/tree-elk-model.js', 'modules/family-tree/tree-elk-layout.js'])
 {
     const source = fs.readFileSync(path.join(__dirname, '../src', file), 'utf8');
@@ -113,7 +113,6 @@ assert.equal(rootsOnly.people.filter(person => ['s1', 's2'].includes(person.pers
 
 let cases = 0;
 let deferred = 0;
-let unsupported = 0;
 const maxAncestors = vm.runInContext('TREE_ANCESTOR_GENERATION_MAX', context);
 const maxDescendants = vm.runInContext('TREE_DESCENDANT_GENERATION_MAX', context);
 for (const [records, groups] of [...Object.values(fixtures), [people, families]])
@@ -131,16 +130,8 @@ for (const [records, groups] of [...Object.values(fixtures), [people, families]]
                     verify(visible.people, visibleFamilies, result);
                     assert.equal(JSON.stringify(result), JSON.stringify(projectOccurrences(visible.people, visibleFamilies)));
                     deferred += Number(Boolean(result.deferred.length));
-                    try
-                    {
-                        const geometryInput = context.prepareElkTreeInput(visible);
-                        assert.ok(geometryInput.people.every(person => Number.isInteger(person.generation)));
-                    }
-                    catch (error)
-                    {
-                        assert.match(error.message, /incompatible generations|disconnected people/);
-                        unsupported++;
-                    }
+                    const geometryInput = context.prepareElkTreeInput(visible);
+                    assert.ok(geometryInput.people.every(person => Number.isInteger(person.generation)));
                     cases++;
                 }
     assert.equal(JSON.stringify([records, groups]), snapshot);
@@ -172,6 +163,99 @@ const resolvedCopies = [...new Set(resolved.people.filter(person => person.occur
     .map(person => person.personId))];
 assert.equal(resolvedCopies.length, 1);
 
+
+function marriageLoopFixture(childbearing)
+{
+    const families = [family('ancestors', 'a b', 'c d e'), family('c-branch', 'c', 'p'),
+        family('d-branch', 'd', 'q r'), family('e-branch', 'e', 's'),
+        family('marriage-1', 'p q', childbearing ? 'u' : ''),
+        family('marriage-2', 'r s', childbearing ? 'v' : '')];
+    return { people: smallPeople('a b c d e p q r s' + (childbearing ? ' u v' : '')), families };
+}
+
+const marriageInputs = [];
+for (const childbearing of [false, true])
+{
+    const fixture = marriageLoopFixture(childbearing);
+    const snapshot = JSON.stringify(fixture);
+    const result = context.projectElkTreeOccurrences(fixture.people, fixture.families, undefined, 'c');
+    verify(fixture.people, fixture.families, result);
+    assert.equal(result.people.length, fixture.people.length + 2);
+    assert.equal(result.people.filter(person => person.personId === 'a' || person.personId === 'b').length, 2);
+    assert.deepEqual(Array.from(result.decisions, item => item.reason),
+        Array(2).fill('Collateral marriage reconnects visible ancestry'));
+    const old = projectOccurrences(fixture.people, fixture.families);
+    assert.equal(old.people.filter(person => ['a','b'].includes(person.personId)).length, childbearing ? 4 : 2);
+    const graph = context.elkOccurrenceIncidence(result.people, result.families, 'c');
+    assert.equal(graph.cycleRank, 0);
+    assert.equal(graph.conflict, false);
+    assert.equal(graph.rows.size, result.people.length);
+    const primaryContext = result.people.find(person => person.occurrenceCount === 2 && person.primary);
+    const copyContext = result.people.find(person => person.personId === primaryContext.personId && !person.primary);
+    assert.equal(copyContext.preferredContext, undefined, 'Moving ancestry would disconnect this copy’s original context');
+    const transfer = context.projectElkTreeOccurrences(fixture.people, fixture.families,
+        new Map([[copyContext.personId, copyContext.contextKey]]), 'c');
+    assert.equal(JSON.stringify(transfer), JSON.stringify(result));
+    assert.equal(JSON.stringify(fixture), snapshot);
+    marriageInputs.push({
+        people: fixture.people, focusPersonId: 'c', branchRoles: { parentPresenceByPerson: new Map() },
+        families: fixture.families.map(({ id, parents: [left, right], children }) => ({ id, left, right, children }))
+    });
+}
+
+const transferable = marriageLoopFixture(false);
+transferable.people.push({ id: 'x' });
+transferable.families.push(family('repeat-link-a', 'p x', ''), family('repeat-link-b', 'q x', ''));
+const originalContexts = context.projectElkTreeOccurrences(transferable.people, transferable.families, undefined, 'c');
+const transferTarget = originalContexts.people.find(person => !person.primary && person.preferredContext);
+assert.ok(transferTarget);
+const moved = context.projectElkTreeOccurrences(transferable.people, transferable.families,
+    new Map([[transferTarget.personId, transferTarget.preferredContext]]), 'c');
+verify(transferable.people, transferable.families, moved);
+assert.equal(moved.people.find(person => person.occurrenceId === transferTarget.occurrenceId).expanded, true);
+assert.equal(JSON.stringify(moved.people.map(person => person.occurrenceId)),
+    JSON.stringify(originalContexts.people.map(person => person.occurrenceId)));
+
+const repeatedMarriage = marriageLoopFixture(false);
+repeatedMarriage.families.push(family('marriage-record', 'p q', ''));
+const repeated = context.projectElkTreeOccurrences(repeatedMarriage.people, repeatedMarriage.families, undefined, 'c');
+verify(repeatedMarriage.people, repeatedMarriage.families, repeated);
+assert.ok(repeated.people.filter(p => ['p', 'q'].includes(p.personId)).every(p => p.occurrenceCount === 1));
+assert.equal(context.elkOccurrenceIncidence(repeated.people, repeated.families, 'c').conflict, false);
+
+const partnerTriangle = [family('p1', 'a b', ''), family('p2', 'b c', ''), family('p3', 'a c', '')];
+const triangle = context.projectElkTreeOccurrences(smallPeople('a b c'), partnerTriangle, undefined, 'a');
+verify(smallPeople('a b c'), partnerTriangle, triangle);
+assert.equal(triangle.people.length, 3);
+assert.equal(context.elkOccurrenceIncidence(triangle.people, triangle.families, 'a').cycleRank, 1);
+
+const dateFixture = {
+    people: smallPeople('p0 p1 p2 p3 p5 p6 p7 p9'), focusPersonId: 'p0',
+    branchRoles: { parentPresenceByPerson: new Map() },
+    families: [
+        { id: 'f0', left: 'p0', right: 'p1', children: ['p2', 'p3'] },
+        { id: 'f1', left: 'p2', right: 'p5', children: ['p6'] },
+        { id: 'f3', left: 'p3', children: ['p7'] },
+        { id: 'f4', left: 'p5', right: 'p7', children: ['p9'] }
+    ]
+};
+const dated = year => ({ state: 'known', dateType: 'Exact date', calendar: 'Gregorian', first: { year } });
+dateFixture.people[3].birthFact = dated(1901);
+const identities = model => model.people.map(({ personId, occurrenceId, primary, expanded }) =>
+    [personId, occurrenceId, primary, expanded]);
+const endpoints = model => model.families.map(({ parents, children }) => [parents, [...children].sort()]);
+let birthBaseline;
+for (const year of [1900, 1902, undefined, 1901])
+{
+    dateFixture.people[2].birthFact = year ? dated(year) : undefined;
+    const input = context.prepareElkTreeInput(dateFixture);
+    if (!birthBaseline) birthBaseline = input;
+    assert.equal(JSON.stringify(identities(input)), JSON.stringify(identities(birthBaseline)));
+    assert.equal(JSON.stringify(endpoints(input)), JSON.stringify(endpoints(birthBaseline)));
+    const order = input.families.find(f => f.canonicalFamilyId === 'f0').children.map(id =>
+        input.people.find(person => person.id === id).personId);
+    assert.deepEqual([...order], year === 1900 || year === 1901 ? ['p2', 'p3'] : ['p3', 'p2']);
+}
 
 function siblingFixture({ couple = false, upstream = false, separate = false, reconverges = true } = {})
 {
@@ -237,6 +321,20 @@ function verifySiblingSplit(fixture, options, preferences)
 (async () =>
 {
     const solver = new ELK();
+    let marriageSolves = 0;
+    for (const projection of marriageInputs)
+        for (const direction of ['DOWN', 'RIGHT'])
+        {
+            const model = context.prepareElkTreeInput(projection, undefined, direction);
+            const result = await context.solveElkTree(model.people, model.families, direction,
+                graph => solver.layout(JSON.parse(JSON.stringify(graph))), model.focusId);
+            assert.equal(result.issues.length, 0, result.issues.join('; '));
+            assert.ok(result.passes <= 2);
+            assert.equal(result.boxes.length, model.people.length);
+            assert.equal(context.elkCenteringConflicts(result, direction === 'DOWN' ? 'x' : 'y').size, 0);
+            marriageSolves++;
+        }
+    console.log(JSON.stringify({ marriageSolves }));
     const visible = project(people, families,
         { focusPersonId: 's1', ancestorGenerations: 5, descendantGenerations: 3, showCousins: true });
     for (const owner of louise)
@@ -297,6 +395,6 @@ function verifySiblingSplit(fixture, options, preferences)
         }
     }
     console.log(JSON.stringify({ siblingSolves }));
-    console.log(JSON.stringify({ matrix: cases, deferred, unsupported, fullPeople: full.people.length,
+    console.log(JSON.stringify({ matrix: cases, deferred, unsupported: 0, fullPeople: full.people.length,
         fullFamilies: full.families.length, alexVisiblePeople: visible.people.length, alexFamilies: visible.families.length }));
 })().catch(error => { console.error(error); process.exitCode = 1; });

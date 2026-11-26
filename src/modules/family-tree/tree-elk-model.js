@@ -262,14 +262,16 @@ function projectElkTreeOccurrences(canonicalPeople, canonicalFamilies, preferenc
         });
     }
     entries.sort((a, b) => a.position - b.position || a.person.id.localeCompare(b.person.id));
-    const people = entries.map(e => e.person);
-    const families = visualFamilies.map(f => (
+    const ancestorPeople = entries.map(e => e.person);
+    const ancestorFamilies = visualFamilies.map(f => (
     {
         ...f,
         parents: f.parents.map(id => overrides.get(f.id)?.get(id) ?? id),
         children: f.children.map(id => owners.get(id) ?? id)
     }));
-    separateElkGenerationConflicts(people, families, focusId, freshId);
+    const result = resolveElkOccurrenceTopology(canonicalPeople, canonicalFamilies,
+        { people: ancestorPeople, families: ancestorFamilies, decisions, deferred }, focusId, preferences, freshId);
+    const { people, families } = result;
     const canonicalByOccurrence = new Map(people.map(person => [person.id, person.personId]));
     const canonicalByFamily = new Map(canonicalFamilies.map(family => [family.id, family]));
     const memberships = new Map(canonicalFamilies.map(family => [family.id, new Set(family.children)]));
@@ -283,15 +285,191 @@ function projectElkTreeOccurrences(canonicalPeople, canonicalFamilies, preferenc
     }
     if ([...memberships.values()].some(children => children.size))
         throw Error('Missing family child membership');
-    return {
-        people,
-        families,
-        decisions,
-        deferred
-    };
+    return result;
 }
 
-function separateElkGenerationConflicts(people, families, focusId, freshId)
+function resolveElkOccurrenceTopology(canonicalPeople, canonicalFamilies, accepted, focusId, preferences, freshId)
+{
+    if (!focusId || !canonicalPeople.some(person => person.id === focusId)) return accepted;
+    const focus = accepted.people.find(person => person.primary && person.personId === focusId)?.id;
+    if (!focus) return accepted;
+    const acceptedGraph = elkOccurrenceIncidence(accepted.people, accepted.families, focus);
+    if (!acceptedGraph.conflict && acceptedGraph.rows.size === accepted.people.length
+        && acceptedGraph.cycleRank === 0 && accepted.people.length === canonicalPeople.length) return accepted;
+    const directParents = new Map(canonicalPeople.map(person => [person.id, new Set()]));
+    const incomingCount = new Map();
+    const partnerCounts = new Map();
+    const pairKey = family => JSON.stringify([...family.parents].sort());
+    for (const family of canonicalFamilies)
+    {
+        for (const child of family.children)
+        {
+            incomingCount.set(child, (incomingCount.get(child) || 0) + 1);
+            for (const parent of family.parents) directParents.get(child).add(parent);
+        }
+        if (family.parents.length === 2)
+        {
+            const key = pairKey(family);
+            partnerCounts.set(key, (partnerCounts.get(key) || 0) + 1);
+        }
+    }
+    const ancestors = new Map();
+    function ancestry(id)
+    {
+        if (!ancestors.has(id))
+        {
+            const seen = new Set();
+            const queue = [id];
+            for (const person of queue)
+                for (const parent of directParents.get(person))
+                    if (!seen.has(parent))
+                    {
+                        seen.add(parent);
+                        queue.push(parent);
+                    }
+            ancestors.set(id, seen);
+        }
+        return ancestors.get(id);
+    }
+    const direct = ancestry(focusId);
+    const distinctAncestors = new Set();
+    const keepDirectCollapse = [focusId, ...direct].some(id =>
+        [...directParents.get(id)].some(parent =>
+        {
+            if (distinctAncestors.has(parent)) return true;
+            distinctAncestors.add(parent);
+            return false;
+        }));
+    direct.add(focusId);
+
+    const candidates = canonicalFamilies.filter(family =>
+        family.parents.length === 2 && partnerCounts.get(pairKey(family)) === 1 &&
+        family.parents.every(id => !direct.has(id) && directParents.get(id).size > 0))
+        .sort((a, b) => a.id.localeCompare(b.id));
+    let selected = accepted;
+    if (candidates.length)
+    {
+        // Direct pedigree collapse keeps its accepted context partition. For a
+        // collateral loop, compare the recorded households without that partition.
+        const proposed = keepDirectCollapse
+            ? { people: accepted.people.map(person => ({ ...person })),
+                families: accepted.families.map(family => ({ ...family, parents: [...family.parents], children: [...family.children] })) }
+            : {
+                people: canonicalPeople.map(person => ({ ...person, personId: person.id, occurrenceId: person.id,
+                    primary: true, occurrenceCount: 1 })),
+                families: canonicalFamilies.map(family => ({ ...family, parents: [...family.parents], children: [...family.children],
+                    familyOccurrenceId: family.id, canonicalFamilyId: family.id }))
+            };
+        const basePeople = new Map(proposed.people.map(person => [person.id, person]));
+        const splits = [];
+        const eligible = candidates.filter(({ parents: [a, b] }) =>
+            [...ancestry(a)].some(id => ancestry(b).has(id)));
+        for (const candidate of eligible.slice(0, 32))
+        {
+            const family = proposed.families.find(item => item.familyOccurrenceId === candidate.id);
+            if (!family) continue;
+            const [first, second] = family.parents;
+            const graph = elkOccurrenceIncidence(proposed.people, proposed.families, focus);
+            if (!graph.rows.has(first) || !graph.rows.has(second) || !graph.walk(first, family).rows.has(second)) continue;
+            const id = family.parents.filter(id =>
+            {
+                const person = basePeople.get(id);
+                return person.occurrenceCount === 1 && incomingCount.get(person.personId) === 1;
+            }).sort((a, b) => graph.rows.get(b).distance - graph.rows.get(a).distance || b.localeCompare(a))[0];
+            if (!id) continue;
+            const person = basePeople.get(id);
+            const key = JSON.stringify(['marriage', person.personId, family.familyOccurrenceId]);
+            const copy = { ...person, id: freshId(person.personId, key), occurrenceId: 'elk-occurrence:' + key,
+                contextKey: key, primary: false, occurrenceCount: 2 };
+            person.occurrenceCount = 2;
+            proposed.people.push(copy);
+            basePeople.set(copy.id, copy);
+            family.parents[family.parents.indexOf(id)] = copy.id;
+            splits.push({ person, copy, family });
+        }
+        const graph = elkOccurrenceIncidence(proposed.people, proposed.families, focus);
+        if (splits.length && graph.rows.size === proposed.people.length && !graph.conflict
+            && (acceptedGraph.conflict || graph.cycleRank <= acceptedGraph.cycleRank))
+        {
+            for (const { person, copy, family } of splits)
+            {
+                const parents = proposed.families.filter(item => item.children.includes(person.id));
+                const contexts = proposed.families.filter(item => item.parents.includes(person.id));
+                person.contextKey = JSON.stringify(['ancestry', person.personId]);
+                for (const [appearance, households] of [[person, contexts], [copy, [family]]])
+                {
+                    appearance.hasParents = parents.length > 0;
+                    appearance.expanded = appearance === person && parents.length > 0;
+                    appearance.contextFamilyIds = [...new Set(households.map(item => item.canonicalFamilyId))].sort();
+                    appearance.contextFamilyOccurrenceIds = households.map(item => item.familyOccurrenceId).sort();
+                }
+                if (!parents.length) continue;
+                for (const parent of parents) parent.children[parent.children.indexOf(person.id)] = copy.id;
+                const transferred = elkOccurrenceIncidence(proposed.people, proposed.families, focus);
+                const compatible = transferred.rows.size === proposed.people.length && !transferred.conflict;
+                if (compatible)
+                {
+                    person.preferredContext = person.contextKey;
+                    copy.preferredContext = copy.contextKey;
+                }
+                if (compatible && preferences.get(person.personId) === copy.contextKey)
+                {
+                    copy.expanded = true;
+                    person.expanded = false;
+                }
+                else
+                    for (const parent of parents) parent.children[parent.children.indexOf(copy.id)] = person.id;
+            }
+            selected = { ...proposed, decisions: [...(keepDirectCollapse ? accepted.decisions : []),
+                ...splits.map(({ person, copy }) => ({ personId: person.personId,
+                    reason: 'Collateral marriage reconnects visible ancestry',
+                    appearances: [person, copy].map(item => ({ occurrenceId: item.occurrenceId, contextKey: item.contextKey,
+                        familyIds: item.contextFamilyOccurrenceIds })) }))],
+                deferred: accepted.deferred };
+        }
+    }
+    if (selected === accepted && acceptedGraph.conflict) splitElkRowContexts(selected.people, selected.families, focusId, freshId);
+    return selected;
+}
+
+function elkOccurrenceIncidence(people, families, focus)
+{
+    const links = new Map(people.map(person => [person.id, []]));
+    let edges = 0;
+    for (const family of families)
+    {
+        const members = [...family.parents.map(id => [id, 0]), ...family.children.map(id => [id, 1])];
+        edges += members.length;
+        links.set(family, members);
+        for (const [id, offset] of members) links.get(id).push([family, -offset]);
+    }
+    function walk(start, excluded)
+    {
+        const queue = [start], rows = new Map();
+        const states = new Map([[start, { row: 0, distance: 0 }]]);
+        let conflict = false;
+        for (const node of queue)
+        {
+            const location = states.get(node);
+            if (typeof node === 'string') rows.set(node, location);
+            for (const [next, offset] of links.get(node) || [])
+            {
+                if (next === excluded) continue;
+                const row = location.row + offset;
+                if (!states.has(next))
+                {
+                    states.set(next, { row, distance: location.distance + 1 });
+                    queue.push(next);
+                }
+                else if (states.get(next).row !== row) conflict = true;
+            }
+        }
+        return { rows, conflict };
+    }
+    return { ...walk(focus), walk, cycleRank: edges - people.length - families.length + 1 };
+}
+
+function splitElkRowContexts(people, families, focusId, freshId)
 {
     const focus = people.find(person => person.primary && person.personId === focusId);
     if (!focus) return;

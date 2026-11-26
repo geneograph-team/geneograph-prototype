@@ -104,15 +104,17 @@ function prepareElkTreeInput(projection, preferences, direction = 'DOWN', measur
     const genderById = new Map(projection.people.map(person => [person.id, person.gender]));
     const semantic = measure('occurrences', () => projectElkTreeOccurrences(
         projection.people.map(({ id }) => ({ id })),
-        orderedFamilies.map(family => ({ id: family.id,
+        projection.families.map(family => ({ id: family.id,
             parents: [family.left, family.right].filter(Boolean), children: family.children,
-            recordedChildCount: family.recordedChildCount ?? family.children.length,
-            chronological: Boolean(family.chronological) })),
+            recordedChildCount: family.recordedChildCount ?? family.children.length })),
         preferences, projection.focusPersonId
     ));
     // Stable canonical context stays in the presentation. Only anonymous IDs
     // and geometry are passed into the solver frame.
     const ids = new Map(semantic.people.map((person, index) => [person.id, 'p' + index]));
+    const canonicalByOccurrence = new Map(semantic.people.map(person => [person.id, person.personId]));
+    const chronologicalRanks = new Map(orderedFamilies.filter(family => family.chronological)
+        .map(family => [family.id, new Map(family.children.map((id, index) => [id, index]))]));
     const model = {
         ...semantic,
         people: semantic.people.map(person => ({ ...person, id: ids.get(person.id),
@@ -120,12 +122,18 @@ function prepareElkTreeInput(projection, preferences, direction = 'DOWN', measur
             recordedParentFamilyCount: projection.branchRoles.recordedParentFamilyCountByPerson?.get(person.personId),
             focusClearance: projection.branchRoles.focusActionPersonIds?.has(person.personId)
                 ? TREE_FOCUS_CONTROL_H + TREE_FOCUS_CONTROL_GAP : 0 })),
-        families: semantic.families.map((family, index) => ({
-            id: 'f' + index, canonicalFamilyId: family.canonicalFamilyId, familyOccurrenceId: family.familyOccurrenceId,
-            parents: family.parents.map(id => ids.get(id)), children: family.children.map(id => ids.get(id)),
-            recordedChildCount: family.recordedChildCount,
-            chronological: family.chronological && family.children.length > 1
-        }))
+        families: semantic.families.map((family, index) =>
+        {
+            const rank = chronologicalRanks.get(family.canonicalFamilyId);
+            const children = rank ? [...family.children].sort((a, b) =>
+                rank.get(canonicalByOccurrence.get(a)) - rank.get(canonicalByOccurrence.get(b))) : family.children;
+            return {
+                id: 'f' + index, canonicalFamilyId: family.canonicalFamilyId, familyOccurrenceId: family.familyOccurrenceId,
+                parents: family.parents.map(id => ids.get(id)), children: children.map(id => ids.get(id)),
+                recordedChildCount: family.recordedChildCount,
+                chronological: Boolean(rank && children.length > 1)
+            };
+        })
     };
     const relations = new Map(model.people.map(person => [person.id, []]));
     function connect(a, b, step)
@@ -331,6 +339,7 @@ function treeElkLayoutForProjection(projectId, projection, view, trace = null)
     const orderedFamilies = treeChronologicalFamilies(projection);
     const key = JSON.stringify([projectId, orientation, TREE_GEOMETRY, projection.focusPersonId, view.ancestorGenerations,
         view.descendantGenerations, view.showCousins, projection.people.map(person => [person.id, person.gender]),
+        projection.families.map(family => family.children),
         orderedFamilies.map(({ id, left, right, children, recordedChildCount, chronological }) =>
             [id, left, right, children, recordedChildCount, Boolean(chronological)]),
         [...projection.branchRoles.recordedParentFamilyCountByPerson || []],
