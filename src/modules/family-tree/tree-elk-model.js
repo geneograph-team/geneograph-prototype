@@ -624,7 +624,54 @@ async function solveElkTree(people, families, direction, calculate, focusId = nu
                 sorted.push(remaining.splice(index, 1)[0]);
             }
             const rank = new Map([...sorted, ...remaining].map((id, i) => [id, i]));
-            group.children.sort((a, b) => (rank.get(a.id) ?? members.length) - (rank.get(b.id) ?? members.length));
+            // Orient the junction order of a simple partnership path around its
+            // principal pair. Leave the person order and all secondary placement
+            // constraints unchanged. Branches, cycles and placeholders retain
+            // the ordinary native preference.
+            const junctionRank = new Map();
+            const pair = primaryPairs.find(pair => pair.group === group.id);
+            if (pair?.orderedPeople && members.length >= 4
+                && members.every(id => !peopleById.get(id).placeholder))
+            {
+                const neighbours = new Map(members.map(id => [id, new Set()]));
+                const junctions = group.children.filter(node => familyById.has(node.id));
+                for (const node of junctions)
+                {
+                    const parents = familyById.get(node.id).parents;
+                    if (parents.length !== 2) continue;
+                    const [a, b] = parents;
+                    neighbours.get(a).add(b);
+                    neighbours.get(b).add(a);
+                }
+                const [a, b] = pair.orderedPeople;
+                if (neighbours.get(a).size === 2 && neighbours.get(b).size === 2
+                    && [...neighbours.values()].every(peers => peers.size <= 2))
+                {
+                    function extend(start, previous)
+                    {
+                        const path = [], seen = new Set([start, previous]);
+                        let next = [...neighbours.get(start)].find(id => id !== previous);
+                        while (next && !seen.has(next))
+                        {
+                            path.push(next);
+                            seen.add(next);
+                            const after = [...neighbours.get(next)].find(id => id !== start);
+                            start = next;
+                            next = after;
+                        }
+                        return path;
+                    }
+                    const sequence = [...extend(a, b).reverse(), a, b, ...extend(b, a)];
+                    if (sequence.length === members.length && new Set(sequence).size === members.length)
+                    {
+                        const pathRank = new Map(sequence.map((id, i) => [id, i]));
+                        for (const node of junctions)
+                            junctionRank.set(node.id, Math.min(...familyById.get(node.id).parents.map(id => pathRank.get(id))));
+                    }
+                }
+            }
+            group.children.sort((a, b) => (rank.get(a.id) ?? members.length) - (rank.get(b.id) ?? members.length)
+                || (junctionRank.get(a.id) ?? 0) - (junctionRank.get(b.id) ?? 0));
         }
         // Prefer paternal-before-maternal ancestral households at the root.
         // The bottom-up sweep keeps internal ordering local while ELK can still

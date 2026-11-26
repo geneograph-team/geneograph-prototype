@@ -462,6 +462,51 @@ function inspect(layout, peopleById, families)
         }
     assert.equal(JSON.stringify([focusPeople, focusFamilies]), snapshot);
 
+    // Both principal partners have another partner, and both have ancestry.
+    // An inconsistent junction input order used to reverse the principal pair
+    // even with bottom-up sweep and correct focus-relative selection.
+    const chainPeople = ['g', 'h', 'j', 'k', 'a', 'b', 'c', 'd', 'x', 'y', 'z'].map((id, i) => ({
+        id, gender: ['g', 'j', 'a', 'c'].includes(id) ? 'male' : 'female',
+        width: 300, height: 124, generation: i < 4 ? 0 : i < 8 ? 1 : 2
+    }));
+    const chainFamilies = [
+        { id: 'primary', parents: ['a', 'b'], children: ['y'] },
+        { id: 'ancestry-a', parents: ['g', 'h'], children: ['a'] },
+        { id: 'ancestry-b', parents: ['j', 'k'], children: ['b'] },
+        { id: 'secondary-a', parents: ['a', 'd'], children: ['z'] },
+        { id: 'secondary-b', parents: ['c', 'b'], children: ['x'] }
+    ];
+    const chainSnapshot = JSON.stringify([chainPeople, chainFamilies]);
+    for (const ids of ['g h j k a b c d x y z', 'x y z a b c d g h j k', 'y a b x z d c g h j k'])
+        for (const direction of ['DOWN', 'RIGHT'])
+        {
+            const people = ids.split(' ').map(id => chainPeople.find(person => person.id === id));
+            const layout = await context.solveElkTree(people, chainFamilies, direction, graph =>
+            {
+                const group = graph.children.find(group => group.children.some(node => node.id === 'primary'));
+                assert.deepEqual(group.children.filter(node => chainFamilies.some(family => family.id === node.id))
+                    .map(node => node.id), ['secondary-a', 'primary', 'secondary-b']);
+                assert.ok(!graph.layoutOptions['elk.layered.crossingMinimization.forceNodeModelOrder']);
+                return solver.layout(JSON.parse(JSON.stringify(graph)));
+            }, 'y');
+            assert.ok(layout.primaryPairs.some(pair => pair.primary === 'primary'));
+            assert.deepEqual(layout.issues, []);
+            const boxes = new Map(layout.boxes.map(box => [box.id, box]));
+            const axis = direction === 'DOWN' ? 'x' : 'y';
+            const extent = direction === 'DOWN' ? 'w' : 'h';
+            assert.ok(boxes.get('a')[axis] + boxes.get('a')[extent] + 40 - EPS <= boxes.get('b')[axis]);
+            assert.ok(layout.passes <= 2);
+            const { report } = inspect(layout, new Map(people.map(person => [person.id, person])), chainFamilies);
+            assert.equal(report.cardOverlaps, 0);
+            assert.equal(report.cardHits, 0);
+            assert.equal(report.falseJunctions, 0);
+            assert.equal(report.coincident, 0);
+            assert.equal(report.crossings, 0);
+            assert.equal(report.nonOrthogonal, 0);
+            assert.equal(report.routedEdges, report.expectedEdges);
+        }
+    assert.equal(JSON.stringify([chainPeople, chainFamilies]), chainSnapshot);
+
     // Reverse an ordered junction in ELK's input so its output is valid geometry
     // with a deliberately reversed principal pair, alongside unaffected families.
     const warningPeople = ['u', 'v', 'x', 'y', 'a', 'b', 'm', 'n', 'c', 'd', 'e'].map((id, index) => ({
