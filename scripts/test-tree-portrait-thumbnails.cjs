@@ -104,6 +104,47 @@ async function runPortraitThumbnailChecks()
     budget.dispose();
     check(budget.stats.revoked === 48, 'Active URLs were not released');
 
+    // Compare demand with the exact rendered-rectangle intersection rule.
+    const measured = [];
+    const avatars = [0, 1, 2].map(() => document.createElement('div'));
+    const avatarRects = [
+        { left: -60, right: 0, top: 0, bottom: 60, width: 60, height: 60 },
+        { left: -1, right: 64, top: 0, bottom: 65, width: 65, height: 65 },
+        { left: 5, right: 60, top: 5, bottom: 60, width: 55, height: 55 }
+    ];
+    for (const [index, avatar] of avatars.entries())
+        avatar.getBoundingClientRect = () => { measured.push(index); return avatarRects[index]; };
+    let canvasReads = 0;
+    let viewportRight = 100;
+    const visible = { left: 0, right: 100, top: 0, bottom: 100 };
+    const bounds = { left: 0, right: 100, top: 0, bottom: 100 };
+    const demandRuntime = {
+        contentRevision: 1, portraitRevision: 1,
+        portraitDescriptors: new Map(avatars.map((_, index) =>
+            [String(index), index === 2 ? null : { key: String(index), request: {} }])),
+        cards: { children: avatars.map((avatar, index) => ({
+            __data__: { bounds }, dataset: { personId: String(index) }, querySelector: () => avatar
+        })) },
+        canvas: { getBoundingClientRect: () => { canvasReads++; return { ...visible, right: viewportRight }; } },
+        portraitCache: { hasReady: () => false, subscribe: () => () => {} }
+    };
+    const demand = detail => updateTreePortraits(demandRuntime, visible, detail, .75);
+    const keys = () => [...demandRuntime.portraitLeases.values()].map(lease => lease.pending.key);
+    demand('full');
+    check(measured.join(',') === '0,1' && canvasReads === 1, 'Photo-free card should skip avatar geometry');
+    check(keys().join(',') === '1|0.75|' + portraitThumbnailTier(65), 'Touching edge is offscreen');
+    avatarRects[0].right = 1;
+    avatarRects[1].left = 20;
+    viewportRight = 20;
+    demand('short');
+    check(keys().join(',') === '0|0.75|' + portraitThumbnailTier(60), 'Resize and partial visibility');
+    demand('compact');
+    check(!keys().length && canvasReads === 2, 'Hidden detail should release leases without reading geometry');
+    demandRuntime.portraitDescriptors.set('0', null);
+    demandRuntime.portraitDescriptors.set('1', null);
+    demand('full');
+    check(!keys().length && canvasReads === 2, 'Photo-free scene should skip canvas geometry');
+
     activateProject('p1', { moduleName: 'Family Tree' });
     await until(() => treeRenderRuntime?.scene);
     const runtime = treeRenderRuntime;

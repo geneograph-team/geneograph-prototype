@@ -147,3 +147,19 @@ Offline Edge, local 6,481-person import, 1,950 families, 7 ancestors, 3 descenda
 | Cold first scene, baseline → new | 627.9 → 610.0 | 544.0 → 533.6 |
 
 New miss pending feedback medians were 10.5 ms Vertical and 8.2 ms Horizontal. All hits recorded zero solver passes. The sampled cache matched a fresh solve on boxes, paths, diagnostics, dimensions, principal pairs and spacing. Six entries occupied 1,415,763 serialized UTF-8 bytes. This is a footprint proxy, not browser heap usage. The deterministic tests covered capacity, LRU refresh, compatibility, fresh display, ordering of pending responses, failure/native fallback exclusion and disposal. Occurrence, renderer and recorder checks passed. The existing ELK test harness stopped at the cross-realm empty-array assertion after its approved layouts and 64 ordering cases. The issue remains open for founder acceptance.
+### Viewport portrait demand (#418)
+
+Resolve the revision-scoped photo descriptor before reading DOM geometry. Without a usable photo, a card cannot acquire a portrait lease. Read the canvas rectangle lazily on the first eligible avatar and retain exact avatar intersection and DPR-dependent tier selection. Compact and lower detail release their leases without measuring the canvas or avatar. The existing keyed renderer, frame scheduling and thumbnail cache handle the remaining work.
+
+The controlled synthetic comparison used offline Windows headless Edge 158 at 2,560 × 1,000 CSS pixels and DPR 2. It covered the sample and stress projects, both orientations and either no photos or a synthetic portrait on every person. It warmed the same sequence before recording three 15-update gestures per scene, density, direction and gesture type. Each table row represents 180 updates per version. Zoom traversed 0.65–1.8× across detail and tier boundaries. Pan used 1× and scripted offsets. Resize followed each scene. Up to 21 cards were mounted. These recorder values measure synchronous JavaScript stages, including browser work forced by rectangle reads. Thumbnail generation and async decode are outside the comparison.
+
+| Fixture and gesture | Viewport ms/update, before → after | Portrait demand ms/update, before → after | Avatar rectangle reads, before → after |
+| --- | ---: | ---: | ---: |
+| Photo-free zoom | 4.29 → 0.95 | 3.15 → 0.008 | 1,281 → 0 |
+| Photo-free pan | 1.37 → 0.78 | 0.49 → 0.016 | 1,632 → 0 |
+| Photo-heavy zoom | 9.30 → 4.39 | 6.88 → 2.24 | 1,281 → 1,281 |
+| Photo-heavy pan | 2.89 → 2.21 | 1.02 → 0.42 | 1,632 → 1,632 |
+
+The serial CDP timeline repeat measured photo-free zoom at 4.37 → 1.10 ms per update and photo-free pan at 1.36 → 0.80. Whole-run browser events, including warmup, resize and focus setup, recorded style updates 1,850 → 1,367, layouts 1,802 → 1,317 and paints 1,757 → 1,669. Their summed durations were 1,286 → 1,087 ms, 351 → 307 ms and 297 → 256 ms respectively. Photo-heavy stage times varied across runs, including a concurrent capture. The stable evidence there is equal rectangle-read counts and matching sampled lease-tier sequences. Every measured gesture kept its geometry and triggered zero solves. The runs provide no frame percentiles or FPS, separate matched focus timing, or founder-scale comparison.
+
+The offline thumbnail, semantic zoom and viewport checks covered exact avatar visibility, tier selection, cached reentry, source and crop edits, disposal, selection, wheel over Edit/Add relative/Focus/Add parent, drag, synthetic pinch, keyboard, Fit, resize, and theme switching. A generated portrait exercised decoding in the offline fixture. The packaged seed portrait was unavailable in that run. Native touch hardware and visual hover were outside this pass. Renderer, recent-layout and recorder scripts passed.

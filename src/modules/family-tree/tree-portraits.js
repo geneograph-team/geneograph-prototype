@@ -42,22 +42,24 @@ function updateTreePortraits(runtime, visible, detail, aspect, trace = null)
 {
     const leases = runtime.portraitLeases ||= new Map();
     const demand = new Map();
-    const canvas = runtime.canvas.getBoundingClientRect();
-    for (const card of runtime.cards.children)
+    let canvas;
+    const cards = detail === 'full' || detail === 'short' ? runtime.cards.children : [];
+    for (const card of cards)
     {
-        if ((detail !== 'full' && detail !== 'short') || !treeSceneIntersects(visible, card.__data__.bounds)) continue;
+        if (!treeSceneIntersects(visible, card.__data__.bounds)) continue;
+        const descriptor = treePortraitDescriptor(runtime, card.dataset.personId);
+        if (!descriptor) continue;
         const avatar = card.querySelector('.tree-avatar');
         if (!avatar) continue;
+
+        // Read rendered geometry only for portraits that can acquire a lease.
+        canvas ??= runtime.canvas.getBoundingClientRect();
         const rect = avatar.getBoundingClientRect();
         if (!rect.width || !rect.height || rect.right <= canvas.left || rect.left >= canvas.right
             || rect.bottom <= canvas.top || rect.top >= canvas.bottom) continue;
         const tier = portraitThumbnailTier(Math.max(rect.width, rect.height));
-        const descriptor = treePortraitDescriptor(runtime, card.dataset.personId);
-        if (descriptor)
-        {
-            const base = descriptor.key + '|' + aspect;
-            demand.set(avatar, { base, key: base + '|' + tier, tier, descriptor });
-        }
+        const base = descriptor.key + '|' + aspect;
+        demand.set(avatar, { base, key: base + '|' + tier, tier, descriptor });
     }
 
     for (const [avatar, lease] of leases)
