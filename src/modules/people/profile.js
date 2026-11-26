@@ -60,7 +60,7 @@ function renderProfileHeroName(person, centralPerson)
     ].filter(Boolean).join(' ');
 }
 
-function renderPeopleProfile(person)
+function renderPeopleProfile(person, centralPerson)
 {
     main.classList.add('people-profile-main');
 
@@ -73,23 +73,12 @@ function renderPeopleProfile(person)
     const hasDeathLifeRow =
         peopleHeroLifeSummaryItems(person).length > 1;
 
-    const placeCount =
-        getProfileConnectedPlaces(person.id).length;
-
-    const eventCount =
-        getFamilyTreeTimelineEvents(person.id).length;
-
-    const centralPerson =
-        getPerson(person.id);
-
-    const sourceCount =
-        centralPerson
-            ? sourcesForTarget(
-                'person',
-                centralPerson.id,
-                centralPerson.projectId
-            ).length
-            : 0;
+    const events = getEventsForPerson(person.id);
+    const eventPlaces = getProfileConnectedPlaces(centralPerson, events);
+    const connected = profileConnectedRecords(centralPerson, eventPlaces);
+    const placeCount = eventPlaces.length;
+    const eventCount = events.length;
+    const sourceCount = connected.sources.length;
 
     main.innerHTML = `
         <div class="person-profile">
@@ -133,9 +122,9 @@ function renderPeopleProfile(person)
                     app-chip--photos
                   ">
 
-                  ${person.photos}
+                  ${connected.photos.length}
                   ${
-                        person.photos === 1
+                        connected.photos.length === 1
                             ? 'photo'
                             : 'photos'
                     }
@@ -147,9 +136,9 @@ function renderPeopleProfile(person)
                     app-chip--files
                   ">
 
-                  ${person.files}
+                  ${connected.archive.length}
                   ${
-                        person.files === 1
+                        connected.archive.length === 1
                             ? 'file'
                             : 'files'
                     }
@@ -161,9 +150,9 @@ function renderPeopleProfile(person)
                     app-chip--notes
                   ">
 
-                  ${person.notes}
+                  ${connected.notes.length}
                   ${
-                        person.notes === 1
+                        connected.notes.length === 1
                             ? 'note'
                             : 'notes'
                     }
@@ -230,8 +219,8 @@ function renderPeopleProfile(person)
           </div>
 
           <div class="person-profile__bottom">
-            ${renderProfileConnectedCube(person)}
-            ${renderProfileCompactTimeline(person)}
+            ${renderProfileConnectedCube(centralPerson, connected)}
+            ${renderProfileCompactTimeline(person, events.sort(compareTimelineEvents))}
           </div>
         </div>
       `;
@@ -622,39 +611,18 @@ function profileConnectedPlaceMeta(
         || t('Linked event');
 }
 
-function getProfileConnectedPlaces(
-    personId
-)
+function getProfileConnectedPlaces(person, events = getEventsForPerson(person.id))
 {
-    const person =
-        getPerson(personId);
-
-    if (!person)
-    {
-        return [];
-    }
-
     const groupedPlaces =
         new Map();
 
-    (sampleData.events || [])
+    events
         .forEach(event =>
         {
             if (
                 event?.projectId
               !== person.projectId
-            )
-            {
-                return;
-            }
-
-            if (
-                !Array.isArray(
-                    event.personIds
-                )
-            || !event.personIds.includes(
-                person.id
-            )
+              || !Array.isArray(event.personIds)
             )
             {
                 return;
@@ -745,10 +713,10 @@ const profileConnectedPageSize = 8;
 let profileConnectedView;
 let profileConnectedResizeObserver;
 
-function profileConnectedRecords(person)
+function profileConnectedRecords(person, eventPlaces = getProfileConnectedPlaces(person))
 {
     const albums = getProjectAlbums(person.projectId);
-    const places = getProfileConnectedPlaces(person.id).map(item => ({ ...item, record: getPlace(item.id) }));
+    const places = eventPlaces.map(item => ({ ...item, record: getPlace(item.id) }));
     const knownPlaces = new Set(places.map(item => item.id));
     const placeFields = [person.birth, person.death, ...(person.attributes || []), ...(person.events || [])];
     for (const place of sampleData.places || [])
@@ -800,19 +768,16 @@ function profileConnectedSelection(person, records)
     return view;
 }
 
-function renderProfileConnectedCube(person)
+function renderProfileConnectedCube(person, records)
 {
-    person = getPerson(person.id);
-    if (!person) return '';
     return `<section class="profile-connected-cube profile-connected-card" data-profile-connected-explorer>
         <h3 class="profile-connected-head"><span class="profile-connected-title"><span class="profile-connected-icon">${icon.link}</span>${escapeHtml(t('Connected records'))}</span></h3>
-        <div data-profile-connected-content>${renderProfileConnectedContent(person)}</div>
+        <div data-profile-connected-content>${renderProfileConnectedContent(person, records)}</div>
     </section>`;
 }
 
-function renderProfileConnectedContent(person)
+function renderProfileConnectedContent(person, records = profileConnectedRecords(person))
 {
-    const records = profileConnectedRecords(person);
     const view = profileConnectedSelection(person, records);
     if (!view.kind)
     {
@@ -1238,10 +1203,10 @@ function bindProfileConnectedExplorer(person)
     });
 }
 
-function renderProfileCompactTimeline(person)
+function renderProfileCompactTimeline(person, events)
 {
     const timelineContent =
-        renderFamilyTreeTimeline(person.id);
+        renderFamilyTreeTimeline(person.id, events);
 
     return `
         <section

@@ -98,6 +98,21 @@ The People directory presents project people with search/filter/sort and bulk op
 
 Names include given, middle, surname, and where recorded a maiden surname. Living status and life dates affect display and privacy-oriented copy. Portraits resolve a primary project photo where available and otherwise use initials. Photo selection and association are prototype interactions over the current in-memory data; they do not upload to a production media service.
 
+The directory keeps one project-scoped query context keyed by edit revision, reference person, language and source links. Search and filters still evaluate the full population before pagination. Only the visible page is prepared for display. Profile resolves the selected canonical person directly and shares connected records and timeline events between the hero and its panels.
+
+**Performance check (#452).** Headless Edge on Windows, with 25 rows per page. These are synchronous entry and render measurements, excluding later paints and image decoding. The stress baseline used the issue's default revision for the changed files on the same local static server. Cold stress entry includes first activation of the fixture.
+
+| Workflow | Whiskerfield before → after | Imported 6,481-person project before → after | 6,481-person stress fixture before → after |
+| --- | ---: | ---: | ---: |
+| Cold People entry | 67 → 53 ms | 15,083 → 61 ms | 11,050 → 408 ms |
+| Warm directory | 17 → 14 ms | 15,427 → 23 ms | 7,245 → 36 ms |
+| Open Profile | 26 → 24 ms | 14,999 → 24 ms | 6,312 → 6 ms |
+| Switch Profile | 19 → 17 ms | 15,308 → 10 ms | 6,145 → 6 ms |
+| Return to directory | 16 → 18 ms | 15,361 → 24 ms | 6,797 → 39 ms |
+| Page, search, sort, filter | 10–16 → 8–18 ms | 14,504–15,398 → 15–29 ms | 6,354–7,226 → 9–53 ms |
+
+On the large projects, warm directory preparation changed from 32,405 detailed records and five relationship graph builds to 25 detailed rows, one selected inspector and zero graph builds. Profile prepares one display record and builds no directory graph. Changing the preview on the stress fixture took 4–5 ms and left the table mounted. A separate warm stress sample spent about 15 ms in filtering/sorting and 2 ms generating desktop and mobile rows. Avatar markup was under 2 ms in that sample, which had no portrait images. Portrait decode costs were not measured.
+
 ### Family Tree
 
 Family Tree is the structured relationship view. It uses layout and connector logic to render people, partner groups, parents, children, and family junctions. Card actions open the established person and relationship workflows. The tree and People/Profile views refer to the same underlying records. Tree geometry and relationship constraints are implementation-owned in `src/modules/family-tree/`; do not copy dimensions from the 2026-08 snapshot.

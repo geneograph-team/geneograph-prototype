@@ -1,6 +1,6 @@
 function openPeopleProfileFromRow(personId)
 {
-    const person = currentPeopleRecords().find(item => item.id === personId);
+    const person = peopleProfilePerson(personId);
     if (!person)
     {
         showToast('Person record not found.');

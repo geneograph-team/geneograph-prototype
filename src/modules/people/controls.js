@@ -354,17 +354,7 @@ function previewPeoplePerson(
     personId
 )
 {
-    const person =
-        getPerson(personId);
-
-    if (
-        !person
-        || person.projectId
-          !== currentProjectId()
-    )
-    {
-        return;
-    }
+    if (!peopleProfilePerson(personId)) return;
 
     if (
         state.selectedPeopleId

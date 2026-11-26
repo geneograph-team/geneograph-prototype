@@ -1152,9 +1152,8 @@ function getFamilyTreeTimelineEvents(personId)
         .sort(compareTimelineEvents);
 }
 
-function renderFamilyTreeTimeline(personId)
+function renderFamilyTreeTimeline(personId, events = getFamilyTreeTimelineEvents(personId))
 {
-    const events = getFamilyTreeTimelineEvents(personId);
 
     if (!events.length)
     {

@@ -247,94 +247,40 @@ function markPersonUpdated(
     markPrototypeSessionEdited();
 }
 
-function toPeopleRecord(
-    person,
-    relationshipLabels = null
-)
+function toPeopleQueryRecord(person, relationshipLabels, getPlaceLabel = getPlaceEventDisplay)
 {
-    const sourceCount =
-        sourceIdsForTarget(
-            'person',
-            person.id,
-            person.projectId
-        ).length;
     return {
         id: person.id,
-        initials: formatPersonInitials(person),
         name: formatPersonFullName(person),
         first: person.names.first,
         surname: person.names.last,
         living: person.livingStatus,
         birth: formatGenealogyDateLabel(person.birth),
-        birthYear:
-          timelineYearFromValue(
-              person.birth
-          ),
-        birthPlace: getPlaceEventDisplay(person.birth),
-        birthPlaceId:
-          person.birth?.placeId
-          || '',
+        birthPlace: getPlaceLabel(person.birth),
+        birthPlaceId: person.birth?.placeId || '',
+        updatedAt: person.updatedAt || '',
+        createdAt: person.createdAt || '',
+        relation: relationshipLabels?.get(person.id) || 'Relative'
+    };
+}
+
+function toPeopleDisplayRecord(person, query = toPeopleQueryRecord(person))
+{
+    return {
+        ...query,
+        initials: formatPersonInitials(person),
         death: formatGenealogyDateLabel(person.death),
         deathPlace: getPlaceEventDisplay(person.death),
         updated: person.meta?.updated || '',
-        updatedAt:
-          person.updatedAt || '',
-
-        createdAt:
-          person.createdAt || '',
         gender: person.gender,
-        relation:
-          relationshipLabels
-              ?.get(person.id)
-          || personRelationshipLabel(
-              person.id,
-              treeDefaultPersonId(
-                  person.projectId
-              )
-          ),
-        photos: getPersonPhotoCount(person.id),
-        files: getArchiveFilesForPerson(person.id).length,
-        notes:
-          getNotesForPerson(
-              person.id
-          ).length,
-        sourceCount,
         avatarClass: person.avatarClass,
-        primaryPhotoId: person.primaryPhotoId || '',
-        parents: getParents(person.id).map(parent => formatPersonFullName(parent)).join(' and ') || 'Unknown parents'
+        primaryPhotoId: person.primaryPhotoId || ''
     };
 }
 
 function getTreePeopleFromSampleData(projectId)
 {
     return getPeople(projectId).map(person => toTreePerson(person));
-}
-
-function getPeopleRecordsFromSampleData(
-    projectId
-)
-{
-    const referencePersonId =
-        treeDefaultPersonId(
-            projectId
-        );
-
-    const relationshipLabels =
-        buildPersonRelationshipLabelMap(
-            projectId,
-            referencePersonId
-        );
-
-    return getPeople(projectId)
-        .filter(person =>
-            !person.deleted
-        )
-        .map(person =>
-            toPeopleRecord(
-                person,
-                relationshipLabels
-            )
-        );
 }
 
 function getTreeFamiliesFromSampleData(projectId, lookupPerson)

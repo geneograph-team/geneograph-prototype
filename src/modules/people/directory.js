@@ -550,14 +550,71 @@ function peopleProjectSavedViews()
     return peopleSavedViews.filter(view => view.projectId === currentProjectId());
 }
 
-function selectedPeopleRecord()
+let peopleDirectoryCache = null;
+
+function peopleDirectoryContext(projectId = currentProjectId())
 {
-    const records = currentPeopleRecords();
-    if (!records.some(person => person.id === state.selectedPeopleId))
+    const defaultId = validProjectById(projectId)?.defaultPersonId;
+    const revision = prototypeSessionEditRevision;
+    // Source-link updates can replace the collection before their caller commits the edit revision.
+    const sourceLinks = sampleData.sourceLinks;
+    if (peopleDirectoryCache?.projectId === projectId
+        && peopleDirectoryCache.revision === revision
+        && peopleDirectoryCache.sourceLinks === sourceLinks
+        && peopleDirectoryCache.defaultId === defaultId
+        && peopleDirectoryCache.language === state.language)
     {
-        state.selectedPeopleId = records.find(person => person.id === 'silver')?.id || records[0]?.id || '';
+        return peopleDirectoryCache;
     }
-    return records.find(person => person.id === state.selectedPeopleId) || records[0] || null;
+
+    const people = getPeople(projectId).filter(person => !person.deleted);
+    const peopleById = new Map(people.map(person => [person.id, person]));
+    const labels = buildPersonRelationshipLabelMap(projectId, treeDefaultPersonId(projectId));
+    const placeLabels = new Map();
+    const placeLabel = event =>
+    {
+        const id = event?.placeId;
+        if (id && !placeLabels.has(id)) placeLabels.set(id, cleanEditFieldValue(getPlaceDisplay(id)));
+        return placeLabels.get(id) || cleanEditFieldValue(event?.placeText);
+    };
+
+    const sourceIdsByPerson = new Map();
+    for (const link of sourceLinksForProject(projectId))
+    {
+        if (link.targetType !== 'person' || !link.sourceId || !peopleById.has(link.targetId)) continue;
+        if (!sourceIdsByPerson.has(link.targetId)) sourceIdsByPerson.set(link.targetId, new Set());
+        sourceIdsByPerson.get(link.targetId).add(link.sourceId);
+    }
+
+    const records = people.map(person => ({
+        ...toPeopleQueryRecord(person, labels, placeLabel),
+        birthFact: person.birth,
+        sourceCount: sourceIdsByPerson.get(person.id)?.size || 0
+    }));
+    peopleDirectoryCache = { projectId, revision, defaultId, language: state.language, sourceLinks, peopleById, records };
+    return peopleDirectoryCache;
+}
+
+function peopleProjectHasPeople(projectId = currentProjectId())
+{
+    return Boolean(projectId && sampleData.people.some(person => person.projectId === projectId && !person.deleted));
+}
+
+function peopleProfilePerson(personId, projectId = currentProjectId())
+{
+    if (!projectId) return null;
+    const person = getPerson(personId);
+    return person?.projectId === projectId && !person.deleted ? person : null;
+}
+
+function selectedPeoplePerson(projectId, peopleById)
+{
+    const lookup = peopleById ? id => peopleById.get(id) : id => peopleProfilePerson(id, projectId);
+    const person = lookup(state.selectedPeopleId) || lookup('silver')
+        || (peopleById ? peopleById.values().next().value
+            : sampleData.people.find(item => item.projectId === projectId && !item.deleted));
+    state.selectedPeopleId = person?.id || '';
+    return person || null;
 }
 
 const peopleDateMonths = Object.freeze({
@@ -1025,6 +1082,8 @@ function peopleRecordsMatchingFilters(
             searchQuery
         );
 
+    const filterBirth = Boolean(normalized.birthYear.mode && normalized.birthYear.from);
+
     return records.filter(person =>
     {
         if (
@@ -1070,8 +1129,9 @@ function peopleRecordsMatchingFilters(
         }
 
         if (
-            !genealogyDateMatchesYearFilter(
-                getPerson(person.id)?.birth || person.birth,
+            filterBirth
+          && !genealogyDateMatchesYearFilter(
+                (Object.hasOwn(person, 'birthFact') ? person.birthFact : getPerson(person.id)?.birth) || person.birth,
                 normalized.birthYear
             )
         )
@@ -1088,10 +1148,7 @@ function peopleRecordsMatchingFilters(
             return false;
         }
 
-        const sourceCount =
-            getPeopleSourceCount(
-                person
-            );
+        const sourceCount = normalized.sourceLinks === 'all' ? 0 : getPeopleSourceCount(person);
 
         if (
             normalized.sourceLinks
@@ -1147,7 +1204,7 @@ function peopleFilterResultCount(
 )
 {
     return peopleRecordsMatchingFilters(
-        currentPeopleRecords(),
+        peopleDirectoryContext().records,
         filters
     ).length;
 }
@@ -1179,11 +1236,11 @@ function peopleFilterApplyLabel(
     }`;
 }
 
-function filteredPeople()
+function filteredPeople(records = peopleDirectoryContext().records)
 {
     return sortPeopleRecords(
         peopleRecordsMatchingFilters(
-            currentPeopleRecords(),
+            records,
             peopleFiltersWithDefaults()
         )
     );
@@ -1640,9 +1697,9 @@ function peopleSelectedRecords()
     return getPeople(currentProjectId()).filter(person => selectedIds.has(person.id));
 }
 
-function prunePeopleSelection()
+function prunePeopleSelection(peopleById)
 {
-    setPeopleSelection(state.peopleSelectedIds);
+    setPeopleSelection(state.peopleSelectedIds, peopleById);
 }
 
 function clearPeopleSelection()
@@ -1651,9 +1708,8 @@ function clearPeopleSelection()
     state.peopleSelectionAnchorId = '';
 }
 
-function setPeopleSelection(personIds)
+function setPeopleSelection(personIds, validIds = new Set(getPeople(currentProjectId()).map(person => person.id)))
 {
-    const validIds = new Set(getPeople(currentProjectId()).map(person => person.id));
     state.peopleSelectedIds = [...new Set(Array.isArray(personIds) ? personIds : [])]
         .filter(personId => validIds.has(personId));
 
@@ -1878,8 +1934,7 @@ function renderPeopleDirectoryControls()
 function renderPeople()
 {
     appNavigationObserve();
-    if (!currentPeopleRecords().length && state.peopleView === 'profile')
-        state.peopleView = 'directory';
+    const projectId = currentProjectId();
 
     workspace.classList.remove(
         'no-sidebar'
@@ -1887,40 +1942,36 @@ function renderPeople()
 
     sidebar.innerHTML = '';
 
-    prunePeopleSelection();
-
-    const selected =
-        selectedPeopleRecord();
-
-    if (
-        state.peopleView === 'profile'
-    )
+    if (state.peopleView === 'profile')
     {
-        clearPeopleSelection();
-
-        renderPeopleSidebar();
-
-        renderPeopleProfile(
-            selected
-        );
-
-        return;
+        const person = selectedPeoplePerson(projectId);
+        if (person)
+        {
+            clearPeopleSelection();
+            renderPeopleSidebar(true);
+            renderPeopleProfile(toPeopleDisplayRecord(person), person);
+            return;
+        }
+        state.peopleView = 'directory';
     }
+
+    const { peopleById, records } = peopleDirectoryContext(projectId);
+    const selected = selectedPeoplePerson(projectId, peopleById);
+    prunePeopleSelection(peopleById);
 
     main.classList.remove(
         'people-profile-main'
     );
 
-    renderPeopleSidebar();
-
-    const hasProjectPeople = currentPeopleRecords().length > 0;
+    const hasProjectPeople = peopleById.size > 0;
+    renderPeopleSidebar(hasProjectPeople);
 
     /*
       * filteredPeople() returns the complete filtered and sorted
       * result. Pagination is deliberately applied afterward.
       */
     const filteredRows =
-        filteredPeople();
+        filteredPeople(records);
 
     syncPeoplePaginationQuery();
 
@@ -1929,11 +1980,9 @@ function renderPeople()
             filteredRows.length
         );
 
-    const visibleRows =
-        filteredRows.slice(
-            pagination.startIndex,
-            pagination.endIndex
-        );
+    const visibleRows = filteredRows
+        .slice(pagination.startIndex, pagination.endIndex)
+        .map(record => toPeopleDisplayRecord(peopleById.get(record.id), record));
 
     main.innerHTML = `
         <div
@@ -1957,7 +2006,7 @@ function renderPeople()
             <div
               class="people-table-wrap ${!filteredRows.length ? 'is-empty' : ''}">
               ${renderPeopleTable(
-                    visibleRows
+                    visibleRows, peopleById
                 )}
               ${renderPeopleMobileList(visibleRows)}
               ${!filteredRows.length ? `<section class="people-directory-empty" aria-labelledby="peopleEmptyTitle">${!hasProjectPeople ? `<div class="tree-empty-state-card"><div class="tree-empty-state-icon" aria-hidden="true">${icon.tree}</div><h1 id="peopleEmptyTitle">${escapeHtml(t('Start your family tree'))}</h1><p>${escapeHtml(t('Add the first person to begin building this project\'s family tree.'))}</p><button class="button primary" type="button" data-people-add-first>${icon.plus}${escapeHtml(t('Add first person'))}</button></div>` : `<div><h2 id="peopleEmptyTitle">${escapeHtml(t('No matches found'))}</h2><button class="button secondary" type="button" data-people-clear-empty>${escapeHtml(t('Clear search and filters'))}</button></div>`}</section>` : ''}
@@ -1980,15 +2029,14 @@ function renderPeople()
     );
 }
 
-function renderPeopleSidebar()
+function renderPeopleSidebar(profileAvailable)
 {
-    sidebar.innerHTML = renderPeopleSidebarInner();
+    sidebar.innerHTML = renderPeopleSidebarInner(profileAvailable);
     bindPeopleSidebar(sidebar);
 }
 
-function renderPeopleSidebarInner()
+function renderPeopleSidebarInner(profileAvailable = peopleProjectHasPeople())
 {
-    const profileAvailable = currentPeopleRecords().length > 0;
     const savedViewsMarkup = peopleProjectSavedViews().map(view =>
     {
         const isActive = state.peopleSavedViewId === view.id;
@@ -2073,7 +2121,7 @@ function renderPeopleSidebarInner()
         </div>`;
 }
 
-function peopleTableColumnValue(key, row, person)
+function peopleTableColumnValue(key, row, person, childIdsByParent)
 {
     switch (key)
     {
@@ -2090,17 +2138,35 @@ function peopleTableColumnValue(key, row, person)
             || getPlaceEventDisplay(personEventByTag(person, 'BURI'));
         case 'causeOfDeath': return person?.death?.cause;
         case 'relationship': return row.relation;
-        case 'children': return getChildren(row.id).length;
+        case 'children': return childIdsByParent.get(row.id)?.size || 0;
         case 'created': return formatProjectDate(row.createdAt, '');
         case 'updated': return formatProjectDate(row.updatedAt, row.updated || '');
         default: return row[key];
     }
 }
 
-function renderPeopleTable(rows)
+function renderPeopleTable(rows, peopleById)
 {
     const columns = peopleColumnsWithDefaults();
     const enabledColumns = peopleColumns.filter(([key]) => columns[key]);
+    const childIdsByParent = new Map();
+    if (columns.children && rows.length)
+    {
+        const visibleIds = new Set(rows.map(person => person.id));
+        for (const family of centralFamilyRecords())
+        {
+            for (const parentId of [familyPartnerAId(family), familyPartnerBId(family)])
+            {
+                if (!visibleIds.has(parentId)) continue;
+                if (!childIdsByParent.has(parentId)) childIdsByParent.set(parentId, new Set());
+                const children = childIdsByParent.get(parentId);
+                for (const childId of family.childIds || [])
+                {
+                    if (peopleById.has(childId) || getPerson(childId)) children.add(childId);
+                }
+            }
+        }
+    }
     const selectedIds = peopleSelectedIdSet();
     const headers = [
         `<th class="people-select-column"><input class="people-select-checkbox" type="checkbox" data-people-select-visible aria-label="${escapeHtml(t('Select all visible people'))}" ${rows.length ? '' : 'disabled'}></th>`,
@@ -2114,7 +2180,7 @@ function renderPeopleTable(rows)
         {
             const isPreviewed = person.id === state.selectedPeopleId;
             const isSelected = selectedIds.has(person.id);
-            const central = getPerson(person.id);
+            const central = peopleById.get(person.id);
             const rowClasses = [isPreviewed ? 'is-previewed' : '', isSelected ? 'is-selected' : ''].filter(Boolean).join(' ');
             return `
             <tr
@@ -2152,7 +2218,7 @@ function renderPeopleTable(rows)
             </td>
             ${enabledColumns.map(([key]) =>
             {
-                const value = peopleTableColumnValue(key, person, central);
+                const value = peopleTableColumnValue(key, person, central, childIdsByParent);
                 const display = escapeHtml(value === '' || value == null ? '—' : String(value));
                 return `<td data-people-table-column="${key}" title="${display}">${display}</td>`;
             }).join('')}

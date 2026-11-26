@@ -321,7 +321,8 @@ function compareAppSortValues(
     second,
     {
         type = 'text',
-        direction = 'ascending'
+        direction = 'ascending',
+        collator
     } = {}
 )
 {
@@ -369,7 +370,7 @@ function compareAppSortValues(
     else
     {
         comparison =
-            appSortCollator().compare(
+            (collator || appSortCollator()).compare(
                 String(first),
                 String(second)
             );
@@ -394,28 +395,26 @@ function appSortRecords(
     const extractor =
         extractors[field]
         || Object.values(extractors)[0];
+    const collator = appSortCollator();
 
     return records
         .map((record, index) => ({
             record,
+            value: extractor.get(record),
+            fallback: getFallback?.(record),
             index
         }))
         .sort((firstItem, secondItem) =>
         {
-            const first =
-                firstItem.record;
-
-            const second =
-                secondItem.record;
-
             const comparison =
                 compareAppSortValues(
-                    extractor.get(first),
-                    extractor.get(second),
+                    firstItem.value,
+                    secondItem.value,
                     {
                         type:
                   extractor.type,
-                        direction
+                        direction,
+                        collator
                     }
                 );
 
@@ -428,11 +427,12 @@ function appSortRecords(
             {
                 const fallbackComparison =
                     compareAppSortValues(
-                        getFallback(first),
-                        getFallback(second),
+                        firstItem.fallback,
+                        secondItem.fallback,
                         {
                             type: 'text',
-                            direction
+                            direction,
+                            collator
                         }
                     );
 

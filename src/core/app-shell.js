@@ -698,7 +698,7 @@ function renderTopbar()
     const showSections = showModules && state.activeModule !== 'Family Tree';
     const showDetails = showModules && ['Family Tree', 'People', 'Albums', 'Archive', 'Places', 'Geneograph'].includes(state.activeModule)
         && !(state.activeModule === 'Family Tree' && !getPeople(currentFamilyTreeProjectId()).length)
-        && !(state.activeModule === 'People' && !currentPeopleRecords().length)
+        && !(state.activeModule === 'People' && !peopleProjectHasPeople())
         && !(state.activeModule === 'People' && state.peopleView === 'profile')
         && !(state.activeModule === 'Geneograph' && state.geneoView !== 'board');
     const signedLabel = state.userSignedIn ? 'SW' : 'IN';

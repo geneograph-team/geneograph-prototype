@@ -1107,11 +1107,6 @@ function buildFamilyTreeProjection(people, families, options = {})
     };
 }
 
-function currentPeopleRecords()
-{
-    return getPeopleRecordsFromSampleData(currentProjectId());
-}
-
 function placeDisplayText(place)
 {
     return cleanEditFieldValue(place?.name);

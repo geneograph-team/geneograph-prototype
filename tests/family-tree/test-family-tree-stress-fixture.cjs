@@ -8,7 +8,8 @@ const vm = require('node:vm');
 
 const context = vm.createContext({
     console, performance, structuredClone, TextDecoder, TextEncoder, Blob, File, URL, Response, AbortSignal,
-    state: { language: 'en' },
+    state: { language: 'en' }, prototypeSessionEditRevision: 0,
+    validProjectById: id => vm.runInContext('sampleData', context).projects.find(project => project.id === id),
     document: { documentElement: { lang: 'en' } },
     t: value => value, translateText: value => value,
     localizedDataFieldValue: value => value, escapeHtml: value => value,
@@ -22,7 +23,7 @@ for (const file of [
     'seed/sample-data', 'shared/genealogy-dates', 'shared/person-name-helpers', 'modules/places/place-record-helpers',
     'shared/relationships', 'modules/family-tree/relationships', 'shared/tree-seed-model',
     'modules/people/person-form-fields', 'modules/people/person-editor', 'modules/people/relationship-editor',
-    'modules/archive/archive-sources', 'core/validation', 'modules/archive/archive-documents',
+    'modules/archive/archive-sources', 'modules/people/directory', 'core/validation', 'modules/archive/archive-documents',
     'modules/projects/gedcom-import', 'seed/family-tree-stress-data', 'seed/family-tree-stress-test'
 ])
 {
@@ -108,7 +109,7 @@ assert.equal(whiskerfield(), p1Before);
 assert.equal(JSON.stringify(scoped('people')), JSON.stringify(draft.records.people));
 assert.equal(JSON.stringify(scoped('families')), JSON.stringify(draft.records.families));
 const treePeople = context.getTreePeopleFromSampleData(projectId);
-const directory = context.getPeopleRecordsFromSampleData(projectId);
+const directory = context.peopleDirectoryContext(projectId).records;
 assert.equal(treePeople.length, 6481);
 assert.equal(new Set(treePeople.map(person => person.id)).size, 6481);
 assert.equal(directory.length, 6481);
