@@ -584,6 +584,10 @@ async function solveElkTree(people, families, direction, calculate, focusId = nu
         const groupPadding = 18;
         for (const group of groups)
         {
+            // Two Vertical missing-parent slots already span one regular card.
+            // Do not widen their native footprint with invisible side padding.
+            const sidePadding = direction === 'DOWN' && group.members.length === 2
+                && group.members.every(id => peopleById.get(id).placeholder) ? 0 : groupPadding;
             // INCLUDE_CHILDREN is inherited throughout.
             const node = {
                 id: group.id,
@@ -595,7 +599,7 @@ async function solveElkTree(people, families, direction, calculate, focusId = nu
                     // Align card starts even when ordered child ports give compounds different depths.
                     'elk.alignment': direction === 'DOWN' ? 'TOP' : 'LEFT',
                     'elk.partitioning.activate': 'true',
-                    'elk.padding': `[top=${groupPadding},left=${groupPadding},bottom=${groupPadding},right=${groupPadding}]`,
+                    'elk.padding': `[top=${groupPadding},left=${sidePadding},bottom=${groupPadding},right=${sidePadding}]`,
                     ...placementOptions
                 }
             };

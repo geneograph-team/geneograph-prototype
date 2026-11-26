@@ -104,5 +104,46 @@ function fixture(direction, pattern)
             }
             cases++;
         }
+    // Complete top-level missing-parent pairs have exactly the width of the
+    // card they feed in Vertical. Horizontal retains its native footprint.
+    for (const direction of ['DOWN', 'RIGHT'])
+        for (const pattern of [{ R: 'both' }, { RF: 'both', RM: 'both' },
+            { RFF: 'both', RFM: 'both', RMF: 'both', RMM: 'both' }])
+        {
+            const { people, families } = fixture(direction, pattern);
+            const byId = new Map(people.map(person => [person.id, person]));
+            let calls = 0;
+            const result = await context.solveElkTree(people, families, direction, graph =>
+            {
+                calls++;
+                for (const group of graph.children)
+                {
+                    if (!group.children) continue;
+                    const members = group.children.filter(node => byId.has(node.id));
+                    const paired = members.length === 2 && members.every(node => byId.get(node.id).placeholder);
+                    const padding = direction === 'DOWN' && paired ? 0 : 18;
+                    assert.equal(group.layoutOptions['elk.padding'],
+                        '[top=18,left=' + padding + ',bottom=18,right=' + padding + ']');
+                }
+                return elk.layout(JSON.parse(JSON.stringify(graph)));
+            }, 'R');
+            assert.ok(calls <= 2);
+            assert.equal(result.issues.length, 0, result.issues.join('; '));
+            const axis = direction === 'DOWN' ? 'x' : 'y';
+            assert.equal(context.elkCenteringConflicts(result, axis).size, 0);
+            if (direction === 'DOWN')
+            {
+                const cards = new Map(result.boxes.map(box => [box.id, box]));
+                const midpoint = id => cards.get(id).x + cards.get(id).w / 2;
+                for (const family of families.filter(f => f.parents.every(id => byId.get(id).placeholder)))
+                {
+                    const [father, mother] = family.parents.map(id => cards.get(id)).sort((a, b) => a.x - b.x);
+                    assert.ok(Math.abs(mother.x + mother.w - father.x - 300) <= EPS);
+                    assert.ok(Math.abs((midpoint(family.parents[0]) + midpoint(family.parents[1])) / 2
+                        - midpoint(family.children[0])) <= EPS, 'Unnecessary placeholder offset');
+                }
+            }
+            cases++;
+        }
     console.log('Ancestral reservations: ' + cases + ' layouts passed.');
 })().catch(error => { console.error(error); process.exitCode = 1; });
