@@ -3,7 +3,7 @@
 - [x] Profile Sync preparation, plan comparison, selection continuation and board render.
 - [x] Bound repeated matching and projection work, verify transaction safety, and record board render stages.
 - [x] Compare card text fitting on a larger board.
-- [ ] Verify on the founder’s imported GEDCOM and obtain acceptance.
+- [x] Record founder's imported GEDCOM performance verification and acceptance (limitations below).
 
 ## Verification
 
@@ -37,3 +37,20 @@ The person who stages a relationship transfer remains its owner and fallback pla
 
 The timings are comparable to the previous optimized selection samples of 76 ms hosted and 69 ms direct file. The private imported GEDCOM, the full range of multi-family conflicts and founder acceptance remain pending. The change stays active.
 
+## Founder acceptance — 27 November 2026
+
+Founder explicitly accepted #473 after reviewing implementation `2352e9192a2b220aa00b181ed1eac3f2a25054c1` and transaction-safety correction `464e731956cc1465f87c16610dbf55982b9a4cf4`. The corrective regression and browser results above remain the correctness evidence. The subsequent founder-supplied Detailed schema-3 export on the imported project retained all 87 completed operations without drops, across two recording epochs. Picker samples report 6,481 eligible project people; board renders report 104–114 objects and 0–8 edges, while Sync review counts 101–108 represented people.
+
+| Operation | Founder recording (ms) |
+| --- | --- |
+| Board render (five samples) | 151.1 / 151.8 / 170.2 / 152.8 / 168.2 |
+| Sync open (three samples) | 237.5 / 245.0 / 237.3 |
+| Manual picker selection continuation (three samples) | 85.1 / 102.7 / 102.9 |
+| Selection projection | 7.2 / 15.1 / 17.7 |
+| Sync Apply (two samples, inclusive of board rerender) | 234.9 / 235.4 |
+| Apply projection | 14.1 / 20.0 |
+| Apply patch writer (stage labeled evidence) | 0.6 / 0.1 |
+
+The preceding imported-project selection sample was 1,458.1 ms; the new 85.1–102.9 ms samples support the intended responsiveness improvement, not a matched statistical benchmark or paint measurement. The latest epoch alone reports 21 page-wide long tasks (maximum 250 ms) and two legacy invalidations with two evicted entries; historical epoch summaries are unavailable. Mutation invalidation remains #474 work. The separate report of poor Add person Possible matches is a matching-quality concern (shared PersonMatchEngine, policy #322), not a demonstrated regression in this Sync optimization. Exact false-negative cause and desired policy require separate investigation.
+
+Founder accepts the optimization and documented limitations. This export records timings and operation completion, not verification of every transfer, Cancel, or canonical record outcome. Broad multi-family conflicts on private data, complete board/edit/gesture, theme/viewport and cross-engine coverage, and residual synchronous conflict snapshot/event projection/full canvas rendering costs are not comprehensively verified. No runtime tests were rerun for administrative closeout. Do not interpret acceptance as execution of every original QA scenario; retain integrated regression in #460.
