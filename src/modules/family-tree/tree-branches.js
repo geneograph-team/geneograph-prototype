@@ -66,16 +66,21 @@ function treeBranchGraph(people, families)
     return { ids, parents, children, key, unsupported, conflicts };
 }
 
-function resolveTreeBranches(graph, reference, preset, includeCollateral)
+function treeBranchOriginIds(graph, reference, origins)
 {
-    const { origins, levels } = treeBranchPaths(preset);
-    const ancestor = new Map(), collateral = new Map(), transitions = new Map(), links = new Set();
-    const originIds = origins.map(path =>
+    return origins.map(path =>
     {
         let id = reference;
         for (const role of path) id = graph.parents.get(id)?.[role === 'F' ? 0 : 1]?.parent;
         return id || '';
     });
+}
+
+function resolveTreeBranches(graph, reference, preset, includeCollateral)
+{
+    const { origins, levels } = treeBranchPaths(preset);
+    const ancestor = new Map(), collateral = new Map(), transitions = new Map(), links = new Set();
+    const originIds = treeBranchOriginIds(graph, reference, origins);
     const split = levels.length;
     const queue = graph.ids.has(reference) ? [{ id: reference, slot: 0, path: '' }] : [];
     const seen = new Set();
@@ -197,10 +202,11 @@ function treeColorSettings(projectId, view)
         const reference = sampleData.projects.find(project => project.id === projectId)?.defaultPersonId;
         view.colors = { reference: getPerson(reference)?.projectId === projectId ? reference : '',
             preset: 4, collateral: false, fill: view.colorFill === false ? 'neutral' : 'gender',
-            outline: 'gender', connectors: 'neutral' };
+            outline: 'gender', connectors: 'neutral', palette: normalizeTreePalette() };
     }
     if (view.colors.reference && getPerson(view.colors.reference)?.projectId !== projectId)
         view.colors.reference = '';
+    if (!view.colors.palette) view.colors.palette = normalizeTreePalette();
     return view.colors;
 }
 
@@ -209,35 +215,31 @@ function treeBranchColor(slot)
     return slot ? 'var(--tree-branch-' + slot + ')' : 'var(--tree-branch-neutral)';
 }
 
-function treeBranchLegend(runtime, result, settings)
+// Choose readable text on strongly colored overview labels. The category color
+// is the same in every detail level; CSS still owns zoom-dependent mixing.
+function treePaletteLabelInk(color)
 {
-    const legend = runtime.shell.querySelector('.tree-branch-legend');
-    const enabled = [settings.fill, settings.outline, settings.connectors].includes('branch');
-    legend.hidden = !enabled;
-    if (!enabled) return;
-    const heading = legend.querySelector('summary');
-    heading.textContent = t('Branch legend');
-    const neutral = t('Neutral includes missing, unrelated and ambiguous paths.');
-    const reference = getPerson(settings.reference);
-    const title = reference ? localizedDataFieldValue(formatPersonFullName(reference)) : t('Choose a branch reference in Tree Settings.');
-    const content = legend.querySelector('.tree-branch-legend-content');
-    const entries = result.origins.map((path, index) =>
+    const channels = [1, 3, 5].map(offset =>
     {
-        const slot = index + 1;
-        const origin = getPerson(result.originIds[index]);
-        const roles = Array.from(path, role => t(role === 'F' ? 'Father' : 'Mother')).join(' › ');
-        const name = origin ? localizedDataFieldValue(formatPersonFullName(origin)) : t('Vacant branch origin');
-        return '<li><span class="tree-branch-swatch" style="--tree-swatch:' + treeBranchColor(slot)
-            + '" aria-hidden="true"></span><strong>' + slot + '</strong><span title="' + escapeHtml(roles)
-            + '">' + escapeHtml(roles + ' · ' + name) + '</span></li>';
-    }).join('');
-    const markup = '<strong>' + escapeHtml(title) + '</strong><ul>' + entries
-        + '</ul><p><span class="tree-branch-swatch tree-branch-neutral-swatch" aria-hidden="true"></span>' + escapeHtml(neutral) + '</p>';
-    if (content.treeLegendMarkup !== markup)
-    {
-        content.innerHTML = markup;
-        content.treeLegendMarkup = markup;
-    }
+        const value = parseInt(color.slice(offset, offset + 2), 16) / 255;
+        return value <= 0.04045 ? value / 12.92 : Math.pow((value + 0.055) / 1.055, 2.4);
+    });
+    const luminance = channels[0] * 0.2126 + channels[1] * 0.7152 + channels[2] * 0.0722;
+    return luminance > 0.179 ? '#000000' : '#ffffff';
+}
+
+function applyTreePalette(runtime, palette)
+{
+    // Set both themes on the shell. CSS switches the aliases on theme changes,
+    // including system-theme changes, without touching geometry or selection.
+    if (runtime.appliedPalette === palette) return;
+    runtime.appliedPalette = palette;
+    for (const theme of ['light', 'dark'])
+        for (const [key, color] of Object.entries(palette[theme]))
+        {
+            runtime.shell.style.setProperty('--tree-palette-' + theme + '-' + key, color);
+            runtime.shell.style.setProperty('--tree-palette-' + theme + '-' + key + '-ink', treePaletteLabelInk(color));
+        }
 }
 
 function refreshTreeColors(runtime)
@@ -247,6 +249,7 @@ function refreshTreeColors(runtime)
     const view = treeProjectViewState(projectId);
     const settings = treeColorSettings(projectId, view);
     const enabled = [settings.fill, settings.outline, settings.connectors].includes('branch');
+    applyTreePalette(runtime, settings.palette);
     runtime.workspace.dataset.treeFill = settings.fill;
     runtime.workspace.classList.add('has-color-fill');
     let cache = treeBranchCache.get(view);
@@ -279,7 +282,6 @@ function refreshTreeColors(runtime)
         runtime.branchRouteSlots = new Map();
     }
     runtime.branchSettings = settings;
-    treeBranchLegend(runtime, result, settings);
     paintTreeColors(runtime);
 }
 
@@ -297,6 +299,8 @@ function paintTreeColors(runtime)
             : treeBranchColor(mode === 'branch' ? slot : 0);
         const fill = category(settings.fill);
         card.style.setProperty('--tree-card-category', fill);
+        card.style.setProperty('--tree-card-category-ink', settings.fill === 'gender' ? 'var(--tree-gender-ink)'
+            : 'var(--tree-branch-' + (settings.fill === 'branch' && slot ? slot : 'neutral') + '-ink)');
         card.style.setProperty('--tree-outline-category', category(settings.outline));
         card.style.setProperty('--tree-placeholder-tint', fill);
         card.dataset.branchSlot = slot || '';
@@ -317,7 +321,6 @@ function paintTreeColors(runtime)
         const slot = settings.connectors === 'branch' ? routeSlots.get(route.key) : 0;
         if (node.treeBranchSlot === slot) continue;
         node.treeBranchSlot = slot;
-        if (slot) node.style.setProperty('--tree-branch-stroke', treeBranchColor(slot));
-        else node.style.removeProperty('--tree-branch-stroke');
+        node.style.setProperty('--tree-branch-stroke', treeBranchColor(slot));
     }
 }

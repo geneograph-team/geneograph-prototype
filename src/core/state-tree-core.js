@@ -513,6 +513,51 @@ function treeDefaultPersonId(projectId = currentFamilyTreeProjectId())
 
 const TREE_DISPLAY_STORAGE_KEY = 'geneograph-tree-display-v1';
 
+// Tree-only palette defaults, independent of the application brand palette.
+const TREE_PALETTE_DEFAULTS = Object.freeze({
+    light: Object.freeze({
+        '1': '#3976ad', '2': '#b75e81', '3': '#278275', '4': '#ad782c',
+        '5': '#7958b1', '6': '#ad503f', '7': '#548531', '8': '#3987a7',
+        '9': '#9b6689', '10': '#697fbd', '11': '#8e8331', '12': '#328f9d',
+        '13': '#a55778', '14': '#6a925f', '15': '#b76e39', '16': '#8177a2',
+        'neutral': '#87938b', 'male': '#00639b', 'female': '#6c4f9d', 'unknown': '#675c55'
+    }),
+    dark: Object.freeze({
+        '1': '#71b2eb', '2': '#e98eaf', '3': '#59c3b0', '4': '#e6b75b',
+        '5': '#bba0f1', '6': '#ed927c', '7': '#a6c96b', '8': '#70c7e6',
+        '9': '#d7a0d0', '10': '#9baee9', '11': '#d0c96b', '12': '#6dcfcb',
+        '13': '#e9a2b4', '14': '#a1c49a', '15': '#efad79', '16': '#b6acd6',
+        'neutral': '#828f86', 'male': '#59b4f2', 'female': '#bc93f1', 'unknown': '#d1c2b7'
+    })
+});
+
+function normalizeTreePalette(raw)
+{
+    const result = {};
+    for (const theme of ['light', 'dark'])
+    {
+        result[theme] = {};
+        for (const [key, fallback] of Object.entries(TREE_PALETTE_DEFAULTS[theme]))
+        {
+            const color = raw?.[theme]?.[key];
+            result[theme][key] = typeof color === 'string' && /^#[0-9a-f]{6}$/i.test(color)
+                ? color.toLowerCase() : fallback;
+        }
+    }
+    return result;
+}
+
+function resetTreePaletteColor(palette, theme, key)
+{
+    if (!Object.hasOwn(TREE_PALETTE_DEFAULTS, theme) || !Object.hasOwn(TREE_PALETTE_DEFAULTS[theme], key)) return;
+    palette[theme][key] = TREE_PALETTE_DEFAULTS[theme][key];
+}
+
+function resetTreePaletteTheme(palette, theme)
+{
+    if (Object.hasOwn(TREE_PALETTE_DEFAULTS, theme)) palette[theme] = { ...TREE_PALETTE_DEFAULTS[theme] };
+}
+
 function treeDisplaySettings(projectId, raw = {})
 {
     if (!raw || typeof raw !== 'object') raw = {};
@@ -534,7 +579,8 @@ function treeDisplaySettings(projectId, raw = {})
             collateral: saved.collateral === true,
             fill: channel(saved.fill, ['neutral', 'gender', 'branch'], raw.colorFill === false ? 'neutral' : 'gender'),
             outline: channel(saved.outline, ['neutral', 'gender', 'branch'], 'gender'),
-            connectors: channel(saved.connectors, ['neutral', 'branch'], 'neutral')
+            connectors: channel(saved.connectors, ['neutral', 'branch'], 'neutral'),
+            palette: normalizeTreePalette(saved.palette)
         }
     };
 }
@@ -762,13 +808,45 @@ function setTreeFocusPerson(personId, { center = true } = {})
     );
 }
 
+function treePaletteRowsMarkup(palette, theme, preset, origins, originIds, peopleById)
+{
+    const row = (key, label, path = '', originId = '') =>
+    {
+        const slot = Number(key);
+        const isBranch = Number.isInteger(slot) && slot >= 1 && slot <= 16;
+        const enabled = isBranch && slot <= preset;
+        const origin = peopleById.get(originId);
+        const roles = Array.from(path, role => t(role === 'F' ? 'Father' : 'Mother')).join(' › ');
+        const originName = origin ? localizedDataFieldValue(formatPersonFullName(origin)) || t('Unnamed person') : t('Vacant branch origin');
+        const status = enabled ? t('Included in branch count') : t('Not included in branch count');
+        const colorLabel = escapeHtml(label + ' · ' + t(theme === 'light' ? 'Light' : 'Dark'));
+        return `<div class="tree-palette-row">
+            ${isBranch ? `<span class="tree-palette-slot-status ${enabled ? '' : 'inactive'}" role="img" aria-label="${escapeHtml(status)}" title="${escapeHtml(status)}">${enabled ? icon.eye : icon.eyeOff}</span>` : '<span aria-hidden="true"></span>'}
+            <label class="tree-palette-label" for="tree-palette-${key}">
+                <strong>${escapeHtml(label)}</strong>
+                ${isBranch ? `<small>${escapeHtml(roles)} · <span data-i18n-skip>${escapeHtml(originName)}</span></small>` : ''}
+            </label>
+            <input class="tree-palette-color" id="tree-palette-${key}" type="color" data-tree-palette-color="${key}" value="${palette[theme][key]}" aria-label="${colorLabel}">
+            <button class="button secondary tree-palette-reset" type="button" data-tree-palette-reset="${key}" title="${escapeHtml(t('Reset color') + ' · ' + label)}" aria-label="${escapeHtml(t('Reset color') + ' · ' + label)}">${icon.undo}</button>
+        </div>`;
+    };
+    return `<h4>${escapeHtml(t('Branch colors'))}</h4>`
+        + origins.map((path, index) => row(String(index + 1), t('Branch') + ' ' + (index + 1), path, originIds[index])).join('')
+        + `<h4>${escapeHtml(t('Gender and neutral colors'))}</h4>`
+        + [['male', 'Male'], ['female', 'Female'], ['unknown', 'Unknown gender'], ['neutral', 'Neutral']]
+            .map(([key, label]) => row(key, t(label))).join('');
+}
+
 function openTreeSettingsModal()
 {
     const projectId = currentFamilyTreeProjectId();
     const view = treeProjectViewState(projectId);
     const focusPerson = getPerson(view.focusPersonId);
-    const colors = treeColorSettings(projectId, view);
+    const draft = treeDisplaySettings(projectId, view);
+    const colors = draft.colors;
     let reference = colors.reference;
+    let paletteTheme = document.documentElement.dataset.theme === 'dark' ? 'dark' : 'light';
+    let paletteGraph = null, palettePeople = null;
     const referenceSchema = [{
         key: 'reference', label: 'Branch reference person', control: 'combobox', layout: 'full',
         placeholder: 'Search people', defaultValue: '',
@@ -779,89 +857,180 @@ function openTreeSettingsModal()
     const referencePicker = { schema: referenceSchema, values: { reference }, prefix: 'tree-branch-person' };
     const option = (value, selected, label = value) =>
         `<option value="${value}" ${value === selected ? 'selected' : ''}>${escapeHtml(t(label))}</option>`;
+    const select = (id, options) => `<span class="common-select-shell"><select class="common-select" id="${id}">${options}</select><span class="common-select-chevron" aria-hidden="true">${icon.chevron}</span></span>`;
     const channel = (key, label, allowGender) => `<div class="field">
         <label for="tree-color-${key}">${escapeHtml(t(label))}</label>
-        <select id="tree-color-${key}">${option('neutral', colors[key], 'Neutral')}
-            ${allowGender ? option('gender', colors[key], 'Gender') : ''}${option('branch', colors[key], 'Branch')}</select>
+        ${select('tree-color-' + key, option('neutral', colors[key], 'Neutral')
+            + (allowGender ? option('gender', colors[key], 'Gender') : '') + option('branch', colors[key], 'Branch'))}
     </div>`;
+    const sections = [['visibility', 'Visibility'], ['coloring', 'Coloring'], ['palette', 'Palette']];
 
     openModal(`<div class="modal tree-settings-modal" role="dialog" aria-modal="true" aria-labelledby="treeSettingsTitle">
         <div class="modal-header">
-          <div>
-            <h2 id="treeSettingsTitle">Tree Settings</h2>
-            <p>Choose how much of the branch around the focus person is shown.</p>
-          </div>
-          <button class="close-button" type="button" data-close aria-label="Close">${icon.close}</button>
+          <div><h2 id="treeSettingsTitle">${escapeHtml(t('Tree Settings'))}</h2>
+            <p>${escapeHtml(t('Configure tree visibility, coloring and project palettes.'))}</p></div>
+          <button class="close-button" type="button" data-close aria-label="${escapeHtml(t('Close'))}">${icon.close}</button>
         </div>
         <form id="treeSettingsForm">
-          <div class="modal-body tree-settings-body">
-            <div class="tree-settings-focus">
-              <span>Focus person</span>
-              <strong>${escapeHtml(formatPersonFullName(focusPerson) || focusPerson?.name || 'Unknown')}</strong>
+          <div class="modal-body tree-settings-body global-settings-layout">
+            <nav class="global-settings-nav tree-settings-nav" aria-label="${escapeHtml(t('Tree settings sections'))}">
+              ${sections.map(([key, label], index) => `<button class="global-settings-nav-button ${index === 0 ? 'active' : ''}" type="button" data-tree-settings-section="${key}" ${index === 0 ? 'aria-current="true"' : ''} aria-controls="tree-settings-${key}">${escapeHtml(t(label))}</button>`).join('')}
+            </nav>
+            <div class="global-settings-panel tree-settings-panel">
+              <section id="tree-settings-visibility" data-tree-settings-panel="visibility" aria-labelledby="tree-settings-visibility-title">
+                <h3 id="tree-settings-visibility-title">${escapeHtml(t('Visibility'))}</h3>
+                <div class="tree-settings-focus">
+                  <span>${escapeHtml(t('Focus person'))}</span>
+                  <strong data-i18n-skip>${escapeHtml(formatPersonFullName(focusPerson) || focusPerson?.name || t('Unknown'))}</strong>
+                </div>
+                <div class="two-col-form tree-settings-generation-grid">
+                  <div class="field">
+                    <label for="treeAncestorGenerations">${escapeHtml(t('Ancestor generations'))}</label>
+                    <input id="treeAncestorGenerations" type="number" min="${TREE_ANCESTOR_GENERATION_MIN}" max="${TREE_ANCESTOR_GENERATION_MAX}" step="1" value="${draft.ancestorGenerations}">
+                    <span class="field-help">${TREE_ANCESTOR_GENERATION_MIN}–${TREE_ANCESTOR_GENERATION_MAX} ${escapeHtml(t('generations'))}</span>
+                  </div>
+                  <div class="field">
+                    <label for="treeDescendantGenerations">${escapeHtml(t('Descendant generations'))}</label>
+                    <input id="treeDescendantGenerations" type="number" min="${TREE_DESCENDANT_GENERATION_MIN}" max="${TREE_DESCENDANT_GENERATION_MAX}" step="1" value="${draft.descendantGenerations}">
+                    <span class="field-help">${TREE_DESCENDANT_GENERATION_MIN}–${TREE_DESCENDANT_GENERATION_MAX} ${escapeHtml(t('generations'))}</span>
+                  </div>
+                </div>
+                <label class="tree-settings-check">
+                  <input id="treeShowCousins" type="checkbox" ${draft.showCousins ? 'checked' : ''}>
+                  <span><strong>${escapeHtml(t('Show extended family'))}</strong>
+                    <small>${escapeHtml(t('Include aunts, uncles, cousins and their descendants.'))}</small></span>
+                </label>
+              </section>
+              <section id="tree-settings-coloring" data-tree-settings-panel="coloring" aria-labelledby="tree-settings-coloring-title" hidden>
+                <h3 id="tree-settings-coloring-title">${escapeHtml(t('Coloring'))}</h3>
+                <div class="tree-color-channels">${channel('fill', 'Fill', true)}${channel('outline', 'Outline', true)}
+                  ${channel('connectors', 'Connectors', false)}</div>
+                <fieldset class="tree-branch-settings">
+                  <legend>${escapeHtml(t('Branch coloring'))}</legend>
+                  ${renderSharedFilterFields(referencePicker)}
+                  <div class="field">
+                    <label for="treeBranchPreset">${escapeHtml(t('Branch count'))}</label>
+                    ${select('treeBranchPreset', TREE_BRANCH_PRESETS.map(value => option(value, colors.preset, String(value))).join(''))}
+                  </div>
+                  <label class="tree-settings-check"><input id="treeBranchCollateral" type="checkbox" ${colors.collateral ? 'checked' : ''}>
+                    <strong>${escapeHtml(t('Include collateral relatives'))}</strong>
+                  </label>
+                </fieldset>
+              </section>
+              <section id="tree-settings-palette" data-tree-settings-panel="palette" aria-labelledby="tree-settings-palette-title" hidden>
+                <h3 id="tree-settings-palette-title">${escapeHtml(t('Palette'))}</h3>
+                <div class="tree-palette-toolbar">
+                  <div class="field">
+                    <label for="treePaletteTheme">${escapeHtml(t('Palette theme'))}</label>
+                    ${select('treePaletteTheme', option('light', paletteTheme, 'Light') + option('dark', paletteTheme, 'Dark'))}
+                  </div>
+                  <button class="button secondary" type="button" data-tree-palette-reset-theme>${escapeHtml(t('Reset theme palette'))}</button>
+                  <button class="button secondary" type="button" data-tree-palette-reset-all>${escapeHtml(t('Reset entire palette'))}</button>
+                </div>
+                <p class="field-help">${escapeHtml(t('The eye indicates inclusion in the selected branch count, not visibility on the tree. All slots remain editable.'))}</p>
+                <p class="field-help" data-tree-palette-reference></p>
+                <div data-tree-palette-rows></div>
+              </section>
             </div>
-            <div class="two-col-form tree-settings-generation-grid">
-              <div class="field">
-                <label for="treeAncestorGenerations">Ancestor generations</label>
-                <input id="treeAncestorGenerations" type="number" min="${TREE_ANCESTOR_GENERATION_MIN}" max="${TREE_ANCESTOR_GENERATION_MAX}" step="1" value="${view.ancestorGenerations}">
-                <span class="field-help">${TREE_ANCESTOR_GENERATION_MIN}–${TREE_ANCESTOR_GENERATION_MAX} generations</span>
-              </div>
-              <div class="field">
-                <label for="treeDescendantGenerations">Descendant generations</label>
-                <input id="treeDescendantGenerations" type="number" min="${TREE_DESCENDANT_GENERATION_MIN}" max="${TREE_DESCENDANT_GENERATION_MAX}" step="1" value="${view.descendantGenerations}">
-                <span class="field-help">${TREE_DESCENDANT_GENERATION_MIN}–${TREE_DESCENDANT_GENERATION_MAX} generations</span>
-              </div>
-            </div>
-            <label class="tree-settings-check">
-              <input id="treeShowCousins" type="checkbox" ${view.showCousins ? 'checked' : ''}>
-              <span>
-                <strong>Show cousins of the focus person</strong>
-                <small>Collateral branches are limited to cousins of the current focus person.</small>
-              </span>
-            </label>
-            <fieldset class="tree-branch-settings">
-              <legend>${escapeHtml(t('Branch coloring'))}</legend>
-              ${renderSharedFilterFields(referencePicker)}
-              <div class="field">
-                <label for="treeBranchPreset">${escapeHtml(t('Branch count'))}</label>
-                <select id="treeBranchPreset">${TREE_BRANCH_PRESETS.map(value => option(value, colors.preset, String(value))).join('')}</select>
-              </div>
-              <label class="tree-settings-check"><input id="treeBranchCollateral" type="checkbox" ${colors.collateral ? 'checked' : ''}>
-                <strong>${escapeHtml(t('Include collateral relatives'))}</strong>
-              </label>
-              <div class="tree-color-channels">${channel('fill', 'Fill', true)}${channel('outline', 'Outline', true)}
-                ${channel('connectors', 'Connectors', false)}</div>
-            </fieldset>
           </div>
           <div class="modal-footer">
-            <button class="button secondary" type="button" data-close>Cancel</button>
-            <button class="button primary" type="submit">Apply settings</button>
+            <button class="button secondary" type="button" data-close>${escapeHtml(t('Cancel'))}</button>
+            <button class="button primary" type="submit">${escapeHtml(t('Apply settings'))}</button>
           </div>
         </form>
       </div>`);
 
-    bindSharedFilterFields(modalBackdrop, { ...referencePicker, onChange: next => { reference = next.reference; } });
-    modalBackdrop.querySelector('#treeSettingsForm')?.addEventListener('submit', event =>
+    const form = modalBackdrop.querySelector('#treeSettingsForm');
+    const presetInput = form.querySelector('#treeBranchPreset');
+    const rows = form.querySelector('[data-tree-palette-rows]');
+    const renderPalette = () =>
+    {
+        // Lazily prepare the reference graph once for this modal; only follow
+        // the sixteen existing origin paths, not the full ancestry projection.
+        if (!paletteGraph)
+        {
+            const people = getPeople(projectId);
+            palettePeople = new Map(people.map(person => [person.id, person]));
+            paletteGraph = treeBranchGraph(people, centralFamilyRecords().filter(family => family.projectId === projectId));
+        }
+        const { origins } = treeBranchPaths(16);
+        const originIds = treeBranchOriginIds(paletteGraph, reference, origins);
+        const referencePerson = palettePeople.get(reference);
+        form.querySelector('[data-tree-palette-reference]').textContent = referencePerson
+            ? t('Branch reference person') + ': ' + (localizedDataFieldValue(formatPersonFullName(referencePerson)) || t('Unnamed person'))
+            : t('Choose a branch reference in Tree Settings.');
+        rows.innerHTML = treePaletteRowsMarkup(colors.palette, paletteTheme, Number(presetInput.value), origins, originIds, palettePeople);
+    };
+    bindSharedFilterFields(form, { ...referencePicker, onChange: next => { reference = next.reference; } });
+    const navButtons = [...form.querySelectorAll('[data-tree-settings-section]')];
+    const panels = [...form.querySelectorAll('[data-tree-settings-panel]')];
+    const panel = form.querySelector('.tree-settings-panel');
+    navButtons.forEach(button => button.addEventListener('click', () =>
+    {
+        const section = button.dataset.treeSettingsSection;
+        if (section === 'palette') renderPalette();
+        for (const candidate of navButtons)
+        {
+            const active = candidate === button;
+            candidate.classList.toggle('active', active);
+            if (active) candidate.setAttribute('aria-current', 'true');
+            else candidate.removeAttribute('aria-current');
+        }
+        for (const candidate of panels) candidate.hidden = candidate.dataset.treeSettingsPanel !== section;
+        panel.scrollTop = 0;
+    }));
+    form.querySelector('#treePaletteTheme').addEventListener('change', event =>
+    {
+        paletteTheme = event.target.value === 'dark' ? 'dark' : 'light';
+        renderPalette();
+    });
+    const updateColorInputs = () =>
+    {
+        rows.querySelectorAll('[data-tree-palette-color]').forEach(input =>
+        {
+            input.value = colors.palette[paletteTheme][input.dataset.treePaletteColor];
+        });
+    };
+    const editColor = event =>
+    {
+        const key = event.target.dataset.treePaletteColor;
+        if (key && Object.hasOwn(colors.palette[paletteTheme], key) && /^#[0-9a-f]{6}$/i.test(event.target.value))
+            colors.palette[paletteTheme][key] = event.target.value.toLowerCase();
+    };
+    rows.addEventListener('input', editColor);
+    rows.addEventListener('change', editColor);
+    rows.addEventListener('click', event =>
+    {
+        const reset = event.target.closest('[data-tree-palette-reset]');
+        if (!reset) return;
+        resetTreePaletteColor(colors.palette, paletteTheme, reset.dataset.treePaletteReset);
+        updateColorInputs();
+    });
+    form.querySelector('[data-tree-palette-reset-theme]').addEventListener('click', () =>
+    {
+        resetTreePaletteTheme(colors.palette, paletteTheme);
+        updateColorInputs();
+    });
+    form.querySelector('[data-tree-palette-reset-all]').addEventListener('click', () =>
+    {
+        colors.palette = normalizeTreePalette();
+        updateColorInputs();
+    });
+    form.addEventListener('submit', event =>
     {
         event.preventDefault();
+        if (currentFamilyTreeProjectId() !== projectId) { closeModal(); return; }
         const previousStructure = [view.ancestorGenerations, view.descendantGenerations, view.showCousins];
-        const ancestorValue = Number(modalBackdrop.querySelector('#treeAncestorGenerations')?.value);
-        const descendantValue = Number(modalBackdrop.querySelector('#treeDescendantGenerations')?.value);
-        view.ancestorGenerations = clampNumber(
-            Number.isFinite(ancestorValue) ? Math.round(ancestorValue) : view.ancestorGenerations,
-            TREE_ANCESTOR_GENERATION_MIN,
-            TREE_ANCESTOR_GENERATION_MAX
-        );
-        view.descendantGenerations = clampNumber(
-            Number.isFinite(descendantValue) ? Math.round(descendantValue) : view.descendantGenerations,
-            TREE_DESCENDANT_GENERATION_MIN,
-            TREE_DESCENDANT_GENERATION_MAX
-        );
-        view.showCousins = Boolean(modalBackdrop.querySelector('#treeShowCousins')?.checked);
-        const preset = Number(modalBackdrop.querySelector('#treeBranchPreset').value);
-        colors.reference = getPerson(reference)?.projectId === projectId ? reference : '';
-        colors.preset = TREE_BRANCH_PRESETS.includes(preset) ? preset : 4;
-        colors.collateral = modalBackdrop.querySelector('#treeBranchCollateral').checked;
-        for (const key of ['fill', 'outline', 'connectors']) colors[key] = modalBackdrop.querySelector('#tree-color-' + key).value;
+        const ancestorValue = form.querySelector('#treeAncestorGenerations').valueAsNumber;
+        const descendantValue = form.querySelector('#treeDescendantGenerations').valueAsNumber;
+        draft.ancestorGenerations = Number.isFinite(ancestorValue) ? ancestorValue : view.ancestorGenerations;
+        draft.descendantGenerations = Number.isFinite(descendantValue) ? descendantValue : view.descendantGenerations;
+        draft.showCousins = form.querySelector('#treeShowCousins').checked;
+        colors.reference = reference;
+        colors.preset = Number(presetInput.value);
+        colors.collateral = form.querySelector('#treeBranchCollateral').checked;
+        for (const key of ['fill', 'outline', 'connectors']) colors[key] = form.querySelector('#tree-color-' + key).value;
+        Object.assign(view, treeDisplaySettings(projectId, draft));
         saveTreeDisplaySettings(projectId, view);
         closeModal();
         if (view.ancestorGenerations !== previousStructure[0] || view.descendantGenerations !== previousStructure[1]

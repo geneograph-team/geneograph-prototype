@@ -309,7 +309,6 @@ function renderFamilyTree(readyProjection = null, trace = null, preparation = {}
             <div class="tree-toolbar-right">
               <label class="tree-view-mobile">${icon.tree}<select data-tree-orientation aria-label="${escapeHtml(t('Tree view mode'))}"><option value="vertical">${escapeHtml(t('Vertical'))}</option><option value="horizontal">${escapeHtml(t('Horizontal'))}</option><option disabled>${escapeHtml(t('Fan'))}</option></select>${icon.chevron}</label>
               <span class="tree-people-status" role="status" aria-label="${escapeHtml(t('People in project'))}: ${escapeHtml(familyPeopleCountLabel)}" title="${escapeHtml(t('People in project'))}">${escapeHtml(familyPeopleCountLabel)}</span>
-              <details class="tree-branch-legend" hidden data-i18n-skip><summary></summary><div class="tree-branch-legend-content"></div></details>
               <button class="tree-icon-button tree-display-settings" type="button" data-tree-settings aria-label="${escapeHtml(t('Tree display settings'))}" title="${escapeHtml(t('Tree display settings'))}">${icon.slidersHorizontal}</button>
             </div>
           </div>

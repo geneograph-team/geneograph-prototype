@@ -18,13 +18,37 @@ assert.equal(read('p1').ancestorGenerations, 5);
 assert.equal(read('p1').orientation, 'vertical');
 assert.equal(read('p1').colors.reference, 'a');
 const save = context.saveTreeDisplaySettings;
+const defaults = context.normalizeTreePalette();
+assert.equal(Object.keys(defaults.light).length, 20);
+assert.equal(Object.keys(defaults.dark).length, 20);
+assert.notEqual(defaults.light['1'], defaults.dark['1']);
 save('p1', { orientation: 'horizontal', ancestorGenerations: 4, descendantGenerations: 0, showCousins: false,
-    colors: { reference: 'a', preset: 8, collateral: true, fill: 'branch', outline: 'neutral', connectors: 'branch' } });
+    colors: { reference: 'a', preset: 8, collateral: true, fill: 'branch', outline: 'neutral', connectors: 'branch', palette: {
+        light: { '1': '#AaBbCc', '16': '#123456', male: '#445566', neutral: '#778899' },
+        dark: { '1': '#ff0000', '16': '#invalid', female: '#abcdef' }
+    } } });
 save('p2', { orientation: 'vertical', ancestorGenerations: 12, colorFill: false, colors: { reference: 'a' } });
 assert.deepEqual(JSON.parse(JSON.stringify(read('p1'))), { orientation: 'horizontal', ancestorGenerations: 4,
     descendantGenerations: 0, showCousins: false,
-    colors: { reference: 'a', preset: 8, collateral: true, fill: 'branch', outline: 'neutral', connectors: 'branch' } });
+    colors: { reference: 'a', preset: 8, collateral: true, fill: 'branch', outline: 'neutral', connectors: 'branch',
+        palette: { light: { ...defaults.light, '1': '#aabbcc', '16': '#123456', male: '#445566', neutral: '#778899' },
+            dark: { ...defaults.dark, '1': '#ff0000', female: '#abcdef' } } } });
 assert.equal(read('p2').ancestorGenerations, 8);
+assert.equal(read('p2').colors.palette.light['1'], defaults.light['1']);
+const reduced = read('p1');
+reduced.colors.preset = 2;
+save('p1', reduced);
+assert.equal(read('p1').colors.palette.light['16'], '#123456');
+const draft = read('p1');
+context.resetTreePaletteColor(draft.colors.palette, 'light', '1');
+assert.equal(draft.colors.palette.light['1'], defaults.light['1']);
+assert.equal(draft.colors.palette.dark['1'], '#ff0000');
+assert.equal(read('p1').colors.palette.light['1'], '#aabbcc');
+context.resetTreePaletteTheme(draft.colors.palette, 'dark');
+assert.equal(draft.colors.palette.dark['1'], defaults.dark['1']);
+assert.equal(draft.colors.palette.light['16'], '#123456');
+assert.equal(read('p1').colors.palette.dark['1'], '#ff0000');
+assert.equal(context.normalizeTreePalette({ light: { neutral: 'url(invalid)', male: '#123' } }).light.neutral, defaults.light.neutral);
 assert.equal(read('p2').colors.fill, 'neutral');
 assert.equal(read('p2').colors.reference, '');
 for (const depth of [0, 5, 6, 7, 8])

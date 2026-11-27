@@ -51,7 +51,8 @@
             10px);
     row-gap: 2px;
     overflow: hidden;
-    --tree-gender-border: var(--gg-accent-creative-blue-outline);
+    --tree-gender-border: var(--tree-gender-male, var(--gg-accent-creative-blue-outline));
+    --tree-gender-ink: var(--tree-gender-male-ink, var(--surface-card));
     border: 2px solid var(--tree-outline-category, var(--tree-gender-border));
     --tree-card-category: var(--tree-gender-border);
     --tree-placeholder-tint: var(--tree-card-category);
@@ -390,11 +391,13 @@
 }
 
 .tree-person-card.female {
-    --tree-gender-border: var(--gg-accent-investigation-purple-outline);
+    --tree-gender-border: var(--tree-gender-female, var(--gg-accent-investigation-purple-outline));
+    --tree-gender-ink: var(--tree-gender-female-ink, var(--surface-card));
 }
 
 .tree-person-card.unknown-gender {
-    --tree-gender-border: var(--gg-status-offline-outline);
+    --tree-gender-border: var(--tree-gender-unknown, var(--gg-status-offline-outline));
+    --tree-gender-ink: var(--tree-gender-unknown-ink, var(--surface-card));
 }
 
 .tree-person-card.selected {
@@ -681,7 +684,7 @@
 }
 
 .tree-workspace.has-color-fill .tree-stage[data-detail-level="label"] .tree-person-card:not(.selected) {
-    color: var(--surface-card);
+    color: var(--tree-card-category-ink, var(--surface-card));
 }
 
 .add-parent-card:hover {
@@ -694,11 +697,4 @@
     outline-offset: 3px;
 }
 
-.tree-workspace[data-tree-fill="neutral"] .tree-stage:not([data-detail-level="label"], [data-detail-level="marker"]) .tree-person-card {
-    --tree-overview-fill: 0%;
-}
 
-:root[data-theme="light"] .tree-workspace:is([data-tree-fill="branch"], [data-tree-fill="neutral"])
-.tree-stage[data-detail-level="label"] .tree-person-card:not(.selected) {
-    color: black;
-}
