@@ -311,14 +311,14 @@ function treePaletteTones(color, theme)
     const lab = treePaletteLab(color), dark = theme === 'dark';
     const clamp = (value, low, high) => Math.max(low, Math.min(high, value));
     const canvas = dark ? '#0b0f0e' : '#f1f2f3';
-    const secondary = dark ? '#e0e7eb' : '#515e63';
+    const secondary = dark ? '#26352d' : '#515e63';
     const surface = (lightness, scale, cap) =>
     {
         let tone = treePaletteTone(lab, lightness, scale, cap);
         // Reserve contrast for the subtle hover lift toward primary text.
         for (let i = 0; i < 20 && treePaletteContrast(tone, secondary) < 5; i++)
         {
-            lightness += dark ? -0.01 : 0.01;
+            lightness = Math.min(0.995, lightness + 0.01);
             tone = treePaletteTone(lab, lightness, scale, cap);
         }
         return tone;
@@ -326,10 +326,19 @@ function treePaletteTones(color, theme)
     const overviewL = clamp(lab[0], dark ? 0.58 : 0.70, dark ? 0.92 : 0.995);
     const overview = overviewL === lab[0] ? color : treePaletteTone(lab, overviewL, 1, 0.32);
     const lightSurface = Math.max(0, lab[0] - 0.945);
-    const detail = surface(dark ? 0.46 : 0.945 + lightSurface, 0.46, 0.065);
-    const compact = surface(dark ? 0.465 : 0.915 + lightSurface, dark ? 0.48 : 0.60, dark ? 0.07 : 0.085);
-    const actions = surface(dark ? 0.475 : 0.885 + lightSurface, dark ? 0.50 : 0.75, dark ? 0.075 : 0.10);
+    // Dark canvas, luminous cards: retain the relative hue and lightness
+    // differences of the approved base palette instead of forcing a dark tint.
+    const luminousL = clamp(lab[0], 0.74, 0.91);
+    const detail = surface(dark ? Math.min(0.94, luminousL + 0.035) : 0.945 + lightSurface,
+        dark ? 0.78 : 0.46, dark ? 0.18 : 0.065);
+    const compact = surface(dark ? Math.min(0.93, luminousL + 0.02) : 0.915 + lightSurface,
+        dark ? 0.88 : 0.60, dark ? 0.20 : 0.085);
+    const actions = surface(dark ? Math.min(0.92, luminousL + 0.005) : 0.885 + lightSurface,
+        dark ? 0.96 : 0.75, dark ? 0.22 : 0.10);
     const outline = treePaletteTone(lab, dark ? clamp(lab[0], 0.82, 0.90) : 0.51, 1, 0.18);
+    // Preserve the approved overview outline; a deeper same-hue outline
+    // stays readable against a luminous detailed card.
+    const detailOutline = dark ? treePaletteTone(lab, 0.39, 1, 0.13) : outline;
     let connectorL = dark ? clamp(lab[0], 0.56, 0.70) : 0.55;
     let connector = treePaletteTone(lab, connectorL, 0.85, 0.15);
     for (let i = 0; i < 20 && treePaletteContrast(connector, canvas) < 3; i++)
@@ -337,7 +346,7 @@ function treePaletteTones(color, theme)
         connectorL += dark ? 0.01 : -0.01;
         connector = treePaletteTone(lab, connectorL, 0.85, 0.15);
     }
-    return { overview, detail, compact, actions, outline, connector, ink: treePaletteLabelInk(overview) };
+    return { overview, detail, compact, actions, outline, 'detail-outline': detailOutline, connector, ink: treePaletteLabelInk(overview) };
 }
 
 function applyTreePalette(runtime, palette)
@@ -413,6 +422,7 @@ function paintTreeColors(runtime)
         for (const role of ['', '-detail', '-compact', '-actions', '-ink'])
             card.style.setProperty('--tree-card-category' + role, category(settings.fill, role));
         card.style.setProperty('--tree-outline-category', category(settings.outline, '-outline'));
+        card.style.setProperty('--tree-outline-detail-category', category(settings.outline, '-detail-outline'));
         card.dataset.branchSlot = slot || '';
         if (settings.fill === 'branch' || settings.outline === 'branch')
             card.setAttribute('aria-description', slot === 'descendants' ? t('Reference & descendants')

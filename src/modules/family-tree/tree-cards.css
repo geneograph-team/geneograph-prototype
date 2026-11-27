@@ -56,8 +56,10 @@
     --tree-gender-tone-compact: var(--tree-gender-male-compact, var(--surface-card));
     --tree-gender-tone-actions: var(--tree-gender-male-actions, var(--surface-card));
     --tree-gender-tone-outline: var(--tree-gender-male-outline, var(--gg-accent-creative-blue-outline));
+    --tree-gender-tone-detail-outline: var(--tree-gender-male-detail-outline, var(--gg-accent-creative-blue-outline));
     --tree-gender-tone-ink: var(--tree-gender-male-ink, var(--text-primary));
-    border: 2px solid var(--tree-outline-category, var(--tree-gender-tone-outline));
+    --tree-card-outline: var(--tree-outline-detail-category, var(--tree-gender-tone-detail-outline));
+    border: 2px solid var(--tree-card-outline);
     --tree-card-category: var(--tree-gender-tone);
     --tree-card-category-detail: var(--tree-gender-tone-detail);
     --tree-card-category-compact: var(--tree-gender-tone-compact);
@@ -65,12 +67,21 @@
     --tree-card-category-ink: var(--tree-gender-tone-ink);
     --tree-card-fill: var(--tree-card-category-detail);
     --tree-card-hover-lift: 3%;
+    --tree-card-primary: var(--text-primary);
     --tree-card-secondary: var(--text-secondary);
     --tree-action-size: 28px;
 }
 
 :root[data-theme="dark"] .tree-workspace.has-color-fill .tree-person-card:not(.selected) {
-    --tree-card-secondary: #e0e7eb;
+    --tree-card-primary: #14221c;
+    --tree-card-secondary: #26352d;
+}
+
+/* Keep the focus badge readable on luminous cards without changing the
+   existing selected-card or standalone focus-control treatment. */
+:root[data-theme="dark"] .tree-workspace.has-color-fill .tree-person-card:not(.selected) .tree-focus-badge {
+    background: var(--tree-selected-card);
+    border-color: var(--gg-selected-border);
 }
 
 .tree-card-avatar-stack {
@@ -297,7 +308,11 @@
 
 .card-action:hover {
     background: color-mix(in srgb, var(--gg-text) 6%, transparent);
-    color: var(--text-primary);
+    color: var(--tree-card-primary, var(--text-primary));
+}
+
+:root[data-theme="dark"] .tree-workspace.has-color-fill .tree-person-card:not(.selected) .card-action:hover {
+    background: color-mix(in srgb, var(--tree-card-primary) 8%, transparent);
 }
 
 .card-action:focus-visible {
@@ -409,6 +424,7 @@
     --tree-gender-tone-compact: var(--tree-gender-female-compact, var(--surface-card));
     --tree-gender-tone-actions: var(--tree-gender-female-actions, var(--surface-card));
     --tree-gender-tone-outline: var(--tree-gender-female-outline, var(--gg-accent-investigation-purple-outline));
+    --tree-gender-tone-detail-outline: var(--tree-gender-female-detail-outline, var(--gg-accent-investigation-purple-outline));
     --tree-gender-tone-ink: var(--tree-gender-female-ink, var(--text-primary));
 }
 
@@ -418,6 +434,7 @@
     --tree-gender-tone-compact: var(--tree-gender-unknown-compact, var(--surface-card));
     --tree-gender-tone-actions: var(--tree-gender-unknown-actions, var(--surface-card));
     --tree-gender-tone-outline: var(--tree-gender-unknown-outline, var(--gg-status-offline-outline));
+    --tree-gender-tone-detail-outline: var(--tree-gender-unknown-detail-outline, var(--gg-status-offline-outline));
     --tree-gender-tone-ink: var(--tree-gender-unknown-ink, var(--text-primary));
 }
 
@@ -548,6 +565,7 @@
     border-width: 5px;
     border-radius: 20px;
     --tree-card-fill: var(--tree-card-category);
+    --tree-card-outline: var(--tree-outline-category, var(--tree-gender-tone-outline));
     --tree-card-hover-lift: 0%;
 }
 
@@ -575,10 +593,11 @@
 
 .tree-workspace.has-color-fill .tree-person-card:not(.selected) {
     background: var(--tree-card-fill);
+    color: var(--tree-card-primary);
 }
 
 .tree-workspace.has-color-fill .tree-person-card:not(.selected):hover {
-    background: color-mix(in oklab, var(--tree-card-fill), var(--text-primary) var(--tree-card-hover-lift));
+    background: color-mix(in oklab, var(--tree-card-fill), var(--tree-card-primary) var(--tree-card-hover-lift));
 }
 
 .tree-person-card > .tree-focus-badge {
@@ -603,6 +622,12 @@
 
 .tree-workspace.has-color-fill .tree-card-avatar-stack > .tree-avatar:not(.has-photo) {
     background: var(--tree-card-category-actions);
+    color: var(--tree-card-primary);
+}
+
+:root[data-theme="dark"] .tree-workspace.has-color-fill .tree-person-card.selected .tree-card-avatar-stack > .tree-avatar:not(.has-photo) {
+    background: var(--surface-card);
+    color: var(--text-primary);
 }
 
 .tree-card-avatar-stack > .tree-avatar.has-photo {
@@ -704,6 +729,7 @@
 
 .tree-stage[data-detail-level="label"] .tree-person-card {
     --tree-card-fill: var(--tree-card-category);
+    --tree-card-outline: var(--tree-outline-category, var(--tree-gender-tone-outline));
     --tree-card-hover-lift: 0%;
 }
 

@@ -14,8 +14,8 @@ vm.runInContext(`
     {
         const dark = theme === 'dark';
         const canvas = dark ? '#0b0f0e' : '#f1f2f3';
-        const primary = dark ? '#e5e9eb' : '#202729';
-        const secondary = dark ? '#e0e7eb' : '#515e63';
+        const primary = dark ? '#14221c' : '#202729';
+        const secondary = dark ? '#26352d' : '#515e63';
         const colors = [...Object.values(defaults[theme]), '#000000', '#ffffff', '#808080'];
         for (const r of ['00', '55', 'aa', 'ff'])
             for (const g of ['00', '55', 'aa', 'ff'])
@@ -31,23 +31,38 @@ vm.runInContext(`
             for (const role of ['detail', 'compact', 'actions'])
             {
                 assert.ok(treePaletteContrast(tones[role], primary) >= 4.5, color + ' ' + role);
+                if (dark)
+                {
+                    assert.ok(treePaletteContrast(tones[role], canvas) >= 3, color + ' luminous card boundary');
+                    assert.ok(treePaletteContrast(tones[role], tones['detail-outline']) >= 3, color + ' detailed outline');
+                    assert.ok(treePaletteLab(tones[role])[0] >= 0.73, color + ' luminous lightness');
+                }
                 assert.ok(treePaletteContrast(tones[role], secondary) >= 5, color + ' secondary ' + role);
                 const a = treePaletteLab(tones[role]), b = treePaletteLab(primary);
                 const hover = treePaletteTone([0, a[1] * .97 + b[1] * .03, a[2] * .97 + b[2] * .03],
                     a[0] * .97 + b[0] * .03, 1, 1);
                 assert.ok(treePaletteContrast(hover, secondary) >= 4.5, color + ' hover ' + role);
+                assert.ok(treePaletteContrast(hover, primary) >= 4.5, color + ' primary hover ' + role);
             }
         }
+        const defaultsTones = Object.values(defaults[theme]).map(color => treePaletteTones(color, theme));
         for (const color of Object.values(defaults[theme]))
             assert.equal(treePaletteTones(color, theme).overview, color);
+        // Independent outline categories must remain visible against every
+        // default fill category, not just the matching hue.
+        for (const fill of defaultsTones)
+            for (const outline of defaultsTones)
+                for (const role of ['detail', 'compact', 'actions'])
+                    assert.ok(treePaletteContrast(fill[role], outline['detail-outline']) >= 3,
+                        theme + ' independent detailed outline');
     }
     const props = new Map();
     let writes = 0;
     const runtime = { shell: { style: { setProperty(key, value) { writes++; props.set(key, value); } } } };
     applyTreePalette(runtime, defaults);
-    assert.equal(writes, 42 * 7);
+    assert.equal(writes, 42 * 8);
     applyTreePalette(runtime, defaults);
-    assert.equal(writes, 42 * 7);
+    assert.equal(writes, 42 * 8);
     const next = normalizeTreePalette({ light: { male: '#ff0000' } });
     applyTreePalette(runtime, next);
     assert.equal(props.get('--tree-palette-light-male-detail'), treePaletteTones('#ff0000', 'light').detail);
