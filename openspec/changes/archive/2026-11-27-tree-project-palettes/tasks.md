@@ -12,4 +12,10 @@
 - [x] Align both compact sections on one three-column grid; simplify Visibility headings while retaining the accessible field label; update regression assertions.
 - [x] Make both person pickers search-only and verify blank-query, matching, selection and unchanged dropdown behavior with focused regression checks.
 - [ ] Run native Node Tree regression and localization catalog checks.
-- [ ] Verify EN/RU, both themes/orientations, keyboard and mobile, 16-slot editor, Apply/Cancel, large-project repaint and absence of ELK solve in browser; consolidate current specs/archive after acceptance.
+- [ ] Verify EN/RU, both themes/orientations, keyboard and mobile, 16-slot editor, Apply/Cancel, large-project repaint and absence of ELK solve in browser.
+- [x] Consolidate current specs and archive at founder direction.
+
+## Closeout — 2026-11-27
+
+Implemented and merged in #466. Founder requested closure of #448/#450/#451 and archival. V8 regression evidence and limitations are recorded in #466 (including final 76 sidebar and 32 search/dropdown assertions, and earlier palette/branch checks). Localization catalog initialization and new translations were checked in V8. Native Node suites, the native catalog script and comprehensive browser QA were not run by the agent; unchecked items remain unverified, not failed or passed. Administrative closeout does not establish those results.
+

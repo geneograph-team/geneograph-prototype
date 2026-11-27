@@ -41,20 +41,24 @@ review decisions.
 - **AND** creation remains valid without interacting with the warning
 
 ### Requirement: Context-aware, name-based matching
-The shared matcher SHALL consider canonical/alternative names and
-geographic context. Coordinate proximity alone SHALL NOT establish
-duplicates, and an explicitly conflicting region/country SHALL prevent
-a match solely by a shared locality name.
+The shared matcher SHALL compare authored canonical/alternative names using comparison-only Unicode normalization and bounded reusable script transliteration, with conservative similarity, context and geographic evidence. Coordinate proximity or approximate area overlap alone SHALL NOT establish duplicates. Explicitly conflicting geographic context and implausible distances SHALL veto matches. Unknown translations SHALL NOT establish equivalence. No network request or place-name dictionary SHALL be used. Author names and the canonical Place schema SHALL remain unchanged.
+
+#### Scenario: Corroborated different scripts
+- **WHEN** two same-project Places have similar transliterated locality names and consistent administrative context or sufficiently close positions
+- **THEN** the shared advisory detector may flag them as possible duplicates in Needs review and Add/Edit Place
+
+#### Scenario: Unresolved translation
+- **WHEN** a pair lacks sufficient name/context/position evidence
+- **THEN** it remains separate
 
 #### Scenario: Different countries
-- **WHEN** two Places share a locality name but have contradictory
-  geographic hierarchy
+- **WHEN** two Places share a locality name but have contradictory geographic hierarchy
 - **THEN** they are not suggested as a duplicate pair
 
 ### Requirement: Pair-specific saved-record decisions
 Needs review SHALL show each possible saved Place pair once, allow
 Keep separate and Restore per pair, and permit explicit Merge. A
-material name, alias, coordinate, or radius change MAY reopen a pair.
+material authored name, alias, coordinate, or radius change MAY reopen a pair. Equivalent normalized inputs and interface language changes SHALL preserve dismissal. The pair-key and fingerprint tuple format SHALL remain compatible with existing records.
 
 #### Scenario: Dismiss one pair
 - **WHEN** A–B is marked Keep separate
