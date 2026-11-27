@@ -227,7 +227,7 @@ function setPhotoPersonRegion(photo, personId, region)
     const person = getPerson(personId);
     if (normalized && person?.primaryPhotoId === photo.id) person.primaryPhotoCrop = null;
     photo.updatedAt = new Date().toISOString();
-    markPrototypeSessionEdited();
+    markPrototypeSessionEdited(photo.projectId, normalized && person?.primaryPhotoId === photo.id ? ['media', 'people'] : ['media']);
     return true;
 }
 const PERSON_PHOTO_ZOOM_MIN = 1;
@@ -256,6 +256,7 @@ function normalizePersonPhotoCrop(crop)
 function repairPrimaryPhotoReferences(photoIds = [])
 {
     const ids = new Set(photoIds);
+    let changed = false;
     sampleData.people.forEach(person =>
     {
         if (!person.primaryPhotoId || (ids.size && !ids.has(person.primaryPhotoId))) return;
@@ -270,8 +271,10 @@ function repairPrimaryPhotoReferences(photoIds = [])
         {
             person.primaryPhotoId = '';
             person.primaryPhotoCrop = null;
+            changed = true;
         }
     });
+    return changed;
 }
 
 function setPhotoPersonIds(photoId, personIds, { rerender = true } = {})
@@ -289,8 +292,9 @@ function setPhotoPersonIds(photoId, personIds, { rerender = true } = {})
         );
     }
     photo.updatedAt = new Date().toISOString();
-    markPrototypeSessionEdited();
-    repairPrimaryPhotoReferences([photo.id]);
+    const repaired = repairPrimaryPhotoReferences([photo.id]);
+    if (repaired) markPrototypeSessionEdited();
+    else markPrototypeSessionEdited(photo.projectId, ['media']);
     if (rerender) render();
     return true;
 }

@@ -121,6 +121,8 @@ function bindAlbumsCardControls(root = main)
         .querySelectorAll('[data-photo-id]')
         .forEach(card =>
         {
+            if (card.albumsCardBound) return;
+            card.albumsCardBound = true;
             const selectPhoto = () =>
             {
                 runAfterAlbumsPhotoEditGuard(
@@ -136,7 +138,7 @@ function bindAlbumsCardControls(root = main)
 
                         renderAlbumsPreserveViewport({
                             focusPhotoId: mobile ? '' : photoId,
-                            focusTarget: 'card'
+                            focusTarget: 'card', reuseGrid: true
                         });
 
                         if (mobile)
@@ -172,6 +174,8 @@ function bindAlbumsCardControls(root = main)
         .querySelectorAll('[data-photo-check]')
         .forEach(control =>
         {
+            if (control.albumsCardBound) return;
+            control.albumsCardBound = true;
             const toggleSelection = () =>
             {
                 runAfterAlbumsPhotoEditGuard(() =>
@@ -200,6 +204,8 @@ function bindAlbumsCardControls(root = main)
         )
         .forEach(button =>
         {
+            if (button.albumsCardBound) return;
+            button.albumsCardBound = true;
             button.addEventListener(
                 'click',
                 event =>
@@ -232,6 +238,8 @@ function bindAlbumsCardControls(root = main)
         .querySelectorAll('[data-photo-more]')
         .forEach(button =>
         {
+            if (button.albumsCardBound) return;
+            button.albumsCardBound = true;
             button.addEventListener('click', event =>
             {
                 event.stopPropagation();
@@ -306,7 +314,7 @@ function bindAlbumsPaginationControls()
         );
 }
 
-function bindAlbumsControls()
+function bindAlbumsControls(photos)
 {
     bindToasts(main);
     main.querySelectorAll('[data-albums-breadcrumb]').forEach(button =>
@@ -569,7 +577,7 @@ function bindAlbumsControls()
 
     bindAlbumsCardControls(main);
 
-    const visibleSelection = albumsVisibleSelectionState();
+    const visibleSelection = albumsVisibleSelectionState(currentAlbumsPagePhotos(photos));
     const selectVisibleCheckbox = main.querySelector(
         '[data-albums-select-visible]'
     );

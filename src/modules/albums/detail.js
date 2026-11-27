@@ -219,7 +219,7 @@ function beginAlbumsPhotoEdit()
     state.albumsDetailSections.details =
         true;
 
-    renderAlbums();
+    renderAlbumsPreserveViewport({ reuseGrid: true });
     requestAnimationFrame(() => main.querySelector('#albumPhotoDateInput')?.focus({ preventScroll: true }));
 }
 
@@ -228,7 +228,7 @@ function cancelAlbumsPhotoEdit()
     runAfterAlbumsPhotoEditGuard(() =>
     {
         resetAlbumsPhotoEditState();
-        renderAlbums();
+        renderAlbumsPreserveViewport({ reuseGrid: true });
         requestAnimationFrame(() => main.querySelector('#albumsEditPhoto')?.focus({ preventScroll: true }));
     });
 }
@@ -284,7 +284,7 @@ function saveAlbumsPhotoEdit()
     markPrototypeSessionEdited();
 
     resetAlbumsPhotoEditState();
-    renderAlbums();
+    renderAlbumsPreserveViewport({ reuseGrid: true, refreshPhotoId: photo.id });
     requestAnimationFrame(() => main.querySelector('#albumsEditPhoto')?.focus({ preventScroll: true }));
     showToast('Photo updated.');
 }

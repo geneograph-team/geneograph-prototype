@@ -67,6 +67,7 @@
 .albums-tag-people-modal .albums-search-people { width: 100%; margin-bottom: var(--space-3); }
 .albums-tag-people-modal .albums-unified-person-row { display: grid; grid-template-columns: minmax(0, 1fr) 40px; align-items: stretch; width: 100%; max-width: 100%; min-width: 0; border: 1px solid var(--border-default); border-radius: 6px; }
 .albums-tag-people-modal .albums-unified-person-row + .albums-unified-person-row { margin-top: 4px; }
+.albums-tag-people-modal [data-photo-people-choices] .albums-unified-person-row { height: 54px; margin: 0 0 4px; }
 .albums-tag-people-modal .albums-unified-person-row.is-active { border-color: var(--brand-green-400); background: var(--surface-card-hover); }
 .albums-tag-people-modal .albums-unified-person-row.is-hovered { border-color: var(--brand-green-400); background: var(--surface-card-hover); }
 .albums-tag-people-modal .albums-unified-person-main { display: flex; align-items: center; gap: var(--space-2); width: 100%; min-width: 0; min-height: 52px; padding: var(--space-2); text-align: left; background: transparent; border: 0; color: var(--text-primary); cursor: pointer; }

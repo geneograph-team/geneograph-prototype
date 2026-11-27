@@ -17,10 +17,11 @@ const appPerf = (() =>
     for (const kind of ['search', 'filter', 'page', 'sort']) operations.get('People').add(kind);
     operations.get('Notes').add('editor');
     operations.get('Albums').add('resize');
+    operations.get('Albums').add('gridHydrate');
     operations.get('Publish').add('preview');
     const frameKinds = new Set(['selection', 'review', 'editor', 'profile', 'picker', 'preview']);
     const providerKeys = new Set(['people:index', 'families:index', 'families:graph', 'families:labels', 'people:directory',
-        'people:link-search', 'places:associations', 'places:duplicate-pairs', 'places:inspector-events', 'people:photo-filter-search', 'people:geneo-match-names', 'notes:search-resources']);
+        'people:link-search', 'places:associations', 'places:duplicate-pairs', 'places:inspector-events', 'people:photo-filter-search', 'people:geneo-match-names', 'notes:search-resources', 'people:album-tag-search', 'albums:tag-memberships', 'albums:photo-search']);
     const domainKeys = new Set(['projects', 'people', 'families', 'places', 'media', 'sources', 'notes',
         'boards', 'events', 'archive', 'albums', 'activity']);
     const stages = new Set(['navigation', 'people', 'families', 'projection', 'input', 'occurrences',

@@ -78,10 +78,43 @@ function photoSearchText(photo)
     ].join(' ').toLowerCase();
 }
 
-function photoMatchesSearch(photo, query, tokens)
+function albumPhotoSearchIndex(projectId)
 {
-    return !query || photoSearchText(photo).includes(query)
+    const context = acquireProjectReadModel(projectId);
+    return context.read('albums:photo-search', ['media', 'albums', 'people', 'places'], id =>
+    {
+        const people = projectPeopleIndex(context).rawById;
+        const albums = new Map(getProjectAlbums(id).map(album => [album.id, album.name]));
+        const peopleText = new Map();
+        const prepared = new WeakMap();
+        return photo =>
+        {
+            if (prepared.has(photo)) return prepared.get(photo);
+            const linked = [...new Set(photo.personIds || [])].flatMap(personId =>
+            {
+                const person = people.get(personId);
+                if (!person) return [];
+                if (!peopleText.has(personId)) peopleText.set(personId, {
+                    name: formatPersonFullName(person) || '', haystack: personSearchHaystack(person)
+                });
+                return [peopleText.get(personId)];
+            });
+            const result = { text: [photo.title, photo.filename, photo.caption, photo.placeText, getPlaceDisplay(photo.placeId),
+                ...linked.map(person => person.name), ...(photo.albumIds || []).map(albumId => albums.get(albumId) || '')
+            ].join(' ').toLowerCase(), linked };
+            prepared.set(photo, result);
+            return result;
+        };
+    }, [state.language]);
+}
+
+function photoMatchesSearch(photo, query, tokens, prepare)
+{
+    if (!query) return true;
+    if (!prepare) return photoSearchText(photo).includes(query)
         || getPhotoPeople(photo).some(person => personSearchMatches(tokens, personSearchHaystack(person)));
+    const entry = prepare(photo);
+    return entry.text.includes(query) || entry.linked.some(person => personSearchMatches(tokens, person.haystack));
 }
 
 function filteredAlbumPhotos()
@@ -150,7 +183,8 @@ function filteredAlbumPhotosWithDiagnosticsBody()
     if (query)
     {
         const tokens = personSearchTokens(query);
-        photos = photos.filter(photo => photoMatchesSearch(photo, query, tokens));
+        const prepare = albumPhotoSearchIndex(currentProjectId());
+        photos = photos.filter(photo => photoMatchesSearch(photo, query, tokens, prepare));
     }
 
     const filters =
@@ -424,11 +458,8 @@ function getAlbumsListPage(
     };
 }
 
-function currentAlbumsPagePhotos()
+function currentAlbumsPagePhotos(photos = filteredAlbumPhotos())
 {
-    const photos =
-        filteredAlbumPhotos();
-
     /*
       * Grid view remains unpaginated.
       */
@@ -444,7 +475,7 @@ function currentAlbumsPagePhotos()
     ).photos;
 }
 
-function ensureSelectedAlbumPhotoOnListPage()
+function ensureSelectedAlbumPhotoOnListPage(photos)
 {
     if (
         state.albumsViewMode !== 'list'
@@ -454,7 +485,7 @@ function ensureSelectedAlbumPhotoOnListPage()
     }
 
     const pagePhotos =
-        currentAlbumsPagePhotos();
+        currentAlbumsPagePhotos(photos);
 
     const selectedIsOnPage =
         pagePhotos.some(photo =>
@@ -679,10 +710,8 @@ function renderAlbumsListFooter(
       `;
 }
 
-function ensureSelectedAlbumPhoto()
+function ensureSelectedAlbumPhoto(visible = filteredAlbumPhotos())
 {
-    const visible =
-        filteredAlbumPhotos();
 
     const currentIsVisible =
         visible.some(
@@ -747,10 +776,13 @@ function albumsHaveActiveQuery()
 }
 
 let albumsGridResizeObserver = null;
+let albumsGridCardObserver = null;
 let albumsGridResizeFrame = null;
 
 function disconnectAlbumsGridResizeObserver()
 {
+    albumsGridCardObserver?.disconnect();
+    albumsGridCardObserver = null;
     albumsGridResizeObserver?.disconnect();
     albumsGridResizeObserver = null;
     if (albumsGridResizeFrame !== null)
@@ -770,19 +802,78 @@ function updateAlbumsGridLayoutWithDiagnosticsBody()
 {
     if (state.activeModule !== 'Albums' || state.albumsViewMode !== 'grid') return;
     const content = main.querySelector('.albums-content');
-    if (!content?.querySelector('[data-albums-justified-grid]')) return;
-    const photos = filteredAlbumPhotos();
-    if (!photos.length) return;
-    content.innerHTML = renderAlbumsGrid(photos);
-    bindAlbumsCardControls(content);
+    const grid = content?.querySelector('[data-albums-justified-grid]');
+    if (!grid?.albumsPhotos?.length) return;
+    const cards = new Map([...grid.querySelectorAll('[data-photo-id]')].map(card => [card.dataset.photoId, card]));
+    const focused = grid.contains(document.activeElement) ? document.activeElement : null;
+    const fragment = document.createDocumentFragment();
+    for (const row of buildJustifiedPhotoRows(grid.albumsPhotos, state.albumsGridWidth))
+    {
+        const element = document.createElement('div');
+        element.className = 'albums-justified-row ' + (row.justified ? 'is-justified' : 'is-incomplete');
+        element.style.setProperty('--albums-row-preview-height', row.height + 'px');
+        for (const { photo, width } of row.items)
+        {
+            const card = cards.get(photo.id);
+            card.style.setProperty('--albums-card-width', width + 'px');
+            element.append(card);
+        }
+        fragment.append(element);
+    }
+    grid.classList.remove('is-measuring');
+    grid.replaceChildren(fragment);
+    focused?.focus({ preventScroll: true });
 }
 
-function bindAlbumsGridResizeObserver()
+function bindAlbumsGridResizeObserver(photos)
 {
     disconnectAlbumsGridResizeObserver();
     if (state.activeModule !== 'Albums' || state.albumsViewMode !== 'grid') return;
     const content = main.querySelector('.albums-content');
-    if (!content?.querySelector('[data-albums-justified-grid]')) return;
+    const grid = content?.querySelector('[data-albums-justified-grid]');
+    if (!grid) return;
+    grid.albumsPhotos = photos;
+    const byId = new Map(photos.map(photo => [photo.id, photo]));
+    grid.albumsPhotosById = byId;
+    if (!grid.albumsFocusBound)
+    {
+        grid.albumsFocusBound = true;
+        grid.addEventListener('focusin', event =>
+        {
+            const card = event.target.closest('[data-photo-id]');
+            if (card) hydrateAlbumsGridCard(grid, card);
+        });
+        grid.addEventListener('focusout', event =>
+        {
+            const card = event.target.closest('[data-photo-id]');
+            if (card?.albumsGridNear === false && !card.contains(event.relatedTarget)) dehydrateAlbumsGridCard(card);
+        });
+    }
+    const cards = grid.querySelectorAll('[data-photo-id]');
+    if (typeof IntersectionObserver === 'function')
+    {
+        const observer = new IntersectionObserver(entries =>
+        {
+            if (albumsGridCardObserver !== observer || !grid.isConnected || state.activeModule !== 'Albums') return;
+            const synchronize = () =>
+            {
+                for (const entry of entries)
+                {
+                    const card = entry.target;
+                    card.albumsGridNear = entry.isIntersecting;
+                    if (entry.isIntersecting) hydrateAlbumsGridCard(grid, card);
+                    else if (!card.contains(document.activeElement)) dehydrateAlbumsGridCard(card);
+                }
+            };
+            const hasNewCards = entries.some(entry => entry.isIntersecting && !entry.target.albumsHydrated);
+            if (hasNewCards && typeof appPerf !== 'undefined' && appPerf.enabled('Albums'))
+                appPerf.run('Albums', 'gridHydrate', synchronize);
+            else synchronize();
+        }, { rootMargin: '350px 0px' });
+        albumsGridCardObserver = observer;
+        cards.forEach(card => observer.observe(card));
+    }
+    else cards.forEach(card => hydrateAlbumsGridCard(grid, card));
 
     albumsGridResizeObserver = new ResizeObserver(entries =>
     {
@@ -801,9 +892,71 @@ function bindAlbumsGridResizeObserver()
     albumsGridResizeObserver.observe(content);
 }
 
+function dehydrateAlbumsGridCard(card)
+{
+    if (!card.albumsHydrated) return;
+    card.albumsHydrated = false;
+    card.replaceChildren(Object.assign(document.createElement('div'), { className: 'albums-thumb' }));
+}
+
+function hydrateAlbumsGridCard(grid, card)
+{
+    if (card.albumsHydrated) return;
+    const photo = grid.albumsPhotosById?.get(card.dataset.photoId);
+    if (!photo) return;
+    const trace = typeof appPerf === 'undefined' ? null : appPerf.currentDetailed('Albums');
+    const render = () => renderAlbumsPhotoCard(photo, new Set(state.selectedPhotoIds));
+    const markup = trace ? appPerf.measure(trace, 'imageMarkup', render) : render();
+    const mount = () =>
+    {
+        const template = document.createElement('template');
+        template.innerHTML = markup;
+        card.replaceChildren(...template.content.firstElementChild.childNodes);
+    };
+    if (trace)
+    {
+        appPerf.measure(trace, 'dom', mount);
+        appPerf.count(trace, 'recordsRendered', 1, true);
+    }
+    else mount();
+    card.albumsHydrated = true;
+    bindAlbumsCardControls(card);
+    card.querySelector('[data-mobile-open-details]')?.addEventListener('click', () => openMobileSurface('details'));
+    localizeUI(card);
+}
+
+function syncAlbumsGridSelection(grid, changedPhotoId)
+{
+    const selected = new Set(state.selectedPhotoIds);
+    grid.classList.toggle('is-selecting', selected.size > 0);
+    for (const card of grid.querySelectorAll('[data-photo-id]'))
+    {
+        const id = card.dataset.photoId;
+        const detail = id === state.selectedPhotoId;
+        const checked = selected.has(id);
+        const changed = card.classList.contains('selected-detail') !== detail || card.classList.contains('is-checked') !== checked;
+        if (changed)
+        {
+            card.classList.toggle('selected-detail', detail);
+            card.classList.toggle('is-checked', checked);
+            card.setAttribute('aria-selected', String(checked));
+        }
+        if (id === changedPhotoId)
+        {
+            const photo = grid.albumsPhotosById?.get(id);
+            if (photo) card.setAttribute('aria-label', photo.title || photo.filename || '');
+        }
+        if (card.albumsHydrated && (changed || id === changedPhotoId))
+        {
+            card.albumsHydrated = false;
+            hydrateAlbumsGridCard(grid, card);
+        }
+    }
+}
+
 function renderAlbumsPreserveViewport({
     focusPhotoId = '',
-    focusTarget = ''
+    focusTarget = '', reuseGrid = false, refreshPhotoId = ''
 } = {})
 {
     const scrollSelector =
@@ -828,12 +981,12 @@ function renderAlbumsPreserveViewport({
     const scrollLeft =
         content?.scrollLeft || 0;
 
-    renderAlbums();
+    renderAlbums({ reuseGrid, refreshPhotoId });
+    const nextContent = main.querySelector(scrollSelector);
 
     requestAnimationFrame(() =>
     {
-        const nextContent =
-            main.querySelector(scrollSelector);
+        if (!nextContent?.isConnected || main.querySelector(scrollSelector) !== nextContent) return;
 
         if (nextContent)
         {
@@ -890,8 +1043,9 @@ function renderAlbumsPreserveViewport({
             return;
         }
 
-        const escapedPhotoId =
-            CSS.escape(focusPhotoId);
+        const escapedPhotoId = CSS.escape(focusPhotoId);
+        const card = main.querySelector(`[data-albums-justified-grid] [data-photo-id="${escapedPhotoId}"]`);
+        if (card) hydrateAlbumsGridCard(card.closest('[data-albums-justified-grid]'), card);
 
         const focusSelectors = {
             card:
@@ -1039,7 +1193,7 @@ function renderAlbums(...args)
     return appPerf.run('Albums', 'render', () => renderAlbumsWithDiagnosticsBody(...args));
 }
 
-function renderAlbumsWithDiagnosticsBody()
+function renderAlbumsWithDiagnosticsBody({ reuseGrid = false, refreshPhotoId = '' } = {})
 {
     appNavigationObserve();
     disconnectAlbumsGridResizeObserver();
@@ -1062,11 +1216,18 @@ function renderAlbumsWithDiagnosticsBody()
             ? previousMain.scrollTop
             : 0;
 
+    const photos = state.albumsView === 'albums' ? [] : filteredAlbumPhotos();
     if (state.albumsView !== 'albums')
     {
-        ensureSelectedAlbumPhoto();
-        ensureSelectedAlbumPhotoOnListPage();
+        ensureSelectedAlbumPhoto(photos);
+        ensureSelectedAlbumPhotoOnListPage(photos);
     }
+    const existingGrid = reuseGrid && state.albumsViewMode === 'grid' ? main.querySelector('[data-albums-justified-grid]') : null;
+    const previous = existingGrid?.albumsPhotos;
+    const sameOrder = previous?.length === photos.length && photos.every((photo, index) => photo === previous[index]);
+    const sameMembers = previous?.length === photos.length && state.albumsGridWidth > 0
+        && photos.every(photo => existingGrid.albumsPhotosById?.get(photo.id) === photo);
+    const retainedGrid = sameOrder || sameMembers ? existingGrid : null;
 
     const selectedPhoto = state.albumsView === 'albums'
         ? null
@@ -1118,7 +1279,7 @@ function renderAlbumsWithDiagnosticsBody()
     const nextMainMarkup = `
         <div class="${shellClasses}">
           <section class="albums-main" data-albums-scroll-key="${escapeHtml(scrollKey)}">
-            ${renderAlbumsMainMarkup()}
+            ${renderAlbumsMainMarkup(photos, retainedGrid)}
           </section>
 
           ${
@@ -1135,6 +1296,13 @@ function renderAlbumsWithDiagnosticsBody()
         nextSidebarMarkup;
 
     replaceSharedSearchMarkup(main, nextMainMarkup);
+    if (retainedGrid)
+    {
+        main.querySelector('[data-albums-grid-replacement]').replaceWith(retainedGrid);
+        retainedGrid.albumsPhotos = photos;
+        if (!sameOrder) updateAlbumsGridLayoutWithDiagnosticsBody();
+        syncAlbumsGridSelection(retainedGrid, refreshPhotoId);
+    }
     const nextDetail = main.querySelector('.albums-detail');
     if (nextDetail) nextDetail.scrollTop = previousDetailScrollTop;
 
@@ -1144,8 +1312,8 @@ function renderAlbumsWithDiagnosticsBody()
     }
 
     bindAlbumsSidebar();
-    bindAlbumsControls();
-    bindAlbumsGridResizeObserver();
+    bindAlbumsControls(photos);
+    bindAlbumsGridResizeObserver(photos);
 }
 
 function renderAlbumsSidebar()
@@ -1335,10 +1503,9 @@ function renderAlbumsSidebar()
       `;
 }
 
-function renderAlbumsMainMarkup()
+function renderAlbumsMainMarkup(photos = filteredAlbumPhotos(), retainedGrid = null)
 {
     if (state.albumsView === 'albums') return renderAlbumsBrowser();
-    const photos = filteredAlbumPhotos();
     const context = albumContext();
     const activeFilterCount = albumFilterCount();
     const activeFilters = renderAlbumsActiveFilterbar();
@@ -1476,9 +1643,7 @@ function renderAlbumsMainMarkup()
                     ? renderAlbumsList(
                         visiblePhotos
                     )
-                    : renderAlbumsGrid(
-                        photos
-                    )
+                    : retainedGrid ? '<div data-albums-grid-replacement></div>' : renderAlbumsGrid(photos)
                 : renderAlbumsEmpty(
                     context
                 )
@@ -1560,9 +1725,18 @@ function renderAlbumsSelectionBar()
       `;
 }
 
+function renderAlbumsPhotoCardShell(photo, selectedIds, width = 0)
+{
+    const selected = selectedIds.has(photo.id);
+    const widthStyle = width > 0 ? ` style="--albums-card-width:${width}px"` : '';
+    return `<article class="album-photo-card ${state.selectedPhotoId === photo.id ? 'selected-detail' : ''} ${selected ? 'is-checked' : ''}"${widthStyle}
+        tabindex="0" data-photo-id="${escapeHtml(photo.id)}" aria-label="${escapeHtml(photo.title || photo.filename)}" aria-selected="${selected}"><div class="albums-thumb"></div></article>`;
+}
+
 function renderAlbumsPhotoCard(photo, selectedIds, width = 0)
 {
-    const names = getPhotoPeople(photo)
+    const people = projectPeopleIndex(acquireProjectReadModel(photo.projectId)).rawById;
+    const names = [...new Set(photo.personIds || [])].map(id => people.get(id)).filter(Boolean)
         .map(person => formatPersonFullName(person))
         .filter(Boolean);
     const selected = selectedIds.has(photo.id);
@@ -1671,8 +1845,8 @@ function renderAlbumsGrid(photos)
     if (typeof appPerf === 'undefined' || !appPerf.enabled('Albums')) return renderAlbumsGridWithDiagnosticsBody(photos);
     const trace = appPerf.currentDetailed('Albums');
     if (!trace) return renderAlbumsGridWithDiagnosticsBody(photos);
-    const result = appPerf.measure(trace, 'imageMarkup', () => renderAlbumsGridWithDiagnosticsBody(photos));
-    appPerf.count(trace, 'recordsRendered', photos.length, true);
+    const result = appPerf.measure(trace, 'markup', () => renderAlbumsGridWithDiagnosticsBody(photos));
+    appPerf.count(trace, 'placeholders', photos.length, true);
     return result;
 }
 
@@ -1685,11 +1859,11 @@ function renderAlbumsGridWithDiagnosticsBody(photos)
 
     if (!hasMeasuredWidth)
     {
-        return `<div class="albums-justified-grid is-measuring${selectionClass}" data-albums-justified-grid><div class="albums-justified-row">${photos.map(photo => renderAlbumsPhotoCard(photo, selectedIds)).join('')}</div></div>`;
+        return `<div class="albums-justified-grid is-measuring${selectionClass}" data-albums-justified-grid><div class="albums-justified-row">${photos.map(photo => renderAlbumsPhotoCardShell(photo, selectedIds)).join('')}</div></div>`;
     }
 
     const rows = buildJustifiedPhotoRows(photos, measuredWidth);
-    return `<div class="albums-justified-grid${selectionClass}" data-albums-justified-grid>${rows.map(row => `<div class="albums-justified-row ${row.justified ? 'is-justified' : 'is-incomplete'}" style="--albums-row-preview-height:${row.height}px">${row.items.map(item => renderAlbumsPhotoCard(item.photo, selectedIds, item.width)).join('')}</div>`).join('')}</div>`;
+    return `<div class="albums-justified-grid${selectionClass}" data-albums-justified-grid>${rows.map(row => `<div class="albums-justified-row ${row.justified ? 'is-justified' : 'is-incomplete'}" style="--albums-row-preview-height:${row.height}px">${row.items.map(item => renderAlbumsPhotoCardShell(item.photo, selectedIds, item.width)).join('')}</div>`).join('')}</div>`;
 }
 
 function renderAlbumsList(photos)

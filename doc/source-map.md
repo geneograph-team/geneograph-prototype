@@ -52,6 +52,9 @@ The classic-script order is coordinator, relationship rules, then providers. The
 | `people:geneo-match-names` | Geneograph Sync automatic matching reads eligible people, groups by name and prepares birth dates on demand | Language |
 | `notes:search-resources` | Notes search indexes eligible linked records and formats labels and person search fields by people, families, places, events, media, archive and sources revisions | Language |
 | `people:link-search` | Shared People linker reads people, places and media to prepare searchable fields and photo counts | Language |
+| `albums:photo-search` | Albums search prepares photo text from media, albums, people and places | Language |
+| `people:album-tag-search` | Albums and Archive tagging prepare names and search fields from people and places | Language |
+| `albums:tag-memberships` | Shared tagging reads media and album memberships for contextual rankings | None |
 | `people:photo-filter-search` | Shared resource picker reads people for photo filter ordering and search | Language |
 | `places:associations` | Place directory, inspector and selector read places, people and events to index ordered associations and distinct people counts | None |
 | `places:inspector-events` | Places inspector groups connected events and precomputes date and person sort keys from places, people and events | Place ID and language |
@@ -71,7 +74,7 @@ All keys retain one value for the active generation. A domain edit evicts matchi
 | People | Directory, Profile, preview, delete, search/filter/sort/page. Filter, sort, detail, markup, DOM insertion, evidence and provider reuse | Other edit/save and preview substeps lack dedicated stages |
 | Places | Entry, list/map workspace changes, selection, review, query, duplicate analysis and inspector evidence. Map initialization ends at readiness/failure/cancel | Style-only reloads and geocoder or tile network breakdown need separate profiling |
 | Archive | Workspace render, file/source query and detail, inspector and desktop selection | Query totals may repeat within a render. Photo decoding and async import/viewer work are unspecified |
-| Albums | Navigation, photo query, detail pane, grid resize and image markup | Native decoding and guarded navigation wait are unspecified |
+| Albums | Navigation, photo query, detail pane, grid resize, tagging candidate queries, and viewport card preparation and mounting | Native image decoding and guarded navigation wait need separate measurements |
 | Notes | Render, result query, central-note selection and rich editor mount | First Quill mount and full browser-list rendering remain independent of compatible editor reuse |
 | Geneograph | Library query, board open/render, Sync review and Apply. Board render separates object markup, DOM mount, sidebar and card text fit. Sync separates snapshot input, projection, detail and Apply writes | Pan, zoom, direct manipulation and serialization lack dedicated stage attribution |
 | Publish | Preview markup and existing render boundary | Publish remains disabled in regular navigation |

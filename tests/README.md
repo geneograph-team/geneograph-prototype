@@ -10,6 +10,7 @@ Reusable regression checks are tracked in this directory, grouped by the domain 
 | `places/` | Unlinked Places and safe canonical reference handling |
 | `notes/` | Search projection freshness and compatible rich-text editor retention |
 | `search/` | Shared search scheduling, composition, cancellation and connected-input retention |
+| `albums/` | Photo search freshness, tagging ranking, face regions, primary-photo cleanup and resize order |
 | `temp/` | Ignored disposable test scripts, experiments and logs |
 
 Run an individual reusable check from the repository root with a current Node.js version (Node 22 was used for the integrated Tree verification):

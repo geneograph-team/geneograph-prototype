@@ -11,6 +11,73 @@ function openPhotoPeopleModal(photoId, options = {})
     openUnifiedImagePeopleModal(photoId, options);
 }
 
+function albumTagPeopleSearch(projectId)
+{
+    const context = acquireProjectReadModel(projectId);
+    return context.read('people:album-tag-search', ['people', 'places'], () =>
+        projectPeopleIndex(context).eligible.map(person =>
+        {
+            const name = connectPersonName(person);
+            return { person, name, normalized: normalizePersonSearch(name),
+                parts: [person.names?.first, person.names?.middle, person.names?.last, person.names?.maiden].filter(Boolean).map(normalizePersonSearch),
+                birth: getPlaceEventDisplay(person.birth), death: getPlaceEventDisplay(person.death) };
+        }), [state.language]);
+}
+
+function albumTagPhotoScores(photo, selectedIds, archiveMode)
+{
+    const context = acquireProjectReadModel(photo.projectId);
+    const photos = context.read('albums:tag-memberships', ['media', 'albums'], id => getProjectPhotos(id).map(item =>
+        ({ id: item.id, albums: item.albumIds || [], people: new Set(item.personIds || []) })));
+    const counts = new Map(), suggestions = new Map();
+    const albums = new Set(photo.albumIds || []);
+    for (const item of photos)
+    {
+        const relevant = !archiveMode && item.id !== photo.id;
+        const shared = relevant && item.albums.some(id => albums.has(id));
+        const coTagged = relevant && [...item.people].some(id => selectedIds.has(id));
+        for (const id of item.people)
+        {
+            counts.set(id, (counts.get(id) || 0) + 1);
+            if (relevant) suggestions.set(id, (suggestions.get(id) || 0) + 1 + (shared ? 100 : 0) + (coTagged ? 1000 : 0));
+        }
+    }
+    return { counts, suggestions };
+}
+
+function rankAlbumTagCandidates(photo, selectedIds, archiveMode, query)
+{
+    const tokens = personSearchTokens(query);
+    const text = tokens.join(' ');
+    const entries = albumTagPeopleSearch(photo.projectId);
+    const trace = typeof appPerf === 'undefined' ? null : appPerf.currentDetailed('Albums');
+    if (trace) appPerf.count(trace, 'recordsScanned', entries.length);
+    const { counts, suggestions } = albumTagPhotoScores(photo, selectedIds, archiveMode);
+    const ranked = [];
+    const place = String(getPlaceDisplay(photo.placeId) || photo.placeText || '').toLowerCase();
+    for (const entry of entries)
+    {
+        const { person, name, normalized, parts, birth, death } = entry;
+        if (selectedIds.has(person.id)) continue;
+        let score;
+        if (tokens.length)
+        {
+            entry.haystack ??= personSearchHaystack(person, [name, albumPhotoPersonDates(person), birth, death]);
+            if (!personSearchMatches(tokens, entry.haystack)) continue;
+            const match = normalized === text ? 500 : normalized.startsWith(text) ? 400
+                : parts.some(part => part.startsWith(text)) ? 300 : normalized.includes(text) ? 200 : 100;
+            score = match + Math.min(counts.get(person.id) || 0, 50);
+        }
+        else
+        {
+            score = (suggestions.get(person.id) || 0)
+                + (place && [birth, death].some(value => String(value).toLowerCase() === place) ? 50 : 0);
+        }
+        ranked.push({ person, name, score });
+    }
+    ranked.sort((a, b) => b.score - a.score || a.name.localeCompare(b.name));
+    return ranked.map(item => item.person);
+}
 function openUnifiedImagePeopleModal(photoId, { mode = 'tag', activePersonId = null, archiveFile = null, imageSrc = null, onClose = null } = {})
 {
     const entryFocus = document.activeElement;
@@ -37,11 +104,12 @@ function openUnifiedImagePeopleModal(photoId, { mode = 'tag', activePersonId = n
     if (!photo) return;
 
     const savePeople = ids => {
+        if (currentProjectId() !== photo.projectId) return false;
         if (archiveMode) return setArchiveFileConnectionIds(photo.id, 'person', ids);
-        setPhotoPersonIds(photo.id, ids, { rerender: false });
-        return true;
+        return setPhotoPersonIds(photo.id, ids, { rerender: false });
     };
     const saveRegion = (personId, region) => {
+        if (currentProjectId() !== photo.projectId) return false;
         if (archiveMode) {
             const file = archiveFileById(photo.id);
             if (!file) return false;
@@ -51,10 +119,10 @@ function openUnifiedImagePeopleModal(photoId, { mode = 'tag', activePersonId = n
             file.personRegions = next;
             return true;
         }
-        setPhotoPersonRegion(photo, personId, region);
-        return true;
+        return setPhotoPersonRegion(photo, personId, region);
     };
-    const refreshOwner = () => archiveMode ? renderArchivePreservingFileInspectorScroll() : render();
+    const refreshOwner = () => archiveMode ? renderArchivePreservingFileInspectorScroll()
+        : state.activeModule === 'Albums' ? renderAlbumsPreserveViewport({ reuseGrid: true, refreshPhotoId: photo.id }) : render();
     const markedAreasVisible = () => archiveMode ? archiveShowMarkedAreas : albumsShowMarkedAreas;
 
     const selectedIds = new Set(
@@ -81,247 +149,6 @@ function openUnifiedImagePeopleModal(photoId, { mode = 'tag', activePersonId = n
 
     const personName = person =>
         connectPersonName(person);
-
-    const personContext = person =>
-        getPlaceEventDisplay(person?.birth)
-        || getPlaceEventDisplay(person?.death)
-        || '';
-
-    const personSearchText = person => personSearchHaystack(person, [personName(person),
-        albumPhotoPersonDates(person), getPlaceEventDisplay(person?.birth), getPlaceEventDisplay(person?.death)]);
-
-    const getCandidates = () =>
-    {
-        const tokens = personSearchTokens(query);
-        const normalizedQuery = tokens.join(' ');
-
-        const photoAlbumIds =
-            new Set(photo.albumIds || []);
-
-        const photoPlace = String(
-            getPlaceDisplay(
-                photo.placeId
-            )
-          || photo.placeText
-          || ''
-        ).toLowerCase();
-
-        const projectPhotos = archiveMode ? [] :
-            getProjectPhotos(
-                photo.projectId
-            ).filter(item =>
-                item.id !== photo.id
-            );
-
-        const ranked =
-            getPeople(photo.projectId)
-                .filter(person =>
-                    person?.id
-              && !person.deleted
-                )
-                .filter(person =>
-                    !selectedIds.has(
-                        person.id
-                    )
-                )
-                .filter(person =>
-                    !tokens.length || personSearchMatches(tokens, personSearchText(person))
-                )
-                .map(person =>
-                {
-                    const displayName =
-                        normalizePersonSearch(personName(person));
-
-                    const nameParts = [
-                        person?.names?.first,
-                        person?.names?.middle,
-                        person?.names?.last,
-                        person?.names?.maiden
-                    ]
-                        .filter(Boolean)
-                        .map(normalizePersonSearch);
-
-                    let score = 0;
-
-                    if (normalizedQuery)
-                    {
-                        if (
-                            displayName
-                    === normalizedQuery
-                        )
-                        {
-                            score = 500;
-                        }
-                        else if (
-                            displayName.startsWith(
-                                normalizedQuery
-                            )
-                        )
-                        {
-                            score = 400;
-                        }
-                        else if (
-                            nameParts.some(value =>
-                                value.startsWith(
-                                    normalizedQuery
-                                )
-                            )
-                        )
-                        {
-                            score = 300;
-                        }
-                        else if (
-                            displayName.includes(
-                                normalizedQuery
-                            )
-                        )
-                        {
-                            score = 200;
-                        }
-                        else
-                        {
-                            score = 100;
-                        }
-
-                        score += Math.min(
-                            getPersonPhotoCount(
-                                person.id
-                            ),
-                            50
-                        );
-                    }
-                    else
-                    {
-                        let taggedPhotos = 0;
-                        let sharedAlbums = 0;
-                        let coTaggedPhotos = 0;
-
-                        projectPhotos.forEach(
-                            item =>
-                            {
-                                const personIds =
-                                    item.personIds || [];
-
-                                if (
-                                    !personIds.includes(
-                                        person.id
-                                    )
-                                )
-                                {
-                                    return;
-                                }
-
-                                taggedPhotos += 1;
-
-                                if (
-                                    photoAlbumIds.size
-                      && (
-                          item.albumIds || []
-                      ).some(albumId =>
-                          photoAlbumIds.has(
-                              albumId
-                          )
-                      )
-                                )
-                                {
-                                    sharedAlbums += 1;
-                                }
-
-                                if (
-                                    selectedIds.size
-                      && personIds.some(
-                          personId =>
-                              selectedIds.has(
-                                  personId
-                              )
-                      )
-                                )
-                                {
-                                    coTaggedPhotos += 1;
-                                }
-                            }
-                        );
-
-                        const personPlaces = [
-                            getPlaceEventDisplay(
-                                person?.birth
-                            ),
-                            getPlaceEventDisplay(
-                                person?.death
-                            )
-                        ]
-                            .filter(Boolean)
-                            .map(value =>
-                                String(
-                                    value
-                                ).toLowerCase()
-                            );
-
-                        score =
-                            coTaggedPhotos * 1000
-                  + sharedAlbums * 100
-                  + (
-                      photoPlace
-                    && personPlaces
-                        .includes(
-                            photoPlace
-                        )
-                          ? 50
-                          : 0
-                  )
-                  + taggedPhotos;
-                    }
-
-                    return {
-                        person,
-                        score
-                    };
-                })
-                .sort((a, b) =>
-                    b.score - a.score
-              || personName(
-                  a.person
-              ).localeCompare(
-                  personName(
-                      b.person
-                  )
-              )
-                );
-
-        return {
-            total: ranked.length,
-
-            people: ranked
-                .map(item =>
-                    item.person
-                )
-        };
-    };
-
-    const renderResults =
-        candidates =>
-        {
-            if (
-                !candidates.people.length
-            )
-            {
-                return `
-              <div
-                class="
-                  photo-people-empty
-                ">
-                ${escapeHtml(t(query.trim() ? 'No matching people.' : 'No people available to tag'))}
-              </div>
-            `;
-            }
-
-            return candidates.people
-                .map(person =>
-                {
-                    return renderPersonRow(person, false);
-                })
-                .join('');
-        };
 
     openModal(`
         <div
@@ -747,15 +574,87 @@ function openUnifiedImagePeopleModal(photoId, { mode = 'tag', activePersonId = n
         modal.querySelector('[data-face-region-box]')?.classList.toggle('is-hovered', Boolean(id && id === activeRegionPersonId));
     };
 
+    const choices = modal.querySelector('[data-photo-people-choices]');
+    let candidates = [];
+    let mountedRange = '';
+    const rowHeight = 58;
+    const renderCandidateWindow = () =>
+    {
+        if (modalMode !== 'tag') return;
+        if (!candidates.length)
+        {
+            choices.innerHTML = `<div class="photo-people-empty">${escapeHtml(t(query.trim() ? 'No matching people.' : 'No people available to tag'))}</div>`;
+            return;
+        }
+        const bounds = choices.getBoundingClientRect();
+        const desktop = getComputedStyle(choices).overflowY === 'auto';
+        const top = desktop ? choices.scrollTop : Math.max(0, -bounds.top);
+        const height = desktop ? choices.clientHeight : window.innerHeight;
+        const start = Math.min(candidates.length - 1, Math.max(0, Math.floor(top / rowHeight) - 6));
+        const end = Math.min(candidates.length, start + Math.max(16, Math.ceil(height / rowHeight) + 12));
+        const key = start + ':' + end;
+        if (key === mountedRange) return;
+        mountedRange = key;
+        const focused = choices.contains(document.activeElement) ? document.activeElement : null;
+        const focusedId = focused?.dataset.photoPeopleChoice;
+        const focusedAction = focused?.classList.contains('albums-unified-person-action');
+        choices.innerHTML = `<div aria-hidden="true" style="height:${start * rowHeight}px"></div>`
+            + candidates.slice(start, end).map(person => renderPersonRow(person, false)).join('')
+            + `<div aria-hidden="true" style="height:${(candidates.length - end) * rowHeight}px"></div>`;
+        localizeUI(choices);
+        if (focusedId)
+        {
+            const buttons = choices.querySelectorAll(`[data-photo-people-choice="${CSS.escape(focusedId)}"]`);
+            (focusedAction ? buttons[1] : buttons[0])?.focus({ preventScroll: true });
+        }
+    };
+    const refreshCandidates = () =>
+    {
+        if (modalMode !== 'tag') return;
+        const update = () => { candidates = rankAlbumTagCandidates(photo, selectedIds, archiveMode, query); };
+        if (typeof appPerf !== 'undefined' && appPerf.enabled('Albums')) appPerf.run('Albums', 'picker', () =>
+        {
+            const trace = appPerf.currentDetailed('Albums');
+            if (trace) appPerf.measure(trace, 'query', update);
+            else update();
+            if (trace) appPerf.count(trace, 'recordsMatched', candidates.length);
+            mountedRange = '';
+            choices.scrollTop = 0;
+            renderCandidateWindow();
+            if (trace) appPerf.count(trace, 'recordsRendered', choices.querySelectorAll('.albums-unified-person-row').length);
+        });
+        else
+        {
+            update();
+            mountedRange = '';
+            choices.scrollTop = 0;
+            renderCandidateWindow();
+        }
+        modal.querySelector('[data-photo-people-results-title]').textContent = t(query.trim() ? 'Matching people' : 'All people');
+    };
+    modal.addEventListener('scroll', renderCandidateWindow, true);
+    choices.addEventListener('keydown', event =>
+    {
+        const control = event.target.closest('[data-photo-people-choice]');
+        if (event.key !== 'Tab' || !control) return;
+        const row = control.closest('.albums-unified-person-row');
+        const index = candidates.findIndex(person => person.id === control.dataset.photoPeopleChoice);
+        const next = index + (event.shiftKey ? -1 : 1);
+        if (next < 0 || next >= candidates.length) return;
+        const action = control.classList.contains('albums-unified-person-action');
+        if (event.shiftKey ? action || row.previousElementSibling?.matches('.albums-unified-person-row')
+            : !action || row.nextElementSibling?.matches('.albums-unified-person-row')) return;
+        event.preventDefault();
+        if (getComputedStyle(choices).overflowY === 'auto') choices.scrollTop = next * rowHeight;
+        else row.scrollIntoView({ block: event.shiftKey ? 'end' : 'start' });
+        renderCandidateWindow();
+        const buttons = choices.querySelectorAll(`[data-photo-people-choice="${CSS.escape(candidates[next].id)}"]`);
+        (event.shiftKey ? buttons[1] : buttons[0])?.focus();
+    });
+
     const refresh = () =>
     {
         refreshPreview();
-        const candidates =
-            getCandidates();
-
-        const queryActive =
-            Boolean(query.trim());
-
         const regionPanel = modal.querySelector('[data-photo-people-region-panel]');
         const activePerson = selectedIds.has(activeRegionPersonId) ? getPerson(activeRegionPersonId) : null;
         regionPanel.hidden = modalMode !== 'preview' || !activePerson;
@@ -767,23 +666,7 @@ function openUnifiedImagePeopleModal(photoId, { mode = 'tag', activePersonId = n
             </div>
           </div>` : '';
 
-        modal
-            .querySelector(
-                '[data-photo-people-results-title]'
-            )
-            .textContent =
-                queryActive
-                    ? t('Matching people')
-                    : t('All people');
-
-        modal
-            .querySelector(
-                '[data-photo-people-choices]'
-            )
-            .innerHTML =
-                renderResults(
-                    candidates
-                );
+        refreshCandidates();
 
         highlightPerson(highlightedPersonId);
         localizeUI(modal);
@@ -892,7 +775,7 @@ function openUnifiedImagePeopleModal(photoId, { mode = 'tag', activePersonId = n
                 query =
                     event.currentTarget.value;
 
-                refresh();
+                refreshCandidates();
             }
         );
 
@@ -921,7 +804,7 @@ function openUnifiedImagePeopleModal(photoId, { mode = 'tag', activePersonId = n
                     person.primaryPhotoCrop = null;
                     markPersonUpdated(person);
                 }
-                render();
+                refreshOwner();
                 return;
             }
         }
@@ -964,6 +847,8 @@ function openUnifiedImagePeopleModal(photoId, { mode = 'tag', activePersonId = n
             if (choice)
             {
                 const personId = choice.dataset.photoPeopleChoice;
+                const person = getPerson(personId);
+                if (!person || person.deleted || person.projectId !== photo.projectId || selectedIds.has(personId)) return;
                 selectedIds.add(personId);
                 if (!savePeople([...selectedIds])) {
                     selectedIds.delete(personId);
@@ -1816,7 +1701,7 @@ function toggleAlbumPhotoFavourite(
 
     renderAlbumsPreserveViewport({
         focusPhotoId: photo.id,
-        focusTarget
+        focusTarget, reuseGrid: true, refreshPhotoId: photo.id
     });
 }
 
@@ -1842,7 +1727,7 @@ function togglePhotoSelection(
 
     renderAlbumsPreserveViewport({
         focusPhotoId: photoId,
-        focusTarget: 'selection'
+        focusTarget: 'selection', reuseGrid: true
     });
 }
 
