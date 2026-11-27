@@ -937,7 +937,7 @@ async function verifyMyHeritageCutouts()
 const automaticImportDialogSource = context.openImportModal.toString();
 assert.ok(!automaticImportDialogSource.includes('data-gedcom-geocode-enabled'));
 assert.ok(!automaticImportDialogSource.includes('gedcomGeocodeTitle'));
-assert.ok(automaticImportDialogSource.includes('data-gedcom-geocode-notice hidden'));
+assert.ok(!automaticImportDialogSource.includes('data-gedcom-geocode-notice'));
 assert.ok(!automaticImportDialogSource.includes('data-gedcom-geocode-progress'));
 assert.ok(!automaticImportDialogSource.includes('data-gedcom-geocode-stop'));
 assert.ok(!automaticImportDialogSource.includes('await matchGedcomPlaceCoordinates'));

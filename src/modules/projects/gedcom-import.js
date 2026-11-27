@@ -3068,7 +3068,7 @@ function openImportModal()
         </section>
         <div class="gedcom-preview" data-gedcom-warnings></div>
         </div><div class="modal-footer gedcom-import-footer">
-        <p class="gedcom-session-note">${escapeHtml(t('Imported projects stay in this session. Reloading discards them and any edits.'))} <span data-gedcom-geocode-notice hidden>${escapeHtml(t('Import may send place names to Geoapify or LocationIQ to find coordinates.'))}</span></p>
+        <p class="gedcom-session-note">${escapeHtml(t('Imported projects stay in this session. Reloading discards them and any edits.'))}</p>
         <div class="gedcom-import-footer-actions">
             <button class="button secondary" type="button" data-close>${escapeHtml(t('Cancel'))}</button>
             <button class="button primary" type="submit" hidden disabled>${escapeHtml(t('Import to new project'))}</button>
@@ -3099,7 +3099,6 @@ function openImportModal()
     let matches = new Map();
     let onlineMatches = new Map();
     let downloadController;
-    const geocodeNotice = find('[data-gedcom-geocode-notice]');
     let revision = 0;
     const isCurrent = request => form.isConnected && request === revision;
     function showError(failure)
@@ -3147,7 +3146,6 @@ function openImportModal()
         const request = ++revision;
         parsed = null;
         downloadController?.abort();
-        geocodeNotice.hidden = true;
         onlineMatches = new Map();
         downloadStatus.textContent = '';
         download.disabled = false;
@@ -3180,7 +3178,6 @@ function openImportModal()
             version.textContent = 'GEDCOM ' + parsed.version;
             version.hidden = false;
             renderPreview(draft);
-            geocodeNotice.hidden = !gedcomPlaceLookupPlan(draft).candidates.length;
             name.closest('[data-gedcom-name]').hidden = false;
             submit.hidden = submit.disabled = name.disabled = false;
             attachments.hidden = !references.size && !onlineReferences.size;

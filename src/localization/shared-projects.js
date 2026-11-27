@@ -951,7 +951,6 @@ const RU_UI_PROJECTS = Object.freeze({
     "Place coordinate lookup interrupted by provider quota": "Поиск координат мест прерван из-за лимита провайдера",
     "Place coordinate lookup unavailable": "Поиск координат мест недоступен",
     "Affected places remain without coordinates.": "Затронутые места остаются без координат.",
-    "Import may send place names to Geoapify or LocationIQ to find coordinates.": "При импорте названия мест могут отправляться в Geoapify или LocationIQ для поиска координат.",
     "Stop lookup": "Остановить поиск",
     "Automatic coordinate lookup in progress.": "Выполняется автоматический поиск координат.",
     "Settlement confidence": "Уверенность в населённом пункте",
