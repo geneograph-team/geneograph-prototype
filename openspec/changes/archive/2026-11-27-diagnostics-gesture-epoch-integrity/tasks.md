@@ -4,7 +4,7 @@
 - [x] Add additive schema-3 summary coverage metadata and stale callback checks.
 - [x] Verify supported-browser long-task observation and document boundaries.
 - [x] Run focused Tree, Diagnostics, and browser regressions.
-- [ ] Founder acceptance and archival.
+- [x] Founder acceptance and archival.
 
 ## Verification
 
@@ -15,3 +15,7 @@ Hosted and direct-file Edge confirmed the replaced wheel canceled at the new dra
 A separate hosted Edge test used two isolated browser tasks. An independent native observer and Diagnostics agreed on one 75 ms entry in the first epoch and one 125 ms entry in the second. The mixed export retained both operations and identified the second epoch as the top-level summary owner. Tasks spanning Start or synchronous Stop were excluded by the recording boundaries and were observed independently after completion. Node covered queued record draining and unsupported, Basic, selected-scope and cleared states. The browser and operation timings are different measurement boundaries.
 
 Tests used isolated Edge in English over loopback and Russian from disk. Touch cancellation was synthesized. Physical devices, gesture interruptions at the OS/window-manager level, and other browser engines were outside this run. No founder data or raw trace was retained in the repository.
+
+## Founder acceptance — 27 November 2026
+
+The founder explicitly accepted #475. Implementation is on default in commit `f7d104e5a8d95dcbd7e59ea589677ab165cc059d`. The later #459 founder recording uses schema 3 with explicit summaryCoverage for Detailed all-module epoch 1, 117 retained operations, zero drops and observed page-wide long-task aggregates (68 entries, maximum 1,877 ms). It confirms the new export provenance is present; it does not exercise Tree gesture ownership or independently prove observer completeness. The hosted/direct-file Edge and deterministic checks reported above remain the basis for gesture and observer verification. Physical touch devices, OS/window-manager interruption and other browser engines were not verified. No tests were rerun for this administrative archival.
