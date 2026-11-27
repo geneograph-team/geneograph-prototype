@@ -354,6 +354,8 @@ function sharedFilterOptions(
               ?? ''
             ),
 
+            person: option?.person,
+
             keywords:
             Array.isArray(
                 option?.keywords

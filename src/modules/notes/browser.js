@@ -767,6 +767,7 @@ function notesFilterEntityOptions(type)
     return entities
         .map(entity => ({
             value: entity.id,
+            person: type === 'person' ? entity : undefined,
             label: type === 'person'
                 ? personResourceDisplayName(entity)
                 : getPlaceDisplay(entity.id)
@@ -778,7 +779,7 @@ function notesFilterEntityOptions(type)
 }
 
 const notesFilterSchema = Object.freeze([
-    { key: 'personId', label: 'Person', control: 'combobox', multiple: false,
+    { key: 'personId', label: 'Person', control: 'combobox', multiple: false, personSearch: true,
         layout: 'full', placeholder: 'Search people', defaultValue: '',
         getOptions: () => notesFilterEntityOptions('person') },
     { key: 'placeId', label: 'Place', control: 'combobox', multiple: false,

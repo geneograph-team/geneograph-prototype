@@ -5,7 +5,7 @@ const path = require('node:path');
 const root = path.join(__dirname, '../..');
 const read = file => fs.readFileSync(path.join(root, file), 'utf8');
 const api = new Function('state', 'translateText', 'escapeHtml', 'icon', 'window', 'document', 'CustomEvent',
-    read('src/shared/filter-fields.js') + '\n' + read('src/shared/filter-interactions.js')
+    read('src/shared/person-name-helpers.js') + '\n' + read('src/shared/filter-fields.js') + '\n' + read('src/shared/filter-interactions.js')
     + '\nreturn { renderSharedFilterFields, bindSharedFilterFields };')(
     { language: 'en' }, x => x, x => String(x), {},
     { innerHeight: 900, innerWidth: 1200 }, { activeElement: null }, class {});
@@ -25,13 +25,14 @@ function element()
         dispatchEvent() {}
     };
 }
-function setup(searchOnly)
+function setup(searchOnly, personSearch = false)
 {
     let changes = 0, optionReads = 0;
-    const definition = { key: 'person', label: 'Person', control: 'combobox', searchOnly,
+    const definition = { key: 'person', label: 'Person', control: 'combobox', searchOnly, personSearch,
         defaultValue: '', getOptions() {
             optionReads++;
-            return [{ value: 'a', label: 'Alice' }, { value: 'b', label: 'Bob' }];
+            return [{ value: 'a', label: 'Alice' }, { value: 'b', label: 'Bob' },
+                { value: 'luna', label: 'Luna Mabel Purrington', person: { names: { first: 'Luna', middle: 'Mabel', last: 'Purrington', maiden: 'Whiskerfield' } } }];
         } };
     const schema = [definition], prefix = 'test', values = {};
     const markup = api.renderSharedFilterFields({ schema, prefix, values });
@@ -99,12 +100,27 @@ type(search, 'bob');
 assert.equal(key(search, 'Escape'), true);
 assert.equal(search.listbox.hidden, true);
 assert.equal(search.binding.getValues().person, 'a');
+const personPicker = setup(true, true);
+personPicker.input.focus();
+assert.equal(personPicker.listbox.hidden, true);
+type(personPicker, ' Pu  Lu Ma ');
+assert.ok(personPicker.listbox.innerHTML.includes('Luna Mabel Purrington'));
+assert.equal(personPicker.listbox.innerHTML.includes('Alice'), false);
+type(personPicker, 'Whisk Ma');
+assert.ok(personPicker.listbox.innerHTML.includes('Luna Mabel Purrington'));
+assert.equal(key(personPicker, 'Enter'), true);
+assert.equal(personPicker.binding.getValues().person, 'luna');
+assert.equal(personPicker.listbox.hidden, true);
+type(personPicker, 'Lu Bob');
+assert.ok(personPicker.listbox.innerHTML.includes('No matching options.'));
 const dropdown = setup(false);
 assert.ok(dropdown.markup.includes('data-shared-filter-toggle'));
 dropdown.input.focus();
 assert.equal(dropdown.listbox.hidden, false);
 assert.ok(dropdown.listbox.innerHTML.includes('Alice'));
 assert.ok(dropdown.listbox.innerHTML.includes('Bob'));
+type(dropdown, 'Pu Lu Ma');
+assert.ok(dropdown.listbox.innerHTML.includes('No matching options.'));
 dropdown.toggle.events.click();
 assert.equal(dropdown.listbox.hidden, true);
 console.log('Tree settings search-only mode and ordinary dropdown behavior passed.');

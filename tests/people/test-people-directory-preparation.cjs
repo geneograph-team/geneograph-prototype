@@ -94,6 +94,10 @@ const legacy = sampleData.people.filter(person => person.projectId === 'p1').map
 const query = (rows, filters, text, sort) =>
     Array.from(sortPeopleRecords(peopleRecordsMatchingFilters(rows, filters, text), sort), row => row.id);
 assert.equal(first.records.length, 135);
+assert.deepEqual(query(first.records, {}, 'Birch  Person  13', 'first'),
+    query(legacy, {}, 'Birch Person 13', 'first'));
+assert.ok(query(first.records, {}, 'Birch Person 13', 'first').includes('p13'));
+assert.equal(query(first.records, {}, 'Birch Maple', 'first').length, 0);
 assert.equal(first.records.find(row => row.id === 'p130').sourceCount, 1);
 assert.equal(peopleDirectoryContext(), first);
 for (const [filters, text, sort] of [

@@ -633,18 +633,8 @@ function connectPersonPlaceLine(person)
 
 function connectPersonSearchText(person)
 {
-    return [
-        connectPersonName(person),
-        person?.names?.first,
-        person?.names?.middle,
-        person?.names?.last,
-        person?.names?.maiden,
-        connectPersonLifeLine(person),
-        connectPersonPlaceLine(person)
-    ]
-        .filter(Boolean)
-        .join(' ')
-        .toLowerCase();
+    return personSearchHaystack(person, [connectPersonName(person),
+        connectPersonLifeLine(person), connectPersonPlaceLine(person)]);
 }
 
 function connectPersonExistingRelationships(anchorPersonId)
@@ -671,10 +661,7 @@ function connectPersonCandidateScore(person, anchorPerson, relationshipType, que
 {
     let score = 0;
     const type = normalizeConnectRelationshipType(relationshipType);
-    const search = connectPersonSearchText(person);
-    const q = String(query || '').trim().toLowerCase();
-
-    if (q && search.includes(q)) score += 80;
+    if (query && connectPersonSearchText(person).includes(query)) score += 80;
 
     const anchorSurname = String(anchorPerson?.names?.last || '').toLowerCase();
     const personSurname = String(person?.names?.last || '').toLowerCase();
@@ -715,7 +702,8 @@ function connectPersonCandidates()
     const anchor = getPerson(connectPersonModalState.anchorPersonId);
     if (!anchor) return [];
 
-    const query = String(connectPersonModalState.query || '').trim().toLowerCase();
+    const tokens = personSearchTokens(connectPersonModalState.query);
+    const query = tokens.join(' ');
     const relationshipType = connectPersonModalState.relationshipType
         ? normalizeConnectRelationshipType(connectPersonModalState.relationshipType) : '';
     const connected = connectPersonExistingRelationships(anchor.id);
@@ -724,7 +712,7 @@ function connectPersonCandidates()
         .filter(person => person?.id && person.id !== anchor.id)
         .filter(person => !person.deleted)
         .filter(person => query || !connected.has(person.id))
-        .filter(person => !query || connectPersonSearchText(person).includes(query))
+        .filter(person => !tokens.length || personSearchMatches(tokens, connectPersonSearchText(person)))
         .map(person => ({
             person,
             score: connectPersonCandidateScore(person, anchor, relationshipType, query)

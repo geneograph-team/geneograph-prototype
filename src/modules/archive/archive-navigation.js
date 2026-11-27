@@ -93,6 +93,7 @@ function archivePersonFilterOptions()
         .map(person => ({
             value:
             person.id,
+            person,
 
             label:
             personResourceDisplayName(
@@ -368,6 +369,7 @@ const archiveFileFilterSchema =
             defaultValue:
             Object.freeze([]),
 
+            personSearch: true,
             getOptions:
             archivePersonFilterOptions
         }),

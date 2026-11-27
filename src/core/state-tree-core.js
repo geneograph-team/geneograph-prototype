@@ -857,10 +857,10 @@ function openTreeSettingsModal()
     let paletteTheme = document.documentElement.dataset.theme === 'dark' ? 'dark' : 'light';
     let paletteGraph = null, palettePeople = null, referenceOptions = null;
     const personOptions = () => referenceOptions ||= getPeople(projectId).filter(person => !person.deleted).map(person => ({
-        value: person.id, label: formatPersonFullName(person) || t('Unnamed person')
+        value: person.id, label: formatPersonFullName(person) || t('Unnamed person'), person
     }));
     const personField = (key, label, helpText = '') => ({
-        key, label, helpText, control: 'combobox', layout: 'full', searchOnly: true,
+        key, label, helpText, control: 'combobox', layout: 'full', searchOnly: true, personSearch: true,
         placeholder: 'Search people', defaultValue: '',
         getOptions: personOptions,
         renderSelectedIdentity: (id, label) => treeSettingsPersonPreview(getPerson(id), label)

@@ -92,16 +92,11 @@ document.addEventListener('fullscreenchange', () =>
 
 function treePersonPickerResults(query)
 {
-    if (!query) return treeRecentPeople();
-    const normalized = query.toLocaleLowerCase();
+    const tokens = personSearchTokens(query);
+    if (!tokens.length) return treeRecentPeople();
     return getPeople(currentFamilyTreeProjectId())
         .filter(person => !person.deleted)
-        .filter(person => {
-            const names = [connectPersonName(person), person.names?.first, person.names?.middle,
-                person.names?.last, person.names?.maiden].filter(Boolean);
-            return [...names, ...names.map(name => translateText(name))]
-                .join(' ').toLocaleLowerCase().includes(normalized);
-        })
+        .filter(person => personSearchMatches(tokens, personSearchHaystack(person, [connectPersonName(person)])))
         .sort((a, b) => connectPersonName(a).localeCompare(connectPersonName(b), state.language))
         .slice(0, 12);
 }

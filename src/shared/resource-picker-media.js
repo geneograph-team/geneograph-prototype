@@ -217,6 +217,7 @@
             mode: config.mode || 'manage',
             records,
             name: photo => localizedDataFieldValue(photo.title || photo.filename || rpText('Untitled photo', 'Без названия')),
+            searchPeople: photo => getPhotoPeople(photo),
             searchText: photo => [photo.title, localizedDataFieldValue(photo.title), photo.filename, photo.caption,
                 localizedDataFieldValue(photo.caption), photo.placeText, formatPhotoDate(photo), ...getPhotoPeople(photo).map(personResourceDisplayName)].join(' '),
             scopes: () => [

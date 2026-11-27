@@ -78,6 +78,12 @@ function photoSearchText(photo)
     ].join(' ').toLowerCase();
 }
 
+function photoMatchesSearch(photo, query, tokens)
+{
+    return !query || photoSearchText(photo).includes(query)
+        || getPhotoPeople(photo).some(person => personSearchMatches(tokens, personSearchHaystack(person)));
+}
+
 function filteredAlbumPhotos()
 {
     let photos =
@@ -133,13 +139,8 @@ function filteredAlbumPhotos()
 
     if (query)
     {
-        photos =
-            photos.filter(
-                photo =>
-                    photoSearchText(
-                        photo
-                    ).includes(query)
-            );
+        const tokens = personSearchTokens(query);
+        photos = photos.filter(photo => photoMatchesSearch(photo, query, tokens));
     }
 
     const filters =

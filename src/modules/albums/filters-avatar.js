@@ -84,6 +84,7 @@ function albumsPersonFilterOptions()
             .map(person => ({
                 value:
               person.id,
+                person,
 
                 label:
               formatPersonFullName(person)
@@ -252,6 +253,7 @@ const albumsFilterSchema =
             defaultValue:
             '',
 
+            personSearch: true,
             getOptions:
             albumsPersonFilterOptions
         }),

@@ -253,7 +253,8 @@ function rpEnhanceSortControl(root, selector)
 function rpPhotoFilterFieldsMarkup(projectId, filters = {}, { tagged = false } = {})
 {
     const people = (sampleData.people || []).filter(person => person.projectId === projectId && !person.deleted)
-        .map(person => ({ id: person.id, name: personResourceDisplayName(person) }))
+        .map(person => ({ id: person.id, name: personResourceDisplayName(person),
+            searchText: personSearchHaystack(person, [personResourceDisplayName(person)]) }))
         .sort((a, b) => a.name.localeCompare(b.name, state.language === 'ru' ? 'ru' : 'en', { numeric: true }));
     const selected = people.find(person => person.id === filters.person);
     return `<div class="rp-photo-filters">
@@ -265,7 +266,7 @@ function rpPhotoFilterFieldsMarkup(projectId, filters = {}, { tagged = false } =
               placeholder="${escapeHtml(rpText('Search people', 'Поиск людей'))}" value="${escapeHtml(selected?.name || '')}">
             <div id="rpPhotoPersonOptions" class="rp-photo-person-options" role="listbox" hidden>
               <div role="option" data-photo-person-option="" tabindex="-1">${escapeHtml(rpText('All people', 'Все люди'))}</div>
-              ${people.map(person => `<div role="option" data-photo-person-option="${escapeHtml(person.id)}" tabindex="-1">${escapeHtml(person.name)}</div>`).join('')}
+              ${people.map(person => `<div role="option" data-photo-person-option="${escapeHtml(person.id)}" data-person-search-text="${escapeHtml(person.searchText)}" tabindex="-1">${escapeHtml(person.name)}</div>`).join('')}
             </div>
           </div>
         </div>
@@ -283,8 +284,9 @@ function rpBindPhotoFilterFields(root, filters, onChange)
     const close = () => { if (list) list.hidden = true; input?.setAttribute('aria-expanded', 'false'); input?.removeAttribute('aria-activedescendant'); active = -1; };
     const show = (query = '') =>
     {
-        const normalized = query.trim().toLocaleLowerCase(state.language === 'ru' ? 'ru' : 'en');
-        options.forEach(option => { option.hidden = Boolean(option.dataset.photoPersonOption) && !option.textContent.toLocaleLowerCase(state.language === 'ru' ? 'ru' : 'en').includes(normalized); });
+        const tokens = personSearchTokens(query);
+        options.forEach(option => { option.hidden = Boolean(option.dataset.photoPersonOption)
+            && !personSearchMatches(tokens, option.dataset.personSearchText || ''); });
         list.hidden = false;
         input.setAttribute('aria-expanded', 'true');
         active = -1;
@@ -483,11 +485,14 @@ function openResourcePicker(adapter, options = {})
     const results = () =>
     {
         const query = norm(session.query).trim();
+        const personTokens = adapter.searchPeople ? personSearchTokens(session.query) : null;
         let items = records();
         if (session.view === 'selected') return items.filter(record => session.selectedIds.has(idOf(record)) || session.decisions.has(idOf(record)) || session.partialIds.has(idOf(record)));
         items = items.filter(record => (!adapter.matchesScope || adapter.matchesScope(record, session.scopeId, session))
             && (!adapter.matchesFilters || adapter.matchesFilters(record, session.filters, session))
-            && (!query || query.split(/\s+/).every(word => norm(adapter.searchText?.(record) || adapter.name(record)).includes(word))));
+            && (!query || query.split(/\s+/).every(word => norm(adapter.searchText?.(record) || adapter.name(record)).includes(word))
+                || (personTokens && adapter.searchPeople(record).some(person =>
+                    personSearchMatches(personTokens, personSearchHaystack(person))))));
         items.sort((a, b) =>
         {
             if (session.sort === 'relevance' && query)

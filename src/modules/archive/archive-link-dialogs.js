@@ -1708,7 +1708,10 @@ function openArchiveConnectionPicker({ ownerType, ownerIds, entityType })
     };
     const refresh = () =>
     {
-        const visible = records.filter(record => [config.label(record), config.meta(record)].join(' ').toLowerCase().includes(query.toLowerCase()));
+        const tokens = entityType === 'person' ? personSearchTokens(query) : null;
+        const visible = records.filter(record => tokens
+            ? !tokens.length || personSearchMatches(tokens, personSearchHaystack(record, [config.label(record), config.meta(record)]))
+            : [config.label(record), config.meta(record)].join(' ').toLowerCase().includes(query.toLowerCase()));
         results.innerHTML = visible.length ? visible.map(record =>
         {
             const existing = linkedToAll(record.id);

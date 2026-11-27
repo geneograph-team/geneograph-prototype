@@ -4008,11 +4008,10 @@ function geneoImagePickerProjectPhotos()
         .trim()
         .toLowerCase();
 
+    const tokens = personSearchTokens(query);
     return getProjectPhotos(projectId)
         .filter(photo => !photo.deletedAt)
-        .filter(photo =>
-            !query || photoSearchText(photo).includes(query)
-        );
+        .filter(photo => photoMatchesSearch(photo, query, tokens));
 }
 
 function geneoImagePickerSelectedProjectIds()
@@ -4491,7 +4490,11 @@ function renderGeneographAddImageResults()
             && (!filters.person || getPhotoPeople(photo).some(person => person.id === filters.person))
             && (!filters.tagged || (boardPerson && photoIsTaggedWithPerson(photo, boardPerson.treePersonId || boardPerson.id)))));
     const query = picker.search.trim().toLowerCase();
-    if (query) photos = photos.filter(photo => photoSearchText(photo).includes(query));
+    if (query)
+    {
+        const tokens = personSearchTokens(query);
+        photos = photos.filter(photo => photoMatchesSearch(photo, query, tokens));
+    }
     photos.sort((a, b) => picker.imageSort === 'updated'
         ? String(b.updatedAt || '').localeCompare(String(a.updatedAt || ''))
         : picker.imageSort === 'date'

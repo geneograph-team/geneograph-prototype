@@ -586,11 +586,17 @@ function peopleDirectoryContext(projectId = currentProjectId())
         sourceIdsByPerson.get(link.targetId).add(link.sourceId);
     }
 
-    const records = people.map(person => ({
-        ...toPeopleQueryRecord(person, labels, placeLabel),
-        birthFact: person.birth,
-        sourceCount: sourceIdsByPerson.get(person.id)?.size || 0
-    }));
+    const records = people.map(person =>
+    {
+        const record = {
+            ...toPeopleQueryRecord(person, labels, placeLabel),
+            birthFact: person.birth,
+            sourceCount: sourceIdsByPerson.get(person.id)?.size || 0
+        };
+        record.personSearchText = personSearchHaystack(person, [record.name, record.birthPlace,
+            record.relation, record.living, getPeopleSourceStatus(record)]);
+        return record;
+    });
     peopleDirectoryCache = { projectId, revision, defaultId, language: state.language, sourceLinks, peopleById, records };
     return peopleDirectoryCache;
 }
@@ -1077,10 +1083,7 @@ function peopleRecordsMatchingFilters(
             normalized.birthPlaceIds
         );
 
-    const normalizedQuery =
-        normalizeSharedFilterSearch(
-            searchQuery
-        );
+    const tokens = personSearchTokens(searchQuery);
 
     const filterBirth = Boolean(normalized.birthYear.mode && normalized.birthYear.from);
 
@@ -1168,32 +1171,9 @@ function peopleRecordsMatchingFilters(
             return false;
         }
 
-        if (normalizedQuery)
-        {
-            const searchText =
-                normalizeSharedFilterSearch(
-                    [
-                        person.name,
-                        person.birthPlace,
-                        person.relation,
-                        person.living,
-                        getPeopleSourceStatus(
-                            person
-                        )
-                    ]
-                        .filter(Boolean)
-                        .join(' ')
-                );
-
-            if (
-                !searchText.includes(
-                    normalizedQuery
-                )
-            )
-            {
-                return false;
-            }
-        }
+        if (tokens.length && !personSearchMatches(tokens, person.personSearchText || personSearchHaystack(person, [
+            person.name, person.birthPlace, person.relation, person.living, getPeopleSourceStatus(person)
+        ]))) return false;
 
         return true;
     });

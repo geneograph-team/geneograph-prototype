@@ -86,6 +86,7 @@ function personPhotoPickerProjectPhotos()
             .trim()
             .toLowerCase();
 
+    const tokens = personSearchTokens(query);
     const filters = state.personPhotoPicker.filters || {};
     return getProjectPhotos(
         person.projectId
@@ -95,7 +96,7 @@ function personPhotoPickerProjectPhotos()
         return (!filters.tagged || photoIsTaggedWithPerson(photo, person))
             && (!filters.favorite || photo.favorite)
             && (!filters.person || getPhotoPeople(photo).some(linked => linked.id === filters.person))
-            && (!query || photoSearchText(photo).includes(query));
+            && photoMatchesSearch(photo, query, tokens);
     }).sort((a, b) => state.personPhotoPicker.sort === 'updated'
         ? String(b.updatedAt || '').localeCompare(String(a.updatedAt || ''))
         : state.personPhotoPicker.sort === 'date'
@@ -1166,14 +1167,9 @@ function personPhotosAdderProjectPhotos()
         .trim()
         .toLowerCase();
 
-    return getProjectPhotos(
-        person.projectId
-    )
-        .filter(photo =>
-            !query
-          || photoSearchText(photo)
-              .includes(query)
-        )
+    const tokens = personSearchTokens(query);
+    return getProjectPhotos(person.projectId)
+        .filter(photo => photoMatchesSearch(photo, query, tokens))
         .map((photo, index) => ({
             photo,
             index,

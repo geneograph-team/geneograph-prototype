@@ -39,6 +39,8 @@ For stateful interactions, review the relevant initial, selected, staged, cancel
 
 Evaluate the whole affected section for clear hierarchy, balanced placement, readable content, and understandable actions rather than judging individual controls in isolation. Reuse shared interaction patterns and styles. Separate what code and regression checks establish from what still needs visual or interaction verification. If browser QA is blocked or delegated, continue data-flow assessment and report what remains unverified.
 
+Interactive person search uses shared order-independent partial tokens against one candidate, including recorded name components and localized display names. Person pickers retain their context-specific metadata, eligibility, sorting, limits and empty-query behavior. Mixed record searches retain existing text matching and additionally match individual linked people where person names are already searchable. See [Person search](../openspec/changes/unified-person-search/proposal.md) for the active change.
+
 ## 4. Architecture and state
 
 ### Runtime organization

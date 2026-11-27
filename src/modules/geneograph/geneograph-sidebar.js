@@ -2,10 +2,15 @@ function renderGeneographEditorSidebar(board)
 {
     const diagram = board.diagram;
     const query = state.geneoLayerSearch.trim().toLowerCase();
+    const tokens = personSearchTokens(state.geneoLayerSearch);
+    const peopleById = new Map(diagram.people.map(person => [person.id, person]));
     const selectedIds = geneoSelectedNodeIdSet();
     const selectedConnectionIds = geneoSelectedConnectionIdSet();
     const matches = node => geneoItemFilterMatches(node.type, geneoNodeEffectiveVisible(node), selectedIds.has(node.id))
-        && (!query || `${geneoNodeTitle(node)} ${node.type} ${t(node.type)} ${node.visible === false ? t('Hidden') : ''}`.toLowerCase().includes(query));
+        && (!query || (node.type === 'person'
+            ? personSearchMatches(tokens, personSearchHaystack(peopleById.get(node.personId),
+                [geneoNodeTitle(node), node.type, t(node.type), node.visible === false ? t('Hidden') : '']))
+            : `${geneoNodeTitle(node)} ${node.type} ${t(node.type)} ${node.visible === false ? t('Hidden') : ''}`.toLowerCase().includes(query)));
     const connections = diagram.connections.filter(connection => {
         if (!geneoItemFilterMatches(connection.kind, geneoConnectionEffectiveVisible(connection), selectedConnectionIds.has(connection.id))) return false;
         const names = `${geneoConnectionLabel(connection)} ${geneoDefaultConnectionLabel(connection)} ${geneoConnectionKindLabel(connection)} ${connection.kind} ${connection.visible === false ? t('Hidden') : ''}`;

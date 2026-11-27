@@ -131,6 +131,7 @@ function rpOpenNotePicker(options = {})
         subtitle: options.targetLabel ? localizedDataFieldValue(options.targetLabel) : options.description ? t(options.description) : '',
         existingIds: rpRecordIds(options.existingNoteIds), partialIds: options.partialIds || [], mode: 'manage', records,
         name: note => localizedDataFieldValue(note.title) || rpText('Untitled note', 'Без названия'),
+        searchPeople: note => noteEntityRecordsForNote(note, 'person'),
         searchText: note => noteSearchText(note),
         scopes: () => [{ id: 'all', label: rpText('All notes', 'Все заметки') },
             ...collections().map(collection => ({ id: `collection:${collection.id}`, label: localizedDataFieldValue(collection.name) })),

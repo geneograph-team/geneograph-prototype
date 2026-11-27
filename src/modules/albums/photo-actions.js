@@ -87,28 +87,13 @@ function openUnifiedImagePeopleModal(photoId, { mode = 'tag', activePersonId = n
         || getPlaceEventDisplay(person?.death)
         || '';
 
-    const personSearchText = person => [
-        personName(person),
-        person?.names?.first,
-        person?.names?.middle,
-        person?.names?.last,
-        person?.names?.maiden,
-        albumPhotoPersonDates(person),
-        getPlaceEventDisplay(
-            person?.birth
-        ),
-        getPlaceEventDisplay(
-            person?.death
-        )
-    ]
-        .filter(Boolean)
-        .join(' ')
-        .toLowerCase();
+    const personSearchText = person => personSearchHaystack(person, [personName(person),
+        albumPhotoPersonDates(person), getPlaceEventDisplay(person?.birth), getPlaceEventDisplay(person?.death)]);
 
     const getCandidates = () =>
     {
-        const normalizedQuery =
-            query.trim().toLowerCase();
+        const tokens = personSearchTokens(query);
+        const normalizedQuery = tokens.join(' ');
 
         const photoAlbumIds =
             new Set(photo.albumIds || []);
@@ -140,19 +125,12 @@ function openUnifiedImagePeopleModal(photoId, { mode = 'tag', activePersonId = n
                     )
                 )
                 .filter(person =>
-                    !normalizedQuery
-              || personSearchText(
-                  person
-              ).includes(
-                  normalizedQuery
-              )
+                    !tokens.length || personSearchMatches(tokens, personSearchText(person))
                 )
                 .map(person =>
                 {
                     const displayName =
-                        personName(
-                            person
-                        ).toLowerCase();
+                        normalizePersonSearch(personName(person));
 
                     const nameParts = [
                         person?.names?.first,
@@ -161,11 +139,7 @@ function openUnifiedImagePeopleModal(photoId, { mode = 'tag', activePersonId = n
                         person?.names?.maiden
                     ]
                         .filter(Boolean)
-                        .map(value =>
-                            String(
-                                value
-                            ).toLowerCase()
-                        );
+                        .map(normalizePersonSearch);
 
                     let score = 0;
 
@@ -1180,15 +1154,8 @@ function openAddPersonPhotoDraftModal({
                 .trim()
                 .toLowerCase();
 
-        return getProjectPhotos(
-            projectId
-        ).filter(photo =>
-            !normalizedQuery
-          || photoSearchText(photo)
-              .includes(
-                  normalizedQuery
-              )
-        );
+        const tokens = personSearchTokens(normalizedQuery);
+        return getProjectPhotos(projectId).filter(photo => photoMatchesSearch(photo, normalizedQuery, tokens));
     };
 
     const renderCandidate =

@@ -17,6 +17,7 @@
 ## Load-order edges
 
 - The nondeferred `src/browser-config.js` initializes `window.GENEOGRAPH_CONFIG` before deferred scripts. Localization dictionaries and catalog precede `localization/runtime.js`; `seed/sample-data.js` precedes feature code.
+- `shared/person-name-helpers.js` owns interactive person-search normalization, name-field preparation and token matching. It loads before person-search consumers; callers own candidate scope, metadata, ranking and limits. `shared/filter-fields.js` preserves optional person references for explicitly opted-in `shared/filter-interactions.js` fields.
 - `shared/` genealogy helpers precede `seed/seed-genealogy.js`, which derives timeline entries from the authored genealogy records. Archive fixtures declare their document places directly.
 - **Temporary internal QA (#446, replacing #381):** `seed/sample-data.js` registers stress-test project metadata; `seed/family-tree-stress-data.js` carries the approved pseudonymized GEDCOM as data only. `seed/family-tree-stress-test.js` is a function-only script. `shared/shared-actions.js` calls its lazy initialization before activating that project; the existing GEDCOM parser/mapper validates 6,481 people and 1,950 families and derives events only on first open. See [test fixture and mandatory pre-user-testing removal](family-tree-stress-test.md).
 - `modules/projects/gedcom-import.js` owns local GEDCOM decoding, parsing, mapping, preview and commit. It validates detached records before publishing the new project.

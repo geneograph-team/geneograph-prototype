@@ -44,7 +44,7 @@ function geneoReviewSearch(label, value, attributes)
 function geneoReviewRail(draft, plan)
 {
     const branch = draft.scope === 'branch' ? geneoReviewRoles(draft.diagram, draft.anchorId) : null;
-    const query = draft.search.trim().toLocaleLowerCase();
+    const tokens = personSearchTokens(draft.search);
     const groups = new Map([['Selected person', []], ['Changes selected', []], ['To review', []], ['No changes', []]]);
     const statuses = { unlinked: 'Not linked', differences: 'With differences', staged: 'With selected changes' };
     for (const person of draft.people)
@@ -55,8 +55,8 @@ function geneoReviewRail(draft, plan)
         const staged = plan.operations.some(operation => operation.personId === person.id || operation.ids?.includes(person.id));
         const matchesStatus = draft.status === 'all' || draft.status === 'unlinked' && !plan.mapping.has(person.id)
             || draft.status === 'differences' && unresolved || draft.status === 'staged' && staged;
-        if (!selected && (!matchesStatus || branch && !branch.has(person.id) || query
-            && !`${geneoPersonDisplayName(person)} ${geneoPersonLifeDates(person)}`.toLocaleLowerCase().includes(query))) continue;
+        if (!selected && (!matchesStatus || branch && !branch.has(person.id) || tokens.length
+            && !personSearchMatches(tokens, personSearchHaystack(person, [geneoPersonDisplayName(person), geneoPersonLifeDates(person)])))) continue;
         const group = selected ? 'Selected person' : staged ? 'Changes selected' : unresolved ? 'To review' : 'No changes';
         const name = escapeHtml(geneoPersonDisplayName(person));
         groups.get(group).push(`<button type="button" class="gr-person ${selected ? 'is-selected' : ''}" data-gr-person="${escapeHtml(person.id)}" aria-current="${selected}">

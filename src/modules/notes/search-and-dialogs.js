@@ -172,11 +172,10 @@ function filteredNotes()
 
     if (query)
     {
-        list =
-            list.filter(note =>
-                noteSearchText(note)
-                    .includes(query)
-            );
+        const tokens = personSearchTokens(query);
+        list = list.filter(note => noteSearchText(note).includes(query)
+            || noteEntityRecordsForNote(note, 'person').some(person =>
+                personSearchMatches(tokens, personSearchHaystack(person))));
     }
     list =
         appSortRecords(list, {

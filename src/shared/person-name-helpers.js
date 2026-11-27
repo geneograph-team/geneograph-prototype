@@ -21,6 +21,33 @@ function formatPersonFullName(person)
         .trim();
 }
 
+// Shared interactive person search. Callers retain project/eligibility, ordering and limits.
+function normalizePersonSearch(value)
+{
+    return String(value ?? '').normalize('NFKD').replace(/\p{Diacritic}/gu, '')
+        .toLowerCase().trim().replace(/\s+/g, ' ');
+}
+
+function personSearchTokens(query)
+{
+    return normalizePersonSearch(query).split(' ').filter(Boolean);
+}
+
+function personSearchHaystack(person, additional = [])
+{
+    const names = person?.names || {};
+    const fields = [formatPersonFullName(person), person?.name, names.display,
+        names.prefix, names.first, names.middle, names.last, names.maiden, names.suffix,
+        ...additional].filter(value => typeof value === 'string' || typeof value === 'number');
+    const localized = fields.map(value => typeof translateText === 'function' ? translateText(String(value)) : value);
+    return normalizePersonSearch([...fields, ...localized].join(' '));
+}
+
+function personSearchMatches(tokens, haystack)
+{
+    return tokens.every(token => haystack.includes(token));
+}
+
 function formatPersonInitials(person)
 {
     const n = person?.names || {};

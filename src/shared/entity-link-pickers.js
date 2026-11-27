@@ -24,10 +24,11 @@ function openSinglePersonPicker({ parent, anchor, subtitle, candidates, onSelect
     const results = dialog.querySelector('[data-single-person-results]');
     const select = dialog.querySelector('[data-single-person-select]');
     let selected = '';
+    const searchable = new Map(candidates.map(item => [item, personSearchHaystack(item.avatar, [item.name, item.dates, item.searchText])]));
     const render = () =>
     {
-        const query = search.value.trim().toLocaleLowerCase();
-        const matches = candidates.filter(item => !query || `${item.name} ${item.dates} ${item.searchText || ''}`.toLocaleLowerCase().includes(query));
+        const tokens = personSearchTokens(search.value);
+        const matches = candidates.filter(item => personSearchMatches(tokens, searchable.get(item)));
         matches.sort((a, b) => Number(Boolean(a.unavailable)) - Number(Boolean(b.unavailable)));
         if (!matches.some(item => item.id === selected)) selected = '';
         select.disabled = !selected;
@@ -170,27 +171,8 @@ function openPeopleLinkModal({
             )
           || 'Unnamed person';
 
-    const personSearchText =
-        person =>
-            [
-                personName(person),
-                person?.names?.first,
-                person?.names?.middle,
-                person?.names?.last,
-                person?.names?.maiden,
-                albumPhotoPersonDates(
-                    person
-                ),
-                getPlaceEventDisplay(
-                    person?.birth
-                ),
-                getPlaceEventDisplay(
-                    person?.death
-                )
-            ]
-                .filter(Boolean)
-                .join(' ')
-                .toLowerCase();
+    const personSearchText = person => personSearchHaystack(person, [personName(person),
+        albumPhotoPersonDates(person), getPlaceEventDisplay(person?.birth), getPlaceEventDisplay(person?.death)]);
 
     const selectionChanged =
         () =>
@@ -216,10 +198,8 @@ function openPeopleLinkModal({
 
     const getCandidates = () =>
     {
-        const normalizedQuery =
-            query
-                .trim()
-                .toLowerCase();
+        const tokens = personSearchTokens(query);
+        const normalizedQuery = tokens.join(' ');
 
         const ranked =
             getPeople(
@@ -249,19 +229,12 @@ function openPeopleLinkModal({
                 )
 
                 .filter(person =>
-                    !normalizedQuery
-              || personSearchText(
-                  person
-              ).includes(
-                  normalizedQuery
-              )
+                    !tokens.length || personSearchMatches(tokens, personSearchText(person))
                 )
                 .map(person =>
                 {
                     const displayName =
-                        personName(
-                            person
-                        ).toLowerCase();
+                        normalizePersonSearch(personName(person));
 
                     const nameParts = [
                         person?.names?.first,
@@ -270,11 +243,7 @@ function openPeopleLinkModal({
                         person?.names?.maiden
                     ]
                         .filter(Boolean)
-                        .map(value =>
-                            String(
-                                value
-                            ).toLowerCase()
-                        );
+                        .map(normalizePersonSearch);
 
                     let score = 0;
 
@@ -1465,28 +1434,8 @@ function openEventLinkModal({
             )
           || [];
 
-    const personSearchText =
-        person =>
-            normalizeSearch(
-                [
-                    personName(person),
-                    person?.names?.first,
-                    person?.names?.middle,
-                    person?.names?.last,
-                    person?.names?.maiden,
-                    albumPhotoPersonDates(
-                        person
-                    ),
-                    getPlaceEventDisplay(
-                        person?.birth
-                    ),
-                    getPlaceEventDisplay(
-                        person?.death
-                    )
-                ]
-                    .filter(Boolean)
-                    .join(' ')
-            );
+    const personSearchText = person => personSearchHaystack(person, [personName(person),
+        albumPhotoPersonDates(person), getPlaceEventDisplay(person?.birth), getPlaceEventDisplay(person?.death)]);
 
     const eventSearchText =
         (
@@ -1529,6 +1478,11 @@ function openEventLinkModal({
                 .filter(Boolean)
                 .join(' '));
         };
+
+    const eventMatchesPersonSearch = (event, person, normalizedQuery, tokens) =>
+        eventSearchText(event, person).includes(normalizedQuery)
+        || placeInspectorEventRelatedPeople(event, person.id).some(related =>
+            personSearchMatches(tokens, personSearchHaystack(related)));
 
     const primaryPersonIdSet =
         new Set(
@@ -1624,6 +1578,7 @@ function openEventLinkModal({
                     query
                 );
 
+            const tokens = personSearchTokens(query);
             return people
                 .map(person =>
                 {
@@ -1639,22 +1594,14 @@ function openEventLinkModal({
 
                     const personMatched =
                         Boolean(
-                            normalizedQuery
-                  && personText.includes(
-                      normalizedQuery
-                  )
+                            tokens.length && personSearchMatches(tokens, personText)
                         );
 
                     const matchingEvents =
                         normalizedQuery
                             ? allEvents.filter(
                                 event =>
-                                    eventSearchText(
-                                        event,
-                                        person
-                                    ).includes(
-                                        normalizedQuery
-                                    )
+                                    eventMatchesPersonSearch(event, person, normalizedQuery, tokens)
                             )
                             : allEvents;
 
@@ -1752,26 +1699,15 @@ function openEventLinkModal({
                     query
                 );
 
-            if (
-                !normalizedQuery
-            || personSearchText(
-                person
-            ).includes(
-                normalizedQuery
-            )
-            )
+            const tokens = personSearchTokens(query);
+            if (!tokens.length || personSearchMatches(tokens, personSearchText(person)))
             {
                 return allEvents;
             }
 
             return allEvents.filter(
                 event =>
-                    eventSearchText(
-                        event,
-                        person
-                    ).includes(
-                        normalizedQuery
-                    )
+                    eventMatchesPersonSearch(event, person, normalizedQuery, tokens)
             );
         };
 

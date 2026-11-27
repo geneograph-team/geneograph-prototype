@@ -673,10 +673,8 @@ function bindSharedFilterFields(
 
         const renderOptions = () =>
         {
-            const normalizedQuery =
-                normalizeSharedFilterSearch(
-                    query
-                );
+            const personTokens = definition.personSearch ? personSearchTokens(query) : null;
+            const normalizedQuery = personTokens ? personTokens.join(' ') : normalizeSharedFilterSearch(query);
 
             // Search-only pickers never build the unfiltered option list.
             if (definition.searchOnly && !normalizedQuery)
@@ -697,6 +695,12 @@ function bindSharedFilterFields(
                     if (!normalizedQuery)
                     {
                         return true;
+                    }
+
+                    if (personTokens)
+                    {
+                        return personSearchMatches(personTokens, personSearchHaystack(option.person,
+                            [option.label, ...(option.keywords || [])]));
                     }
 
                     const searchText =

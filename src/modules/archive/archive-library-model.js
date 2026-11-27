@@ -396,7 +396,8 @@ function archiveDocumentYearMatches(
 function archiveFileMatchesFilters(
     file,
     filters,
-    query
+    query,
+    personTokens = personSearchTokens(query)
 )
 {
     if (
@@ -409,9 +410,13 @@ function archiveFileMatchesFilters(
     }
     if (
         query
-        && !archiveSearchText(
-            file
-        ).includes(query)
+        && !archiveSearchText(file).includes(query)
+        && !archiveFilePersonIds(file).some(id =>
+        {
+            const person = getPerson(id);
+            return person?.projectId === file.projectId
+                && personSearchMatches(personTokens, personSearchHaystack(person));
+        })
     )
     {
         return false;
@@ -609,12 +614,14 @@ function archiveMatchingFiles()
             );
     }
 
+    const personTokens = personSearchTokens(query);
     return archiveSortFilteredFiles(
         files.filter(file =>
             archiveFileMatchesFilters(
                 file,
                 filters,
-                query
+                query,
+                personTokens
             )
         )
     );
@@ -943,14 +950,14 @@ function archiveFilteredSources()
 
     if (query)
     {
-        sources =
-            sources.filter(source =>
-                archiveSourceSearchText(
-                    source
-                ).includes(
-                    query
-                )
-            );
+        const tokens = personSearchTokens(query);
+        sources = sources.filter(source => archiveSourceSearchText(source).includes(query)
+            || sourceLinksForSource(source.id, 'person', source.projectId).some(link =>
+            {
+                if (link.targetType !== 'person') return false;
+                const person = sourceTargetRecord('person', link.targetId, source.projectId);
+                return person && personSearchMatches(tokens, personSearchHaystack(person));
+            }));
     }
 
     return appSortRecords(

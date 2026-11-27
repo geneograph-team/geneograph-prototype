@@ -735,12 +735,14 @@ function openPlacesRouteMenu(
             event.stopPropagation()
     );
 
+    // The modal is a read-only snapshot; don't rebuild every person's route on each keystroke.
+    const optionsByMode = new Map();
     const allOptions = () =>
-        placesRoutePopupOptions(
-            draft.mode,
-            people,
-            surnames
-        );
+    {
+        if (!optionsByMode.has(draft.mode))
+            optionsByMode.set(draft.mode, placesRoutePopupOptions(draft.mode, people, surnames));
+        return optionsByMode.get(draft.mode);
+    };
 
     const visibleOptions = () =>
     {
@@ -749,14 +751,11 @@ function openPlacesRouteMenu(
                 .trim()
                 .toLowerCase();
 
+        const tokens = draft.mode === 'person' ? personSearchTokens(query) : null;
         return allOptions()
-            .filter(
-                option =>
-                    !query
-              || option.label
-                  .toLowerCase()
-                  .includes(query)
-            )
+            .filter(option => tokens
+                ? !tokens.length || personSearchMatches(tokens, personSearchHaystack(option.person, [option.label]))
+                : !query || option.label.toLowerCase().includes(query))
             .slice(
                 0,
                 draft.mode === 'person'
