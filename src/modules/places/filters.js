@@ -1005,11 +1005,15 @@ function matchDuplicatePlaces(left, right, a = left && preparePlaceDuplicateComp
             // canonical context is unresolved; weaker matches need independent evidence.
             const direct = fullMatch && (canonicalContext !== 'unknown'
                 || context === 'equivalent' || nearby);
-            if (!direct && !((strong && corroborated && canonicalContext !== 'unknown')
+            const incompleteExact = literal === 1 && context === 'missing' && canonicalContext === 'missing'
+                && Boolean(a.coordinates) !== Boolean(b.coordinates)
+                && Boolean(name.context.length) !== Boolean(other.context.length);
+            if (!direct && !incompleteExact && !((strong && corroborated && canonicalContext !== 'unknown')
                 || (nearby && similarity >= 0.72))) continue;
 
             const reasons = [
-                exact ? 'The names match.' : '',
+                exact || incompleteExact ? 'The names match.' : '',
+                incompleteExact ? 'One place is missing geographic context. Verify before merging.' : '',
                 alias ? 'An alternative name matches.' : '',
                 !fullMatch && acrossScripts ? 'The names are similar after transliteration.' : '',
                 !fullMatch && !acrossScripts && strong ? 'The names are very similar.' : '',

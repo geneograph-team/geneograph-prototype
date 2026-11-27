@@ -700,12 +700,13 @@ function placeMergeFieldResult(keep, removed, { aliases = true, locationChoice, 
     return result;
 }
 
-function mergeSavedPlaces(keepId, removeId, { aliases = true, locationChoice, fieldChoices = {} } = {})
+function mergeSavedPlaces(keepId, removeId, { aliases = true, locationChoice, fieldChoices = {},
+    projectId = currentProjectId(), preserveSelection = false } = {})
 {
     const keep = getPlace(keepId);
     const removed = getPlace(removeId);
     if (!keep || !removed || keepId === removeId || keep.projectId !== removed.projectId
-        || keep.projectId !== currentProjectId()) return false;
+        || keep.projectId !== projectId || (!preserveSelection && projectId !== currentProjectId())) return false;
     const match = matchDuplicatePlaces(keep, removed);
     if (!match) return false;
     const result = placeMergeFieldResult(keep, removed, { aliases, locationChoice, fieldChoices });
@@ -731,13 +732,17 @@ function mergeSavedPlaces(keepId, removeId, { aliases = true, locationChoice, fi
         issue.projectId !== keep.projectId || (issue.placeId !== removeId && issue.otherPlaceId !== removeId
         && !(locationChanged && issue.placeId === keepId
             && PLACE_REVIEW_COORDINATE_ISSUE_TYPES.includes(issue.type))));
-    if (state.albumsFilters?.placeId === removeId) state.albumsFilters.placeId = keepId;
-    if (Array.isArray(state.placesFilters?.placeIds))
-        state.placesFilters.placeIds = [...new Set(state.placesFilters.placeIds.map(id => id === removeId ? keepId : id))];
-    if (placesMapRuntime.pendingFocusPlaceId === removeId) placesMapRuntime.pendingFocusPlaceId = keepId;
-    state.selectedPlaceId = keepId;
+    if (projectId === currentProjectId())
+    {
+        if (state.albumsFilters?.placeId === removeId) state.albumsFilters.placeId = keepId;
+        if (Array.isArray(state.placesFilters?.placeIds))
+            state.placesFilters.placeIds = [...new Set(state.placesFilters.placeIds.map(id => id === removeId ? keepId : id))];
+        if (typeof placesMapRuntime !== 'undefined' && placesMapRuntime.pendingFocusPlaceId === removeId)
+            placesMapRuntime.pendingFocusPlaceId = keepId;
+        if (!preserveSelection || state.selectedPlaceId === removeId) state.selectedPlaceId = keepId;
+    }
     sampleData.events = rebuildSampleEventsAndPruneSourceLinks();
-    markPrototypeSessionEdited();
+    markPrototypeSessionEdited(projectId);
     return true;
 }
 

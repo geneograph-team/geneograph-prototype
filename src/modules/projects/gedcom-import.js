@@ -1971,7 +1971,7 @@ function gedcomMatchKey(value)
 // Geoapify's broad result_type=city is not itself a precise OSM type.
 function gedcomSettlementHint(value)
 {
-    const text = String(value || '').trim();
+    const text = String(value || '').normalize('NFKC').trim();
     const prefixes = [
         [/^(?:г\.|гор\.|город|місто|м\.)\s*/iu, ['city','town']],
         [/^(?:с\.|сел\.|село)\s*/iu, ['village']],
@@ -2002,8 +2002,59 @@ const GEDCOM_REGION_ALIASES = [
     ['UA-59', ['Сумская область','Сумська область','Sumy Oblast','Sumy Region','Sumska oblast','UA-59']],
     ['UA-63', ['Харьковская область','Харківська область','Kharkiv Oblast','Kharkiv Region','Kharkov Oblast','Kharkivska oblast','UA-63']],
     ['PL-18', ['Podkarpackie','Podkarpackie Voivodeship','Województwo podkarpackie','Subcarpathian Voivodeship','Подкарпатское воеводство','PL-18']],
+    ['RU-ULY', ['Ульяновская область','Ulyanovsk Oblast','Ulyanovsk Region','RU-ULY']],
     ['PL-14', ['Mazowieckie','Mazowieckie Voivodeship','Województwo mazowieckie','Masovian Voivodeship','Мазовецкое воеводство','PL-14']]
 ];
+
+// Bounded comparison-only transliteration and established multilingual
+// exonyms. An exonym never supplies country context to the input itself.
+const GEDCOM_CYRILLIC_LATIN = Object.freeze({
+    а:'a', б:'b', в:'v', г:'g', ґ:'g', д:'d', е:'e', ё:'e', є:'ye', ж:'zh',
+    з:'z', и:'i', і:'i', ї:'yi', й:'y', к:'k', л:'l', м:'m', н:'n', о:'o',
+    п:'p', р:'r', с:'s', т:'t', у:'u', ў:'u', ф:'f', х:'kh', ц:'ts',
+    ч:'ch', ш:'sh', щ:'shch', ъ:'', ы:'y', ь:'', э:'e', ю:'yu', я:'ya'
+});
+const GEDCOM_LOCALITY_EXONYMS = [
+    ['RU', ['Москва','Moscow','Moskva','Moskou']],
+    ['RU', ['Екатеринбург','Yekaterinburg','Ekaterinburg']],
+    ['MD', ['Кишинёв','Chișinău','Chisinau','Kishinev','Kishinyov']],
+    ['UA', ['Сумы','Суми','Sumy','Sumi']],
+    ['UA', ['Киев','Київ','Kyiv','Kiev']],
+    ['UA', ['Харьков','Харків','Kharkiv','Kharkov']],
+    ['UA', ['Львов','Львів','Lviv','Lvov','Lwów']],
+    ['UA', ['Одесса','Одеса','Odesa','Odessa']],
+    ['BY', ['Минск','Мінск','Minsk']],
+    ['PL', ['Варшава','Warsaw','Warszawa']],
+    ['PL', ['Краков','Kraków','Cracow']],
+    ['DE', ['Мюнхен','München','Munich']],
+    ['AT', ['Вена','Wien','Vienna']],
+    ['RO', ['Бухарест','București','Bucharest']]
+].map(([country, names]) => [country, new Set(names.map(gedcomMatchKey))]);
+
+function gedcomLatinKey(value)
+{
+    return Array.from(gedcomMatchKey(value), letter => GEDCOM_CYRILLIC_LATIN[letter] ?? letter).join('');
+}
+
+function gedcomNameEvidence(left, right, country)
+{
+    const a = gedcomMatchKey(left), b = gedcomMatchKey(right);
+    if (!a || !b) return '';
+    if (a === b) return 'literal';
+    if (GEDCOM_LOCALITY_EXONYMS.some(([code, names]) => code === country && names.has(a) && names.has(b)))
+        return 'alias';
+    const crossScript = (/\p{Script=Cyrillic}/u.test(a) && /^[\p{Script=Latin}\p{Mark}\s'-]+$/u.test(b))
+        || (/\p{Script=Cyrillic}/u.test(b) && /^[\p{Script=Latin}\p{Mark}\s'-]+$/u.test(a));
+    return crossScript && gedcomLatinKey(a).length >= 4 && gedcomLatinKey(a) === gedcomLatinKey(b)
+        ? 'transliteration' : '';
+}
+
+function gedcomExpandAdmin(value)
+{
+    return String(value || '').normalize('NFKC')
+        .replace(/(\s)обл\.?$/iu, '$1область')
+        .replace(/(\s)р[\s-]?(?:он|н)\.?$/iu, '$1район');
+}
 
 function gedcomAdminTextKey(value)
 {
@@ -2024,6 +2075,26 @@ function gedcomRegionCode(value)
 function gedcomAdminKey(value)
 {
     return gedcomRegionCode(value) || gedcomAdminTextKey(value);
+}
+
+function gedcomAdminComparison(value)
+{
+    const text = gedcomAdminTextKey(value);
+    const match = /^(.*)\s+(область|район|region|district|county|raion|rayon)$/u.exec(text);
+    if (!match) return null;
+    const kind = ['область','region'].includes(match[2]) ? 'region' : 'district';
+    let stem = match[1];
+    if (/\p{Script=Cyrillic}/u.test(stem))
+        stem = stem.replace(/(?:ская|ский|ское|ській|ський|ська|ське)$/u, 'ск');
+    stem = gedcomLatinKey(stem).replace(/(?:skiy|skii|sky|skaya|skaja)$/u, 'sk');
+    return { kind, stem };
+}
+
+function gedcomAdminEquivalent(left, right)
+{
+    if (gedcomAdminKey(left) === gedcomAdminKey(right)) return true;
+    const a = gedcomAdminComparison(left), b = gedcomAdminComparison(right);
+    return Boolean(a && b && a.kind === b.kind && a.stem.length >= 4 && a.stem === b.stem);
 }
 
 function gedcomAdministrativePart(value)
@@ -2077,7 +2148,7 @@ function gedcomLookupContext(place)
     const country = countries.values().next().value || '';
     const admin = parts.filter((_, i) => i !== index);
     const language = /\p{Script=Cyrillic}/u.test(primary) ? 'ru' : 'en';
-    const query = [primary, ...admin, country ? placeCountryLabel(country, language) : ''].filter(Boolean).join(', ');
+    const query = [primary, ...admin.map(gedcomExpandAdmin), country ? placeCountryLabel(country, language) : ''].filter(Boolean).join(', ');
     if (query.length > 200) return { reason: 'query-too-long' };
     return { primary, country, admin, language, query, types: hint.types };
 }
@@ -2120,30 +2191,31 @@ function gedcomEvaluatePlaceMatch(plan, result)
     const reject = reason => ({ point: null, reason });
     if (result.status !== 'results') return reject(result.status);
     if (result.truncated) return reject('truncated-candidates');
-    const name = gedcomMatchKey(plan.primary);
-    const admin = plan.admin.map(gedcomAdminKey);
+    const admin = plan.admin || [];
     const types = plan.types || [];
     const eligible = [], competitors = [];
     let failure = 'no-exact-name', unresolved = false;
     for (const candidate of result.candidates)
     {
-        if (!candidate.names.some(value => gedcomMatchKey(gedcomSettlementHint(value).primary) === name)) continue;
+        const nameEvidence = (candidate.names || []).map(value => gedcomNameEvidence(plan.primary,
+            gedcomSettlementHint(value).primary, candidate.countryCode)).filter(Boolean);
+        if (!nameEvidence.length) continue;
         if (!candidate.countryCode || !PLACE_COUNTRY_CODES.has(candidate.countryCode))
         { unresolved = true; failure = 'missing-country-evidence'; continue; }
         if (plan.country && candidate.countryCode !== plan.country)
         { failure = 'conflicting-country'; continue; }
         if (types.length && candidate.typeReliable !== false && candidate.type && !types.includes(candidate.type))
         { failure = 'incompatible-settlement-type'; continue; }
-        const context = candidate.admin.map(gedcomAdminKey);
-        if (!admin.every(value => context.includes(value)))
+        const context = candidate.admin || [];
+        if (!admin.every(value => context.some(other => gedcomAdminEquivalent(value, other))))
         { competitors.push(candidate); failure = 'conflicting-or-missing-admin'; continue; }
         if (!['city','town','village','hamlet','isolated_dwelling','farm'].includes(candidate.type)
             || !candidate.coordinates || typeof candidate.coordinates.lat !== 'number'
             || typeof candidate.coordinates.lng !== 'number'
             || !validLatitude(candidate.coordinates.lat) || !validLongitude(candidate.coordinates.lng)
-            || (types.length && candidate.typeReliable === false))
+            || (types.length && candidate.typeReliable === false && !types.includes(candidate.type)))
         { unresolved = true; failure = 'missing-type-or-coordinate-evidence'; continue; }
-        const identical = eligible.find(other => candidate.identities.some(id => other.identities.includes(id)));
+        const identical = eligible.find(other => (candidate.identities || []).some(id => (other.identities || []).includes(id)));
         if (identical)
         {
             if (identical.coordinates.lat !== candidate.coordinates.lat || identical.coordinates.lng !== candidate.coordinates.lng)
@@ -2163,8 +2235,8 @@ function gedcomEvaluatePlaceMatch(plan, result)
         {
             const expected = (selected[field] || []).map(gedcomAdminKey).filter(Boolean);
             const other = (competitor[field] || []).map(gedcomAdminKey).filter(Boolean);
-            return expected.some(value => admin.includes(value)) && other.length
-                && !expected.some(value => other.includes(value))
+            return expected.some(value => admin.some(item => gedcomAdminEquivalent(item, value))) && other.length
+                && !expected.some(value => other.some(item => gedcomAdminEquivalent(value, item)))
                 && (expected.some(value => /^[A-Z]{2}-/u.test(value)) && other.some(value => /^[A-Z]{2}-/u.test(value))
                     || expected.some(value => !/^[A-Z]{2}-/u.test(value) && (
                         /\p{Script=Latin}/u.test(value) && other.some(item => !/^[A-Z]{2}-/u.test(item) && /\p{Script=Latin}/u.test(item))
@@ -2172,19 +2244,26 @@ function gedcomEvaluatePlaceMatch(plan, result)
         });
         if (!contradicts) return reject('competing-matches');
     }
-    // Provisional conservative thresholds: city-level confidence is distinct
-    // from overall query confidence. Never use confidence as uniqueness proof.
-    // A bare locality needs both scores and stable identity; LocationIQ's
-    // autocomplete has no documented equivalent, so cannot authorize it.
+    // Unique compatible candidates still need affirmative evidence. Scores
+    // are complementary, not mandatory twins; missing optional metadata is
+    // not a contradiction. A low available score remains a negative signal.
     const contextual = Boolean(plan.country || admin.length);
-    const threshold = contextual ? (plan.country && admin.length ? .8 : .9) : .95;
-    if ((selected.confidence != null && selected.confidence < threshold)
-        || (selected.cityConfidence != null && selected.cityConfidence < threshold)
-        || (!contextual && (!(selected.confidence >= threshold) || !(selected.cityConfidence >= threshold)
-            || !selected.identities.length || selected.typeReliable === false))
-        || (!plan.country && !selected.identities.length))
+    const strongContext = Boolean(plan.country && admin.length);
+    const scores = [selected.confidence, selected.cityConfidence].filter(value => typeof value === 'number' && Number.isFinite(value));
+    const threshold = strongContext ? .65 : contextual ? .75 : .85;
+    const identity = (selected.identities || []).length > 0;
+    const exactOrAlias = selected.names.some(value => ['literal','alias'].includes(
+        gedcomNameEvidence(plan.primary, gedcomSettlementHint(value).primary, selected.countryCode)));
+    const corroboratedWithoutScore = identity && selected.typeReliable !== false && exactOrAlias
+        && (contextual || types.length > 0);
+    if (scores.some(value => value < .60)
+        || (scores.length ? Math.max(...scores) < threshold : !corroboratedWithoutScore)
+        || (!contextual && (!identity || (!exactOrAlias && !scores.length)))
+        || (!exactOrAlias && !contextual && selected.typeReliable === false)
+        || (!plan.country && !identity))
         return reject('weak-confidence');
-    return { point: { ...selected.coordinates }, reason: 'assigned' };
+    return { point: { ...selected.coordinates }, reason: 'assigned',
+        identity: { ids: [...(selected.identities || [])], country: selected.countryCode, names: [...selected.names] } };
 }
 
 function gedcomStrongPlaceMatch(plan, result)
@@ -2235,13 +2314,13 @@ async function matchGedcomPlaceCoordinates(draft, { signal, onProgress = () => {
             if (result.status === 'unavailable') { stats.unavailable++; record(item, 'unavailable', result); }
             else
             {
-                const { point, reason } = gedcomEvaluatePlaceMatch(item, result);
+                const { point, reason, identity } = gedcomEvaluatePlaceMatch(item, result);
                 record(item, reason, result);
                 if (point)
                 {
                     coordinates.set(item.id, point);
                     stats.assigned++;
-                    onMatch(item, point);
+                    onMatch(item, point, identity);
                 }
                 else stats.uncertain++;
             }
@@ -2373,6 +2452,57 @@ function scheduleGedcomMatchingFlush(job)
     }, 180);
 }
 
+function gedcomVerifiedMergePair(left, right, first, second)
+{
+    if (!left || !right || left === right || left.projectId !== right.projectId
+        || !first || !second || !first.identity?.country || first.identity.country !== second.identity?.country
+        || !first.identity.ids.some(id => second.identity.ids.includes(id))
+        || JSON.stringify(left.coordinates) !== JSON.stringify(right.coordinates)
+        || !placeHasCoordinates(left) || !placeHasCoordinates(right)
+        || placeHasRadiusValue(left) || placeHasRadiusValue(right)
+        || JSON.stringify(left) !== first.saved || JSON.stringify(right) !== second.saved) return false;
+    const a = gedcomLookupContext(left), b = gedcomLookupContext(right);
+    if (a.reason || b.reason || (a.country && b.country && a.country !== b.country)
+        || (a.admin.length && b.admin.length && !a.admin.every(x => b.admin.some(y => gedcomAdminEquivalent(x, y)))
+            && !b.admin.every(x => a.admin.some(y => gedcomAdminEquivalent(x, y))))) return false;
+    if (a.types.length && b.types.length && !a.types.some(type => b.types.includes(type))) return false;
+    if (placeMergeConflictingFields(left, right).length) return false;
+    return !(sampleData.placeIssues || []).some(issue => issue.projectId === left.projectId
+        && issue.status === 'dismissed' && [left.id, right.id].some(id => issue.placeId === id || issue.otherPlaceId === id));
+}
+
+function reconcileGedcomMatchingPlaces(job)
+{
+    if (!job.verified?.size || typeof mergeSavedPlaces !== 'function'
+        || typeof matchDuplicatePlaces !== 'function' || !gedcomMatchingJobCurrent(job)) return [];
+    const changed = [];
+    const entries = [...job.verified].sort(([a], [b]) => a.localeCompare(b, 'en', { numeric: true }));
+    for (let i = 0; i < entries.length; i++)
+        for (let j = i + 1; j < entries.length; j++)
+        {
+            const [a, first] = entries[i], [b, second] = entries[j];
+            if (job.invalidated.has(a) || job.invalidated.has(b)) continue;
+            const left = getPlace(a), right = getPlace(b);
+            if (!gedcomVerifiedMergePair(left, right, first, second) || !matchDuplicatePlaces(left, right)) continue;
+            const specificity = place => {
+                const context = gedcomLookupContext(place);
+                return context.admin.length * 2 + Number(Boolean(context.country));
+            };
+            const [keep, removed] = specificity(right) > specificity(left) ? [right, left] : [left, right];
+            if (mergeSavedPlaces(keep.id, removed.id, { locationChoice: 'keep',
+                projectId: job.project.id, preserveSelection: true }))
+            {
+                changed.push(keep.id, removed.id);
+                // The canonical merge invalidates both records. Do not use
+                // the old snapshots for further unattended merges.
+                job.invalidated.add(keep.id);
+                job.invalidated.add(removed.id);
+                job.mergedCount = (job.mergedCount || 0) + 1;
+            }
+        }
+    return changed;
+}
+
 function flushGedcomMatchingJob(job)
 {
     if (!gedcomMatchingJobCurrent(job))
@@ -2390,9 +2520,13 @@ function flushGedcomMatchingJob(job)
     const previousPairs = job.pending.size && typeof getPlaceDuplicatePairs === 'function'
         && state.activeModule === 'Places' && state.currentProjectId === job.project.id
         ? getPlaceDuplicatePairs(job.project.id) : null;
-    for (const [id, { item, point }] of job.pending)
+    for (const [id, { item, point, identity }] of job.pending)
     {
-        if (applyGedcomMatchingPoint(job, item, point)) changed.push(id);
+        if (applyGedcomMatchingPoint(job, item, point))
+        {
+            changed.push(id);
+            if (identity?.ids?.length) job.verified?.set(id, { identity, saved: JSON.stringify(job.snapshots.get(id).place) });
+        }
         else job.rejected.add(id);
     }
     job.pending.clear();
@@ -2405,6 +2539,12 @@ function flushGedcomMatchingJob(job)
         if (typeof schedulePlacesMatchingRefresh === 'function') schedulePlacesMatchingRefresh(job.project.id, changed);
     }
     if (!job.result) return;
+    if (job.verified?.size > 1 && !gedcomMatchingCanApply(job))
+    {
+        scheduleGedcomMatchingFlush(job);
+        return;
+    }
+    const mergedIds = reconcileGedcomMatchingPlaces(job);
     clearTimeout(job.timer);
     job.timer = null;
     const { stats, diagnostics } = job.result;
@@ -2412,20 +2552,25 @@ function flushGedcomMatchingJob(job)
     stats.uncertain += job.rejected.size;
     for (const diagnostic of diagnostics)
         if (diagnostic.reason === 'assigned' && job.rejected.has(diagnostic.id)) diagnostic.reason = 'stale-place';
+    stats.merged = job.mergedCount || 0;
     job.report.placeMatching = stats;
-    job.report.matchingDiagnostics = diagnostics;
+    const retried = new Set(diagnostics.map(item => item.id));
+    job.report.matchingDiagnostics = job.retry
+        ? [...(job.report.matchingDiagnostics || []).filter(item => !retried.has(item.id)), ...diagnostics] : diagnostics;
     job.report.matchingState = stats.quota ? 'quota' : stats.unavailable ? 'unavailable'
         : job.controller.signal.aborted ? 'stopped' : 'completed';
     gedcomPlaceMatchingJobs.delete(job.project.id);
     updateGedcomMatchingStatus(job.project.id);
+    if (typeof schedulePlacesMatchingRefresh === 'function')
+        schedulePlacesMatchingRefresh(job.project.id, [...diagnostics.map(item => item.id), ...mergedIds]);
 }
 
 function startGedcomPlaceMatchingJob(draft, report, {
-    lookup = (query, signal, language) => geneographGeocoder.searchImport(query, signal, language)
+    lookup = (query, signal, language) => geneographGeocoder.searchImport(query, signal, language), retry = false
 } = {})
 {
     const projectId = draft.project.id;
-    if (gedcomPlaceMatchingJobs.has(projectId) || report.matchingState
+    if (gedcomPlaceMatchingJobs.has(projectId) || (!retry && report.matchingState)
         || gedcomImportReports.get(projectId) !== report
         || !sampleData.projects.includes(draft.project)) return null;
     const plan = gedcomPlaceLookupPlan(draft);
@@ -2441,7 +2586,8 @@ function startGedcomPlaceMatchingJob(draft, report, {
         return [item.id, { place, input: gedcomMatchingInput(place) }];
     }));
     const job = { project: draft.project, report, snapshots, invalidated: new Set(), rejected: new Set(),
-        controller: new AbortController(), pending: new Map(), timer: null, result: null, appliedCount: 0 };
+        controller: new AbortController(), pending: new Map(), timer: null, result: null, appliedCount: 0,
+        verified: new Map(), retry };
     gedcomPlaceMatchingJobs.set(projectId, job);
     report.matchingState = 'running';
     updateGedcomMatchingStatus(projectId);
@@ -2458,10 +2604,10 @@ function startGedcomPlaceMatchingJob(draft, report, {
             },
             lookup: (query, signal, language) => queueGedcomPlaceLookup(query, signal, language, lookup),
             onHalt: () => job.controller.abort(),
-            onMatch: (item, point) =>
+            onMatch: (item, point, identity) =>
             {
                 if (!gedcomMatchingJobCurrent(job)) return;
-                job.pending.set(item.id, { item, point });
+                job.pending.set(item.id, { item, point, identity });
                 scheduleGedcomMatchingFlush(job);
             }
         });
@@ -2476,6 +2622,59 @@ function startGedcomPlaceMatchingJob(draft, report, {
         flushGedcomMatchingJob(job);
     });
     return job;
+}
+
+function gedcomPlaceReviewDiagnostic(place)
+{
+    if (!place || placeHasCoordinates(place)) return null;
+    const report = gedcomImportReports.get(place.projectId);
+    const job = gedcomPlaceMatchingJobs.get(place.projectId);
+    const diagnostic = report?.matchingDiagnostics?.find(item => item.id === place.id);
+    if (job?.snapshots.has(place.id) && !job.invalidated.has(place.id))
+        return { label: 'Automatic coordinate lookup in progress.', retry: false };
+    if (!diagnostic || ['assigned','existing-coordinates','stale-place'].includes(diagnostic.reason)) return null;
+    const reason = diagnostic.reason;
+    const label = ({
+        'empty': 'No matching settlement found.',
+        'no-exact-name': 'No matching settlement name found.',
+        'competing-matches': 'Several possible settlements found.',
+        'conflicting-or-missing-admin': 'Administrative context could not be verified.',
+        'conflicting-country': 'Country context does not match.',
+        'quota': 'Coordinate lookup reached the provider quota.',
+        'budget': 'Not checked within the import lookup limit.',
+        'unavailable': 'Coordinate lookup provider unavailable.',
+        'stopped': 'Automatic coordinate lookup stopped.',
+        'historical-context': 'Historical place needs manual review.',
+        'source-coordinate-review': 'Imported coordinates need manual review.'
+    })[reason] || 'Not enough evidence for an automatic map position.';
+    const retry = !job && !placeHasRadiusValue(place) && reason !== 'source-coordinate-review'
+        && place.coordinates === null && !gedcomLookupContext(place).reason;
+    return { label, retry };
+}
+
+function retryGedcomPlaceMatching(placeId)
+{
+    const place = getPlace(placeId);
+    if (!place || place.projectId !== currentProjectId() || !gedcomPlaceReviewDiagnostic(place)?.retry
+        || (typeof isPlaceReviewIssueDismissed === 'function'
+            && isPlaceReviewIssueDismissed(placeId, 'missing_coordinates', place.projectId))) return false;
+    const project = sampleData.projects.find(item => item.id === place.projectId);
+    const report = gedcomImportReports.get(place.projectId);
+    if (!project || !report) return false;
+    const job = startGedcomPlaceMatchingJob({ project, records: { places: [place] } }, report, { retry: true });
+    if (!job) return false;
+    if (typeof sidebar !== 'undefined' && state.activeModule === 'Places')
+    {
+        const nav = sidebar.querySelector('.places-sidebar');
+        if (nav && !nav.querySelector('[data-gedcom-matching-status]'))
+        {
+            nav.querySelector('.places-sidebar-section')?.insertAdjacentHTML('afterend',
+                renderGedcomMatchingStatus(place.projectId, { placement: 'places' }));
+            bindGedcomMatchingStatus(nav);
+        }
+    }
+    if (typeof schedulePlacesMatchingRefresh === 'function') schedulePlacesMatchingRefresh(place.projectId, [place.id]);
+    return true;
 }
 
 function gedcomMatchingStatusText(report)

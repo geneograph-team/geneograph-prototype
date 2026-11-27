@@ -1522,6 +1522,8 @@ function renderPlaceReviewListRow(item, owners)
             <button class="button ghost places-review-quiet-button" type="button"
               data-place-review-dismiss="${placeId}"
               data-place-review-type="${issueType}">${escapeHtml(issue.type === 'unlinked' ? t('Keep') : placeReviewT('Dismiss'))}</button>`;
+    const matching = !dismissal && issue.type === 'missing_coordinates' && typeof gedcomPlaceReviewDiagnostic === 'function'
+        ? gedcomPlaceReviewDiagnostic(place) : null;
     const reason = dismissal ? placeReviewDismissalReason(dismissal) : '';
     const localizedReason = reason === PLACE_REVIEW_DEFAULT_MISSING_REASON
         ? t(reason)
@@ -1555,9 +1557,10 @@ function renderPlaceReviewListRow(item, owners)
           <strong>${placeName}</strong>
           ${placeSecondaryName(place) ? `<span>${escapeHtml(placeSecondaryName(place))}</span>` : ''}
           <small>${escapeHtml(t('Linked records'))}: ${linked}</small>
+          ${matching ? `<small>${escapeHtml(t(matching.label))}</small>` : ''}
           ${reasonMarkup}
         </div>
-        <div class="places-review-row-actions">${actions}${selected ? `<button class="mobile-item-details" type="button" data-mobile-open-details aria-label="${escapeHtml(t('Details'))}">${icon.info}<span>${escapeHtml(t('Details'))}</span></button>` : ''}</div>
+        <div class="places-review-row-actions">${matching?.retry ? `<button class="button ghost places-review-quiet-button" type="button" data-place-review-retry="${placeId}">${escapeHtml(t('Retry lookup'))}</button>` : ''}${actions}${selected ? `<button class="mobile-item-details" type="button" data-mobile-open-details aria-label="${escapeHtml(t('Details'))}">${icon.info}<span>${escapeHtml(t('Details'))}</span></button>` : ''}</div>
       </div>`;
 }
 
@@ -1602,6 +1605,7 @@ function renderPlaceReviewGroup(group, query, owners)
         ? [item.pair.key, item.pair.left.updatedAt, item.pair.right.updatedAt, item.dismissal?.id,
             state.selectedPlaceReviewPairKey === item.pair.key]
         : [item.place.id, item.place.updatedAt, item.issue.type, item.dismissal?.reason,
+            typeof gedcomPlaceReviewDiagnostic === 'function' ? gedcomPlaceReviewDiagnostic(item.place) : null,
             !state.selectedPlaceReviewPairKey && state.selectedPlaceId === item.place.id]));
     return `<details class="places-review-group"
         data-matching-signature="${escapeHtml(signature)}"
@@ -1778,6 +1782,11 @@ function bindPlacesNeedsReviewControls(root = main)
             rerenderPlacesReviewAfterAction(button.dataset.placePairRestore, 'possible_duplicates', { pair: true });
     }));
 
+    root.querySelectorAll('[data-place-review-retry]').forEach(button => button.addEventListener('click', event =>
+    {
+        event.stopPropagation();
+        if (retryGedcomPlaceMatching(button.dataset.placeReviewRetry)) button.disabled = true;
+    }));
     root.querySelectorAll('[data-place-review-fix]').forEach(button => button.addEventListener('click', () =>
     {
         const placeId = button.dataset.placeReviewFix;

@@ -964,10 +964,10 @@ async function verifyAutomaticPlaceMatching()
     const lookup = async query => { calls.push(query); return {status:'results', candidates:[candidate]}; };
     const result = await context.matchGedcomPlaceCoordinates(draft, { lookup });
     assert.equal(calls.length, 3);
-    assert.equal(result.stats.assigned, 2);
+    assert.equal(result.stats.assigned, 3);
     assert.equal(result.stats.existing, 1);
     assert.equal(result.stats.ineligible, 4);
-    assert.equal(result.diagnostics.find(item => item.query === 'Rzeszów').reason, 'weak-confidence');
+    assert.equal(result.diagnostics.find(item => item.query === 'Rzeszów').reason, 'assigned');
     assert.equal(JSON.stringify(draft.records.places), before);
     assert.equal(draft.records.places[0].name, 'Rzeszow, Podkarpackie, Poland');
     assert.equal(result.coordinates.get(draft.records.places[0].id).lat, 50.04);
@@ -1002,13 +1002,13 @@ async function verifyAutomaticPlaceMatching()
     const evaluate = (plan,candidates) => context.gedcomEvaluatePlaceMatch(plan,{status:'results',candidates});
     assert.equal(evaluate(ukhta,[city,village]).reason,'assigned');
     assert.equal(evaluate(ukhta,[city,{...village,typeReliable:false}]).point,null);
-    assert.equal(evaluate(ukhta,[{...city,typeReliable:false}]).point,null);
+    assert.equal(evaluate(ukhta,[{...city,typeReliable:false}]).reason,'assigned');
     const sumy = get('Великий Бобрик, Сумская область');
     assert.equal(evaluate(sumy,[{...candidate,names:['Великий Бобрик','Великий Бобрик'],countryCode:'UA',admin:['Sumy Oblast'],regionNames:['Sumy Oblast'],type:'village'}]).reason,'assigned');
     const bare = get('Екатеринбург');
     const bareCity = {...city,names:['Екатеринбург','Yekaterinburg'],confidence:.99,cityConfidence:.99};
     assert.equal(evaluate(bare,[bareCity]).reason,'assigned');
-    assert.equal(evaluate(bare,[{...bareCity,cityConfidence:null}]).reason,'weak-confidence');
+    assert.equal(evaluate(bare,[{...bareCity,cityConfidence:null}]).reason,'assigned');
     assert.equal(evaluate(bare,[bareCity,{...bareCity,identities:['different'],countryCode:'UA'}]).reason,'competing-matches');
     assert.equal(evaluate(bare,[{...bareCity,confidence:.4}]).reason,'weak-confidence');
     assert.equal(evaluate(bare,[bareCity,{...bareCity,identities:['unknown'],coordinates:null}]).point,null);

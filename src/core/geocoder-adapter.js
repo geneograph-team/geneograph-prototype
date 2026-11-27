@@ -1,6 +1,6 @@
 /*
  * Browser-only geocoder for #158.
- * Geoapify first, then LocationIQ silently if it fails or finds no matches.
+ * Manual search: Geoapify then LocationIQ. Import: one configured provider per lookup.
  * Provider keys are public browser credentials, not server-side secrets.
  */
 const geneographGeocoder = (function ()
@@ -236,14 +236,15 @@ const geneographGeocoder = (function ()
         const address = source === 'geoapify' ? item : item.address || {};
         const raw = source === 'geoapify' ? item.datasource?.raw || {} : item.namedetails || {};
         const names = [...new Set([source === 'geoapify' ? item.name || item.city : item.display_place,
-            address.name, raw.name, ...['en','ru','uk','pl','be','ro','de','fr'].map(lang => raw['name:' + lang]),
+            address.name, raw.name, ...['en','ru','uk','pl','be','ro','de','fr','bg','sr','hu','cs'].flatMap(lang =>
+                [raw['name:' + lang], raw['official_name:' + lang], ...String(raw['alt_name:' + lang] || '').split(';')]),
             ...String(raw.alt_name || '').split(';'), ...String(raw.official_name || '').split(';')]
             .map(cleanText).filter(Boolean))];
         const countryCode = cleanText(address.country_code).toUpperCase();
         const region = cleanText(address.state || address.region);
         const county = cleanText(address.county || address.district);
-        const regionNames = [region, address.state_code, address['ISO3166-2-lvl4']].map(cleanText).filter(Boolean);
-        const countyNames = [county].filter(Boolean);
+        const regionNames = [region, address.state_code, address['ISO3166-2-lvl4'], address['ISO3166-2-lvl3']].map(cleanText).filter(Boolean);
+        const countyNames = [county, address['ISO3166-2-lvl6']].map(cleanText).filter(Boolean);
         // Include known expanded region names from the structured formatter,
         // but never use arbitrary fallback display_address text as evidence.
         if (countryCode === 'PL' && /^(?:pk|pl-18|рк|podkarpackie(?: voivodeship)?|województwo podkarpackie|subcarpathian(?: voivodeship)?|подкарпатское воеводство)$/i
@@ -482,31 +483,24 @@ const geneographGeocoder = (function ()
     {
         const text = cleanText(query);
         if (signal?.aborted) throw abortError();
-        // Do not truncate identifying context in an automatic match.
         if (!text || text.length > maxQueryLength || String(query).trim().length > maxQueryLength)
             return { status: 'empty', candidates: [] };
-        let successful = false;
-        for (const source of ['geoapify', 'locationiq'])
+        // Choose before dispatch; a failed or empty response never switches
+        // provider. Manual autocomplete retains its existing fallback.
+        const source = ['geoapify', 'locationiq'].find(provider => providerKey(provider));
+        if (!source) return { status: 'unavailable', candidates: [] };
+        try
+        {
+            const result = await request(source, text, signal, 10, language, true);
+            return { status: result.candidates.length || result.truncated ? 'results' : 'empty',
+                provider: source, ...result };
+        }
+        catch (error)
         {
             if (signal?.aborted) throw abortError();
-            try
-            {
-                const result = await request(source, text, signal, 10, language, true);
-                successful = true;
-                if (result.candidates.length || result.truncated)
-                    return { status: 'results', provider: source, ...result };
-            }
-            catch (error)
-            {
-                if (signal?.aborted) throw abortError();
-                // A quota response stops this import's whole queue. Do not
-                // shift the remaining batch onto another provider.
-                if (error.providerStatus === 429) return { status: 'quota', provider: source, candidates: [] };
-                // LocationIQ uses 404 for a completed search with no match.
-                if (error.providerStatus === 404) successful = true;
-            }
+            return { status: error.providerStatus === 429 ? 'quota'
+                : error.providerStatus === 404 ? 'empty' : 'unavailable', provider: source, candidates: [] };
         }
-        return { status: successful ? 'empty' : 'unavailable', candidates: [] };
     }
 
     function attributionHtml()

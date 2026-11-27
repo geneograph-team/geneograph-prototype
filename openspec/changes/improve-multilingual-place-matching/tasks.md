@@ -1,0 +1,4 @@
+- [x] Single-provider automatic lookup and revised multilingual matching.
+- [x] Verified-pair canonical reconciliation, incomplete-context duplicate suggestions and review diagnostics/retry.
+- [ ] Native regression and browser QA; real provider evidence for nine fixtures, all negative cases and merge reference integrity; verify active editors and project switching.
+- [ ] Founder acceptance and baseline OpenSpec reconciliation.
