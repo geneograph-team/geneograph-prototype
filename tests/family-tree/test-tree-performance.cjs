@@ -60,3 +60,67 @@ perf.finish(perf.begin('private-project', 'focus', view), 'completed');
 assert.equal(recorder.status().active, true);
 assert.equal(recorder.snapshot().samples.length, 2);
 console.log('Tree performance trace timing, lifecycle, allowlist, and bounded retention passed.');
+
+vm.runInContext(fs.readFileSync(path.join(__dirname, '../../src/modules/family-tree/tree-viewport.js'), 'utf8'), context);
+context.treeProjectViewState = () => view;
+context.assert = assert;
+vm.runInContext(`
+appPerf.clear();
+appPerf.start();
+const runtime = { projectId: 'private-project' };
+const wheel = { type: 'wheel' }, lateWheel = { type: 'wheel' };
+const press = { type: 'mousedown' }, release = { type: 'mouseup' };
+startTreePerformanceGesture(runtime, wheel);
+const first = runtime.performanceGesture.trace;
+startTreePerformanceGesture(runtime, press);
+const drag = runtime.performanceGesture.trace;
+finishTreePerformanceGesture(runtime, wheel);
+finishTreePerformanceGesture(runtime, null);
+assert.equal(first.status, 'canceled');
+assert.equal(drag.status, 'pending');
+rememberTreePerformanceGestureEnd(runtime, release);
+finishTreePerformanceGesture(runtime, release);
+assert.equal(drag.status, 'completed');
+assert.equal(runtime.performanceGesture, null);
+
+startTreePerformanceGesture(runtime, lateWheel);
+finishTreePerformanceGesture(runtime, wheel);
+assert.equal(runtime.performanceGesture.trace.status, 'pending');
+finishTreePerformanceGesture(runtime, lateWheel);
+assert.equal(appPerf.snapshot().samples.at(-1).status, 'completed');
+
+startTreePerformanceGesture(runtime, { type: 'touchstart' });
+const touchCancel = { type: 'touchcancel' };
+rememberTreePerformanceGestureEnd(runtime, touchCancel);
+finishTreePerformanceGesture(runtime, touchCancel);
+assert.equal(appPerf.snapshot().samples.at(-1).status, 'canceled');
+
+startTreePerformanceGesture(runtime, wheel);
+appPerf.stop();
+const stopped = runtime.performanceGesture.trace;
+appPerf.start();
+startTreePerformanceGesture(runtime, lateWheel);
+finishTreePerformanceGesture(runtime, wheel);
+assert.equal(stopped.status, 'stopped');
+assert.equal(runtime.performanceGesture.trace.status, 'pending');
+cancelTreePerformanceGesture(runtime);
+assert.equal(appPerf.snapshot().samples.at(-1).status, 'canceled');
+
+startTreePerformanceGesture(runtime, wheel);
+const discarded = runtime.performanceGesture.trace;
+appPerf.clear();
+appPerf.start();
+startTreePerformanceGesture(runtime, lateWheel);
+finishTreePerformanceGesture(runtime, wheel);
+assert.equal(discarded.status, 'stopped');
+assert.equal(appPerf.snapshot().samples.length, 1);
+assert.equal(appPerf.snapshot().samples[0].status, 'pending');
+for (let index = 0; index < 256; index++) appPerf.run('People', 'render', () => null);
+finishTreePerformanceGesture(runtime, lateWheel);
+assert.equal(appPerf.snapshot().dropped, 1);
+assert.equal(runtime.performanceGesture, null);
+assert.ok(appPerf.snapshot().samples.every(sample => sample.status === 'completed'));
+appPerf.stop();
+`, context);
+console.log('Tree gesture ownership: supersession, stale ends, native cancel, eviction, Stop and restart passed.');
+

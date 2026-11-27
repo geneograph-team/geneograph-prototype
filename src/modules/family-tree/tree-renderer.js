@@ -256,7 +256,7 @@ function joinTreeHtml(layer, entries, tag, render)
 function renderTreeViewport(runtime)
 {
     if (!runtime.scene) return;
-    const trace = runtime.performanceTrace || runtime.performanceGesture;
+    const trace = runtime.performanceTrace || runtime.performanceGesture?.trace;
     const started = trace && treePerf.now();
     const { canvas, stage, transform, scene } = runtime;
     const visible = treeSceneViewport(transform, canvas.clientWidth, canvas.clientHeight);

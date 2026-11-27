@@ -106,3 +106,69 @@ appPerf.stop();
 console.log('Application diagnostics: real provider adapter, causality, frame, async and long-task fallback passed.');
 `, providerContext);
 
+
+vm.runInContext(`
+appPerf.clear();
+appPerf.configure({ scope: 'all', mode: 'detailed' });
+let currentObserver;
+let queued = [];
+PerformanceObserver = class
+{
+    static supportedEntryTypes = ['longtask'];
+    constructor(callback) { this.callback = callback; currentObserver = this; }
+    observe() {}
+    takeRecords() { return queued.splice(0); }
+    disconnect() {}
+};
+appPerf.start();
+const oldObserver = currentObserver;
+const oldThreshold = performance.now();
+advance(80);
+queued = [
+    { entryType: 'longtask', startTime: oldThreshold - 1, duration: 60 },
+    { entryType: 'longtask', startTime: oldThreshold, duration: 75 }
+];
+appPerf.run('People', 'profile', () => null);
+const oldFrame = scheduled;
+appPerf.stop();
+const firstSummary = appPerf.snapshot();
+assert.equal(firstSummary.browser.longTasks.count, 1);
+assert.equal(firstSummary.browser.longTasks.totalMs, 75);
+assert.equal(firstSummary.summaryCoverage.recording, firstSummary.samples[0].recording);
+assert.equal(firstSummary.summaryCoverage.readModelLifecycle, 'recorded');
+assert.equal(firstSummary.summaryCoverage.configuration.mode, 'detailed');
+
+appPerf.configure({ scope: 'selected', modules: ['People'], mode: 'basic' });
+const stoppedExport = appPerf.snapshot();
+assert.equal(stoppedExport.configuration.mode, 'basic');
+assert.equal(stoppedExport.summaryCoverage.configuration.mode, 'detailed');
+assert.equal(stoppedExport.summaryCoverage.historicalSummaries, 'unavailable');
+appPerf.start();
+appPerf.run('People', 'profile', () => null);
+oldObserver.callback({getEntries: () => [{entryType: 'longtask', startTime: performance.now(), duration: 100}]});
+oldFrame();
+const mixed = appPerf.snapshot();
+assert.equal(mixed.samples.length, 2);
+assert.notEqual(mixed.samples[0].recording, mixed.summaryCoverage.recording);
+assert.equal(mixed.samples[1].recording, mixed.summaryCoverage.recording);
+assert.equal(mixed.browser.longTasks.status, 'basic');
+assert.equal(mixed.browser.longTasks.count, undefined);
+assert.equal(mixed.summaryCoverage.readModelLifecycle, 'outOfScope');
+appPerf.stop();
+
+appPerf.configure({ scope: 'all', mode: 'detailed' });
+appPerf.start();
+appPerf.run('People', 'profile', () => null);
+const newFrame = scheduled;
+oldFrame();
+appPerf.run('People', 'profile', () => null);
+assert.equal(scheduled, newFrame, 'stale callback must not clear newer pending frame');
+oldObserver.callback({getEntries: () => [{entryType: 'longtask', startTime: performance.now(), duration: 100}]});
+assert.equal(appPerf.snapshot().browser.longTasks.count, 0);
+appPerf.clear();
+assert.equal(appPerf.snapshot().summaryCoverage, null);
+assert.equal(appPerf.snapshot().browser.longTasks.status, 'inactive');
+assert.equal(appPerf.snapshot().samples.length, 0);
+`, providerContext);
+console.log('Diagnostics: mixed epochs, queued long tasks, stale callbacks and Clear passed.');
+

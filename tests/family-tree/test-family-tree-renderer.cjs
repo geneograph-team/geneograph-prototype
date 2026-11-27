@@ -86,7 +86,10 @@ context.d3 = { zoom: () => behavior, select: () => selection, zoomIdentity: iden
 context.state = { treeZoom: 100 };
 context.ResizeObserver = class { observe() {} };
 vm.runInContext(fs.readFileSync(path.join(__dirname, '../../src/modules/family-tree/tree-viewport.js'), 'utf8'), context);
-const runtime = { canvas: { clientWidth: 800, clientHeight: 600 }, scene: {} };
+const canvas = Object.assign(new EventTarget(), {
+    clientWidth: 800, clientHeight: 600, ownerDocument: { defaultView: new EventTarget() }
+});
+const runtime = { canvas, scene: {}, controller: new AbortController() };
 context.bindTreeViewport(runtime);
 const target = (...matches) => ({ closest: selectors => matches.some(match =>
     selectors.split(', ').includes(match)) ? {} : null });

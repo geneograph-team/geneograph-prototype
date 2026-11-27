@@ -41,6 +41,7 @@ const appPerf = (() =>
     let current = null, frame = null, observer = null, observationStart = 0;
     let longTasks = { status: 'inactive' };
     let lifecycle = {};
+    let summaryCoverage = null;
     const lifecycleKeys = new Set(['invalidations', 'legacyInvalidations', 'evictedEntries',
         'disposals', 'disposedEntries', 'projectActivations', 'unaffectedInvalidations']);
     const providerEvents = new Set(['hits', 'misses', 'uncached', 'builds']);
@@ -109,6 +110,11 @@ const appPerf = (() =>
         ++epoch;
         active = true;
         lifecycle = {};
+        summaryCoverage = {
+            recording: epoch,
+            configuration: settings(),
+            readModelLifecycle: config.mode === 'detailed' ? 'recorded' : 'outOfScope'
+        };
         observeLongTasks();
         return true;
     }
@@ -138,6 +144,7 @@ const appPerf = (() =>
         samples = [];
         lifecycle = {};
         longTasks = { status: 'inactive' };
+        summaryCoverage = null;
         dropped = next = 0;
         ++epoch;
     }
@@ -180,11 +187,13 @@ const appPerf = (() =>
             finish(trace, result === false ? 'failed' : 'completed');
             if (trace.status === 'completed' && detailed(trace) && frameKinds.has(kind) && frameSupported() && frame === null)
             {
-                frame = requestAnimationFrame(() =>
+                const handle = requestAnimationFrame(() =>
                 {
+                    if (trace.epoch !== epoch || frame !== handle) return;
                     frame = null;
                     mark(trace, 'frameOpportunity');
                 });
+                frame = handle;
             }
             return result;
         }
@@ -288,6 +297,12 @@ const appPerf = (() =>
     {
         return { schemaVersion: 3, recorder: 'geneograph-application-performance', elkVersion: '0.12.1',
             active, configuration: settings(), capacity: limit, dropped, totalOperations: next,
+            summaryCoverage: summaryCoverage && {
+                recording: summaryCoverage.recording,
+                configuration: { ...summaryCoverage.configuration, modules: [...summaryCoverage.configuration.modules] },
+                readModelLifecycle: summaryCoverage.readModelLifecycle,
+                historicalSummaries: 'unavailable'
+            },
             browser: { frameOpportunitySupported: frameSupported(), longTasks: { ...longTasks } },
             readModelLifecycle: structuredLifecycle(lifecycle),
             samples: samples.map(trace =>

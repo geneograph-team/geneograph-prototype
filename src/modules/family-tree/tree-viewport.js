@@ -34,11 +34,65 @@ function setTreeViewport(runtime, x, y, k)
     d3.select(runtime.canvas).call(runtime.behavior.transform, d3.zoomIdentity.translate(x, y).scale(k));
 }
 
+function cancelTreePerformanceGesture(runtime)
+{
+    treePerf.finish(runtime.performanceGesture?.trace, 'canceled');
+    runtime.performanceGesture = null;
+}
+
+function startTreePerformanceGesture(runtime, source)
+{
+    cancelTreePerformanceGesture(runtime);
+    const trace = treePerf.begin(runtime.projectId, source.type === 'wheel' ? 'zoom' : 'pan',
+        treeProjectViewState(runtime.projectId));
+    if (trace)
+    {
+        runtime.performanceGesture = {
+            trace, input: source.type,
+            wheelEvent: source.type === 'wheel' ? source : null, endEvent: null
+        };
+    }
+}
+
+function rememberTreePerformanceGestureEnd(runtime, source)
+{
+    const gesture = runtime.performanceGesture;
+    if (!gesture) return;
+    const matches = source.type === 'mouseup' && gesture.input === 'mousedown'
+        || (source.type === 'touchend' || source.type === 'touchcancel') && gesture.input === 'touchstart';
+    if (matches) gesture.endEvent = source;
+}
+
+function finishTreePerformanceGesture(runtime, source)
+{
+    const gesture = runtime.performanceGesture;
+    // D3 may deliver a superseded wheel gesture's idle callback during a
+    // fresh drag. Match the original native event, not just the canvas.
+    if (!source || !gesture || (gesture.wheelEvent !== source && gesture.endEvent !== source)) return;
+    runtime.performanceGesture = null;
+    treePerf.finish(gesture.trace, source.type === 'touchcancel' ? 'canceled' : 'completed');
+}
+
 function bindTreeViewport(runtime)
 {
     const { canvas } = runtime;
     runtime.transform = d3.zoomIdentity.scale(state.treeZoom / 100);
     runtime.frame = null;
+    const rememberEnd = event =>
+    {
+        rememberTreePerformanceGestureEnd(runtime, event);
+        if (event.type === 'mouseup' && runtime.dragWindow === event.view)
+        {
+            runtime.dragWindow = null;
+            canvas.classList.remove('is-panning');
+        }
+        if (event.type !== 'mouseup' && !event.touches.length && !runtime.dragWindow)
+            canvas.classList.remove('is-panning');
+    };
+    const endOptions = { capture: true, signal: runtime.controller.signal };
+    canvas.ownerDocument.defaultView.addEventListener('mouseup', rememberEnd, endOptions);
+    canvas.addEventListener('touchend', rememberEnd, endOptions);
+    canvas.addEventListener('touchcancel', rememberEnd, endOptions);
     runtime.behavior = d3.zoom()
         .extent(() => [[0, 0], [canvas.clientWidth, canvas.clientHeight]])
         .scaleExtent([.03, 1.8])
@@ -52,7 +106,7 @@ function bindTreeViewport(runtime)
         {
             if (event.sourceEvent)
             {
-                runtime.performanceGesture = treePerf.begin(runtime.projectId, event.sourceEvent.type === 'wheel' ? 'zoom' : 'pan', treeProjectViewState(runtime.projectId));
+                startTreePerformanceGesture(runtime, event.sourceEvent);
                 closeMenu();
             }
             if (event.sourceEvent?.type === 'mousedown') runtime.dragWindow = event.sourceEvent.view;
@@ -61,17 +115,13 @@ function bindTreeViewport(runtime)
         .on('zoom.tree', event =>
         {
             if (runtime !== treeRenderRuntime) return;
+            if (runtime.performanceGesture && event.sourceEvent?.type === 'wheel')
+                runtime.performanceGesture.wheelEvent = event.sourceEvent;
             runtime.transform = event.transform;
             state.treeZoom = 100 * event.transform.k;
             requestTreeViewport(runtime);
         })
-        .on('end.tree', () =>
-        {
-            treePerf.finish(runtime.performanceGesture, 'completed');
-            runtime.performanceGesture = null;
-            runtime.dragWindow = null;
-            canvas.classList.remove('is-panning');
-        });
+        .on('end.tree', event => finishTreePerformanceGesture(runtime, event.sourceEvent));
     d3.select(canvas).call(runtime.behavior).on('dblclick.zoom', null);
     setTreeViewport(runtime, 0, 0, runtime.transform.k);
     let width = canvas.clientWidth, height = canvas.clientHeight;
@@ -92,7 +142,7 @@ function disposeTreeRenderer()
     const runtime = treeRenderRuntime;
     if (!runtime) return;
     treeRenderRuntime = null;
-    treePerf.finish(runtime.performanceGesture, 'canceled');
+    cancelTreePerformanceGesture(runtime);
     clearTreePortraits(runtime);
     runtime.portraitCache?.dispose();
     runtime.resize.disconnect();
