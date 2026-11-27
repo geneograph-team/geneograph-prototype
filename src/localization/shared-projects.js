@@ -945,6 +945,8 @@ const RU_UI_PROJECTS = Object.freeze({
     "Local photos unavailable": "Локальные фотографии недоступны",
     "Choose the GEDCOM file to match photos from this folder.": "Выберите файл GEDCOM, чтобы сопоставить фотографии из этой папки.",
     "Imported Archive files": "Импортированные файлы архива",
+    "Imported": "Импортированные",
+    "Note collections": "Коллекции заметок",
     "Online photo files not imported: {count}": "Не импортировано фотографий по интернет-ссылкам: {count}",
     "Incomplete or invalid place coordinates skipped": "Неполные или неверные координаты мест пропущены",
     "Conflicting place coordinates skipped": "Противоречивые координаты мест пропущены",

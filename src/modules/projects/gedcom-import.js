@@ -1651,7 +1651,33 @@ function mapGedcomImportWithDiagnosticsBody(parsed, project, matches = new Map()
     const families = [...familiesByXref.values()];
     if (!people.length) throw new GedcomImportError('The GEDCOM file contains no people.');
     const records = { people, families, places: [...places.values()], media: [...media.values()], notes: [...notes.values()], archiveFiles,
-        sources: [...sources.values()], sourceLinks: [...sourceLinks.values()] };
+        sources: [...sources.values()], sourceLinks: [...sourceLinks.values()], albums: [], noteCollections: [] };
+    // Create ordinary project-owned containers only for final imported records.
+    // This runs on each detached draft, not on live collections or raw file
+    // references, so missing files, consolidated crops and citation-only
+    // evidence cannot create empty containers or accumulate memberships.
+    if (records.media.length)
+    {
+        const album = { id: projectId + '-album-imported', projectId,
+            name: t('Imported'), description: '', createdAt: importedAt };
+        records.albums.push(album);
+        for (const photo of records.media)
+        {
+            checkDeadline();
+            photo.albumIds.push(album.id);
+        }
+    }
+    if (records.notes.length)
+    {
+        const collection = { id: projectId + '-note-col-imported', projectId,
+            name: t('Imported'), description: '' };
+        records.noteCollections.push(collection);
+        for (const note of records.notes)
+        {
+            checkDeadline();
+            note.collectionIds.push(collection.id);
+        }
+    }
     const draft = prepareProjectDraft({ ...project, defaultPersonId: people[0].id }, records);
     if (draft.errors.length) return { errors: draft.errors };
     const distinctFilesFound = new Set([...matches].filter(([, match]) => match.found)
@@ -1770,6 +1796,8 @@ function gedcomImportReport(draft)
     if (draft.records.archiveFiles.length) rows.push(['Imported Archive files', draft.records.archiveFiles.length]);
     if (draft.records.notes.length) rows.push(['Notes', draft.records.notes.length]);
     if (draft.records.sources.length) rows.push(['Sources', draft.records.sources.length]);
+    if (draft.records.albums.length) rows.push(['Albums', draft.records.albums.length]);
+    if (draft.records.noteCollections.length) rows.push(['Note collections', draft.records.noteCollections.length]);
     const authored = Object.fromEntries(PROJECT_DRAFT_COLLECTIONS.filter(key => draft.records[key])
         .map(key => [key, draft.records[key]]));
     const authoredCount = Object.values(authored).reduce((count, records) => count + records.length, 0);

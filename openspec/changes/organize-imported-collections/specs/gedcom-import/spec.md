@@ -1,0 +1,5 @@
+## ADDED Requirements
+
+### Requirement: Organize imported photos and research notes
+
+Before detached draft validation, the importer SHALL create one ordinary project-local album named Imported and assign every final canonical photo to it, when photos exist. It SHALL create one ordinary project-local Notes collection named Imported and assign every final canonical Note to it, when notes exist. Names use the current import language (EN Imported; RU Импортированные). Consolidated photos count once, and citation-only Sources do not create Notes collections. No empty container, duplicate membership or separate system collection is created. Preview and result counts reflect actual records. Cancelled or failed imports SHALL leave existing projects and collections unchanged. Imported records retain their ordinary editability, connected-record links and All photos/All notes access; Archive and Sources organization is unaffected.

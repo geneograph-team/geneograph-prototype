@@ -535,6 +535,135 @@ const mhUnrelated = mhPhotoDraft(parse(file([...mhPhotoRows(mhOriginal, mhCutout
     '1 OBJE', '2 FILE family-copy.jpg', '2 _PHOTO_RIN unrelated'])));
 assert.equal(mhUnrelated.records.media.length, 2);
 
+
+// Imported collections are ordinary records, built only from the final
+// detached media/note collections, not attachment references or citations.
+function assertImportedCollections(draft, name = 'Imported')
+{
+    assert.deepEqual(Array.from(draft.errors), []);
+    const { records } = draft;
+    assert.equal(records.albums.length, Number(records.media.length > 0));
+    assert.equal(records.noteCollections.length, Number(records.notes.length > 0));
+    if (records.media.length)
+    {
+        const album = records.albums[0];
+        assert.equal(album.projectId, draft.project.id);
+        assert.equal(album.name, name);
+        assert.equal(album.description, '');
+        assert.equal(album.createdAt, draft.project.createdAt);
+        for (const photo of records.media) assert.deepEqual(Array.from(photo.albumIds), [album.id]);
+    }
+    if (records.notes.length)
+    {
+        const collection = records.noteCollections[0];
+        assert.equal(collection.projectId, draft.project.id);
+        assert.equal(collection.name, name);
+        assert.equal(collection.description, '');
+        for (const note of records.notes) assert.deepEqual(Array.from(note.collectionIds), [collection.id]);
+    }
+}
+const collectionInput = parse(file([
+    '0 @I1@ INDI', '1 NOTE First note', '1 NOTE @N1@',
+    '1 OBJE', '2 FILE portrait.jpg', '2 _PRIM Y',
+    '0 @I2@ INDI', '1 NOTE @N1@', '0 @N1@ NOTE Shared note'
+]));
+const collectionRefs = context.gedcomAttachmentReferences(collectionInput);
+const collectionFile = { name: 'portrait.jpg', size: 1, type: 'image/jpeg' };
+const collectionMatches = new Map([...collectionRefs].map(([key, ref]) => [key, {
+    ...ref, file: collectionFile, status: 'Ready to import', found: true,
+    photo: { filename: 'portrait.jpg', src: 'data:image/jpeg;base64,AA==',
+        mimeType: 'image/jpeg', width: 100, height: 100, sizeBytes: 1 }
+}]));
+const collectionDraft = context.mapGedcomImport(collectionInput, project, collectionMatches, collectionRefs);
+assertImportedCollections(collectionDraft);
+assert.equal(collectionDraft.records.media.length, 1);
+assert.equal(collectionDraft.records.notes.length, 2);
+assert.equal(collectionDraft.records.notes.find(note => note.body === 'Shared note').linkedPersonIds.length, 2);
+assert.equal(collectionDraft.records.people[0].primaryPhotoId, collectionDraft.records.media[0].id);
+const collectionsReport = context.gedcomImportReport(collectionDraft);
+assert.equal(collectionsReport.attachmentCount, 1);
+assert.equal(collectionsReport.rows.find(row => row[0] === 'Photos')[1], 1);
+assert.equal(collectionsReport.rows.find(row => row[0] === 'Notes')[1], 2);
+assert.equal(collectionsReport.rows.find(row => row[0] === 'Albums')[1], 1);
+assert.equal(collectionsReport.rows.find(row => row[0] === 'Note collections')[1], 1);
+const missingCollectionDraft = context.mapGedcomImport(collectionInput, project, new Map(), collectionRefs);
+assertImportedCollections(missingCollectionDraft);
+assert.equal(missingCollectionDraft.records.albums.length, 0);
+assert.equal(missingCollectionDraft.records.noteCollections[0].id, collectionDraft.records.noteCollections[0].id);
+const rebuiltCollectionDraft = context.mapGedcomImport(collectionInput, project, collectionMatches, collectionRefs);
+assert.equal(JSON.stringify(rebuiltCollectionDraft.records), JSON.stringify(collectionDraft.records));
+const isolatedCollectionDraft = context.mapGedcomImport(collectionInput, { ...project, id: 'other-import' }, collectionMatches, collectionRefs);
+assertImportedCollections(isolatedCollectionDraft);
+assert.notEqual(isolatedCollectionDraft.records.albums[0].id, collectionDraft.records.albums[0].id);
+assert.notEqual(isolatedCollectionDraft.records.noteCollections[0].id, collectionDraft.records.noteCollections[0].id);
+assertImportedCollections(map(file(['0 @I1@ INDI'])));
+assertImportedCollections(map(file(['0 @I1@ INDI', '1 NOTE Just a note'])));
+const citationOnlyCollection = map(file([
+    '0 @I1@ INDI', '1 SOUR @S1@', '2 PAGE 12', '2 TEXT Citation only', '0 @S1@ SOUR', '1 TITL Register'
+]));
+assertImportedCollections(citationOnlyCollection);
+assert.equal(citationOnlyCollection.records.sources.length, 1);
+assert.equal(citationOnlyCollection.records.noteCollections.length, 0);
+
+function verifyImportedCollectionLocalization()
+{
+    const dictionarySource = fs.readFileSync(path.join(__dirname, '../../src/localization/shared-projects.js'), 'utf8');
+    const dictionary = vm.runInNewContext(dictionarySource + '\nRU_UI_PROJECTS;');
+    const previous = context.t;
+    try
+    {
+        context.t = key => dictionary[key] || key;
+        const draft = context.mapGedcomImport(collectionInput, project, collectionMatches, collectionRefs);
+        assertImportedCollections(draft, 'Импортированные');
+        assert.equal(dictionary['Note collections'], 'Коллекции заметок');
+    }
+    finally { context.t = previous; }
+}
+verifyImportedCollectionLocalization();
+
+// Simulate a failed activation after the atomic commit has staged collections.
+// The actual commit writer must restore the old collections and report state.
+function verifyImportedCollectionRollback()
+{
+    const previousState = { ...context.state };
+    const previousGlobals = {};
+    const existingAlbum = { id: 'existing-album', projectId: 'existing', name: 'Imported' };
+    const existingCollection = { id: 'existing-note-col', projectId: 'existing', name: 'Imported' };
+    const live = Object.fromEntries(Object.keys(collectionDraft.records).map(key => [key, []]));
+    Object.assign(live, { projects: [{ id: 'existing' }], activity: [], albums: [existingAlbum], noteCollections: [existingCollection] });
+    const snapshot = JSON.stringify(live);
+    const stubs = {
+        sampleData: live, withoutProjectReadModelRetention: action => action(),
+        activateProject: () => false, disposeProjectReadModel: () => {}, setProjectReadModelActive: () => {}
+    };
+    for (const key of Object.keys(stubs)) previousGlobals[key] = context[key];
+    try
+    {
+        Object.assign(context, stubs);
+        Object.assign(context.state, { currentProjectId: 'existing', activeModule: 'Projects', projectOpen: true, treeProjectViews: {} });
+        // Discarding and rebuilding a preview must not change the live state.
+        context.mapGedcomImport(collectionInput, project, collectionMatches, collectionRefs);
+        assert.equal(JSON.stringify(live), snapshot);
+        assert.throws(() => context.commitGedcomImport(collectionDraft, collectionsReport), /Project activation failed/);
+        assert.equal(JSON.stringify(live), snapshot);
+        assert.equal(context.state.currentProjectId, 'existing');
+        assert.equal(vm.runInContext('gedcomImportReports.has("ged-project")', context), false);
+    }
+    finally
+    {
+        Object.assign(context, previousGlobals);
+        for (const key of Object.keys(context.state)) delete context.state[key];
+        Object.assign(context.state, previousState);
+    }
+}
+verifyImportedCollectionRollback();
+
+assertImportedCollections(mhPhotoMapped);
+assertImportedCollections(mhMissing);
+assertImportedCollections(mhInvalid);
+assertImportedCollections(richNotes);
+assertImportedCollections(citationMapped);
+
 async function verifyAttachments()
 {
     const source = parse(file([
@@ -588,8 +717,9 @@ async function verifyAttachments()
     assert.equal(draft.attachmentReport.filter(entry => entry.status === 'Imported').length, 2);
     const report = context.gedcomImportReport(draft);
     assert.equal(report.attachmentCount, 2);
+    assertImportedCollections(draft);
     assert.deepEqual(JSON.parse(JSON.stringify(report.rows)), [
-        ['People', 2], ['Facts', 1], ['Photos', 1], ['Imported Archive files', 1]
+        ['People', 2], ['Facts', 1], ['Photos', 1], ['Imported Archive files', 1], ['Albums', 1]
     ]);
     const emptyCounts = context.gedcomImportReport(map(file(['0 @I1@ INDI'])));
     assert.deepEqual(JSON.parse(JSON.stringify(emptyCounts.rows)), [['People', 1]]);
@@ -625,6 +755,7 @@ async function verifyOnlinePhotos()
     assert.equal(draft.records.media[0].personIds.length, 2);
     assert.equal(draft.records.people[0].primaryPhotoId, draft.records.media[0].id);
     assert.equal(draft.onlinePhotoCount, 2);
+    assertImportedCollections(draft);
 }
 
 
@@ -650,6 +781,7 @@ async function verifyMyHeritageCutouts()
     assert.deepEqual(Array.from(mapped.errors), []);
     assert.equal(mapped.records.media.length, 1);
     assert.equal(mapped.onlinePhotoCount, 0);
+    assertImportedCollections(mapped);
     requested.length = 0;
     context.fetch = async key =>
     {
@@ -663,6 +795,7 @@ async function verifyMyHeritageCutouts()
     assert.deepEqual(Array.from(fallbackDraft.errors), []);
     assert.equal(fallbackDraft.records.media.length, 2);
     assert.equal(fallbackDraft.onlinePhotoCount, 1);
+    assertImportedCollections(fallbackDraft);
 
     const local = context.gedcomAttachmentReferences(mhPhotoInput);
     const read = [];
@@ -678,6 +811,7 @@ async function verifyMyHeritageCutouts()
     const localDraft = context.mapGedcomImport(mhPhotoInput, project, localMatches, local);
     assert.deepEqual(Array.from(localDraft.errors), []);
     assert.equal(localDraft.records.media.length, 1);
+    assertImportedCollections(localDraft);
 }
 
 verifyAttachments().then(verifyOnlinePhotos).then(verifyMyHeritageCutouts).then(() =>
