@@ -4,7 +4,7 @@
 - [x] Add scoped people and relationship providers and adopt them in People and Profile.
 - [x] Document ownership, mutation and performance development contracts.
 - [x] Add structural regression coverage and run the browser comparison.
-- [ ] Founder acceptance and OpenSpec archival.
+- [x] Founder acceptance and OpenSpec archival.
 
 ## Verification
 
@@ -30,4 +30,4 @@ One synchronous timing sample per operation on the same Windows host, static ser
 
 Warm Profile prepared one display record and made zero whole-family collection calls on all three workloads. It previously made 8–11 calls. Profile built zero directory graphs in both revisions. Warm directory prepared at most 25 visible records and reused the graph. Actual stress preview stayed at 5 ms and retained the table. Cold stress entry was slower in this sample, including fixture activation. Graph/label preparation, full-population query and the legacy preview inspector remain places to measure in integrated work. No numeric budget is claimed from a single run.
 
-Browser coverage used Edge and programmatic control. Published HTTPS, other browser engines, physical touch, and a complete edit/save interaction matrix were outside the run. The OpenSpec change remains active for founder acceptance.
+Browser coverage used Edge and programmatic control. Published HTTPS, other browser engines, physical touch, and a complete edit/save interaction matrix were outside the run. The founder explicitly accepted the implementation and documented verification on 27 November 2026; archive in the separate closeout PR. The unperformed coverage above remains unverified. No new runtime tests were performed during this documentation-only closeout.

@@ -4,7 +4,7 @@
 - [x] Add bounded and allowlisted provider, operation, stage and browser evidence to the existing recorder.
 - [x] Document measured coverage, gaps, schema and recording protocol.
 - [x] Run focused recorder, provider and application regressions.
-- [ ] Founder acceptance and OpenSpec archival.
+- [x] Founder acceptance and OpenSpec archival.
 
 ## Verification
 
@@ -19,3 +19,7 @@ One hosted Detailed export retained 46 operations and no drops. On the 6,481-per
 In a 15-render warm Whiskerfield comparison, median disabled and Detailed times were 13.1 and 13.2 ms over loopback, and 23.7 and 24.3 ms from disk. These samples indicate the overhead in this harness only. The browser reported long tasks, but the harness batched multiple actions in one script turn, so the aggregate cannot identify a single slow user operation.
 
 The export is disposable and local. No private data or trace is checked in. Physical touch, other browser engines, live Publish navigation, independent per-module scenario repetitions and individual decode/network attribution were outside this verification. The module optimization campaign follows acceptance.
+
+## Acceptance and archival — 27 November 2026
+
+The founder accepted the implementation and documented verification and requested a separate archival PR. The remaining limitations above are retained as unverified; no new runtime tests were performed during documentation-only closeout. The post-acceptance module measurement campaign is separate from this change.
