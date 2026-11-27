@@ -42,3 +42,9 @@ Place review, deletion and merge SHALL use an authoritative project-scoped canon
 ### Requirement: Shared Places association semantics
 
 The Places directory, selected inspector and place selector SHALL preserve project-scoped associations and canonical ordering. A combined person and event filter SHALL require a matching person connected to a matching event at the place. Review SHALL preserve distinct affected-place counts and the existing duplicate and dismissal rules. The selected-place inspector SHALL preserve chronological event order, person grouping, stable ties, and ownerless events. View all SHALL show the full connected event groups and rows, and Show less SHALL restore the existing preview limits.
+
+### Requirement: Recognize country context independently of display language
+
+Place display, country grouping and filtering SHALL use stable recognized modern or historical country identities rather than the last comma component. Recognize complete multilingual aliases and parenthetical context conservatively. Unknown and contradictory country context SHALL remain unknown. Preserve authored names; localized country labels SHALL NOT mutate records. Existing country filter values SHALL resolve compatibly where recognized.
+
+Possible duplicate review MAY include exact locality names with one missing hierarchy and one known coordinate; a suggested merge is not proof of identity. Automatic reconciliation of imported records follows the stricter verified identity and reference-remapping rules in [GEDCOM import](../gedcom-import/spec.md).

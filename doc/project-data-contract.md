@@ -1,6 +1,6 @@
 # Project data contract
 
-**Status: finalized V1 requirements.** The prototype implements the authored project model and detached draft preparation described here. [GEDCOM import #331](https://github.com/geneograph-team/geneograph-prototype/issues/331) uses this detached boundary. [Project backup and restore #332](https://github.com/geneograph-team/geneograph-prototype/issues/332) remains future work.
+**Status: finalized V1 requirements.** The prototype implements the authored project model and detached draft preparation described here. [GEDCOM import #331](https://github.com/geneograph-team/geneograph-prototype/issues/331) uses this detached boundary. Accepted import refinements under #483 preserve the existing canonical schema; see the [GEDCOM import specification](../openspec/specs/gedcom-import/spec.md). [Project backup and restore #332](https://github.com/geneograph-team/geneograph-prototype/issues/332) remains future work.
 
 A project owns the records listed by PROJECT_OWNED_COLLECTIONS in src/core/validation.js. Record IDs are stable within each collection. projectId identifies the owning project. References must resolve within that project. A board-local person ID is scoped to its board and is distinct from a Family Tree person ID.
 
@@ -37,7 +37,7 @@ The live canonical collections are the source for project reads. A provider borr
 
 The active project retains one compatible result per provider key. Switching, leaving, replacing or deleting the project releases results. Non-active and obsolete contexts perform uncached reads. Provider dependencies are domain revisions and the unclassified fallback epoch. A semantic setting such as reference person or language is an explicit variant for the projection that consumes it.
 
-Owning mutation paths notify once at a successful logical commit with the project ID and affected domains. Untyped edits preserve the dirty-session contract and invalidate conservatively. Ambiguous paths remain untyped. Notify before the next read or render. Run any intermediate validation against detached or uncached data and discard temporary state after a failed operation. GEDCOM rollback restores canonical collections and resets the live read generation.
+Owning mutation paths notify once at a successful logical commit with the project ID and affected domains. Untyped edits preserve the dirty-session contract and invalidate conservatively. Ambiguous paths remain untyped. Notify before the next read or render. Run any intermediate validation against detached or uncached data and discard temporary state after a failed operation. GEDCOM rollback restores canonical collections and resets the live read generation. Post-commit place enrichment is a separate session-local job: it validates current project and record identity before writing a point, keeps provider diagnostics and provisional identity outside canonical records, and uses canonical reference-safe merge only for verified unchanged duplicates.
 
 ## Implemented detached validation
 

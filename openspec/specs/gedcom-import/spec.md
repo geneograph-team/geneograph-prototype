@@ -37,7 +37,13 @@ Fatal errors SHALL stay visible in the dialog and explain the reason, recovery a
 
 Identify MyHeritage by the GEDCOM header source. When its married surname differs from its recorded surname, import the married surname as the last name and the recorded surname as the maiden name, while respecting an explicitly recorded maiden name. Other exporters retain the standard surname mapping.
 
-Preserve supported event and education details and import Source records with separate linked notes for individual citation excerpts and locators. Omit residence/contact details, recorded ages, citation quality flags, and export bookkeeping from the import report. Report online-only MyHeritage photos once per distinct file URL.
+Preserve supported event and education details. Use shared Source records for undetailed citations and standalone sources; create citation-specific Sources for detailed evidence, inheriting original source metadata and retaining readable locators, dates, roles, excerpts and literal citation quality in Source Notes. Assign a URL only when a safe HTTP(S) destination is unambiguous. Reuse identical evidence only within the original source; preserve supported person/event links and explicit research Notes. Do not generate citation Notes or infer facts. Omit redundant unused base records when citation-specific Sources retain the original metadata. Preserve unresolved family citations as Sources with a report warning instead of assigning them to unrelated people. Omit residence/contact details, recorded ages and export bookkeeping from the report. Report online-only MyHeritage photos once per distinct file URL.
+
+#### Scenario: Distinct records from one source
+
+- **WHEN** two different detailed citations refer to one source and another person cites identical evidence to the first
+- **THEN** two Sources retain the different evidence, and the first Source links to both people
+- **AND** no generated citation Note is created.
 
 ### Requirement: Preserve additional family events and date qualifiers
 
@@ -48,3 +54,38 @@ Map GEDCOM CAL and INT to the Calculated date type when the date can be parsed, 
 ### Requirement: Optional MyHeritage photo downloads
 
 For MyHeritage GEDCOM files, offer an explicit download action for JPEG, PNG, and WebP links on the supported MyHeritage image host. Stage and validate each distinct image locally, keep its associations, and apply the same attachment limits as local files. Failed downloads remain nonblocking. Selecting a GEDCOM alone does not request any online images.
+
+### Requirement: Preserve readable imported research text
+
+After assembling GEDCOM continuations, recognize HTML-formatted supported research text without interpreting ordinary literal text as markup. Store readable plain text in evidence fields, retaining safe link destinations when different from their labels, and existing canonical Quill Delta in Notes when supported formatting is present. Preserve paragraphs, line breaks, bold, italic, underline, strike, lists and safe links; retain plain-text search content, readable note titles, shared note identity and all existing associations. Imported markup SHALL NOT be executed or load external resources. Routine presentation normalization and conversion of formatted evidence to readable plain text SHALL NOT produce warnings. Unsupported or incomplete formatting SHALL be reported separately from genuinely unsafe or active content omitted, retaining GEDCOM tag and line examples. Source evidence SHALL recognize bounded layers of escaped HTML after continuation assembly and preserve literal unknown placeholders and unrecognized plain text.
+
+### Requirement: Preserve MyHeritage portraits without redundant cutouts
+
+For explicit, unambiguous MyHeritage cutout-to-original identity links, stage original images first and validate the owning person's original pixel rectangle against decoded image dimensions. When every cutout link has a usable rectangle on an available original, reuse that original with normalized per-person regions and supported primary-photo flags rather than load or store redundant derived images. Missing, ambiguous or invalid originals/regions SHALL retain available fallback portraits and disclose genuine unresolved attachment outcomes in expandable warnings. Successful consolidation and retained fallback portraits are not warnings or separate technical counters. Distinct unrelated images SHALL NOT be merged by title, filename or resemblance. Existing optional online download consent, allowed hosts, attachment limits, project validation, other exporters and local folder behavior remain intact.
+
+### Requirement: Organize imported photos and research notes
+
+Before detached draft validation, create one ordinary project-local album named Imported and assign every final canonical photo to it, when photos exist. Create one ordinary project-local Notes collection named Imported and assign every final canonical Note to it, when notes exist. Names use the import language (EN Imported; RU Импортированные). Consolidated photos count once, and citation-only Sources do not create Notes collections. No empty container, duplicate membership or separate system collection is created. Preview and result counts reflect actual research records; ordinary automatically created collection counters are not displayed. Cancelled or failed imports SHALL leave existing projects and collections unchanged. Imported records retain ordinary editability, connected-record links and All photos/All notes access; Archive and Sources organization is unaffected.
+
+### Requirement: Prepare imported place context offline
+
+Preserve authored place names and fact text, reconstruct continuations, extract unambiguous valid embedded latitude/longitude pairs, preserve valid explicit MAP coordinates and report conflicts without choosing one. Consolidate only equivalent complete place hierarchies (case, canonical Unicode, insignificant whitespace or demonstrably incidental final full stop), even without recognized country, with compatible coordinates and no invalid/conflicting coordinate evidence. Preserve aliases, all references and valid timestamps. Do not merge by locality-only similarity or reorder stored names. This preparation precedes automatic geocoding; existing projects SHALL NOT be rewritten.
+
+### Requirement: Match missing place coordinates after confirmation
+
+Following offline preparation, the importer SHALL automatically attempt at most 150 eligible unresolved places per import, prioritized by linked records, after disclosure and confirmation. A concise disclosure beside the import action explains that place names may be sent to the existing providers. No pre-import settings block or opt-out checkbox is shown. Final detached validation and successful commit/activation SHALL precede online lookup. Canceling or failing import before commit starts no job. Network failures SHALL NOT prevent import.
+
+Matching runs asynchronously in a session-local project-scoped job. Preserve authored names, existing coordinates, links and invalid/conflicting source evidence. Apply the recall-first settlement selection and single-provider policy defined in [Places geocoding](../places-geocoding/spec.md); historical or unsupported context remains unresolved. Each later point mutation rechecks live project/job/record identity, unchanged input, missing coordinates and valid point; preserve manual edits and cancel on deletion/replacement. Limit concurrent import lookups globally to two, deduplicate in-flight queries, prioritize queued manual provider requests, and recheck cooldown at dispatch. Coalesce progressive Places list/review/count/marker/inspector updates without remounting the module or resetting viewport, search, selection or open drafts; defer conflicting edits/menus.
+
+The result dialog SHALL present a compact themed lookup panel with running indicator, Stop lookup action, provider attribution and final status, without a separate technical statistics block. Closing the report does not stop matching; stopping retains completed matches. Places shows the same explanatory status panel only while running and removes it on termination. The result reports quota or provider interruptions; unresolved places remain in Needs review with localized reasons and eligible explicit retries. Jobs, diagnostics and provisional match notes are session-local, not canonical stored evidence or telemetry; reload ends jobs.
+
+#### Scenario: Continue working during matching
+
+- **WHEN** the detached import commits successfully
+- **THEN** the project is immediately usable while up to two global lookup slots enrich eligible missing coordinates
+- **AND** the user can stop matching without rolling back imported records or completed matches
+- **AND** a provisional automatically selected point can be reviewed or manually corrected.
+
+### Requirement: Verified post-import duplicate reconciliation
+
+Automatic reconciliation SHALL be limited to unchanged newly imported settlements with independently verified shared provider identity, compatible context, matching coordinates and no conflicting authored fields or dismissal. Provisional first-result assignments SHALL NOT authorize automatic merging. Use the canonical reference remap, preserve names as aliases, original fact text, project ownership and active selection. Prefer a more specific authored name, preserve session-only verified evidence for a later explicit retry, and invalidate evidence on edits. Defer unsafe active editing situations to review. Unverified shortened/full names SHALL remain review suggestions rather than automatic merges. Existing stale-write and asynchronous lifecycle protections remain intact.

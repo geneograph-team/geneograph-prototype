@@ -18,3 +18,12 @@ Provider field references: https://apidocs.geoapify.com/docs/geocoding/address-a
 
 - [x] Add controlled lookup concurrency/dispatch and session-job lifecycle regression fixtures; inspect scoped Places patch and project-read invalidation paths.
 - [ ] Native test execution, actual DOM/browser performance and complete interaction matrix remain to be verified. The repository source could be executed in isolated V8 with API stubs; the local runner could not resolve github.com to obtain a full checkout.
+
+## Closeout — 2026-11-27
+
+- [x] Founder explicitly accepts completed work and authorizes administrative closeout and archive.
+- [x] Reconcile current baseline requirements and archive the change in the closeout PR.
+
+#491, #498 and #499 accepted under #483. #496/#497/#500/#502 merged. Earlier strong/unique and provider fallback requirements are superseded by the archived multilingual change and current baseline. Live provider accuracy, account quota/terms, native and browser matrix and empirical performance were not independently verified.
+
+Unchecked execution/QA items above are retained as historical verification limitations, not outstanding acceptance blockers. Founder acceptance does not imply those checks were run. Reopen a new issue if further QA identifies a defect.

@@ -6,3 +6,12 @@
 - [ ] Reconcile baseline GEDCOM spec and archive after acceptance.
 
 Pixel rectangles are validated against decoded image dimensions; actual private original images have not been downloaded or verified. Unsupported or ambiguous links retain their fallback where available.
+
+## Closeout — 2026-11-27
+
+- [x] Founder explicitly accepts completed work and authorizes administrative closeout and archive.
+- [x] Reconcile current baseline requirements and archive the change in the closeout PR.
+
+#485 accepted under #483; #496 merged. Actual private image decode/render and browser/native suites were not independently run.
+
+Unchecked execution/QA items above are retained as historical verification limitations, not outstanding acceptance blockers. Founder acceptance does not imply those checks were run. Reopen a new issue if further QA identifies a defect.

@@ -104,8 +104,8 @@ secret tokens or reliable shared per-day quotas.
 
 ## 3. Request behavior
 
-- Geoapify `/v1/geocode/autocomplete` with `format=json` is first.
-- LocationIQ `/v1/autocomplete` receives the same query if Geoapify
+- Interactive/manual search uses Geoapify `/v1/geocode/autocomplete` with `format=json` first.
+- In interactive/manual search, LocationIQ `/v1/autocomplete` receives the same query if Geoapify
   fails, times out, is rate/quota-limited, has missing credentials or
   yields no valid results.
 - An intentional user abort **does not** trigger fallback.
@@ -121,6 +121,8 @@ secret tokens or reliable shared per-day quotas.
   Geoapify to about 3 requests/second and LocationIQ to under one
   request/second; temporary provider cooldowns reduce repeated failures.
 
+Automatic GEDCOM coordinate lookup starts after import commit and selects one configured provider (Geoapify if configured, otherwise LocationIQ). It does not switch providers after an unsuccessful response; quota stops the automatic queue. Manual and automatic recognized-settlement queries share input-based normalization and language. See [Places geocoding](../openspec/specs/places-geocoding/spec.md) for matching and review behavior.
+
 **Daily limits cannot be coordinated across all browsers without a
 backend.** Verify current pricing, quotas and attribution in the linked
 [Geoapify pricing](https://www.geoapify.com/pricing/) and
@@ -129,7 +131,7 @@ dashboards before release. Providers have independent limits; client-side
 pacing is not an account-wide quota. Preserve manual entry when either
 provider is unavailable.
 
-### Fallback semantics
+### Manual fallback semantics
 
 | Primary Geoapify result | LocationIQ behavior | User-visible result |
 | --- | --- | --- |

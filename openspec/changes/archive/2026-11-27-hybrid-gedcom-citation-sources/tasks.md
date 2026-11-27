@@ -6,3 +6,12 @@
 - [ ] Reconcile baseline GEDCOM spec and archive after material QA/acceptance.
 
 The existing canonical link contract does not support family targets. Unresolved family citations are kept as Sources and reported instead of being attributed to individuals. Exact reconstructed evidence structure is used conservatively; equivalent but differently formatted citations may remain distinct. No private genealogy or network lookup in tests.
+
+## Closeout — 2026-11-27
+
+- [x] Founder explicitly accepts completed work and authorizes administrative closeout and archive.
+- [x] Reconcile current baseline requirements and archive the change in the closeout PR.
+
+#486 accepted under #483; #496 merged. Native/browser and private sample verification not independently run; family citation target limitation retained.
+
+Unchecked execution/QA items above are retained as historical verification limitations, not outstanding acceptance blockers. Founder acceptance does not imply those checks were run. Reopen a new issue if further QA identifies a defect.
