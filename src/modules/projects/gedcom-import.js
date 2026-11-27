@@ -867,6 +867,58 @@ function gedcomCitationIdentity(node, checkDeadline)
     return [node.tag, parts.join('').trim(), children];
 }
 
+// Exact normalized hierarchy and compatible coordinate evidence only. Do not
+// merge by nearby coordinates, settlement name alone, or translated aliases.
+// Retain every original spelling as an alias and the original fact text.
+function consolidateGedcomPlaces(places, conflicts, people, families, notes, checkDeadline)
+{
+    const seen = new Map(), remap = new Map(), kept = [];
+    for (const place of places)
+    {
+        checkDeadline();
+        const context = placeContext(place);
+        const parts = context.parts;
+        const eligible = !conflicts.has(place) && !context.ambiguousCountry && context.countryId
+            && (parts.length >= 3 || (parts.length === 2 && place.coordinates))
+            && !context.countryOnly && placeCountryToken(parts.at(-1)) === context.countryId;
+        const key = eligible ? JSON.stringify([parts.slice(0, -1).map(placeContextKey),
+            context.countryId, place.coordinates]) : '';
+        const previous = key && seen.get(key);
+        if (!previous)
+        {
+            kept.push(place);
+            if (key) seen.set(key, place);
+            continue;
+        }
+        remap.set(place.id, previous.id);
+        if (!previous.alternativeNames.some(name => normalizePlaceLookupText(name) === normalizePlaceLookupText(place.name)))
+            previous.alternativeNames.push(place.name);
+    }
+    const update = record =>
+    {
+        if (!record || typeof record !== 'object') return;
+        if (remap.has(record.placeId)) record.placeId = remap.get(record.placeId);
+        for (const field of ['date', 'fromDate', 'toDate']) if (record[field]) update(record[field]);
+    };
+    if (remap.size)
+    {
+        for (const person of people)
+        {
+            checkDeadline();
+            update(person.birth); update(person.death);
+            for (const fact of [...person.events, ...person.attributes]) update(fact);
+        }
+        for (const family of families)
+            for (const event of family.events) { checkDeadline(); update(event); }
+        for (const note of notes)
+        {
+            checkDeadline();
+            note.linkedPlaceIds = [...new Set(note.linkedPlaceIds.map(id => remap.get(id) || id))];
+        }
+    }
+    return kept;
+}
+
 function mapGedcomImport(...args)
 {
     if (typeof appPerf === 'undefined' || !appPerf.enabled('Projects')) return mapGedcomImportWithDiagnosticsBody(...args);
@@ -895,6 +947,7 @@ function mapGedcomImportWithDiagnosticsBody(parsed, project, matches = new Map()
     const myHeritage = parsed.exporter === 'MYHERITAGE';
     const familio = parsed.exporter === 'FAMILIO';
     const conflictingPlaces = new Set();
+    const invalidCoordinatePlaces = new Set();
     const sourceDefinitions = new Map();
     const sources = new Map();
     const referencedSources = new Set();
@@ -1032,12 +1085,30 @@ function mapGedcomImportWithDiagnosticsBody(parsed, project, matches = new Map()
     const readPlace = node =>
     {
         const placeNode = take(node, 'PLAC');
-        const placeText = placeNode?.value.trim() || '';
+        const placeText = placeNode ? readText(placeNode).trim() : '';
         if (!placeText) return { placeId: null, placeText };
         if (!places.has(placeText))
             places.set(placeText, { id: projectId + '-place-' + (places.size + 1), projectId,
-                name: placeText, alternativeNames: [], coordinates: null });
+                name: placeText, alternativeNames: [], coordinates: null, createdAt: importedAt, updatedAt: importedAt });
         const place = places.get(placeText);
+        const embedded = placeEmbeddedCoordinates(placeText);
+        const applyPoint = (point, tag, line) =>
+        {
+            if (conflictingPlaces.has(place)) return;
+            if (place.coordinates && (place.coordinates.lat !== point.lat || place.coordinates.lng !== point.lng))
+            {
+                place.coordinates = null;
+                conflictingPlaces.add(place);
+                warn(tag, line, 'place-coordinates-conflict');
+            }
+            else place.coordinates = point;
+        };
+        if (embedded?.coordinates) applyPoint(embedded.coordinates, 'PLAC', placeNode.line);
+        else if (embedded)
+        {
+            invalidCoordinatePlaces.add(place);
+            warn('PLAC', placeNode.line, 'place-coordinates-invalid');
+        }
         const maps = placeNode.children.filter(child => child.tag === 'MAP');
         for (const map of maps)
         {
@@ -1049,17 +1120,11 @@ function mapGedcomImportWithDiagnosticsBody(parsed, project, matches = new Map()
             const lng = readCoordinate(longitudes[0], 'EW', validLongitude);
             if (latitudes.length !== 1 || longitudes.length !== 1 || lat === null || lng === null)
             {
+                invalidCoordinatePlaces.add(place);
                 warn('MAP', map.line, 'place-coordinates-invalid');
                 continue;
             }
-            if (conflictingPlaces.has(place)) continue;
-            if (place.coordinates && (place.coordinates.lat !== lat || place.coordinates.lng !== lng))
-            {
-                place.coordinates = null;
-                conflictingPlaces.add(place);
-                warn('MAP', map.line, 'place-coordinates-conflict');
-            }
-            else place.coordinates = { lat, lng };
+            applyPoint({ lat, lng }, 'MAP', map.line);
         }
         importNotes(placeNode, [], null, place.id);
         return { placeId: place.id, placeText };
@@ -1680,7 +1745,9 @@ function mapGedcomImportWithDiagnosticsBody(parsed, project, matches = new Map()
     const people = [...peopleByXref.values()];
     const families = [...familiesByXref.values()];
     if (!people.length) throw new GedcomImportError('The GEDCOM file contains no people.');
-    const records = { people, families, places: [...places.values()], media: [...media.values()], notes: [...notes.values()], archiveFiles,
+    const unresolvedCoordinateEvidence = new Set([...conflictingPlaces, ...invalidCoordinatePlaces]);
+    const placeRecords = consolidateGedcomPlaces([...places.values()], unresolvedCoordinateEvidence, people, families, [...notes.values()], checkDeadline);
+    const records = { people, families, places: placeRecords, media: [...media.values()], notes: [...notes.values()], archiveFiles,
         sources: [...sources.values()], sourceLinks: [...sourceLinks.values()], albums: [], noteCollections: [] };
     // Create ordinary project-owned containers only for final imported records.
     // This runs on each detached draft, not on live collections or raw file
@@ -1718,7 +1785,9 @@ function mapGedcomImportWithDiagnosticsBody(parsed, project, matches = new Map()
         if (entry.name.startsWith('https://sites-cf.mhcache.com/'))
             entry.name = new URL(entry.name).pathname.split('/').at(-1) || t('Photo');
     }
-    return { ...draft, warnings: [...warnings.values()], attachmentReport, attachmentAssets, distinctFilesFound, onlinePhotoCount: onlinePhotos.size };
+    return { ...draft, warnings: [...warnings.values()], attachmentReport, attachmentAssets, distinctFilesFound, onlinePhotoCount: onlinePhotos.size,
+        // Transient import metadata for #491; never write to canonical Places.
+        placeCoordinateReviewIds: [...unresolvedCoordinateEvidence].filter(place => !place.coordinates).map(place => place.id) };
 }
 
 

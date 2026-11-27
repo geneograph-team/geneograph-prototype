@@ -230,15 +230,15 @@ function renderPlacesCountryTree(list = filteredPlaces())
     const countries = new Map();
     list.forEach(place =>
     {
-        const country = placeCountry(place) || 'Unknown country';
+        const country = placeCountryId(place);
         if (!countries.has(country)) countries.set(country, []);
         countries.get(country).push(place);
     });
-    return [...countries.entries()].sort(([a], [b]) => a.localeCompare(b)).map(([country, places]) =>
+    return [...countries.entries()].sort(([a], [b]) => placeCountryLabel(a).localeCompare(placeCountryLabel(b))).map(([country, places]) =>
     {
-        const expanded = state.placesExpandedCountries?.includes(country);
+        const expanded = state.placesExpandedCountries?.some(value => placeCountryFilterId(value) === country);
         return `<div class="places-country-group">
-          <button class="places-country-row" type="button" data-place-country-disclosure="${escapeHtml(country)}" aria-expanded="${expanded}"><span>${escapeHtml(country)}</span>${icon.chevron}</button>
+          <button class="places-country-row" type="button" data-place-country-disclosure="${escapeHtml(country)}" aria-expanded="${expanded}"><span>${escapeHtml(placeCountryLabel(country))}</span>${icon.chevron}</button>
           <div class="places-country-children" ${expanded ? '' : 'hidden'}>${places.sort((a, b) => a.name.localeCompare(b.name)).map(place => `<div class="places-country-place ${state.selectedPlaceId === place.id ? 'active' : ''}" data-place-tree-item="${escapeHtml(place.id)}"><button type="button" data-place-tree-select="${escapeHtml(place.id)}">${icon.mapPin}<span>${escapeHtml(placePrimaryName(place))}</span></button><button class="places-row-more" type="button" data-place-menu="${escapeHtml(place.id)}" aria-label="Actions for ${escapeHtml(placePrimaryName(place))}">${icon.more}</button></div>`).join('')}</div>
         </div>`;
     }).join('') || '<p class="places-sidebar-empty">No places</p>';
@@ -291,7 +291,7 @@ function bindPlacesSidebarControls()
                     const expanded =
                         new Set(
                             state
-                                .placesExpandedCountries
+                                .placesExpandedCountries?.map(placeCountryFilterId)
                   || []
                         );
 
@@ -2313,7 +2313,7 @@ function placeMatchesFilters(
 
     if (
         normalized.country
-        && placeCountry(place)
+        && placeCountryId(place)
           !== normalized.country
     )
     {

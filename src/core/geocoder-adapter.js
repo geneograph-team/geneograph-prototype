@@ -80,16 +80,79 @@ const geneographGeocoder = (function ()
         const key = value => cleanText(value).normalize('NFKC').toLowerCase();
         return a.type === b.type
             && key(a.result.primary) === key(b.result.primary)
+            && key(a.result.rawContext) === key(b.result.rawContext)
             && key(a.result.context) === key(b.result.context)
             && Math.abs(a.result.coordinates.lat - b.result.coordinates.lat) < 0.0015
             && Math.abs(a.result.coordinates.lng - b.result.coordinates.lng) < 0.0015;
     }
 
-    function normalizeResult(item, index, source)
+    function normalizedAdminContext(item, source, primary, language)
+    {
+        const address = source === 'geoapify' ? item : item.address || {};
+        const countryCode = cleanText(address.country_code).toUpperCase();
+        let country = cleanText(address.country);
+        if (countryCode && /^[A-Z]{2}$/.test(countryCode))
+        {
+            try { country = new Intl.DisplayNames([language], { type: 'region', fallback: 'none' }).of(countryCode) || country; }
+            catch { /* retain provider name */ }
+        }
+        const region = cleanText(address.state || address.region);
+        const regionCode = cleanText(address.state_code || address['ISO3166-2-lvl4']);
+        const key = value => cleanText(value).normalize('NFKC').toLowerCase();
+        // Poland: documented PL-18 (Podkarpackie); PK is the provider's
+        // observed abbreviation. Scope the mapping to Poland and do not
+        // guess names for unrelated codes or countries.
+        const podkarpackie = /^(?:pk|pl-18|рк|podkarpackie(?: voivodeship)?|województwo podkarpackie|subcarpathian(?: voivodeship)?|подкарпатское воеводство)$/i;
+        const mappedRegion = countryCode === 'PL' && (podkarpackie.test(region) || podkarpackie.test(regionCode))
+            ? language === 'ru' ? 'Подкарпатское воеводство' : 'Subcarpathian Voivodeship' : region;
+        const fallback = cleanText(source === 'geoapify' ? item.address_line2
+            : item.display_address || cleanText(item.display_name).split(',').slice(1).join(', '));
+        const postcode = key(address.postcode);
+        const fallbackParts = fallback.split(',').map(cleanText).filter(value => value
+            && key(value) !== postcode && !/^\d[\d\s-]*$/.test(value));
+        const county = cleanText(address.county || address.district);
+        const parts = [county, mappedRegion, country].filter(Boolean);
+        // Keep useful provider context if structured fields are incomplete.
+        // Only discard a provider code when the full corresponding field is known.
+        if (!mappedRegion)
+        {
+            for (const part of fallbackParts)
+            {
+                if (key(part) === key(country) || key(part) === key(address.country)) continue;
+                if (countryCode === 'PL' && podkarpackie.test(part))
+                    parts.splice(Math.max(0, parts.length - Number(Boolean(country))), 0,
+                        language === 'ru' ? 'Подкарпатское воеводство' : 'Subcarpathian Voivodeship');
+                else if (!parts.some(value => key(value) === key(part)))
+                    parts.splice(Math.max(0, parts.length - Number(Boolean(country))), 0, part);
+            }
+        }
+        else
+        {
+            if (!county && country && fallbackParts.length > 2)
+            {
+                const extra = fallbackParts.slice(0, -2).filter(part =>
+                    ![primary, mappedRegion, region, regionCode, country, address.country].some(value => key(value) === key(part))
+                    && !(countryCode === 'PL' && podkarpackie.test(part)));
+                parts.unshift(...extra);
+            }
+            if (!country && fallbackParts.length) parts.push(fallbackParts.at(-1));
+        }
+        const seen = new Set([key(primary)]);
+        return parts.filter(value =>
+        {
+            const normalized = key(value);
+            if (!normalized || seen.has(normalized)) return false;
+            seen.add(normalized);
+            return true;
+        }).join(', ');
+    }
+
+    function normalizeResult(item, index, source, language = 'en')
     {
         if (!settlementType(item, source)) return null;
-        const lat = Number(item?.lat);
-        const lng = Number(item?.lon);
+        if (item?.lat == null || item?.lon == null || cleanText(item.lat) === '' || cleanText(item.lon) === '') return null;
+        const lat = Number(item.lat);
+        const lng = Number(item.lon);
         if (!Number.isFinite(lat) || lat < -90 || lat > 90
             || !Number.isFinite(lng) || lng < -180 || lng > 180)
         {
@@ -116,7 +179,9 @@ const geneographGeocoder = (function ()
                 || name.split(',').slice(1).join(', '));
         }
 
-        if (!name) name = cleanText([primary, context].filter(Boolean).join(', '));
+        const rawContext = context;
+        context = normalizedAdminContext(item, source, primary, language);
+        name = [primary, context].filter(Boolean).join(', ') || name;
         if (!name) return null;
         return {
             id: 'map-result-' + index,
@@ -124,11 +189,12 @@ const geneographGeocoder = (function ()
             name,
             primary: primary || name,
             context,
+            rawContext,
             coordinates: { lat, lng }
         };
     }
 
-    function normalizeResponse(json, source, limit)
+    function normalizeResponse(json, source, limit, language = 'en')
     {
         const items = source === 'geoapify' ? json?.results : json;
         if (!Array.isArray(items)) throw new Error('Invalid geocoding response');
@@ -138,7 +204,7 @@ const geneographGeocoder = (function ()
         {
             const type = settlementType(item, source);
             if (!type) continue;
-            const result = normalizeResult(item, results.length, source);
+            const result = normalizeResult(item, results.length, source, language);
             if (!result) continue;
             const candidate = {
                 type, result, identities: settlementIdentities(item, source)
@@ -267,7 +333,7 @@ const geneographGeocoder = (function ()
                 }
                 throw new Error('Geocoder service error');
             }
-            return normalizeResponse(await response.json(), source, limit);
+            return normalizeResponse(await response.json(), source, limit, language);
         }
         catch (error)
         {

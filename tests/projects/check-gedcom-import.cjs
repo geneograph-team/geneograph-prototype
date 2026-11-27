@@ -155,6 +155,46 @@ const literalEvidence = map(file([
 ]));
 assert.equal(literalEvidence.records.sources[0].notes, 'A &amp; B &amp;lt;private&amp;gt; and 2 &lt; 3');
 
+
+const normalizedPlaces = map(file([
+    '0 @I1@ INDI', '1 BIRT', '2 PLAC Exampletown, County, Polska',
+    '3 NOTE Place evidence', '1 DEAT', '2 PLAC Exampletown, County, Poland',
+    '0 @I2@ INDI', '1 BIRT', '2 PLAC Exampletown, Other County, Poland',
+    '1 DEAT', '2 PLAC Exampletown, 50.0, 22.0',
+    '0 @I3@ INDI', '1 BIRT', '2 PLAC Exampletown, 50.1, 22.1',
+    '1 DEAT', '2 PLAC Exampletown, 95.0, 22.0',
+    '0 @I4@ INDI', '1 BIRT', '2 PLAC Exampletown, 50.0, 22.0',
+    '3 MAP', '4 LATI N50.2', '4 LONG E22.2'
+]));
+assert.deepEqual(Array.from(normalizedPlaces.errors), []);
+assert.equal(normalizedPlaces.records.places.length, 5);
+const normalizedPlace = normalizedPlaces.records.places[0];
+assert.equal(normalizedPlace.name, 'Exampletown, County, Polska');
+assert.deepEqual(Array.from(normalizedPlace.alternativeNames), ['Exampletown, County, Poland']);
+assert.equal(normalizedPlaces.records.people[0].birth.placeId, normalizedPlaces.records.people[0].death.placeId);
+assert.equal(normalizedPlaces.records.notes[0].linkedPlaceIds[0], normalizedPlace.id);
+assert.equal(normalizedPlace.createdAt, project.createdAt);
+assert.equal(normalizedPlaces.records.places.find(place => place.name === 'Exampletown, 50.0, 22.0').coordinates, null);
+assert.equal(normalizedPlaces.records.places.find(place => place.name === 'Exampletown, 50.1, 22.1').coordinates.lat, 50.1);
+assert.ok(normalizedPlaces.warnings.some(warning => warning.kind === 'place-coordinates-conflict'));
+assert.ok(normalizedPlaces.warnings.some(warning => warning.kind === 'place-coordinates-invalid'));
+assert.equal(context.placeCountryId({name:'Kraków, Polska'}), 'PL');
+assert.equal(context.placeCountryId({name:'Warsaw, Poland'}), 'PL');
+assert.equal(context.placeCountryId({name:'Место, Украина'}), 'UA');
+assert.equal(context.placeCountryId({name:'Место, Харьковская обл.'}), 'unknown');
+assert.equal(context.placeCountryId({name:'Москва, СССР'}), 'history:ussr');
+assert.equal(context.placeCountryId({name:'Место, Россия (Region, Russia)'}), 'RU');
+assert.equal(context.placeCountryId({name:'Место, Россия (Ukraine)'}), 'unknown');
+assert.equal(context.placeContext({name:'Poland'}).countryOnly, true);
+assert.equal(context.placeContext({name:'Polska (Poland)'}).countryOnly, true);
+assert.equal(context.placeContext({name:'Example cemetery, Poland'}).nonSettlement, true);
+assert.equal(context.placeContext({name:'с. Пример, Польша'}).settlementHint, true);
+assert.equal(context.placeCountryFilterId('Польша'), 'PL');
+assert.equal(context.placeCountryLabel('PL', 'ru'), 'Польша');
+assert.equal(normalizedPlaces.placeCoordinateReviewIds.length, 2);
+assert.equal(context.placeContext({name:'Харьковская обл.'}).administrative, true);
+assert.deepEqual(Array.from(context.placeNameParts({name:'Village (old, new), County, Poland'})), ['Village (old, new)', 'County', 'Poland']);
+
 const literalNotes = map(file(['0 @I1@ INDI', '1 NOTE 2 < 3; <placeholder>; A & B &amp; C']));
 assert.equal(literalNotes.records.notes[0].body, '2 < 3; <placeholder>; A & B &amp; C');
 assert.equal(literalNotes.records.notes[0].bodyDelta, null);

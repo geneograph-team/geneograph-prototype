@@ -79,10 +79,7 @@ function placeFiltersWithDefaults(
               source.eventType || ''
           ).trim(),
 
-        country:
-          String(
-              source.country || ''
-          ).trim(),
+        country: placeCountryFilterId(source.country),
 
         mapped:
           [
@@ -148,12 +145,12 @@ function placeFilterCountries()
         ...new Set(
             projectPlaces()
                 .map(place =>
-                    placeCountry(place)
+                    placeCountryId(place)
                 )
                 .filter(Boolean)
         )
     ].sort((a, b) =>
-        a.localeCompare(b)
+        placeCountryLabel(a).localeCompare(placeCountryLabel(b))
     );
 }
 
@@ -295,7 +292,7 @@ function renderPlaceFilterFields(
             .map(country =>
                 placeFilterOption(
                     country,
-                    country,
+                    placeCountryLabel(country),
                     normalized.country
                 )
             )
@@ -634,7 +631,7 @@ function activePlaceFilterEntries(
         entries.push([
             'country',
             'Country',
-            normalized.country
+            placeCountryLabel(normalized.country)
         ]);
     }
 

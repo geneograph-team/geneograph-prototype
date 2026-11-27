@@ -150,28 +150,181 @@ function formatPlaceCoordinates(place)
     return coordinates ? `${coordinates.lat.toFixed(6)}, ${coordinates.lng.toFixed(6)}` : 'No coordinates recorded';
 }
 
+// ISO 3166-1 alpha-2 allowlist; do not treat arbitrary Intl region codes,
+// numeric regions, or ambiguous two-letter place names as country names.
+const PLACE_COUNTRY_CODES = new Set(('AD AE AF AG AI AL AM AO AQ AR AS AT AU AW AX AZ BA BB BD BE BF BG BH BI BJ BL BM BN BO BQ BR BS BT BV BW BY BZ CA CC CD CF CG CH CI CK CL CM CN CO CR CU CV CW CX CY CZ DE DJ DK DM DO DZ EC EE EG EH ER ES ET FI FJ FK FM FO FR GA GB GD GE GF GG GH GI GL GM GN GP GQ GR GS GT GU GW GY HK HM HN HR HT HU ID IE IL IM IN IO IQ IR IS IT JE JM JO JP KE KG KH KI KM KN KP KR KW KY KZ LA LB LC LI LK LR LS LT LU LV LY MA MC MD ME MF MG MH MK ML MM MN MO MP MQ MR MS MT MU MV MW MX MY MZ NA NC NE NF NG NI NL NO NP NR NU NZ OM PA PE PF PG PH PK PL PM PN PR PS PT PW PY QA RE RO RS RU RW SA SB SC SD SE SG SH SI SJ SK SL SM SN SO SR SS ST SV SX SY SZ TC TD TF TG TH TJ TK TL TM TN TO TR TT TV TW TZ UA UG UM US UY UZ VA VC VE VG VI VN VU WF WS YE YT ZA ZM ZW').split(' '));
+const PLACE_HISTORICAL_COUNTRIES = Object.freeze({
+    'history:ussr': { en: 'USSR', ru: 'СССР', aliases: ['USSR', 'Soviet Union', 'СССР', 'Советский Союз', 'СРСР', 'ZSRR'] },
+    'history:russian-empire': { en: 'Russian Empire', ru: 'Российская империя', aliases: ['Russian Empire', 'Российская империя', 'Російська імперія'] },
+    'history:austria-hungary': { en: 'Austria-Hungary', ru: 'Австро-Венгрия', aliases: ['Austria-Hungary', 'Австро-Венгрия', 'Австро-Угорщина', 'Austro-Węgry'] },
+    'history:czechoslovakia': { en: 'Czechoslovakia', ru: 'Чехословакия', aliases: ['Czechoslovakia', 'Československo', 'Чехословакия', 'Czechosłowacja'] },
+    'history:yugoslavia': { en: 'Yugoslavia', ru: 'Югославия', aliases: ['Yugoslavia', 'Jugoslavija', 'Югославия', 'Jugosławia'] },
+    'history:prussia': { en: 'Prussia', ru: 'Пруссия', aliases: ['Prussia', 'Preußen', 'Пруссия', 'Prusy'] },
+    'history:ddr': { en: 'East Germany', ru: 'ГДР', aliases: ['East Germany', 'GDR', 'DDR', 'ГДР', 'German Democratic Republic'] }
+});
+let placeCountryAliasIndex;
+function placeContextKey(value)
+{
+    return String(value || '').normalize('NFKC').trim().replace(/\s+/g, ' ').replace(/\.$/, '').toLowerCase();
+}
+
+function placeCountryAliases()
+{
+    if (placeCountryAliasIndex) return placeCountryAliasIndex;
+    const index = new Map();
+    const add = (name, code) =>
+    {
+        const key = placeContextKey(name);
+        if (!key || key.length < 3) return;
+        if (!index.has(key)) index.set(key, new Set());
+        index.get(key).add(code);
+    };
+    for (const language of ['en','ru','uk','pl','de','fr','es','it','pt','cs','sk','be','nl','ro','hu','tr','sv','fi','lt','lv','et','el','ar','he','zh','ja','ko'])
+    {
+        try
+        {
+            const names = new Intl.DisplayNames([language], { type: 'region', fallback: 'none' });
+            for (const code of PLACE_COUNTRY_CODES) add(names.of(code), code);
+        }
+        catch { /* explicit aliases and other supported locales remain usable */ }
+    }
+    const aliases = {
+        PL: ['Poland','Polska','Польша','Польща'], UA: ['Ukraine','Украина','Україна'],
+        RU: ['Russia','Russian Federation','Россия','Российская Федерация','Росія'],
+        DE: ['Germany','Deutschland','Германия','Німеччина'],
+        US: ['USA','U.S.A.','United States','United States of America','США'],
+        GB: ['UK','U.K.','United Kingdom','Великобритания','Соединённое Королевство'],
+        MD: ['Moldova','Молдова','Молдавия'], BY: ['Belarus','Беларусь','Белоруссия'],
+        CZ: ['Czechia','Czech Republic','Чехия','Česko']
+    };
+    for (const [code, names] of Object.entries(aliases))
+        for (const name of names) add(name, code);
+    // These two-letter abbreviations are explicit aliases, not generic ISO codes.
+    index.set('uk', new Set(['GB']));
+    for (const [code, country] of Object.entries(PLACE_HISTORICAL_COUNTRIES))
+        for (const name of country.aliases) add(name, code);
+    // A bare name also commonly denotes a subnational region, not a country.
+    for (const name of ['Georgia', 'Congo', 'Korea', 'Конго', 'Корея'])
+        index.delete(placeContextKey(name));
+    placeCountryAliasIndex = index;
+    return index;
+}
+
+function placeCountryToken(value)
+{
+    const matches = placeCountryAliases().get(placeContextKey(value));
+    return matches?.size === 1 ? matches.values().next().value : '';
+}
+
+// Split only top-level commas; parenthetical aliases and quoted names remain
+// intact. This is display/context parsing, never a rewrite of stored names.
 function placeNameParts(place)
 {
-    return String(place?.name || '')
-        .split(',')
-        .map(part => part.trim())
-        .filter(Boolean);
+    const value = String(place?.name || '');
+    const parts = [];
+    let depth = 0, quoted = false, start = 0;
+    for (let i = 0; i < value.length; i++)
+    {
+        const char = value[i];
+        if (char === '"') quoted = !quoted;
+        if (!quoted)
+        {
+            if (char === '(') depth++;
+            else if (char === ')' && depth) depth--;
+            else if (char === ',' && !depth)
+            {
+                parts.push(value.slice(start, i).trim());
+                start = i + 1;
+            }
+        }
+    }
+    parts.push(value.slice(start).trim());
+    return parts.filter(Boolean);
+}
+
+function placeEmbeddedCoordinates(name)
+{
+    // Explicit decimal latitude, longitude suffix, in GEDCOM export order.
+    const match = /^(.*?)\s*,\s*([+-]?\d{1,3}\.\d+)\s*,\s*([+-]?\d{1,3}\.\d+)\s*$/.exec(String(name || ''));
+    if (!match || !match[1].trim()) return null;
+    const lat = Number(match[2]), lng = Number(match[3]);
+    return { name: match[1].trim(), coordinates: validLatitude(lat) && validLongitude(lng) ? { lat, lng } : null };
+}
+
+function placeContext(place)
+{
+    const embedded = placeEmbeddedCoordinates(place?.name);
+    const parts = placeNameParts({ name: embedded?.name || place?.name });
+    const countries = new Set();
+    const add = value =>
+    {
+        const code = placeCountryToken(value);
+        if (code) countries.add(code);
+    };
+    // Only complete jurisdiction components count; inspect trailing
+    // parenthetical translations independently, including their last component.
+    for (const part of parts.slice(parts.length > 1 ? 1 : 0))
+    {
+        add(part);
+        const match = /^(.*?)\s*\(([^()]*)\)\s*\.?$/.exec(part);
+        if (match)
+        {
+            add(match[1]);
+            add(placeNameParts({ name: match[2] }).at(-1));
+        }
+    }
+    const countryId = countries.size === 1 ? countries.values().next().value : '';
+    const primary = parts[0] || '';
+    const administrative = /(?:\b(?:oblast|province|county|district|region|governorate|voivodeship|prefecture|republic|state)\b|(?:обл\.?|область|губерния|уезд|район|край|республика|округ|воеводство|область|повіт|район|województwo|powiat)\s*$)/iu.test(primary);
+    const firstAlias = /^(.*?)\s*\(([^()]*)\)\s*\.?$/.exec(primary);
+    const primaryCountry = placeCountryToken(primary) || (firstAlias && placeCountryToken(firstAlias[1])) || '';
+    const countryOnly = Boolean(primaryCountry && countries.size === 1 && countries.has(primaryCountry)
+        && parts.every(part => placeCountryToken(part) === primaryCountry
+            || (part === primary && firstAlias && placeCountryToken(firstAlias[2]) === primaryCountry)));
+    const nonSettlement = /(?:\b(?:cemetery|church|cathedral|chapel|monastery|hospital|graveyard|cmentarz|kościół|cerkiew|klasztor)\b|(?:кладбищ|церков|церкв|собор|монастыр|часовн|больниц|цвинтар|кладовищ|монастир))/iu.test(primary);
+    const settlementHint = /^(?:г\.|гор\.|с\.|сел\.|дер\.|д\.|пос\.|пгт\.?|хут\.|станица|город|село|деревня|місто|село|селище)\s+/iu.test(primary);
+    return { parts, primary, countryId, countryOnly, administrative, nonSettlement, settlementHint,
+        ambiguousCountry: countries.size > 1, embeddedCoordinates: embedded?.coordinates || null };
 }
 
 function placePrimaryName(place)
 {
-    return placeNameParts(place)[0] || 'Unnamed place';
+    return placeContext(place).primary || 'Unnamed place';
 }
 
 function placeSecondaryName(place)
 {
-    return placeNameParts(place).slice(1).join(', ');
+    const context = placeContext(place);
+    // Invalid or unresolved coordinate suffixes remain visible for review.
+    return (placeEmbeddedCoordinates(place?.name) && !placeHasCoordinates(place)
+        ? placeNameParts(place) : context.parts).slice(1).join(', ');
+}
+
+function placeCountryId(place)
+{
+    return placeContext(place).countryId || 'unknown';
+}
+
+function placeCountryLabel(id, language = typeof state !== 'undefined' && state.language === 'ru' ? 'ru' : 'en')
+{
+    if (!id || id === 'unknown') return typeof t === 'function' ? t('Other places') : 'Other places';
+    if (PLACE_HISTORICAL_COUNTRIES[id]) return PLACE_HISTORICAL_COUNTRIES[id][language] || PLACE_HISTORICAL_COUNTRIES[id].en;
+    if (!PLACE_COUNTRY_CODES.has(id)) return id;
+    try { return new Intl.DisplayNames([language], { type: 'region' }).of(id); }
+    catch { return id; }
+}
+
+function placeCountryFilterId(value)
+{
+    const text = String(value || '').trim();
+    if (!text) return '';
+    if (PLACE_COUNTRY_CODES.has(text) || PLACE_HISTORICAL_COUNTRIES[text] || text === 'unknown') return text;
+    return placeCountryToken(text) || 'unknown';
 }
 
 function placeCountry(place)
 {
-    const parts = placeNameParts(place);
-    return parts.length > 1 ? parts.at(-1) : 'Other places';
+    return placeCountryLabel(placeCountryId(place));
 }
 
 function placeAlternativeNames(place)
