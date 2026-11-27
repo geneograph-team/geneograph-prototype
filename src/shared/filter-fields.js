@@ -624,6 +624,7 @@ function renderSharedFilterFields({
                   <div
                     class="
                       shared-filter-combobox-input
+                      ${definition.searchOnly ? 'is-search-only' : ''}
                     ">
 
                     ${icon.search}
@@ -650,7 +651,7 @@ function renderSharedFilterFields({
                         }"
                       data-shared-filter-input>
 
-                    <button
+                    ${definition.searchOnly ? '' : `<button
                       class="
                         shared-filter-combobox-toggle
                       "
@@ -665,7 +666,7 @@ function renderSharedFilterFields({
                       data-shared-filter-toggle>
 
                       ${icon.chevron}
-                    </button>
+                    </button>`}
                   </div>
 
                   <div

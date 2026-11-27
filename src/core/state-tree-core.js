@@ -860,7 +860,7 @@ function openTreeSettingsModal()
         value: person.id, label: formatPersonFullName(person) || t('Unnamed person')
     }));
     const personField = (key, label, helpText = '') => ({
-        key, label, helpText, control: 'combobox', layout: 'full',
+        key, label, helpText, control: 'combobox', layout: 'full', searchOnly: true,
         placeholder: 'Search people', defaultValue: '',
         getOptions: personOptions,
         renderSelectedIdentity: (id, label) => treeSettingsPersonPreview(getPerson(id), label)

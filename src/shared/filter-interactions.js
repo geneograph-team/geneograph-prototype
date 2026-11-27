@@ -481,7 +481,7 @@ function bindSharedFilterFields(
 
         if (
             !input
-          || !toggle
+          || (!toggle && !definition.searchOnly)
           || !listbox
           || !selectedRoot
         )
@@ -678,6 +678,17 @@ function bindSharedFilterFields(
                     query
                 );
 
+            // Search-only pickers never build the unfiltered option list.
+            if (definition.searchOnly && !normalizedQuery)
+            {
+                visibleOptions = [];
+                activeIndex = -1;
+                listbox.innerHTML = '';
+                input.removeAttribute('aria-activedescendant');
+                if (status) status.textContent = '';
+                return;
+            }
+
             visibleOptions =
                 sharedFilterOptions(
                     definition
@@ -836,6 +847,13 @@ function bindSharedFilterFields(
 
         const open = () =>
         {
+            if (definition.searchOnly && !normalizeSharedFilterSearch(query))
+            {
+                renderOptions();
+                close();
+                return;
+            }
+
             closeOtherComboboxes(
                 binding
             );
@@ -853,7 +871,7 @@ function bindSharedFilterFields(
                 'true'
             );
 
-            toggle.setAttribute(
+            toggle?.setAttribute(
                 'aria-label',
                 translateText(
                     'Close options'
@@ -880,7 +898,7 @@ function bindSharedFilterFields(
                 'aria-activedescendant'
             );
 
-            toggle.setAttribute(
+            toggle?.setAttribute(
                 'aria-label',
                 translateText(
                     'Open options'
@@ -957,7 +975,10 @@ function bindSharedFilterFields(
             'pointerdown',
             () =>
             {
-                openBeforePointer = !listbox.hidden;
+                if (!definition.searchOnly)
+                {
+                    openBeforePointer = !listbox.hidden;
+                }
             }
         );
 
@@ -965,6 +986,12 @@ function bindSharedFilterFields(
             'click',
             () =>
             {
+                if (definition.searchOnly)
+                {
+                    if (listbox.hidden) open();
+                    return;
+                }
+
                 const wasOpen = openBeforePointer;
                 openBeforePointer = null;
 
@@ -995,6 +1022,13 @@ function bindSharedFilterFields(
             'keydown',
             event =>
             {
+                if (definition.searchOnly
+                    && !normalizeSharedFilterSearch(query)
+                    && (event.key === 'ArrowDown' || event.key === 'ArrowUp'))
+                {
+                    return;
+                }
+
                 if (
                     event.key === 'ArrowDown'
                 )
@@ -1085,6 +1119,13 @@ function bindSharedFilterFields(
                     return;
                 }
 
+                // A search with no results must not submit the settings form.
+                if (definition.searchOnly && event.key === 'Enter' && !listbox.hidden)
+                {
+                    event.preventDefault();
+                    return;
+                }
+
                 if (
                     event.key === 'Escape'
               && !listbox.hidden
@@ -1098,7 +1139,7 @@ function bindSharedFilterFields(
             }
         );
 
-        toggle.addEventListener(
+        toggle?.addEventListener(
             'click',
             () =>
             {

@@ -257,6 +257,10 @@
     padding-left: 11px;
 }
 
+.shared-filter-combobox-input.is-search-only {
+    padding-right: 11px;
+}
+
 .shared-filter-combobox-input:hover {
     border-color: var(--border-strong);
     background: var(--surface-card-hover);

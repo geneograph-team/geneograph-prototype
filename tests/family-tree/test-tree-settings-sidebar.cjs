@@ -49,7 +49,10 @@ const dependencies = {
     closeGeneoDraftColorPicker: () => {}, openGeneoDraftColorPicker: options => { picked = options; },
     openModal: markup => { html = markup; setup(); },
     modalBackdrop: { querySelector: () => form },
-    renderSharedFilterFields: options => options.schema.map(field => field.label + ' ' + (field.helpText || '') + ' ' + (options.values[field.key] === 'a' ? 'Person A' : '')).join(' '),
+    renderSharedFilterFields: options => options.schema.map(field => {
+        assert.equal(field.searchOnly, true);
+        return field.label + ' ' + (field.helpText || '') + ' ' + (options.values[field.key] === 'a' ? 'Person A' : '');
+    }).join(' '),
     bindSharedFilterFields: (_form, options) => { pickerChanges[options.prefix] = options.onChange; return { focusFirst() { pickerFocus++; } }; },
     touchProjectModified: () => { touches++; }, showToast: value => { toast = value; },
     centralFamilyRecords: () => [], treeBranchGraph: () => ({ parents: new Map() }),

@@ -10,5 +10,6 @@
 - [x] Add staged default-person selection and branch-reference tooltip, verify project mutation and independent reference/focus in focused regression tests.
 - [x] Refine Visibility and Coloring layout and localized guidance; extend staged settings markup assertions.
 - [x] Align both compact sections on one three-column grid; simplify Visibility headings while retaining the accessible field label; update regression assertions.
+- [x] Make both person pickers search-only and verify blank-query, matching, selection and unchanged dropdown behavior with focused regression checks.
 - [ ] Run native Node Tree regression and localization catalog checks.
 - [ ] Verify EN/RU, both themes/orientations, keyboard and mobile, 16-slot editor, Apply/Cancel, large-project repaint and absence of ELK solve in browser; consolidate current specs/archive after acceptance.
