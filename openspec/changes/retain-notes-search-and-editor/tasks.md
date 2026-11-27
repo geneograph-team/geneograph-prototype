@@ -3,6 +3,8 @@
 - [x] Reproduce search and editor mount costs on a linked synthetic Notes fixture.
 - [x] Reuse search preparation and retain compatible editors.
 - [x] Verify Notes search freshness, editor isolation and fallback in focused regressions.
+- [x] Correct row-date and save-feedback regressions; remove display-label sorting from person-link validation.
+- [ ] Verify the follow-up in real-browser Notes workflows (including rich-text and fallback).
 - [ ] Review a new Diagnostics capture on the founder's imported project and obtain acceptance.
 
 ## Verification
@@ -16,3 +18,9 @@ Hosted English and direct-file Russian Edge covered rich-text formatting and sel
 A separate hosted run measured Quill insert at 6.7 ms, paste at 8.7 ms, undo at 3.6 ms and redo at 3.3 ms with search active. The next warm refresh took 9.4 ms and kept the editor. These are single after-only operation timings.
 
 The private imported project, all saved filter combinations, and touch-specific interaction remain outside this capture.
+
+## Review follow-up
+
+Body edits now refresh row metadata without rebuilding collection chips. Save feedback belongs to the selected canonical note; rendering a different editor derives the appropriate status and expired or superseded callbacks cannot update another editor. Person-link validation uses the existing eligible people index rather than sorting display labels. Source and other resource validation are unchanged.
+
+A deterministic regression harness using the actual modified source in a V8 isolate passed date, timer/selection, project and person-link checks. The 6,481-person synthetic workload measured 27346 display-label calls in the old validation preparation versus zero in indexed validation; one cold people-index build and no repeated warm population read. These are structural counts, not a browser latency claim. The new Node-format test was syntax-parsed and its fixture/assertions executed in V8, not run via Node CLI. Actual Quill/browser QA and the founder's imported recording remain pending; the change stays active.

@@ -1026,15 +1026,10 @@ function setNoteEntityLinks(
         return null;
     }
 
-    const validIds =
-        new Set(
-            noteEntityRecords(
-                type,
-                note.projectId
-            ).map(record =>
-                record.id
-            )
-        );
+    // Validation only needs membership, not sorted display labels.
+    const validIds = type === 'person'
+        ? projectPeopleIndex(acquireProjectReadModel(note.projectId)).eligibleById
+        : new Set(noteEntityRecords(type, note.projectId).map(record => record.id));
 
     const nextIds =
         normalizeCentralNoteIdArray(

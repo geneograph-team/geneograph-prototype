@@ -172,32 +172,36 @@ function touchNote(
         new Date().toISOString();
     markPrototypeSessionEdited(note.projectId, ['notes']);
 
-    setNotesSaveStatus(
-        'Saving'
-    );
-
     if (refreshPreview)
     {
         refreshNoteBrowserRow(note, { bodyOnly });
     }
 
-    clearTimeout(
-        touchNote.savedTimer
-    );
-
-    touchNote.savedTimer =
-        setTimeout(
-            () =>
-            {
-                if (state.activeModule === 'Notes' && currentProjectId() === note.projectId && state.selectedNoteId === note.id)
-                    setNotesSaveStatus('Saved');
-            },
-            450
-        );
+    if (state.activeModule === 'Notes' && selectedNote() === note)
+    {
+        clearTimeout(touchNote.savedTimer);
+        const pending = { note };
+        touchNote.pendingSave = pending;
+        setNotesSaveStatus('Saving');
+        touchNote.savedTimer = setTimeout(() =>
+        {
+            if (touchNote.pendingSave !== pending) return;
+            touchNote.pendingSave = null;
+            touchNote.savedTimer = null;
+            if (state.activeModule === 'Notes' && selectedNote() === note)
+                setNotesSaveStatus('Saved');
+        }, 450);
+    }
 
     return note;
 }
 
+
+// Notes edits are committed immediately; the timer is only visual feedback.
+function notesSaveStatusFor(note)
+{
+    return note && touchNote.pendingSave?.note === note ? 'Saving' : 'Saved';
+}
 
 function setNotesSaveStatus(
     status
@@ -282,24 +286,9 @@ function refreshNoteBrowserRow(
             '.notes-row-excerpt'
         );
 
-    const collections =
-        row.querySelector(
-            '.notes-row-collections'
-        );
-
     const metadata =
         row.querySelector(
             '.notes-row-metadata'
-        );
-
-    const favorite =
-        row.querySelector(
-            '[data-note-favorite]'
-        );
-
-    const menu =
-        row.querySelector(
-            '[data-note-menu]'
         );
 
     if (title)
@@ -321,16 +310,6 @@ function refreshNoteBrowserRow(
           || 'No note content';
     }
 
-    if (bodyOnly) return;
-
-    if (collections)
-    {
-        collections.innerHTML =
-            renderNoteBrowserCollectionChips(
-                note
-            );
-    }
-
     if (metadata)
     {
         const value =
@@ -344,6 +323,21 @@ function refreshNoteBrowserRow(
         metadata.title =
             value;
     }
+
+    if (bodyOnly) return;
+
+    const collections = row.querySelector('.notes-row-collections');
+    const favorite = row.querySelector('[data-note-favorite]');
+    const menu = row.querySelector('[data-note-menu]');
+
+    if (collections)
+    {
+        collections.innerHTML =
+            renderNoteBrowserCollectionChips(
+                note
+            );
+    }
+
 
     if (favorite)
     {

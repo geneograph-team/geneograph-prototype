@@ -68,6 +68,8 @@ function renderNotesWithDiagnosticsBody()
           && !state.notesRightCollapsed
         );
 
+    state.notesSaveStatus = notesSaveStatusFor(editorOpen ? selected : null);
+
     const shellClasses = [
         'notes-shell',
 
