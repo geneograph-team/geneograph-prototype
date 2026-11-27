@@ -169,6 +169,7 @@ function geneoReviewUndoAutoRelation(draft, personId)
 function geneoReviewUndoRecordRow(draft, id)
 {
     draft.relationChoices.delete(id);
+    draft.relationReviewers?.delete(id);
     for (const [personId, origin] of draft.rowIdentityOrigins || [])
     {
         const dependent = geneoReviewAllRelations(draft).some(item => item.ids.includes(personId) && draft.relationChoices.get(item.id) === 'board');
@@ -278,12 +279,8 @@ function geneoTreeImportRender(reusePlan = false)
     return geneoTreeImportRenderBody(reusePlan);
 }
 
-function geneoTreeImportRenderBody(reusePlan)
+function geneoReviewPreviewForRender(draft, reusePlan, trace)
 {
-    const draft = geneoTreeImportDraft;
-    const modal = modalBackdrop.querySelector('.geneo-family-review');
-    if (!draft || !modal) return;
-    const trace = typeof appPerf === 'undefined' ? null : appPerf.currentDetailed('Geneograph');
     const read = acquireProjectReadModel(draft.projectId);
     const token = read.revisionToken(GENEO_REVIEW_PLAN_DOMAINS);
     const board = getGeneographBoard(draft.boardId, { projectId: draft.projectId });
@@ -293,6 +290,16 @@ function geneoTreeImportRenderBody(reusePlan)
     const build = () => geneoTreeImportPreview(draft);
     const plan = canReuse ? cached.plan : trace ? appPerf.measure(trace, 'projection', build) : build();
     draft.preview = { token, generation: read.generation, language: state.language, board, diagram: board?.diagram, modifiedAt: board?.modifiedAt, plan };
+    return plan;
+}
+
+function geneoTreeImportRenderBody(reusePlan)
+{
+    const draft = geneoTreeImportDraft;
+    const modal = modalBackdrop.querySelector('.geneo-family-review');
+    if (!draft || !modal) return;
+    const trace = typeof appPerf === 'undefined' ? null : appPerf.currentDetailed('Geneograph');
+    const plan = geneoReviewPreviewForRender(draft, reusePlan, trace);
     if (trace) appPerf.count(trace, 'visiblePeople', draft.people.length);
     const active = document.activeElement;
     const focusKey = active && modal.contains(active) ? active.dataset.grFocus : '';
@@ -420,6 +427,7 @@ function geneoStageReviewRelation(draft, id, direction)
         if (draft.transferDirections.has(id) && draft.transferDirections.get(id) !== direction) draft.transferTypes.set(id, geneoReviewRelationType(draft, relation, direction));
         draft.transferDirections.set(id, direction);
         draft.relationChoices.set(id, direction);
+        (draft.relationReviewers ||= new Map()).set(id, draft.activePersonId);
         if (direction === 'board')
         {
             if (!draft.rowIdentityOrigins) draft.rowIdentityOrigins = new Map();
