@@ -784,6 +784,68 @@ function gedcomJoinContent(parts)
     return { body, ops, simplified: values.some(part => part.simplified) };
 }
 
+// A citation URL is optional. Accept only one unambiguous, explicit HTTP(S)
+// destination. Preserve all readable locator text separately, even if it
+// contains several URLs or cannot safely be made into a link.
+function gedcomCitationUrl(contents)
+{
+    const candidates = new Set();
+    let ambiguous = false;
+    const add = value =>
+    {
+        if (!/^https?:\/\//i.test(value)) return;
+        if (!gedcomSafeHtmlLink(value)) { ambiguous = true; return; }
+        try
+        {
+            const url = new URL(value);
+            if (!url.hostname || url.username || url.password) { ambiguous = true; return; }
+            candidates.add(value);
+        }
+        catch { ambiguous = true; }
+    };
+    for (const content of contents)
+    {
+        for (const op of content.ops || [])
+            if (op.attributes?.link) add(op.attributes.link);
+        for (const match of content.body.matchAll(/https?:\/\/[^\s<>"']+/gi))
+        {
+            // Reject substrings inside another URI, token or identifier.
+            // An explicit URL must start at a text boundary.
+            if (match.index && !/[\s("'\[<]/.test(content.body[match.index - 1]))
+            {
+                ambiguous = true;
+                continue;
+            }
+            let value = match[0];
+            // A URL enclosed in parentheses is a common evidence locator.
+            // Do not guess at punctuation or silently truncate URL paths.
+            if (content.body[match.index - 1] === '(' && value.endsWith(')')) value = value.slice(0, -1);
+            if (/[.,;:!?)]$/.test(value) && content.body.trim() !== value && !candidates.has(value))
+                ambiguous = true;
+            else add(value);
+        }
+    }
+    return !ambiguous && candidates.size === 1 ? candidates.values().next().value : '';
+}
+
+// Compare the original evidence structure, independent of line numbers and
+// CONT/CONC wrapping. Keeping even unsupported fields in the identity avoids
+// collapsing two citations whose surviving readable text happens to agree.
+function gedcomCitationIdentity(node, checkDeadline)
+{
+    checkDeadline();
+    const parts = [node.value];
+    const children = [];
+    for (const child of node.children)
+    {
+        checkDeadline();
+        if (['CONT', 'CONC'].includes(child.tag))
+            parts.push(child.tag === 'CONT' ? '\n' : '', child.value);
+        else children.push(gedcomCitationIdentity(child, checkDeadline));
+    }
+    return [node.tag, parts.join('').trim(), children];
+}
+
 function mapGedcomImport(...args)
 {
     if (typeof appPerf === 'undefined' || !appPerf.enabled('Projects')) return mapGedcomImportWithDiagnosticsBody(...args);
@@ -812,7 +874,9 @@ function mapGedcomImportWithDiagnosticsBody(parsed, project, matches = new Map()
     const myHeritage = parsed.exporter === 'MYHERITAGE';
     const familio = parsed.exporter === 'FAMILIO';
     const conflictingPlaces = new Set();
+    const sourceDefinitions = new Map();
     const sources = new Map();
+    const referencedSources = new Set();
     const sourceLinks = new Map();
     const onlinePhotos = new Set();
     const textCache = new WeakMap();
@@ -862,6 +926,7 @@ function mapGedcomImportWithDiagnosticsBody(parsed, project, matches = new Map()
     };
     const importNotes = (owner, personIds, eventId, placeId) =>
     {
+        const imported = new Set();
         for (const link of owner.children.filter(child => child.tag === 'NOTE'))
         {
             checkDeadline();
@@ -886,7 +951,9 @@ function mapGedcomImportWithDiagnosticsBody(parsed, project, matches = new Map()
                 if (!note.linkedPersonIds.includes(id)) note.linkedPersonIds.push(id);
             if (eventId && !note.linkedEventIds.includes(eventId)) note.linkedEventIds.push(eventId);
             if (placeId && !note.linkedPlaceIds.includes(placeId)) note.linkedPlaceIds.push(placeId);
+            imported.add(note);
         }
+        return [...imported];
     };
     const take = (node, tag) =>
     {
@@ -1316,13 +1383,13 @@ function mapGedcomImportWithDiagnosticsBody(parsed, project, matches = new Map()
         const text = node.children.filter(child => child.tag === 'TEXT').map(readText);
         const category = ['Collection', 'Discovery', 'Smart Matching'].includes(classification) ? 'online'
             : publication ? 'publication' : '';
-        sources.set(node.xref, {
-            id: projectId + '-source-' + (sources.size + 1), projectId, title, category,
+        sourceDefinitions.set(node.xref, { record: {
+            projectId, title, category,
             providedBy: author, reference: publication, url: '', placeId: null, accessedDate: '',
             notes: [...text, sourceDetail('Source classification', classification),
                 sourceDetail('Source medium', medium)].filter(Boolean).join('\n\n'),
             favorite: false, createdAt: importedAt, updatedAt: importedAt
-        });
+        }, notes: importNotes(node, []) });
     }
 
     const linkSource = (sourceId, targetType, targetId) =>
@@ -1332,44 +1399,76 @@ function mapGedcomImportWithDiagnosticsBody(parsed, project, matches = new Map()
         sourceLinks.set(key, { id: projectId + '-source-link-' + (sourceLinks.size + 1),
             projectId, sourceId, targetType, targetId });
     };
+    function materializeSource(xref, identity = null, details = [], url = '')
+    {
+        const definition = sourceDefinitions.get(xref);
+        const key = JSON.stringify([xref, identity]);
+        if (sources.has(key)) return sources.get(key);
+        const record = {
+            ...definition.record,
+            id: projectId + '-source-' + (sources.size + 1),
+            url,
+            notes: [definition.record.notes, ...details].filter(value => value.trim()).join('\n\n')
+        };
+        sources.set(key, record);
+        for (const note of definition.notes) linkSource(record.id, 'note', note.id);
+        return record;
+    }
+
     function importCitations(node, personIds, eventIds = [])
     {
         checkDeadline();
         for (const citation of node.children.filter(child => child.tag === 'SOUR'))
         {
             checkDeadline();
-            const source = sources.get(citation.value.trim());
-            if (!source) continue;
+            const xref = citation.value.trim();
+            if (!sourceDefinitions.has(xref)) continue;
             used.add(citation);
-            const targets = [...eventIds];
-            const page = take(citation, 'PAGE');
-            const details = [sourceDetail('Page or reference', page ? readText(page).trim() : '')];
+            referencedSources.add(xref);
+            const targets = new Set(eventIds);
+            const details = [];
+            const urlContents = [];
+            const evidence = (field, label = '', locator = false) =>
+            {
+                if (!field) return;
+                const content = readRichText(field);
+                if (content.ops) reportSimplifiedText(field);
+                const value = gedcomPlainEvidence(content).trim();
+                if (value) details.push(label ? sourceDetail(label, value) : value);
+                if (locator) urlContents.push(content);
+            };
+            evidence(take(citation, 'PAGE'), 'Page or reference', true);
             for (const context of citation.children.filter(child => child.tag === 'EVEN'))
             {
-                used.add(context);
-                const role = take(context, 'ROLE');
-                details.push(sourceDetail('Cited event', readText(context).trim()),
-                    sourceDetail('Role', role ? readText(role).trim() : ''));
+                evidence(context, 'Cited event');
+                evidence(take(context, 'ROLE'), 'Role');
                 if (node.tag !== 'INDI' && node.tag !== 'FAM') continue;
                 const tags = context.value.trim().toUpperCase().split(/\s*,\s*/);
                 const candidates = node.children.filter(child => tags.includes(child.tag) && eventOwners.has(child));
-                if (candidates.length === 1) targets.push(eventOwners.get(candidates[0]));
+                if (candidates.length === 1) targets.add(eventOwners.get(candidates[0]));
             }
             for (const data of citation.children.filter(child => child.tag === 'DATA'))
             {
                 used.add(data);
-                details.push(sourceDetail('Citation date', read(data, 'DATE')));
-                for (const text of data.children.filter(child => child.tag === 'TEXT')) details.push(readRichText(text));
+                evidence(take(data, 'DATE'), 'Citation date');
+                for (const text of data.children.filter(child => child.tag === 'TEXT')) evidence(text, '', true);
             }
-            for (const text of citation.children.filter(child => child.tag === 'TEXT')) details.push(readRichText(text));
+            for (const text of citation.children.filter(child => child.tag === 'TEXT')) evidence(text, '', true);
+            // Keep the exporter's literal quality value as evidence, not a
+            // conclusion about whether the fact is true.
+            evidence(take(citation, 'QUAY'), 'Citation quality (GEDCOM)');
+            const researchNotes = importNotes(citation, personIds);
+            for (const note of researchNotes)
+                for (const id of targets)
+                    if (!note.linkedEventIds.includes(id)) note.linkedEventIds.push(id);
+            const detailed = details.length || researchNotes.length;
+            const identity = detailed ? gedcomCitationIdentity(citation, checkDeadline) : null;
+            const source = materializeSource(xref, identity, details, gedcomCitationUrl(urlContents));
             for (const id of personIds) linkSource(source.id, 'person', id);
             for (const id of targets) linkSource(source.id, 'event', id);
-            const content = gedcomJoinContent(details);
-            if (!content.body) continue;
-            const note = addNote(citation, content, source.title.slice(0, 100));
-            note.linkedPersonIds = [...personIds];
-            note.linkedEventIds = [...new Set(targets)];
-            linkSource(source.id, 'note', note.id);
+            for (const note of researchNotes) linkSource(source.id, 'note', note.id);
+            if (!personIds.length && !targets.size)
+                warn('SOUR', citation.line, 'citation-target');
         }
         for (const child of node.children)
             if (eventOwners.has(child)) importCitations(child, personIds, [eventOwners.get(child)]);
@@ -1377,10 +1476,15 @@ function mapGedcomImportWithDiagnosticsBody(parsed, project, matches = new Map()
     for (const [xref, person] of peopleByXref) importCitations(parsed.xrefs.get(xref), [person.id]);
     for (const xref of familiesByXref.keys())
     {
-        // A family citation without an event belongs to the family, not to each individual.
-        const node = parsed.xrefs.get(xref);
-        for (const event of node.children)
-            if (eventOwners.has(event)) importCitations(event, [], [eventOwners.get(event)]);
+        // Canonical Source links have no family target. Preserve the evidence,
+        // resolve explicitly identified family events, and disclose unmatched
+        // family citations rather than assigning them to every family member.
+        importCitations(parsed.xrefs.get(xref), []);
+    }
+    for (const xref of sourceDefinitions.keys())
+    {
+        checkDeadline();
+        if (!referencedSources.has(xref)) materializeSource(xref);
     }
 
     const archiveFiles = [];
@@ -1704,6 +1808,7 @@ function gedcomImportWarnings(report)
         + warningGroup('skipped', 'Skipped or unsupported GEDCOM data')
         + warningGroup('date-text', 'Dates preserved as text')
         + warningGroup('text-format', 'Imported text formatting simplified or unsafe content omitted')
+        + warningGroup('citation-target', 'Source citations without a supported person or event link')
         + (report.overBackupRecordLimit ? '<p>' + escapeHtml(t('This project exceeds the 50,000-record limit for project backups.')) + '</p>' : '')
         + (report.overBackupManifestLimit ? '<p>' + escapeHtml(t('This project exceeds the 32 MiB metadata limit for project backups.')) + '</p>' : '');
 }

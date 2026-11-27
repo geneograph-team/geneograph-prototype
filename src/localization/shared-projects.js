@@ -959,6 +959,8 @@ const RU_UI_PROJECTS = Object.freeze({
     "Christening": "Крещение",
     "Graduation": "Окончание обучения",
     "Citation date": "Дата свидетельства",
+    "Citation quality (GEDCOM)": "Качество свидетельства (GEDCOM)",
+    "Source citations without a supported person or event link": "Ссылки на источники без поддерживаемой связи с человеком или событием",
     "Select GEDCOM file": "Выбрать файл GEDCOM",
     "Change file": "Заменить файл",
     "Couldn't import GEDCOM": "Не удалось импортировать GEDCOM",

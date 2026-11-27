@@ -113,11 +113,13 @@ assert.equal(importedRich.bodyDelta.ops.filter(op => op.attributes?.list === 'bu
 assert.equal(importedRich.linkedPersonIds.length, 2);
 assert.equal(richNotes.records.people[0].attributes[0].notes, 'Archive extract');
 assert.equal(richNotes.records.sources[0].title, 'Archive');
-assert.equal(richNotes.records.sources[0].notes, 'Source & text record (https://example.test/source)');
-const citationRich = richNotes.records.notes.find(note => note.body.includes('Evidence'));
-assert.ok(citationRich.body.includes('Page or reference: Record & page'));
-assert.ok(citationRich.bodyDelta.ops.some(op => op.attributes?.link === 'https://example.test/record?a=1&b=2'));
-assert.equal(citationRich.bodyDelta.ops.map(op => op.insert).join(''), citationRich.body + '\n');
+const citationRich = richNotes.records.sources[0];
+assert.ok(citationRich.notes.includes('Source & text record (https://example.test/source)'));
+assert.ok(citationRich.notes.includes('Page or reference: Record & page'));
+assert.ok(citationRich.notes.includes('Evidence link (https://example.test/record?a=1&b=2)'));
+assert.equal(citationRich.url, 'https://example.test/record?a=1&b=2');
+assert.equal(richNotes.records.notes.length, 2);
+assert.ok(!richNotes.records.notes.some(note => note.body.includes('Evidence')));
 assert.ok(richNotes.warnings.some(warning => warning.kind === 'text-format'));
 const literalNotes = map(file(['0 @I1@ INDI', '1 NOTE 2 < 3; <placeholder>; A & B &amp; C']));
 assert.equal(literalNotes.records.notes[0].body, '2 < 3; <placeholder>; A & B &amp; C');
@@ -278,17 +280,103 @@ assert.equal(heritage.records.places.length, 1);
 assert.equal(heritage.records.sources[0].title, 'Source title');
 assert.equal(heritage.records.sources[0].category, 'online');
 assert.match(heritage.records.sources[0].notes, /Source\nSecond line/);
-const firstCitation = heritage.records.notes.find(note => note.body.includes('First excerpt'));
-const secondCitation = heritage.records.notes.find(note => note.body.includes('Second excerpt'));
-assert.match(firstCitation.body, /Page or reference: 7/);
-assert.match(secondCitation.body, /Page or reference: 9/);
-assert.equal(firstCitation.linkedEventIds[0], heritage.records.events.find(event => event.type === 'death').id);
-assert.equal(secondCitation.linkedEventIds.length, 0);
-assert.equal(heritage.records.sourceLinks.filter(link => link.targetType === 'person').length, 1);
-assert.equal(heritage.records.sourceLinks.filter(link => link.targetType === 'note').length, 2);
+assert.equal(heritage.records.sources.length, 2);
+const firstCitation = heritage.records.sources.find(source => source.notes.includes('First excerpt'));
+const secondCitation = heritage.records.sources.find(source => source.notes.includes('Second excerpt'));
+assert.match(firstCitation.notes, /Page or reference: 7/);
+assert.match(firstCitation.notes, /Citation quality \(GEDCOM\): 2/);
+assert.match(secondCitation.notes, /Page or reference: 9/);
+assert.equal(heritage.records.sourceLinks.find(link => link.sourceId === firstCitation.id && link.targetType === 'event').targetId,
+    heritage.records.events.find(event => event.type === 'death').id);
+assert.ok(!heritage.records.sourceLinks.some(link => link.sourceId === secondCitation.id && link.targetType === 'event'));
+assert.equal(heritage.records.sourceLinks.filter(link => link.targetType === 'person').length, 2);
+assert.equal(heritage.records.sourceLinks.filter(link => link.targetType === 'note').length, 0);
+assert.equal(heritage.records.notes.length, 1);
 assert.ok(heritage.records.events.some(event => event.title === 'Departure' && event.placeText === 'Departure place'));
 assert.ok(heritage.records.notes.find(note => note.body === 'Education note').linkedEventIds.length);
 assert.equal(heritage.warnings.length, 0);
+
+const citationRows = [
+    '1 SOUR MYHERITAGE',
+    '0 @I1@ INDI', '1 NOTE @N1@', '1 SOUR @S1@',
+    '1 BIRT', '2 DATE 1900', '2 SOUR @S1@', '3 PAGE https://example.test/match/1', '3 DATA',
+    '4 TEXT <b>Match</b> evidence', '3 QUAY 2',
+    '1 DEAT', '2 DATE 1970', '2 SOUR @S1@', '3 PAGE https://example.test/match/1', '3 DATA',
+    '4 TEXT <b>Match</b> evidence', '3 QUAY 2',
+    '1 SOUR @S1@', '2 PAGE https://example.test/match/1', '2 DATA', '3 TEXT Different excerpt', '2 QUAY 2',
+    '1 SOUR @S1@', '2 PAGE https://example.test/match/1', '2 DATA', '3 TEXT <b>Match</b> evidence', '2 QUAY 1',
+    '0 @I2@ INDI', '1 SOUR @S1@',
+    '1 SOUR @S1@', '2 PAGE https://example.test/match/1', '2 DATA', '3 TEXT <b>Match</b>',
+    '4 CONC  evidence', '2 QUAY 2',
+    '1 SOUR @S1@', '2 PAGE https://example.test/match/2', '2 DATA', '3 TEXT Separate record',
+    '1 SOUR @S2@', '2 PAGE https://example.test/match/1', '2 DATA', '3 TEXT <b>Match</b> evidence', '2 QUAY 2',
+    '1 SOUR @S2@', '2 PAGE https://example.test/a', '2 TEXT https://example.test/b',
+    '1 SOUR @S2@', '2 PAGE javascript:alert(1)', '2 TEXT <a href="https://user:secret@example.test">Unsafe</a>',
+    '1 SOUR @S2@', '2 PAGE <a href="https://example.test/locator">Record locator</a>',
+    '1 SOUR @S2@', '2 PAGE Book 3', '2 NOTE @N1@',
+    '0 @N1@ NOTE <b>Genuine research note</b>',
+    '0 @S1@ SOUR', '1 TITL Family website', '1 AUTH Provider', '1 _TYPE Smart Matching',
+    '1 PUBL Original reference', '1 TEXT General provenance',
+    '0 @S2@ SOUR', '1 TITL Family website', '1 _TYPE Discovery',
+    '0 @S3@ SOUR', '1 TITL Standalone source'
+];
+const citationMapped = map(file(citationRows));
+assert.deepEqual(Array.from(citationMapped.errors), []);
+assert.equal(citationMapped.records.sources.length, 11);
+assert.equal(citationMapped.records.notes.length, 1);
+assert.equal(citationMapped.records.notes[0].body, 'Genuine research note');
+assert.equal(citationMapped.records.notes[0].bodyFormat, 'quill-delta-v1');
+assert.equal(citationMapped.records.notes[0].linkedPersonIds.length, 2);
+const citationSources = citationMapped.records.sources;
+const citationLinks = citationMapped.records.sourceLinks;
+const citationPeople = citationMapped.records.people;
+const shared = citationSources.find(source => source.notes === 'General provenance\n\nSource classification: Smart Matching');
+assert.equal(citationLinks.filter(link => link.sourceId === shared.id && link.targetType === 'person').length, 2);
+const matched = citationSources.find(source => source.notes.includes('Smart Matching') && source.notes.includes('Match evidence')
+    && source.notes.includes('Citation quality (GEDCOM): 2'));
+assert.equal(matched.url, 'https://example.test/match/1');
+assert.equal(matched.providedBy, 'Provider');
+assert.equal(matched.reference, 'Original reference');
+assert.equal(matched.category, 'online');
+assert.equal(citationLinks.filter(link => link.sourceId === matched.id && link.targetType === 'person').length, 2);
+assert.equal(citationLinks.filter(link => link.sourceId === matched.id && link.targetType === 'event').length, 2);
+const separate = citationSources.find(source => source.notes.includes('Separate record'));
+assert.equal(separate.url, 'https://example.test/match/2');
+assert.deepEqual(Array.from(citationLinks.filter(link => link.sourceId === separate.id).map(link => link.targetId)), [citationPeople[1].id]);
+assert.ok(citationSources.some(source => source.notes.includes('Different excerpt')));
+assert.ok(citationSources.some(source => source.notes.includes('Citation quality (GEDCOM): 1')));
+assert.ok(citationSources.some(source => source.notes.includes('Discovery') && source.notes.includes('Match evidence')));
+const ambiguousUrl = citationSources.find(source => source.notes.includes('https://example.test/a'));
+assert.equal(ambiguousUrl.url, '');
+assert.ok(ambiguousUrl.notes.includes('https://example.test/b'));
+const unsafeUrl = citationSources.find(source => source.notes.includes('javascript:alert(1)'));
+assert.equal(unsafeUrl.url, '');
+assert.ok(unsafeUrl.notes.includes('Unsafe'));
+assert.equal(context.gedcomCitationUrl([{ body: 'javascript:https://example.test/embedded', ops: null }]), '');
+assert.equal(context.gedcomCitationUrl([{ body: 'See (https://example.test/record)', ops: null }]), 'https://example.test/record');
+assert.equal(context.gedcomCitationUrl([{ body: 'https://example.test/a https://example.test/b', ops: null }]), '');
+const anchorUrl = citationSources.find(source => source.notes.includes('Record locator'));
+assert.equal(anchorUrl.url, 'https://example.test/locator');
+assert.ok(anchorUrl.notes.includes('Record locator (https://example.test/locator)'));
+assert.ok(citationSources.some(source => source.title === 'Standalone source'));
+assert.ok(!citationSources.some(source => source.notes === 'Source classification: Discovery'));
+const explicitNoteSource = citationSources.find(source => source.notes.includes('Book 3'));
+assert.ok(citationLinks.some(link => link.sourceId === explicitNoteSource.id
+    && link.targetType === 'note' && link.targetId === citationMapped.records.notes[0].id));
+assert.equal(JSON.stringify(map(file(citationRows)).records), JSON.stringify(citationMapped.records));
+const citationFamily = map(file([
+    '0 @I1@ INDI', '0 @I2@ INDI', '0 @F1@ FAM', '1 HUSB @I1@', '1 WIFE @I2@',
+    '1 MARR', '2 DATE 1900', '1 SOUR @S1@', '2 EVEN MARR', '2 PAGE Marriage record',
+    '1 SOUR @S1@', '2 PAGE Family record', '0 @S1@ SOUR', '1 TITL Register'
+]));
+assert.deepEqual(Array.from(citationFamily.errors), []);
+assert.equal(citationFamily.records.sources.length, 2);
+assert.equal(citationFamily.records.notes.length, 0);
+assert.equal(citationFamily.records.sourceLinks.length, 1);
+assert.equal(citationFamily.records.sourceLinks[0].targetType, 'event');
+assert.equal(citationFamily.records.sourceLinks[0].targetId, citationFamily.records.events.find(event => event.type === 'marriage').id);
+assert.ok(citationFamily.warnings.some(warning => warning.kind === 'citation-target'));
+
 const otherExporter = map(file(['1 SOUR AgelongTree', '0 @I1@ INDI',
     '1 NAME Ada /Birth/', '2 SURN Birth', '2 _MARNM Married']));
 assert.equal(otherExporter.records.people[0].names.last, 'Birth');
