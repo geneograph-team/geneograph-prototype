@@ -383,6 +383,70 @@ assert.equal(occupationEnd.toDate.first.year, 2019);
 assert.equal(customPeriod.date.state, 'unparsed');
 assert.equal(periods.warnings.find(warning => warning.kind === 'date-text').count, 1);
 
+
+// MyHeritage photo identity and face positions belong to the direct person
+// OBJE, not filenames. Deliberately place cutouts before their original.
+const mhOriginal = 'family.jpg';
+const mhCutoutA = 'face-a.jpg';
+const mhCutoutB = 'face-b.jpg';
+const mhPhotoRows = (original, cropA, cropB, positionA = '100 20 300 220', positionB = '500 100 700 300') => [
+    '1 SOUR MYHERITAGE',
+    '0 @I1@ INDI', '1 OBJE', '2 FILE ' + cropA, '2 _PHOTO_RIN C1', '2 _CUTOUT Y',
+    '2 _PARENTRIN P1', '2 _PRIM Y', '2 _PERSONALPHOTO Y',
+    '1 OBJE', '2 FILE ' + original, '2 _PHOTO_RIN P1', '2 _PARENTPHOTO Y',
+    '2 TITL Family photo', '2 _POSITION ' + positionA, '2 _PRIM_CUTOUT Y',
+    '0 @I2@ INDI', '1 OBJE', '2 FILE ' + cropB, '2 _PHOTO_RIN C2', '2 _CUTOUT Y',
+    '2 _PARENTRIN P1', '2 _PRIM Y',
+    '1 OBJE', '2 FILE ' + original, '2 _PHOTO_RIN P1', '2 _PARENTPHOTO Y',
+    '2 _POSITION ' + positionB, '2 _PRIM_CUTOUT Y'
+];
+function mhPhotoDraft(input, missing = [])
+{
+    const refs = context.gedcomAttachmentReferences(input);
+    const matches = new Map([...refs].filter(([key]) => !missing.includes(key)).map(([key, ref]) =>
+    {
+        const file = { name: key, size: 1, type: 'image/jpeg' };
+        return [key, { ...ref, file, found: true, status: 'Ready to import',
+            photo: { filename: key, src: 'data:image/jpeg;base64,AA==', mimeType: 'image/jpeg',
+                width: key === mhOriginal ? 1000 : 200, height: key === mhOriginal ? 400 : 200, sizeBytes: 1 } }];
+    }));
+    return context.mapGedcomImport(input, project, matches, refs);
+}
+const mhPhotoInput = parse(file(mhPhotoRows(mhOriginal, mhCutoutA, mhCutoutB)));
+const mhPhotoMapped = mhPhotoDraft(mhPhotoInput);
+assert.deepEqual(Array.from(mhPhotoMapped.errors), []);
+assert.equal(mhPhotoMapped.records.media.length, 1);
+const mhPhoto = mhPhotoMapped.records.media[0];
+const [mhPersonA, mhPersonB] = mhPhotoMapped.records.people;
+assert.equal(mhPhoto.title, 'Family photo');
+assert.deepEqual(Array.from(mhPhoto.personIds), [mhPersonA.id, mhPersonB.id]);
+assert.deepEqual(JSON.parse(JSON.stringify(mhPhoto.personRegions[mhPersonA.id])), { x: .1, y: .05, width: .2, height: .5 });
+assert.deepEqual(JSON.parse(JSON.stringify(mhPhoto.personRegions[mhPersonB.id])), { x: .5, y: .25, width: .2, height: .5 });
+assert.equal(mhPersonA.primaryPhotoId, mhPhoto.id);
+assert.equal(mhPersonB.primaryPhotoId, mhPhoto.id);
+assert.equal(mhPhotoMapped.attachmentReport.filter(entry => entry.status === 'Consolidated portrait crop').length, 2);
+const mhMissing = mhPhotoDraft(mhPhotoInput, [mhOriginal]);
+assert.deepEqual(Array.from(mhMissing.errors), []);
+assert.equal(mhMissing.records.media.length, 2);
+assert.equal(mhMissing.attachmentReport.filter(entry => entry.status === 'Imported fallback portrait').length, 2);
+const mhInvalid = mhPhotoDraft(parse(file(mhPhotoRows(mhOriginal, mhCutoutA, mhCutoutB, '100 20 300 500'))));
+assert.deepEqual(Array.from(mhInvalid.errors), []);
+assert.equal(mhInvalid.records.media.length, 2);
+assert.equal(mhInvalid.records.people[0].primaryPhotoId, mhInvalid.records.media.find(photo => photo.filename === mhCutoutA).id);
+assert.equal(mhInvalid.records.people[1].primaryPhotoId, mhInvalid.records.media.find(photo => photo.filename === mhOriginal).id);
+const mhNoPosition = mhPhotoDraft(parse(file(mhPhotoRows(mhOriginal, mhCutoutA, mhCutoutB)
+    .filter(row => row !== '2 _POSITION 100 20 300 220'))));
+assert.deepEqual(Array.from(mhNoPosition.errors), []);
+assert.equal(mhNoPosition.records.media.length, 2);
+assert.equal(mhNoPosition.records.people[0].primaryPhotoId, mhNoPosition.records.media.find(photo => photo.filename === mhCutoutA).id);
+const mhAmbiguous = mhPhotoDraft(parse(file([...mhPhotoRows(mhOriginal, mhCutoutA, mhCutoutB),
+    '1 OBJE', '2 FILE similar.jpg', '2 _PHOTO_RIN P1', '2 _POSITION 0 0 100 100'])));
+assert.deepEqual(Array.from(mhAmbiguous.errors), []);
+assert.equal(mhAmbiguous.records.media.length, 4);
+const mhUnrelated = mhPhotoDraft(parse(file([...mhPhotoRows(mhOriginal, mhCutoutA, mhCutoutB),
+    '1 OBJE', '2 FILE family-copy.jpg', '2 _PHOTO_RIN unrelated'])));
+assert.equal(mhUnrelated.records.media.length, 2);
+
 async function verifyAttachments()
 {
     const source = parse(file([
@@ -475,7 +539,60 @@ async function verifyOnlinePhotos()
     assert.equal(draft.onlinePhotoCount, 2);
 }
 
-verifyAttachments().then(verifyOnlinePhotos).then(() =>
+
+async function verifyMyHeritageCutouts()
+{
+    const base = 'https://sites-cf.mhcache.com/';
+    const original = base + mhOriginal, cropA = base + mhCutoutA, cropB = base + mhCutoutB;
+    const input = parse(file(mhPhotoRows(original, cropA, cropB)));
+    const refs = context.gedcomAttachmentReferences(input, true);
+    const requested = [];
+    context.createPhotoUploadDraft = async file => ({
+        filename: file.name, src: 'data:image/jpeg;base64,AA==', mimeType: 'image/jpeg',
+        width: file.name === mhOriginal ? 1000 : 200, height: file.name === mhOriginal ? 400 : 200, sizeBytes: 1
+    });
+    context.fetch = async key =>
+    {
+        requested.push(key);
+        return new Response(new Uint8Array([1]), { headers: { 'content-type': 'image/jpeg' } });
+    };
+    const matches = await context.downloadGedcomPhotos(refs, new Map(), new AbortController().signal, () => {});
+    assert.deepEqual(requested, [original]);
+    const mapped = context.mapGedcomImport(input, project, matches, refs);
+    assert.deepEqual(Array.from(mapped.errors), []);
+    assert.equal(mapped.records.media.length, 1);
+    assert.equal(mapped.onlinePhotoCount, 0);
+    requested.length = 0;
+    context.fetch = async key =>
+    {
+        requested.push(key);
+        return key === original ? new Response(null, { status: 404 })
+            : new Response(new Uint8Array([1]), { headers: { 'content-type': 'image/jpeg' } });
+    };
+    const fallback = await context.downloadGedcomPhotos(refs, new Map(), new AbortController().signal, () => {});
+    assert.deepEqual(requested, [original, cropA, cropB]);
+    const fallbackDraft = context.mapGedcomImport(input, project, fallback, refs);
+    assert.deepEqual(Array.from(fallbackDraft.errors), []);
+    assert.equal(fallbackDraft.records.media.length, 2);
+    assert.equal(fallbackDraft.onlinePhotoCount, 1);
+
+    const local = context.gedcomAttachmentReferences(mhPhotoInput);
+    const read = [];
+    const folder = [mhCutoutA, mhCutoutB, mhOriginal].map(name =>
+    {
+        const file = { name, size: 1, type: 'image/jpeg', webkitRelativePath: 'Root/' + name,
+            async arrayBuffer() { read.push(name); return new Uint8Array([1]).buffer; } };
+        file.slice = () => file;
+        return file;
+    });
+    const localMatches = await context.matchGedcomAttachments(local, folder, () => true);
+    assert.deepEqual(read, [mhOriginal]);
+    const localDraft = context.mapGedcomImport(mhPhotoInput, project, localMatches, local);
+    assert.deepEqual(Array.from(localDraft.errors), []);
+    assert.equal(localDraft.records.media.length, 1);
+}
+
+verifyAttachments().then(verifyOnlinePhotos).then(verifyMyHeritageCutouts).then(() =>
 {
     console.log('GEDCOM decoding, canonical mapping, warnings, attachment matching, and invalid inputs passed.');
 }).catch(error =>

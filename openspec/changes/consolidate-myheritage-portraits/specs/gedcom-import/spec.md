@@ -1,0 +1,5 @@
+## ADDED Requirements
+
+### Requirement: Preserve MyHeritage portraits without redundant cutouts
+
+For explicit, unambiguous MyHeritage cutout-to-original identity links, the importer SHALL stage original images first and validate the owning person's original pixel rectangle against decoded image dimensions. When every cutout link has a usable rectangle on an available original, the importer SHALL reuse that original with normalized per-person regions and supported primary-photo flags rather than load or store redundant derived images. Missing, ambiguous or invalid originals/regions SHALL retain available fallback portraits and disclose unresolved attachment outcomes. Distinct unrelated images SHALL NOT be merged by title, filename or resemblance. Existing optional online download consent, allowed hosts, attachment limits, project validation, other exporters and local folder behavior SHALL remain intact.

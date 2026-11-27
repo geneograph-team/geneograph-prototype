@@ -240,7 +240,7 @@ function gedcomAttachmentReferences(parsed, online = false)
             }
             const path = link.path;
             const key = online ? value : (path || value).normalize('NFC').toLowerCase();
-            const entry = references.get(key) || { path, value, links: [] };
+            const entry = references.get(key) || { path, value, links: [], myHeritage: parsed.exporter === 'MYHERITAGE' };
             entry.links.push({ ...link, owner, node });
             references.set(key, entry);
         }
@@ -250,6 +250,107 @@ function gedcomAttachmentReferences(parsed, online = false)
     for (const node of parsed.roots)
         if (node.tag !== 'OBJE') visit(node, node);
     return references;
+}
+
+// MyHeritage encodes the cutout's parent identity in _PARENTRIN and
+// pixel corner coordinates on the corresponding person's original OBJE.
+// Never infer a relationship from a filename or another person's rectangle.
+function gedcomPhotoField(link, tag)
+{
+    const nodes = [...new Set([link.object, link.record])];
+    const values = new Set(nodes.flatMap(node => node.children.filter(child => child.tag === tag)
+        .map(child => child.value.trim())));
+    return values.size === 1 ? values.values().next().value : '';
+}
+
+function gedcomDirectPhotoPerson(link)
+{
+    return link.node === link.owner && link.owner.tag === 'INDI' ? link.owner.xref : '';
+}
+
+function gedcomIsCutout(reference)
+{
+    return reference.myHeritage && reference.links.some(link => gedcomPhotoField(link, '_CUTOUT').toUpperCase() === 'Y');
+}
+
+function gedcomPhotoFaceRegion(position, photo)
+{
+    if (!photo || !Number.isFinite(photo.width) || !Number.isFinite(photo.height)
+        || photo.width <= 0 || photo.height <= 0 || !/^\d+\s+\d+\s+\d+\s+\d+$/.test(position)) return null;
+    const [left, top, right, bottom] = position.split(/\s+/).map(Number);
+    if (![left, top, right, bottom].every(Number.isSafeInteger) || right <= left || bottom <= top
+        || right > photo.width || bottom > photo.height) return null;
+    return { x: left / photo.width, y: top / photo.height,
+        width: (right - left) / photo.width, height: (bottom - top) / photo.height };
+}
+
+// A single photo reference can be shared by several people. Require a single
+// unambiguous original reference and independently recorded position for
+// every cutout owner; otherwise retain the cutout as a separate portrait.
+function gedcomPhotoConsolidations(references)
+{
+    const identities = new Map();
+    for (const [key, reference] of references)
+    {
+        if (!reference.myHeritage) continue;
+        for (const link of reference.links)
+        {
+            const id = gedcomPhotoField(link, '_PHOTO_RIN');
+            if (!id) continue;
+            if (!identities.has(id)) identities.set(id, new Set());
+            identities.get(id).add(key);
+        }
+    }
+    const plans = new Map();
+    for (const [key, reference] of references)
+    {
+        if (!gedcomIsCutout(reference)) continue;
+        const parentIds = new Set(reference.links.map(link => gedcomPhotoField(link, '_PARENTRIN')));
+        const cropIds = new Set(reference.links.map(link => gedcomPhotoField(link, '_PHOTO_RIN')));
+        if (parentIds.size !== 1 || cropIds.size !== 1 || parentIds.has('') || cropIds.has('')
+            || reference.links.some(link => !gedcomDirectPhotoPerson(link)
+                || gedcomPhotoField(link, '_CUTOUT').toUpperCase() !== 'Y')) continue;
+        const parentId = parentIds.values().next().value;
+        const cropId = cropIds.values().next().value;
+        const candidates = identities.get(parentId);
+        if (parentId === cropId || identities.get(cropId)?.size !== 1 || candidates?.size !== 1) continue;
+        const parentKey = candidates.values().next().value;
+        const parent = references.get(parentKey);
+        if (parentKey === key || !parent || gedcomIsCutout(parent) || parent.links.some(link =>
+            !gedcomDirectPhotoPerson(link) || gedcomPhotoField(link, '_PHOTO_RIN') !== parentId
+            || (gedcomPhotoField(link, '_PARENTPHOTO') && gedcomPhotoField(link, '_PARENTPHOTO').toUpperCase() !== 'Y'))) continue;
+        const positions = new Map();
+        for (const link of parent.links)
+        {
+            const owner = gedcomDirectPhotoPerson(link);
+            if (!positions.has(owner)) positions.set(owner, new Set());
+            positions.get(owner).add(gedcomPhotoField(link, '_POSITION'));
+        }
+        const owners = [...new Set(reference.links.map(gedcomDirectPhotoPerson))];
+        if (owners.some(owner => positions.get(owner)?.size !== 1 || positions.get(owner).has(''))) continue;
+        plans.set(key, { parentKey, positions: owners.map(owner => positions.get(owner).values().next().value) });
+    }
+    return plans;
+}
+
+function gedcomConsolidatedPhoto(plan, matches)
+{
+    const original = plan && matches.get(plan.parentKey);
+    return original?.status === 'Ready to import' && original.photo
+        && original.links?.every(link => gedcomDirectPhotoPerson(link))
+        // Another path resolving to the same File may have incompatible
+        // positions or event ownership. Do not omit the only separate crop.
+        && ![...matches.values()].some(match => match !== original
+            && match.file === original.file && match.status === 'Ready to import')
+        && plan.positions.every(position => gedcomPhotoFaceRegion(position, original.photo)) ? original : null;
+}
+
+function gedcomPhotoReferenceOrder(references)
+{
+    // Originals and unrelated attachments precede cutouts, including fallbacks.
+    const entries = [...references];
+    return [...entries.filter(([, reference]) => !gedcomIsCutout(reference)),
+        ...entries.filter(([, reference]) => gedcomIsCutout(reference))];
 }
 
 const GEDCOM_ATTACHMENT_LIMIT = 500;
@@ -281,7 +382,8 @@ async function matchGedcomAttachments(references, folderFiles, current, reserved
     const matches = new Map();
     const loaded = new Map();
     let { bytes, count: importedCount } = gedcomAttachmentUsage(reserved);
-    for (const [key, reference] of references)
+    const consolidations = gedcomPhotoConsolidations(references);
+    for (const [key, reference] of gedcomPhotoReferenceOrder(references))
     {
         if (!current()) break;
         const path = normalize(reference.path);
@@ -293,6 +395,11 @@ async function matchGedcomAttachments(references, folderFiles, current, reserved
         const extension = /\.([a-z0-9]{1,12})$/i.exec(reference.value)?.[1];
         const entry = { ...reference, extension, found: Boolean(file), file };
         matches.set(key, entry);
+        if (gedcomConsolidatedPhoto(consolidations.get(key), matches))
+        {
+            entry.status = 'Consolidated portrait crop';
+            continue;
+        }
         if (!path) entry.status = 'Unsafe file path';
         else if (!candidates.length) entry.status = 'File not found';
         else if (!file) entry.status = 'More than one file matches';
@@ -341,11 +448,18 @@ async function downloadGedcomPhotos(references, localMatches, signal, onProgress
     const matches = new Map();
     let { bytes, count } = gedcomAttachmentUsage(localMatches);
     const extensions = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp' };
-    for (const [key, reference] of references)
+    const consolidations = gedcomPhotoConsolidations(references);
+    for (const [key, reference] of gedcomPhotoReferenceOrder(references))
     {
         if (signal.aborted) break;
         const entry = { ...reference, found: false, status: 'Linked photo could not be downloaded' };
         matches.set(key, entry);
+        if (gedcomConsolidatedPhoto(consolidations.get(key), matches))
+        {
+            entry.status = 'Consolidated portrait crop';
+            onProgress(matches.size);
+            continue;
+        }
         try
         {
             const maxBytes = Math.min(PHOTO_UPLOAD_MAX_BYTES, GEDCOM_ATTACHMENT_BYTES - bytes);
@@ -1272,8 +1386,18 @@ function mapGedcomImportWithDiagnosticsBody(parsed, project, matches = new Map()
     const archiveFiles = [];
     const attachmentAssets = new Map();
     const primaryPhotos = new Map();
+    const regionPrimaryPhotos = new Map();
     const attachmentReport = [];
     const byFile = new Map();
+    const consolidations = myHeritage ? gedcomPhotoConsolidations(references) : new Map();
+    const consolidated = [];
+    const addPrimary = (map, person, id) =>
+    {
+        if (!person) return;
+        const candidates = map.get(person) || new Set();
+        candidates.add(id);
+        map.set(person, candidates);
+    };
     for (const [key, reference] of references)
     {
         checkDeadline();
@@ -1281,10 +1405,21 @@ function mapGedcomImportWithDiagnosticsBody(parsed, project, matches = new Map()
         const entry = { name: reference.value, extension: match?.extension || /\.([a-z0-9]{1,12})$/i.exec(reference.value)?.[1],
             found: match?.found ?? false, status: match?.status || 'File not selected' };
         attachmentReport.push(entry);
+        const original = gedcomConsolidatedPhoto(consolidations.get(key), matches);
+        if (original)
+        {
+            consolidated.push({ reference, match: original, entry, consolidated: true });
+            continue;
+        }
         if (match?.status !== 'Ready to import') continue;
         const group = byFile.get(match.file) || [];
         group.push({ reference, match, entry });
         byFile.set(match.file, group);
+    }
+    for (const item of consolidated)
+    {
+        const group = byFile.get(item.match.file);
+        if (group) group.push(item);
     }
     for (const group of byFile.values())
     {
@@ -1302,7 +1437,8 @@ function mapGedcomImportWithDiagnosticsBody(parsed, project, matches = new Map()
         }
         const personIds = [...new Set(supportedLinks.map(link => personFor(link)?.id).filter(Boolean))];
         const eventIds = [...new Set(supportedLinks.map(link => eventOwners.get(link.node)).filter(Boolean))];
-        const title = links.flatMap(link => [link.file, link.record])
+        const originalLinks = group.filter(item => !item.consolidated).flatMap(item => item.reference.links);
+        const title = originalLinks.flatMap(link => [link.file, link.record])
             .flatMap(node => node.children).find(child => child.tag === 'TITL')?.value.trim();
         if (photo && !eventIds.length)
         {
@@ -1311,23 +1447,40 @@ function mapGedcomImportWithDiagnosticsBody(parsed, project, matches = new Map()
             media.set(file, { id, projectId, kind: 'photo', title: title || filename, filename, src, mimeType,
                 width, height, sizeBytes, personIds, albumIds: [], placeId: null, placeText: '', caption: '',
                 favorite: false, createdAt: importedAt, updatedAt: importedAt });
-            const dateNodes = myHeritage ? links.flatMap(link => link.object.children.filter(child => child.tag === '_DATE')) : [];
+            const dateNodes = myHeritage ? originalLinks.flatMap(link => link.object.children.filter(child => child.tag === '_DATE')) : [];
             if (dateNodes.length && new Set(dateNodes.map(node => node.value.trim())).size === 1)
             {
                 for (const node of dateNodes) used.add(node);
                 media.get(file).date = readDate(dateNodes[0]);
             }
+            if (myHeritage)
+            {
+                const regions = new Map();
+                for (const link of originalLinks)
+                {
+                    const person = personFor(link);
+                    if (!person || gedcomPhotoField(link, '_CUTOUT').toUpperCase() === 'Y') continue;
+                    const position = gedcomPhotoField(link, '_POSITION');
+                    if (!position) continue;
+                    const region = gedcomPhotoFaceRegion(position, photo);
+                    const previous = regions.get(person.id);
+                    if (!regions.has(person.id)) regions.set(person.id, region);
+                    else if (!region || JSON.stringify(previous) !== JSON.stringify(region)) regions.set(person.id, null);
+                }
+                const validRegions = Object.fromEntries([...regions].filter(([, region]) => region));
+                if (Object.keys(validRegions).length) media.get(file).personRegions = validRegions;
+            }
             for (const link of supportedLinks)
             {
                 const person = personFor(link);
-                if (link.object.children.some(child =>
-                    (child.tag === '_PRIM' || (myHeritage && child.tag === '_PERSONALPHOTO'))
-                        && child.value.trim().toUpperCase() === 'Y'))
-                {
-                    const candidates = primaryPhotos.get(person) || new Set();
-                    candidates.add(id);
-                    primaryPhotos.set(person, candidates);
-                }
+                if (!person) continue;
+                if (link.object.children.some(child => child.tag === '_PRIM' && child.value.trim().toUpperCase() === 'Y')
+                    || (myHeritage && (gedcomPhotoField(link, '_PRIM').toUpperCase() === 'Y'
+                        || gedcomPhotoField(link, '_PERSONALPHOTO').toUpperCase() === 'Y')))
+                    addPrimary(primaryPhotos, person, id);
+                else if (myHeritage && media.get(file).personRegions?.[person.id]
+                    && gedcomPhotoField(link, '_PRIM_CUTOUT').toUpperCase() === 'Y')
+                    addPrimary(regionPrimaryPhotos, person, id);
             }
         }
         else
@@ -1349,15 +1502,28 @@ function mapGedcomImportWithDiagnosticsBody(parsed, project, matches = new Map()
             used.add(link.file);
             for (const node of [link.object, link.record, link.file])
                 for (const child of node.children)
-                    if (['TITL', '_PRIM'].includes(child.tag) || (myHeritage && child.tag === '_PERSONALPHOTO')) used.add(child);
+                    if (['TITL', '_PRIM'].includes(child.tag) || (myHeritage && ['_PERSONALPHOTO',
+                        '_PHOTO_RIN', '_CUTOUT', '_PARENTRIN', '_PARENTPHOTO', '_POSITION', '_PRIM_CUTOUT'].includes(child.tag))) used.add(child);
         }
-        for (const { reference, entry } of group)
+        for (const item of group)
+        {
+            const { reference, entry } = item;
             entry.status = reference.links.every(supported) ? 'Imported' : reference.links.some(supported)
                 ? 'Imported with some links skipped' : 'No supported record to link';
+            if (photo && !eventIds.length && item.consolidated) entry.status = 'Consolidated portrait crop';
+            else if (photo && !eventIds.length && entry.status === 'Imported' && gedcomIsCutout(reference))
+                entry.status = 'Imported fallback portrait';
+        }
     }
 
+    for (const [person, candidates] of regionPrimaryPhotos)
+        if (!primaryPhotos.has(person)) primaryPhotos.set(person, candidates);
     for (const [person, candidates] of primaryPhotos)
-        if (candidates.size === 1) person.primaryPhotoId = candidates.values().next().value;
+        if (candidates.size === 1)
+        {
+            person.primaryPhotoId = candidates.values().next().value;
+            if (myHeritage) person.primaryPhotoCrop = null;
+        }
 
     function account(node, parent)
     {
@@ -1388,7 +1554,7 @@ function mapGedcomImportWithDiagnosticsBody(parsed, project, matches = new Map()
         .map(([key, match]) => match.file || key)).size;
     for (const entry of attachmentReport)
     {
-        if (entry.status.startsWith('Imported')) onlinePhotos.delete(entry.name);
+        if (entry.status.startsWith('Imported') || entry.status === 'Consolidated portrait crop') onlinePhotos.delete(entry.name);
         if (entry.name.startsWith('https://sites-cf.mhcache.com/'))
             entry.name = new URL(entry.name).pathname.split('/').at(-1) || t('Photo');
     }
@@ -1547,12 +1713,16 @@ function gedcomAttachmentSummary(report, committed = false)
     const { attachments: entries, attachmentCount, distinctFilesFound } = report;
     if (!entries.length) return '';
     const found = entries.filter(item => item.found).length;
-    const incomplete = entries.filter(item => item.status !== 'Imported');
+    const consolidatedCount = entries.filter(item => item.status === 'Consolidated portrait crop').length;
+    const fallbackCount = entries.filter(item => item.status === 'Imported fallback portrait').length;
+    const incomplete = entries.filter(item => !['Imported', 'Consolidated portrait crop', 'Imported fallback portrait'].includes(item.status));
     const progressLabel = found === distinctFilesFound ? '{found} of {total} files found'
         : '{found} of {total} file references matched';
     const progress = t(progressLabel).replace('{found}', found).replace('{total}', entries.length);
     const countLabel = committed ? '{count} attachments imported' : '{count} attachments ready to import';
     return '<p>' + escapeHtml(progress) + ' · ' + escapeHtml(t(countLabel).replace('{count}', attachmentCount)) + '</p>'
+        + (consolidatedCount ? '<p>' + escapeHtml(t('Portrait crops consolidated: {count}').replace('{count}', consolidatedCount)) + '</p>' : '')
+        + (fallbackCount ? '<p>' + escapeHtml(t('Fallback portraits retained: {count}').replace('{count}', fallbackCount)) + '</p>' : '')
         + (incomplete.length ? '<details class="gedcom-attachment-warnings"><summary>'
             + escapeHtml(t('Attachments that need attention')) + ' (' + incomplete.length + ')</summary><ul>'
             + incomplete.map(item => '<li><bdi data-user-content>' + escapeHtml(item.name) + '</bdi> · '
