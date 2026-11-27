@@ -1182,7 +1182,7 @@ function renderPlaceAttention({
 }
 
 function renderPlacesInspector(
-    place
+    place, owners
 )
 {
     if (
@@ -1300,15 +1300,9 @@ function renderPlacesInspector(
         `;
     }
 
-    const people =
-        getPeopleForPlace(
-            place.id
-        );
-
-    const events =
-        getEventsForPlace(
-            place.id
-        );
+    const associations = placeAssociationIndex(place.projectId);
+    const people = associations.peopleByPlaceId.get(place.id) || [];
+    const events = associations.eventsByPlaceId.get(place.id) || [];
 
     const photos =
         getPhotosForPlace(
@@ -1338,7 +1332,7 @@ function renderPlacesInspector(
         );
 
     const reviewIssues =
-        getActivePlaceReviewIssues(place);
+        getActivePlaceReviewIssues(place, owners);
 
     const duplicatePairs = getPlaceDuplicatePairs(place.projectId).filter(pair =>
         (pair.left.id === place.id || pair.right.id === place.id) && !placeDuplicateDismissal(pair));

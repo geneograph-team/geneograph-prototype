@@ -24,6 +24,8 @@ const placesMapRuntime = {
     mapTheme: null,
     map: null,
     host: null,
+    projectId: null,
+    scheduledMount: null,
     markerLayer: null,
     routeLayer: null,
     markersById: new Map(),

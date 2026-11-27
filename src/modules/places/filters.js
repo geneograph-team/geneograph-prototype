@@ -1029,12 +1029,16 @@ function matchDuplicatePlaces(left, right, a = left && preparePlaceDuplicateComp
     return best;
 }
 
-function getPlaceDuplicatePairs(projectId)
+function getPlaceDuplicatePairs(projectId = currentProjectId())
 {
-    if (typeof appPerf === 'undefined' || !appPerf.enabled('Places')) return getPlaceDuplicatePairsWithDiagnosticsBody(projectId);
+    const compute = () => getPlaceDuplicatePairsWithDiagnosticsBody(projectId);
+    const read = () => typeof acquireProjectReadModel === 'function'
+        ? acquireProjectReadModel(projectId).read('places:duplicate-pairs', ['places'], compute)
+        : compute();
+    if (typeof appPerf === 'undefined' || !appPerf.enabled('Places')) return read();
     const trace = appPerf.currentDetailed('Places');
-    if (!trace) return getPlaceDuplicatePairsWithDiagnosticsBody(projectId);
-    const result = appPerf.measure(trace, 'analysis', () => getPlaceDuplicatePairsWithDiagnosticsBody(projectId));
+    if (!trace) return read();
+    const result = appPerf.measure(trace, 'analysis', read);
     return result;
 }
 
@@ -1155,9 +1159,8 @@ function placeNeedsReview(place)
     return getActivePlaceReviewIssues(place).length > 0;
 }
 
-function placeReviewPlaceCount(projectId = currentProjectId())
+function placeReviewPlaceCount(projectId = currentProjectId(), owners = projectPlaceReferenceOwners(projectId))
 {
-    const owners = projectPlaceReferenceOwners(projectId);
     const ids = new Set(projectPlaces(projectId)
         .filter(place => getActivePlaceReviewIssues(place, owners).length).map(place => place.id));
     for (const pair of getPlaceDuplicatePairs(projectId))
@@ -1185,7 +1188,7 @@ function placeReviewDismissalReason(issue)
         : '');
 }
 
-function getDismissedPlaceReviewItems()
+function getDismissedPlaceReviewItems(owners = projectPlaceReferenceOwners(currentProjectId()))
 {
     return (sampleData.placeIssues || [])
         .filter(issue =>
@@ -1196,7 +1199,7 @@ function getDismissedPlaceReviewItems()
         {
             const place = getPlace(issue.placeId);
             if (!place || place.projectId !== currentProjectId()) return null;
-            const review = getPlaceReviewIssues(place).find(item => item.type === issue.type);
+            const review = getPlaceReviewIssues(place, owners).find(item => item.type === issue.type);
             return review ? { place, issue, review } : null;
         })
         .filter(Boolean);

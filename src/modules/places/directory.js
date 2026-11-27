@@ -40,13 +40,15 @@ function renderPlacesWithDiagnosticsBody()
     }
     else state.selectedPlaceReviewPairKey = '';
 
-    renderPlacesSidebar();
-    renderPlacesMain();
+    const list = filteredPlaces();
+    const owners = projectPlaceReferenceOwners(currentProjectId());
+    renderPlacesSidebar(list, owners);
+    renderPlacesMain(list, owners);
 }
 
-function renderPlacesSidebar()
+function renderPlacesSidebar(list, owners)
 {
-    const issueCount = placeReviewPlaceCount();
+    const issueCount = placeReviewPlaceCount(currentProjectId(), owners);
 
     const savedFilters =
         placeSavedFiltersForProject();
@@ -174,7 +176,7 @@ function renderPlacesSidebar()
             <div
               class="places-country-tree"
               aria-label="Places by country">
-              ${renderPlacesCountryTree()}
+              ${renderPlacesCountryTree(list ?? filteredPlaces())}
             </div>
           </div>
 
@@ -223,10 +225,10 @@ function renderPlacesSidebar()
     bindPlacesSidebarControls();
 }
 
-function renderPlacesCountryTree()
+function renderPlacesCountryTree(list = filteredPlaces())
 {
     const countries = new Map();
-    filteredPlaces().forEach(place =>
+    list.forEach(place =>
     {
         const country = placeCountry(place) || 'Unknown country';
         if (!countries.has(country)) countries.set(country, []);
@@ -1222,18 +1224,6 @@ function filteredPlacesWithDiagnosticsBody()
     const filters =
         placeFiltersWithDefaults();
 
-    const context =
-        createPlaceFilterContext(list);
-
-    list =
-        list.filter(place =>
-            placeMatchesFilters(
-                place,
-                filters,
-                context
-            )
-        );
-
     const query =
         String(
             state.placesSearch || ''
@@ -1259,6 +1249,10 @@ function filteredPlacesWithDiagnosticsBody()
                     .includes(query)
             );
     }
+
+    const context = list.length && (filters.personId || filters.surname || filters.eventType || filters.yearFrom || filters.yearTo)
+        ? createPlaceFilterContext() : null;
+    list = list.filter(place => placeMatchesFilters(place, filters, context));
 
     return appSortRecords(list, {
         field:
@@ -1383,20 +1377,20 @@ function placesInspectorShellClasses()
     ].filter(Boolean).join(' ');
 }
 
-function renderPlacesInspectorAside(place, pair)
+function renderPlacesInspectorAside(place, pair, owners)
 {
-    if (typeof appPerf === 'undefined' || !appPerf.enabled('Places')) return renderPlacesInspectorAsideWithDiagnosticsBody(place, pair);
+    if (typeof appPerf === 'undefined' || !appPerf.enabled('Places')) return renderPlacesInspectorAsideWithDiagnosticsBody(place, pair, owners);
     const trace = appPerf.currentDetailed('Places');
-    if (!trace) return renderPlacesInspectorAsideWithDiagnosticsBody(place, pair);
-    const result = appPerf.measure(trace, 'evidence', () => renderPlacesInspectorAsideWithDiagnosticsBody(place, pair));
+    if (!trace) return renderPlacesInspectorAsideWithDiagnosticsBody(place, pair, owners);
+    const result = appPerf.measure(trace, 'evidence', () => renderPlacesInspectorAsideWithDiagnosticsBody(place, pair, owners));
     return result;
 }
 
-function renderPlacesInspectorAsideWithDiagnosticsBody(place, pair = null)
+function renderPlacesInspectorAsideWithDiagnosticsBody(place, pair = null, owners)
 {
     return `<aside class="places-inspector ${state.placesInspectorCollapsed ? 'collapsed' : ''}" data-places-inspector
         aria-label="${escapeHtml(t(pair ? 'Possible duplicate' : 'Selected place inspector'))}">${pair
-            ? renderPlacesDuplicateInspector(pair) : renderPlacesInspector(place)}</aside>`;
+            ? renderPlacesDuplicateInspector(pair) : renderPlacesInspector(place, owners)}</aside>`;
 }
 
 function placeReviewT(key)
@@ -1429,13 +1423,12 @@ function placeReviewMatchesSearch(item, query)
     ].join(' ').toLowerCase().includes(query);
 }
 
-function placesReviewGroups()
+function placesReviewGroups(owners = projectPlaceReferenceOwners(currentProjectId()))
 {
     const query = String(state.placesSearch || '').trim().toLowerCase();
-    const owners = projectPlaceReferenceOwners(currentProjectId());
     const active = projectPlaces().flatMap(place => getActivePlaceReviewIssues(place, owners)
             .map(issue => ({ place, issue, dismissal: null })));
-    const dismissed = getDismissedPlaceReviewItems()
+    const dismissed = getDismissedPlaceReviewItems(owners)
         .map(({ place, issue, review }) => ({
             place, issue: review, dismissal: issue
         }));
@@ -1493,19 +1486,19 @@ function placesReviewGroups()
     return { groups: visibleGroups };
 }
 
-function placeReviewConnectionTotal(place)
+function placeReviewConnectionTotal(place, owners)
 {
-    return placeLiveReferenceCount(place);
+    return placeLiveReferenceCount(place, owners);
 }
 
-function renderPlaceReviewListRow(item)
+function renderPlaceReviewListRow(item, owners)
 {
-    if (item.pair) return renderPlaceDuplicateReviewRow(item);
+    if (item.pair) return renderPlaceDuplicateReviewRow(item, owners);
     const { place, issue, dismissal } = item;
     const placeId = escapeHtml(place.id);
     const issueType = escapeHtml(issue.type);
     const placeName = escapeHtml(placePrimaryName(place));
-    const linked = placeReviewConnectionTotal(place);
+    const linked = placeReviewConnectionTotal(place, owners);
     const selected = !state.selectedPlaceReviewPairKey && place.id === state.selectedPlaceId;
     const issueLabel = issue.type === 'invalid_coordinates'
         ? t('Coordinates need correction')
@@ -1564,14 +1557,14 @@ function renderPlaceReviewListRow(item)
       </div>`;
 }
 
-function renderPlaceDuplicateReviewRow({ pair, dismissal })
+function renderPlaceDuplicateReviewRow({ pair, dismissal }, owners)
 {
     const placeSummary = place => {
         const coordinates = normalizePlaceCoordinates(place);
         const position = coordinates ? `${coordinates.lat.toFixed(6)}, ${coordinates.lng.toFixed(6)}` : t('No coordinates');
         const radiusLabel = formatPlaceRadius(place.approximateRadiusMeters);
         const radius = radiusLabel ? ` · ${radiusLabel}` : '';
-        const linked = placeReviewConnectionTotal(place);
+        const linked = placeReviewConnectionTotal(place, owners);
         return `<div class="places-review-pair-member"><strong data-i18n-skip>${escapeHtml(place.name)}</strong>
             ${placeAlternativeNames(place).length ? `<small data-i18n-skip>${escapeHtml(placeAlternativeNames(place).join(', '))}</small>` : ''}
             <small>${escapeHtml(position + radius)}</small><small>${escapeHtml(t('Linked records'))}: ${linked}</small></div>`;
@@ -1597,7 +1590,7 @@ function renderPlaceDuplicateReviewRow({ pair, dismissal })
         <div class="places-review-row-actions">${actions}${selected ? `<button class="mobile-item-details" type="button" data-mobile-open-details aria-label="${escapeHtml(t('Details'))}">${icon.info}<span>${escapeHtml(t('Details'))}</span></button>` : ''}</div></div>`;
 }
 
-function renderPlaceReviewGroup(group, query)
+function renderPlaceReviewGroup(group, query, owners)
 {
     const isOpen = group.items.length > 0
         && (Boolean(query) || Boolean(state.placesReviewExpandedGroups?.[group.key]));
@@ -1618,7 +1611,7 @@ function renderPlaceReviewGroup(group, query)
             : ''}
           ${group.items.length
             ? `<div class="places-review-rows" role="list">
-                ${group.items.map(renderPlaceReviewListRow).join('')}
+                ${group.items.map(item => renderPlaceReviewListRow(item, owners)).join('')}
               </div>`
             : `<p class="places-review-group-empty">${escapeHtml(t(group.empty))}</p>`}
         </div>
@@ -1633,9 +1626,9 @@ function selectedVisiblePlaceReviewPair(groups)
     return selected;
 }
 
-function renderPlacesNeedsReviewPage()
+function renderPlacesNeedsReviewPage(owners = projectPlaceReferenceOwners(currentProjectId()))
 {
-    const review = placesReviewGroups();
+    const review = placesReviewGroups(owners);
     const query = String(state.placesSearch || '').trim();
     const selectedPair = selectedVisiblePlaceReviewPair(review.groups);
     const visiblePlaces = review.groups.flatMap(group => group.items.flatMap(item =>
@@ -1666,11 +1659,11 @@ function renderPlacesNeedsReviewPage()
             ${noResults}
             <div class="places-list-panel places-review-list-panel"
               role="region" aria-label="${escapeHtml(t('Places needing review'))}">
-              ${review.groups.map(group => renderPlaceReviewGroup(group, query)).join('')}
+              ${review.groups.map(group => renderPlaceReviewGroup(group, query, owners)).join('')}
             </div>
           </div>
         </div></section>
-        ${renderPlacesInspectorAside(selected, selectedPair)}
+        ${renderPlacesInspectorAside(selected, selectedPair, owners)}
       </div>`;
 
     bindPlacesNeedsReviewControls();
@@ -1869,26 +1862,26 @@ function bindPlacesNeedsReviewControls()
     bindToasts(main);
 }
 
-function renderPlacesMain()
+function renderPlacesMain(list, owners)
 {
-    if (typeof appPerf === 'undefined' || !appPerf.enabled('Places')) return renderPlacesMainWithDiagnosticsBody();
+    if (typeof appPerf === 'undefined' || !appPerf.enabled('Places')) return renderPlacesMainWithDiagnosticsBody(list, owners);
     const trace = appPerf.currentDetailed('Places');
     if (!trace) return appPerf.run('Places', 'query', () =>
-        appPerf.measure(appPerf.currentDetailed('Places'), 'markup', () => renderPlacesMainWithDiagnosticsBody()));
-    const result = appPerf.measure(trace, 'markup', () => renderPlacesMainWithDiagnosticsBody());
+        appPerf.measure(appPerf.currentDetailed('Places'), 'markup', () => renderPlacesMainWithDiagnosticsBody(list, owners)));
+    const result = appPerf.measure(trace, 'markup', () => renderPlacesMainWithDiagnosticsBody(list, owners));
     return result;
 }
 
-function renderPlacesMainWithDiagnosticsBody()
+function renderPlacesMainWithDiagnosticsBody(list, owners)
 {
     if (state.placesView === 'review')
     {
-        renderPlacesNeedsReviewPage();
+        renderPlacesNeedsReviewPage(owners);
         return;
     }
 
-    const list =
-        filteredPlaces();
+    list ??= filteredPlaces();
+    if (list.length) owners ??= projectPlaceReferenceOwners(currentProjectId());
 
     const selected =
         selectedPlaceFromVisibleList(list);
@@ -1908,7 +1901,7 @@ function renderPlacesMainWithDiagnosticsBody()
     const shellClasses =
         placesInspectorShellClasses();
 
-    main.innerHTML = `
+    const markup = `
         <div class="${shellClasses}">
           <section class="places-main">
             <div class="places-page">
@@ -2117,7 +2110,7 @@ function renderPlacesMainWithDiagnosticsBody()
 
               ${
                     state.placesViewMode === 'list'
-                        ? renderPlacesListPanel(list)
+                        ? renderPlacesListPanel(list, owners)
                         : `
                     <div class="places-content map">
                       ${renderPlacesMapShell(list)}
@@ -2127,95 +2120,46 @@ function renderPlacesMainWithDiagnosticsBody()
             </div>
           </section>
 
-          ${renderPlacesInspectorAside(selected)}
+          ${renderPlacesInspectorAside(selected, null, owners)}
         </div>
       `;
+    replacePlacesMainMarkup(markup);
     bindPlacesControls(list);
     mountPlacesMobileDetailsClose();
-    if (state.placesViewMode === 'map') requestAnimationFrame(() => mountPlacesMap(list));
+    if (state.placesViewMode === 'map') schedulePlacesMapMount(list);
 }
 
-function placeFilterRecordPlaceIds(record)
+function replacePlacesMainMarkup(markup)
 {
-    return [
-        record?.placeId,
-        record?.birthPlaceId,
-        record?.deathPlaceId,
-        record?.burialPlaceId,
-        ...(
-            Array.isArray(record?.placeIds)
-                ? record.placeIds
-                : []
-        )
-    ].filter(Boolean);
-}
-
-function createPlaceFilterContext(
-    places = projectPlaces()
-)
-{
-    const projectId =
-        currentProjectId();
-
-    const placeIds =
-        new Set(
-            places.map(place =>
-                place.id
-            )
-        );
-
-    const eventsByPlaceId =
-        new Map();
-
-    const peopleByPlaceId =
-        new Map();
-
-    places.forEach(place =>
+    const host = placesMapRuntime.host;
+    const retain = state.placesViewMode === 'map' && placesMapRuntime.projectId === currentProjectId()
+        && host && main.contains(host) && ['ready', 'loading'].includes(placesMapRuntime.status);
+    if (!retain)
     {
-        eventsByPlaceId.set(
-            place.id,
-            []
-        );
+        if (host) destroyPlacesMap();
+        main.innerHTML = markup;
+        return;
+    }
+    const oldNodes = [...main.childNodes];
+    const oldStatus = main.querySelector('[data-places-map-status]');
+    const template = document.createElement('template');
+    template.innerHTML = markup;
+    const nextHost = template.content.querySelector('#placesVectorMap');
+    const nextStatus = template.content.querySelector('[data-places-map-status]');
+    main.append(template.content);
+    if (typeof nextHost.parentNode.moveBefore === 'function')
+    {
+        nextHost.parentNode.moveBefore(host, nextHost);
+        nextHost.remove();
+    }
+    else nextHost.replaceWith(host);
+    if (oldStatus && nextStatus) nextStatus.replaceWith(oldStatus);
+    for (const node of oldNodes) node.remove();
+}
 
-        peopleByPlaceId.set(
-            place.id,
-            getPeopleForPlace(
-                place.id,
-                {
-                    projectId
-                }
-            )
-        );
-    });
-
-    (
-        sampleData.events || []
-    )
-        .filter(event =>
-            event.projectId
-            === projectId
-        )
-        .forEach(event =>
-        {
-            placeFilterRecordPlaceIds(
-                event
-            ).forEach(placeId =>
-            {
-                if (!placeIds.has(placeId))
-                {
-                    return;
-                }
-
-                eventsByPlaceId
-                    .get(placeId)
-                    ?.push(event);
-            });
-        });
-
-    return {
-        eventsByPlaceId,
-        peopleByPlaceId
-    };
+function createPlaceFilterContext()
+{
+    return placeAssociationIndex(currentProjectId());
 }
 
 function placeFilterDateText(value)
@@ -2390,7 +2334,7 @@ function placeMatchesFilters(
     }
 
     const linkedPeople =
-        context.peopleByPlaceId
+        context?.peopleByPlaceId
             .get(place.id)
         || [];
 
@@ -2445,7 +2389,7 @@ function placeMatchesFilters(
     if (hasEventCondition)
     {
         const linkedEvents =
-            context.eventsByPlaceId
+            context?.eventsByPlaceId
                 .get(place.id)
           || [];
 
@@ -2518,9 +2462,10 @@ function placeMatchesFilters(
     return true;
 }
 
-function renderPlacesListPanel(list)
+function renderPlacesListPanel(list, owners = projectPlaceReferenceOwners(currentProjectId()))
 {
     if (!list.length) return '<div class="places-empty"><strong>No places found</strong><span>Try clearing the search or filters.</span></div>';
+    const linkedPeopleCounts = placeAssociationIndex().counts;
     const duplicateCounts = new Map();
     getPlaceDuplicatePairs().filter(pair => !placeDuplicateDismissal(pair)).forEach(pair =>
     {
@@ -2541,13 +2486,8 @@ function renderPlacesListPanel(list)
 
           ${list.map(place =>
             {
-                const counts =
-                    getPlaceConnectionCounts(
-                        place.id
-                    );
-
-                const linkedPeople = counts.people;
-                const issueCount = getActivePlaceReviewIssues(place).length + (duplicateCounts.get(place.id) || 0);
+                const linkedPeople = linkedPeopleCounts.get(place.id) || 0;
+                const issueCount = getActivePlaceReviewIssues(place, owners).length + (duplicateCounts.get(place.id) || 0);
                 const reviewIndicator = issueCount
                     ? `<button class="places-list-review" type="button" data-place-review-link="${escapeHtml(place.id)}">${issueCount > 1 ? `${issueCount} issues` : 'Needs review'}</button>`
                     : '';

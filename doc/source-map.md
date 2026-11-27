@@ -51,7 +51,8 @@ The classic-script order is coordinator, relationship rules, then providers. The
 | `people:geneo-match-names` | Geneograph Sync automatic matching reads eligible people, groups by name and prepares birth dates on demand | Language |
 | `people:link-search` | Shared People linker reads people, places and media to prepare searchable fields and photo counts | Language |
 | `people:photo-filter-search` | Shared resource picker reads people for photo filter ordering and search | Language |
-| `places:selector-people-counts` | Place selector reads people, places and events to count distinct people per place | None |
+| `places:associations` | Place directory, inspector and selector read places, people and events to index ordered associations and distinct people counts | None |
+| `places:duplicate-pairs` | Places review and Project Overview share exact duplicate comparisons derived from canonical place records | None |
 
 All keys retain one value for the active generation. A domain edit evicts matching entries. Unknown edits evict all entries. Non-active reads are uncached. For a new provider, use a distinct key, declare inputs and return read-only derived data. For example, a single-person consumer can call `projectPeopleIndex(acquireProjectReadModel(projectId)).eligibleById.get(personId)`. A mutation owner that has completed a project metadata change can call `markPrototypeSessionEdited(projectId, ['projects'])`. Default-reference changes already use that path. Reads that require families can pass the scoped index to the existing relationship helpers. Tree layout retains its separate request-local preparation.
 
@@ -65,7 +66,7 @@ All keys retain one value for the active generation. A domain edit evicts matchi
 | --- | --- | --- |
 | Projects | Activation/navigation/render, GEDCOM parse/map/commit, import sizes, open-project insights analysis | Insight section attribution and slower deferred work need a targeted recording |
 | People | Directory, Profile, preview, delete, search/filter/sort/page. Filter, sort, detail, markup, DOM insertion, evidence and provider reuse | Other edit/save and preview substeps lack dedicated stages |
-| Places | Entry, list/map workspace changes, selection, review, query, duplicate analysis and inspector evidence. Map initialization ends at readiness/failure/cancel | Style-only reloads, geocoder/Tiles network breakdown and per-row association work need profiling |
+| Places | Entry, list/map workspace changes, selection, review, query, duplicate analysis and inspector evidence. Map initialization ends at readiness/failure/cancel | Style-only reloads and geocoder or tile network breakdown need separate profiling |
 | Archive | Workspace render, file/source query and detail, inspector and desktop selection | Query totals may repeat within a render. Photo decoding and async import/viewer work are unspecified |
 | Albums | Navigation, photo query, detail pane, grid resize and image markup | Native decoding and guarded navigation wait are unspecified |
 | Notes | Render, result query, central-note selection and rich editor mount | Autosave and typing costs need a focused capture |

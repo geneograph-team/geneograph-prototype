@@ -582,6 +582,56 @@ function mergeSavedPlaces(keepId, removeId, { aliases = true, locationChoice, fi
     return true;
 }
 
+function placeAssociationIndex(projectId = currentProjectId())
+{
+    const context = acquireProjectReadModel(projectId);
+    return context.read('places:associations', ['places', 'people', 'events'], id =>
+    {
+        const placeIds = new Set((sampleData.places || []).filter(place => place.projectId === id).map(place => place.id));
+        const eventsByPlaceId = new Map(), peopleByPlaceId = new Map(), counts = new Map();
+        const personPlaces = new Map();
+        const collect = (record, ids) =>
+        {
+            if (!record) return;
+            for (const key of ['placeId', 'birthPlaceId', 'deathPlaceId', 'burialPlaceId'])
+                if (placeIds.has(record[key])) ids.add(record[key]);
+            if (Array.isArray(record.placeIds))
+                for (const placeId of record.placeIds) if (placeIds.has(placeId)) ids.add(placeId);
+        };
+        const append = (index, key, record) =>
+        {
+            if (!index.has(key)) index.set(key, []);
+            index.get(key).push(record);
+        };
+        const trace = typeof appPerf === 'undefined' ? null : appPerf.currentDetailed();
+        if (trace) appPerf.count(trace, 'recordsScanned', (sampleData.events || []).length, true);
+        for (const event of sampleData.events || [])
+        {
+            if (event.projectId !== id) continue;
+            const ids = new Set();
+            collect(event, ids);
+            if (!ids.size) continue;
+            for (const placeId of ids) append(eventsByPlaceId, placeId, event);
+            for (const personId of event.personIds || [])
+            {
+                if (!personPlaces.has(personId)) personPlaces.set(personId, new Set());
+                for (const placeId of ids) personPlaces.get(personId).add(placeId);
+            }
+        }
+        for (const person of projectPeopleIndex(context).rawById.values())
+        {
+            const ids = new Set(personPlaces.get(person.id));
+            collect(person.birth, ids);
+            collect(person.death, ids);
+            for (const attribute of person.attributes || []) collect(attribute, ids);
+            for (const event of person.events || []) collect(event, ids);
+            for (const placeId of ids) append(peopleByPlaceId, placeId, person);
+        }
+        for (const [placeId, people] of peopleByPlaceId) counts.set(placeId, people.length);
+        return { eventsByPlaceId, peopleByPlaceId, counts };
+    });
+}
+
 function getEventsForPlace(placeId, { projectId = currentProjectId() } = {})
 {
     return (sampleData.events || []).filter(event =>
@@ -652,17 +702,6 @@ function getNotesForPlace(
         placeId,
         options
     );
-}
-
-function getPlaceConnectionCounts(placeId, { projectId = currentProjectId() } = {})
-{
-    return {
-        people: getPeopleForPlace(placeId, { projectId }).length,
-        events: getEventsForPlace(placeId, { projectId }).length,
-        files: getArchiveFilesForPlace(placeId, { projectId }).length,
-        photos: getPhotosForPlace(placeId, { projectId }).length,
-        notes: getNotesForPlace(placeId, { projectId }).length
-    };
 }
 
 function getPlaceEventDisplay(event)

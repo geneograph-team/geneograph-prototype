@@ -37,7 +37,7 @@ function setPlacesMapStatus(title = '', message = '', { retry = false, list = fa
     {
         const places = [...(placesMapRuntime.currentPlaces || [])];
         destroyPlacesMap();
-        requestAnimationFrame(() => mountPlacesMap(places));
+        schedulePlacesMapMount(places);
     });
 }
 

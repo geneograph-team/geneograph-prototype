@@ -134,6 +134,7 @@ function destroyPlacesMap({ preserveWaiters = false } = {})
     if (typeof appPerf !== 'undefined') appPerf.finish(placesMapRuntime.diagnosticTrace, 'canceled');
     placesMapRuntime.diagnosticTrace = null;
     ++placesMapRuntime.requestId;
+    placesMapRuntime.scheduledMount = null;
     clearTimeout(placesSearchTimer);
     clearTimeout(placesMapRuntime.loadTimeout);
     placesMapRuntime.loadTimeout = null;
@@ -157,6 +158,7 @@ function destroyPlacesMap({ preserveWaiters = false } = {})
     }
     placesMapRuntime.map = null;
     placesMapRuntime.host = null;
+    placesMapRuntime.projectId = null;
     placesMapRuntime.markerLayer = null;
     placesMapRuntime.errorCount = 0;
     placesMapRuntime.tilesAvailable = false;
@@ -174,6 +176,27 @@ function destroyPlacesMap({ preserveWaiters = false } = {})
     }
     placesMapRuntime.suppressViewCapture = false;
     if (!preserveWaiters) resolvePlacesMapWaiters(false);
+}
+
+function schedulePlacesMapMount(places)
+{
+    const host = document.getElementById('placesVectorMap');
+    const projectId = currentProjectId();
+    if (!host) return;
+    if (placesMapRuntime.host === host && placesMapRuntime.projectId === projectId)
+    {
+        mountPlacesMap(places);
+        return;
+    }
+    const request = {};
+    placesMapRuntime.scheduledMount = request;
+    requestAnimationFrame(() =>
+    {
+        if (placesMapRuntime.scheduledMount !== request) return;
+        placesMapRuntime.scheduledMount = null;
+        if (host.isConnected && document.getElementById('placesVectorMap') === host && currentProjectId() === projectId)
+            mountPlacesMap(places);
+    });
 }
 
 function mountPlacesMap(places)
@@ -195,10 +218,12 @@ function mountPlacesMap(places)
         && placesMapRuntime.status === 'loading')
     {
         placesMapRuntime.currentPlaces = [...(places || [])];
+        setPlacesMapStatus('Loading vector map', 'Connecting to OpenFreeMap…', { list: true });
         return;
     }
     destroyPlacesMap({ preserveWaiters: true });
     placesMapRuntime.host = host;
+    placesMapRuntime.projectId = currentProjectId();
     placesMapRuntime.currentPlaces = [...(places || [])];
     placesMapRuntime.status = 'loading';
     placesMapRuntime.diagnosticTrace = typeof appPerf !== 'undefined' ? appPerf.begin('Places', 'mapInitialize', null, 'asynchronous') : null;
@@ -314,7 +339,7 @@ function mountPlacesMap(places)
             if (typeof ResizeObserver !== 'undefined')
             {
                 placesMapRuntime.resizeObserver = new ResizeObserver(() => map.resize());
-                placesMapRuntime.resizeObserver.observe(host.parentElement || host);
+                placesMapRuntime.resizeObserver.observe(host);
             }
             placesMapRuntime.loadTimeout = setTimeout(() =>
             {
@@ -371,7 +396,7 @@ function updatePlacesMapData(places, { force = false } = {})
     const list = places || [];
     placesMapRuntime.currentPlaces = [...list];
     if (!placesMapReady()) return;
-    const key = placesMapDataKey(list);
+    const key = JSON.stringify([placesMapDataKey(list), state.language, list.map(place => place.name)]);
     if (!force && key === placesMapRuntime.mountedListKey)
     {
         updatePlacesMapSelection(state.selectedPlaceId);

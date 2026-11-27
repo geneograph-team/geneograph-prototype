@@ -442,44 +442,7 @@ async function searchSharedPlaceMapResults(query, signal)
 
 function placeSuggestionPeopleCounts(projectId)
 {
-    const context = acquireProjectReadModel(projectId);
-    return context.read('places:selector-people-counts', ['places', 'people', 'events'], id =>
-    {
-        const placeIds = new Set((sampleData.places || []).filter(place => place.projectId === id).map(place => place.id));
-        const collect = (record, ids) =>
-        {
-            if (!record) return;
-            for (const key of ['placeId', 'birthPlaceId', 'deathPlaceId', 'burialPlaceId'])
-                if (placeIds.has(record[key])) ids.add(record[key]);
-            if (Array.isArray(record.placeIds))
-                for (const placeId of record.placeIds)
-                    if (placeIds.has(placeId)) ids.add(placeId);
-        };
-        const eventPlaces = new Map();
-        for (const event of sampleData.events || [])
-        {
-            if (event.projectId !== id) continue;
-            const ids = new Set();
-            collect(event, ids);
-            if (!ids.size) continue;
-            for (const personId of event.personIds || [])
-            {
-                if (!eventPlaces.has(personId)) eventPlaces.set(personId, new Set());
-                for (const placeId of ids) eventPlaces.get(personId).add(placeId);
-            }
-        }
-        const counts = new Map();
-        for (const person of projectPeopleIndex(context).rawById.values())
-        {
-            const ids = new Set(eventPlaces.get(person.id));
-            collect(person.birth, ids);
-            collect(person.death, ids);
-            for (const attribute of person.attributes || []) collect(attribute, ids);
-            for (const event of person.events || []) collect(event, ids);
-            for (const placeId of ids) counts.set(placeId, (counts.get(placeId) || 0) + 1);
-        }
-        return readOnlyProjectMap(counts);
-    });
+    return placeAssociationIndex(projectId).counts;
 }
 
 function bindPlaceComboboxes(root = document)
