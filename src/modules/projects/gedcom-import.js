@@ -509,6 +509,7 @@ function gedcomRichContent(value, checkDeadline = () => {})
     const text = raw =>
     {
         if (!raw || ignored) return;
+        if (/<\/?(?:p|div|span|strong|b|i|em|u|a|li|ul|ol|br|script|style|iframe|img)(?=[\s/>])/i.test(raw)) mark();
         const decoded = gedcomDecodeHtmlEntities(raw, mark).replace(/\u00a0/g, ' ');
         const attributes = Object.assign({}, ...stack.map(frame => frame.attributes));
         if (stack.some(frame => frame.tag === 'pre'))
@@ -632,6 +633,29 @@ function gedcomRichContent(value, checkDeadline = () => {})
     return { body, ops: ops.some(op => op.attributes) ? ops : null, simplified };
 }
 
+// Plain-only evidence fields cannot store link attributes. Preserve a
+// link destination alongside its label when the two are not identical.
+function gedcomPlainEvidence(content)
+{
+    if (!content.ops) return content.body;
+    let body = '', link = '', label = '';
+    const finishLink = () =>
+    {
+        if (link && label.trim() !== link) body += ' (' + link + ')';
+        link = '';
+        label = '';
+    };
+    for (const operation of content.ops)
+    {
+        const nextLink = operation.attributes?.link || '';
+        if (nextLink !== link) { finishLink(); link = nextLink; }
+        body += operation.insert;
+        if (link) label += operation.insert;
+    }
+    finishLink();
+    return body.slice(0, -1);
+}
+
 // Compose event/citation labels and formatted excerpts without losing the
 // final newline carrying Quill's list or heading attribute.
 function gedcomJoinContent(parts)
@@ -706,7 +730,7 @@ function mapGedcomImportWithDiagnosticsBody(parsed, project, matches = new Map()
     {
         const content = readRichText(node);
         if (content.ops) reportSimplifiedText(node);
-        return content.body;
+        return gedcomPlainEvidence(content);
     };
     const addNote = (key, content, title) =>
     {
@@ -1137,15 +1161,17 @@ function mapGedcomImportWithDiagnosticsBody(parsed, project, matches = new Map()
             const type = read(event, 'TYPE');
             const details = event.children.filter(child => child.tag === 'NOTE' && !/^@[^@]+@$/.test(child.value.trim()))
                 .map(readRichText);
+            const initialContent = gedcomJoinContent([type, date, placeText, ...details]);
+            const referencedDetails = [];
             for (const pointer of event.children.filter(child => child.tag === 'NOTE' && /^@[^@]+@$/.test(child.value.trim())))
             {
                 const target = parsed.xrefs.get(pointer.value.trim());
                 if (target?.tag !== 'NOTE') continue;
                 used.add(pointer);
-                details.push(readRichText(target));
+                referencedDetails.push(readRichText(target));
             }
-            const content = gedcomJoinContent([type, date, placeText, ...details]);
-            const note = addNote(event, content.body ? content : title, title);
+            const content = gedcomJoinContent([initialContent.body ? initialContent : title, ...referencedDetails]);
+            const note = addNote(event, content, title);
             Object.assign(note, restrictionFields(event));
             note.linkedPersonIds = parents;
             if (placeId) note.linkedPlaceIds.push(placeId);

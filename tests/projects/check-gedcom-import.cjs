@@ -99,7 +99,7 @@ const richNotes = map(file([
     '0 @N1@ NOTE <p style="text-align:left;"><strong><span style="font-family:Calibri;font-size:13pt">Архив &amp; ',
     '1 CONC опись</span></strong><br />запись&nbsp;№ 29</p>',
     '1 CONT <p><u>Second</u> &lt;literal&gt; &#x41;</p><ul><li>One</li><li><i>Two</i></li></ul><p>&nbsp;</p>',
-    '0 @S1@ SOUR', '1 TITL <b>Archive</b>', '1 TEXT <p>Source &amp; text</p>'
+    '0 @S1@ SOUR', '1 TITL <b>Archive</b>', '1 TEXT <p>Source &amp; text <a href="https://example.test/source">record</a></p>'
 ]));
 assert.deepEqual(Array.from(richNotes.errors), []);
 const importedRich = richNotes.records.notes[0];
@@ -113,7 +113,7 @@ assert.equal(importedRich.bodyDelta.ops.filter(op => op.attributes?.list === 'bu
 assert.equal(importedRich.linkedPersonIds.length, 2);
 assert.equal(richNotes.records.people[0].attributes[0].notes, 'Archive extract');
 assert.equal(richNotes.records.sources[0].title, 'Archive');
-assert.equal(richNotes.records.sources[0].notes, 'Source & text');
+assert.equal(richNotes.records.sources[0].notes, 'Source & text record (https://example.test/source)');
 const citationRich = richNotes.records.notes.find(note => note.body.includes('Evidence'));
 assert.ok(citationRich.body.includes('Page or reference: Record & page'));
 assert.ok(citationRich.bodyDelta.ops.some(op => op.attributes?.link === 'https://example.test/record?a=1&b=2'));
@@ -141,6 +141,14 @@ assert.deepEqual(Array.from(familyRich.errors), []);
 assert.equal(familyRich.records.notes[0].body, '1890\n\nFirst\n\nSecond');
 assert.equal(familyRich.records.notes[0].bodyDelta.ops.map(op => op.insert).join(''), '1890\n\nFirst\n\nSecond\n');
 assert.equal(familyRich.records.notes[0].bodyDelta.ops.at(-1).attributes.list, 'ordered');
+
+const onlyReferencedFamily = map(file([
+    '0 @I1@ INDI', '0 @I2@ INDI', '0 @F1@ FAM', '1 HUSB @I1@', '1 WIFE @I2@',
+    '1 ENGA', '2 NOTE @N1@', '0 @N1@ NOTE <p><b>Referenced</b></p>'
+]));
+assert.deepEqual(Array.from(onlyReferencedFamily.errors), []);
+assert.equal(onlyReferencedFamily.records.notes[0].body, 'Engagement\n\nReferenced');
+assert.equal(onlyReferencedFamily.records.notes[0].bodyDelta.ops.map(op => op.insert).join(''), 'Engagement\n\nReferenced\n');
 
 const familyEventNotes = map(file([
     '0 @I1@ INDI', '0 @I2@ INDI', '0 @F1@ FAM', '1 HUSB @I1@', '1 WIFE @I2@',
