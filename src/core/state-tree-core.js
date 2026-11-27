@@ -892,14 +892,14 @@ function openTreeSettingsModal()
               ${sections.map(([key, label], index) => `<button class="global-settings-nav-button ${index === 0 ? 'active' : ''}" type="button" data-tree-settings-section="${key}" ${index === 0 ? 'aria-current="true" data-modal-initial-focus' : ''} aria-controls="tree-settings-${key}">${escapeHtml(t(label))}</button>`).join('')}
             </nav>
             <div class="global-settings-panel tree-settings-panel">
-              <section id="tree-settings-visibility" data-tree-settings-panel="visibility" aria-labelledby="tree-settings-visibility-title">
-                <h3 id="tree-settings-visibility-title">${escapeHtml(t('Visibility'))}</h3>
+              <section id="tree-settings-visibility" data-tree-settings-panel="visibility" aria-label="${escapeHtml(t('Visibility'))}">
+                <h3>${escapeHtml(t('Default person'))}</h3>
                 <div class="tree-branch-reference tree-settings-default">
                   ${renderSharedFilterFields(defaultPicker)}
                   <p class="tree-settings-help">${escapeHtml(t('The person used as the initial tree focus.'))}</p>
                 </div>
-                <h4>${escapeHtml(t('Tree visibility'))}</h4>
-                <div class="tree-settings-generation-grid">
+                <h3>${escapeHtml(t('Visible generations'))}</h3>
+                <div class="tree-settings-control-grid tree-settings-generation-grid">
                   <div class="field">
                     <label for="treeAncestorGenerations">${escapeHtml(t('Ancestor generations'))}</label>
                     <input id="treeAncestorGenerations" type="number" min="${TREE_ANCESTOR_GENERATION_MIN}" max="${TREE_ANCESTOR_GENERATION_MAX}" step="1" value="${draft.ancestorGenerations}">
@@ -919,12 +919,12 @@ function openTreeSettingsModal()
               </section>
               <section id="tree-settings-coloring" data-tree-settings-panel="coloring" aria-labelledby="tree-settings-coloring-title" hidden>
                 <h3 id="tree-settings-coloring-title">${escapeHtml(t('Color channels'))}</h3>
-                <div class="tree-color-channels">${channel('fill', 'Fill', true)}${channel('outline', 'Outline', true)}
+                <div class="tree-settings-control-grid tree-color-channels">${channel('fill', 'Fill', true)}${channel('outline', 'Outline', true)}
                   ${channel('connectors', 'Connectors', false)}</div>
                 <fieldset class="tree-branch-settings">
                   <legend>${escapeHtml(t('Branch coloring'))}</legend>
                   <div class="tree-branch-reference">${renderSharedFilterFields(referencePicker)}</div>
-                  <div class="tree-branch-options">
+                  <div class="tree-settings-control-grid tree-branch-options">
                     <div class="field">
                       <label for="treeBranchPreset">${escapeHtml(t('Branch count'))}</label>
                       ${select('treeBranchPreset', TREE_BRANCH_PRESETS.map(value => option(value, colors.preset, String(value))).join(''))}

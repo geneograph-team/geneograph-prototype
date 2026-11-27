@@ -536,6 +536,17 @@
     max-width: 640px;
 }
 
+.tree-settings-control-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    align-items: start;
+    gap: var(--space-3);
+}
+
+.tree-settings-control-grid > .field {
+    min-width: 0;
+}
+
 .tree-settings-panel > section[hidden] {
     display: none;
 }
@@ -712,6 +723,20 @@
     border-bottom: 1px solid var(--surface-row-divider);
 }
 
+/* The visible section heading repeats this field label. Keep the label
+   available to assistive technology without showing it twice. */
+.tree-settings-default .shared-filter-field > label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    border: 0;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+}
+
 .tree-settings-help {
     color: var(--text-tertiary);
     font-size: 12px;
@@ -852,15 +877,8 @@
     border-color: var(--control-field-focus-color);
 }
 
-.tree-branch-options {
-    display: grid;
-    align-content: start;
-    gap: var(--space-3);
-}
-
-.tree-branch-options > .field {
-    width: 100%;
-    max-width: 180px;
+.tree-branch-options > .tree-settings-check {
+    grid-column: 1 / -1;
 }
 
 .geneo-paint-popover[data-geneo-paint-scope="draft-color"] .geneo-paint-popover-fields.is-color-only {
@@ -909,7 +927,17 @@
     }
 }
 
+@media (max-width: 640px) {
+    .tree-settings-control-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
 @media (max-width: 480px) {
+    .tree-settings-control-grid {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
     .tree-settings-panel {
         padding: var(--space-3);
     }
@@ -931,18 +959,6 @@
     }
 }
 
-
-.tree-settings-generation-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 240px));
-    align-items: start;
-    gap: var(--space-3);
-}
-
-.tree-settings-generation-grid input {
-    width: 100%;
-    max-width: 160px;
-}
 
 .tree-settings-generation-grid .field-help {
     display: block;
@@ -1601,9 +1617,6 @@ html.tree-fullscreen .tree-shell {
 }
 
 .tree-color-channels {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(min(100%, 144px), 180px));
-    gap: var(--space-3);
     padding-bottom: var(--space-4);
     border-bottom: 1px solid var(--surface-row-divider);
 }
