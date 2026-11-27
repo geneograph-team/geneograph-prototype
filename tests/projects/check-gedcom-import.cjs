@@ -960,10 +960,11 @@ async function verifyAutomaticPlaceMatching()
         confidence: .9, coordinates: { lat: 50.04, lng: 22 } };
     const lookup = async query => { calls.push(query); return {status:'results', candidates:[candidate]}; };
     const result = await context.matchGedcomPlaceCoordinates(draft, { lookup });
-    assert.equal(calls.length, 2);
+    assert.equal(calls.length, 3);
     assert.equal(result.stats.assigned, 2);
     assert.equal(result.stats.existing, 1);
-    assert.equal(result.stats.ineligible, 5);
+    assert.equal(result.stats.ineligible, 4);
+    assert.equal(result.diagnostics.find(item => item.query === 'Rzeszów').reason, 'weak-confidence');
     assert.equal(JSON.stringify(draft.records.places), before);
     context.applyGedcomPlaceMatching(draft, result);
     assert.equal(draft.records.places[0].name, 'Rzeszow, Podkarpackie, Poland');
@@ -979,6 +980,92 @@ async function verifyAutomaticPlaceMatching()
     assert.equal(context.gedcomStrongPlaceMatch({...plan,admin:['Podkarpackie']},{status:'results',candidates:[candidate,{...namesake,regionNames:[]}]}),null);
     assert.equal(context.gedcomStrongPlaceMatch(plan,{status:'results',candidates:[candidate,{...candidate,coordinates:{lat:51,lng:22}}]}),null);
     assert.equal(context.gedcomStrongPlaceMatch(plan, {status:'results',candidates:[{...candidate,countryCode:'DE'}]}), null);
+
+    const publicExamples = ['Aberdeen, Scotland','Великий Бобрик, Сумская область','г. Кишинёв',
+        'г. Севастополь','г. Сумы','Екатеринбург','Россия, Калуга','с. Хорошево, Харьковская обл.',
+        'Самара','Цекиновка','г. Ухта, Россия','Судогодский р-он, хутор Преображенский'];
+    const examplePlan = context.gedcomPlaceLookupPlan({records:{places:publicExamples.map((name,i)=>({id:String(i),name,coordinates:null}))}});
+    assert.equal(examplePlan.candidates.length, publicExamples.length);
+    const get = name => examplePlan.candidates.find(item=>item.id===String(publicExamples.indexOf(name)));
+    assert.equal(get('Aberdeen, Scotland').country,'GB');
+    assert.equal(get('Великий Бобрик, Сумская область').country,'UA');
+    assert.equal(get('г. Севастополь').country,'');
+    assert.equal(get('Россия, Калуга').primary,'Калуга');
+    assert.equal(get('Россия, Калуга').country,'RU');
+    assert.equal(get('с. Хорошево, Харьковская обл.').country,'UA');
+    assert.equal(get('Судогодский р-он, хутор Преображенский').primary,'Преображенский');
+    assert.deepEqual(Array.from(get('Судогодский р-он, хутор Преображенский').types),['hamlet','farm','isolated_dwelling']);
+    const ukhta = get('г. Ухта, Россия');
+    const city = {...candidate,names:['Ухта'],countryCode:'RU',admin:['Республика Коми'],regionNames:['Республика Коми'],type:'city',typeReliable:true,cityConfidence:.98};
+    const village = {...city,type:'village',identities:['village'],coordinates:{lat:52,lng:130}};
+    const evaluate = (plan,candidates) => context.gedcomEvaluatePlaceMatch(plan,{status:'results',candidates});
+    assert.equal(evaluate(ukhta,[city,village]).reason,'assigned');
+    assert.equal(evaluate(ukhta,[city,{...village,typeReliable:false}]).point,null);
+    assert.equal(evaluate(ukhta,[{...city,typeReliable:false}]).point,null);
+    const sumy = get('Великий Бобрик, Сумская область');
+    assert.equal(evaluate(sumy,[{...candidate,names:['Великий Бобрик','Великий Бобрик'],countryCode:'UA',admin:['Sumy Oblast'],regionNames:['Sumy Oblast'],type:'village'}]).reason,'assigned');
+    const bare = get('Екатеринбург');
+    const bareCity = {...city,names:['Екатеринбург','Yekaterinburg'],confidence:.99,cityConfidence:.99};
+    assert.equal(evaluate(bare,[bareCity]).reason,'assigned');
+    assert.equal(evaluate(bare,[{...bareCity,cityConfidence:null}]).reason,'weak-confidence');
+    assert.equal(evaluate(bare,[bareCity,{...bareCity,identities:['different'],countryCode:'UA'}]).reason,'competing-matches');
+    assert.equal(evaluate(bare,[{...bareCity,confidence:.4}]).reason,'weak-confidence');
+    assert.equal(evaluate(bare,[bareCity,{...bareCity,identities:['unknown'],coordinates:null}]).point,null);
+    const matches = [
+        ['Aberdeen, Scotland','Aberdeen','GB',['Scotland'],'city'],
+        ['г. Кишинёв','Кишинёв','MD',[],'city'],
+        ['г. Севастополь','Севастополь','UA',[],'city'],
+        ['г. Сумы','Сумы','UA',[],'city'],
+        ['Россия, Калуга','Калуга','RU',[],'city'],
+        ['с. Хорошево, Харьковская обл.','Хорошево','UA',['Kharkiv Region'],'village'],
+        ['Самара','Самара','RU',[],'city'],
+        ['Цекиновка','Цекиновка','UA',[],'village'],
+        ['Судогодский р-он, хутор Преображенский','Преображенский','RU',['Судогодский район'],'hamlet']
+    ];
+    for (const [label, alias, countryCode, admin, type] of matches)
+    {
+        const result = evaluate(get(label), [{...bareCity,names:[alias],countryCode,admin,type,
+            regionNames:admin, countyNames:admin, typeReliable:true}]);
+        assert.equal(result.reason,'assigned');
+    }
+    const scotland = get('Aberdeen, Scotland');
+    assert.equal(evaluate(scotland,[{...bareCity,names:['Aberdeen'],countryCode:'US',admin:['Scotland']}]).point,null);
+    const nonsettlements = context.gedcomPlaceLookupPlan({records:{places:[
+        {id:'country',name:'Россия',coordinates:null},
+        {id:'history',name:'СССР, Москва',coordinates:null},
+        {id:'district',name:'Судогодский р-он',coordinates:null},
+        {id:'cemetery',name:'Ухта, кладбище, Россия',coordinates:null},
+        {id:'conflict',name:'Aberdeen, Scotland, USA',coordinates:null}
+    ]}});
+    assert.equal(nonsettlements.candidates.length,0);
+    assert.deepEqual(Array.from(nonsettlements.diagnostics.map(item=>item.reason)),
+        ['country-only','historical-context','administrative-only','nonsettlement','conflicting-country']);
+    assert.equal(context.gedcomLookupContext({name:'Республика Коми, г. Ухта'}).primary,'Ухта');
+    const duplicates = map(file([
+        '0 @I1@ INDI','1 BIRT','2 PLAC Судогодский р-он, Хутор Преображенский',
+        '1 DEAT','2 PLAC Судогодский р-он, хутор Преображенский',
+        '0 @I2@ INDI','1 BIRT','2 PLAC Судогодский р-он,  хутор Преображенский',
+        '1 DEAT','2 PLAC Другой р-он, хутор Преображенский',
+        '0 @I3@ INDI','1 BIRT','2 PLAC Café','1 DEAT','2 PLAC Cafe\u0301.',
+        '0 @I4@ INDI','1 BIRT','2 PLAC Example','3 MAP','4 LATI N50','4 LONG E22',
+        '1 DEAT','2 PLAC example',
+        '0 @I5@ INDI','1 BIRT','2 PLAC Conflict','3 MAP','4 LATI N50','4 LONG E22',
+        '1 DEAT','2 PLAC conflict','3 MAP','4 LATI N51','4 LONG E22'
+    ]));
+    assert.deepEqual(Array.from(duplicates.errors),[]);
+    assert.equal(duplicates.records.places.length,6);
+    const retained = duplicates.records.places[0];
+    assert.equal(retained.name,'Судогодский р-он, Хутор Преображенский');
+    assert.ok(retained.alternativeNames.includes('Судогодский р-он, хутор Преображенский'));
+    assert.equal(duplicates.records.people[0].birth.placeId,duplicates.records.people[0].death.placeId);
+    assert.equal(duplicates.records.people[0].death.placeId,duplicates.records.people[1].birth.placeId);
+    assert.equal(duplicates.records.people[0].death.placeText,'Судогодский р-он, хутор Преображенский');
+    assert.equal(duplicates.records.places.find(p=>p.name==='Example').coordinates.lat,50);
+    assert.ok(duplicates.warnings.some(w=>w.kind==='place-coordinates-conflict'));
+    const dupPlan=context.gedcomPlaceLookupPlan(duplicates);
+    assert.equal(dupPlan.candidates.filter(p=>p.primary==='Преображенский').length,2);
+    assert.equal(dupPlan.candidates.filter(p=>p.primary==='Преображенский' && p.admin[0]==='Судогодский р-он').length,1);
+
     const many = { records: { places: Array.from({length:160}, (_,i)=>({id:'p'+i,name:'Town '+i+', Poland',coordinates:null})), events:[],people:[] } };
     many.records.events.push({placeId:'p159'});
     calls.length = 0;

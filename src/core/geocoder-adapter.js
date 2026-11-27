@@ -222,12 +222,21 @@ const geneographGeocoder = (function ()
     // Only used by the import path; no raw provider payload is persisted.
     function importCandidate(item, source, index, language)
     {
+        if (!item || typeof item !== 'object') return null;
+        const type = settlementType(item, source);
         const result = normalizeResult(item, index, source, language);
-        if (!result) return null;
+        // Keep uncertain potentially inhabited candidates in the import pool.
+        // An exact-name candidate with missing coordinates or contradictory
+        // settlement metadata must not disappear and manufacture uniqueness.
+        if (!type && !(source === 'geoapify' && cleanText(item.result_type).toLowerCase() === 'city')
+            && !(source === 'locationiq' && cleanText(item.class).toLowerCase() === 'place' && !cleanText(item.type)))
+            return null;
         const address = source === 'geoapify' ? item : item.address || {};
         const raw = source === 'geoapify' ? item.datasource?.raw || {} : item.namedetails || {};
-        const names = [source === 'geoapify' ? item.name || item.city : item.display_place,
-            raw.name, ...['en','ru','uk','pl'].map(lang => raw['name:' + lang])].map(cleanText).filter(Boolean);
+        const names = [...new Set([source === 'geoapify' ? item.name || item.city : item.display_place,
+            address.name, raw.name, ...['en','ru','uk','pl','be','ro','de','fr'].map(lang => raw['name:' + lang]),
+            ...String(raw.alt_name || '').split(';'), ...String(raw.official_name || '').split(';')]
+            .map(cleanText).filter(Boolean))];
         const countryCode = cleanText(address.country_code).toUpperCase();
         const region = cleanText(address.state || address.region);
         const county = cleanText(address.county || address.district);
@@ -241,8 +250,11 @@ const geneographGeocoder = (function ()
         const admin = [...regionNames, ...countyNames, cleanText(address.state_district), cleanText(address.municipality)].filter(Boolean);
         const confidence = source === 'geoapify' && typeof item.rank?.confidence === 'number'
             && Number.isFinite(item.rank.confidence) ? item.rank.confidence : null;
-        return { names, countryCode, admin, regionNames, countyNames, type: settlementType(item, source),
-            identities: settlementIdentities(item, source), confidence, coordinates: result.coordinates };
+        const cityConfidence = source === 'geoapify' && typeof item.rank?.confidence_city_level === 'number'
+            && Number.isFinite(item.rank.confidence_city_level) ? item.rank.confidence_city_level : null;
+        const typeReliable = Boolean(type) && (source === 'locationiq' || settlementTypes.includes(cleanText(raw.place).toLowerCase()));
+        return { names, countryCode, admin, regionNames, countyNames, type, typeReliable,
+            identities: settlementIdentities(item, source), confidence, cityConfidence, coordinates: result?.coordinates || null };
     }
 
     function normalizeImportCandidates(json, source, limit, language)
@@ -443,15 +455,15 @@ const geneographGeocoder = (function ()
             {
                 const result = await request(source, text, signal, 10, language, true);
                 successful = true;
-                if (result.candidates.length)
-                    return { status: 'results', ...result };
+                if (result.candidates.length || result.truncated)
+                    return { status: 'results', provider: source, ...result };
             }
             catch (error)
             {
                 if (signal?.aborted) throw abortError();
                 // A quota response stops this import's whole queue. Do not
                 // shift the remaining batch onto another provider.
-                if (error.providerStatus === 429) return { status: 'quota', candidates: [] };
+                if (error.providerStatus === 429) return { status: 'quota', provider: source, candidates: [] };
                 // LocationIQ uses 404 for a completed search with no match.
                 if (error.providerStatus === 404) successful = true;
             }
