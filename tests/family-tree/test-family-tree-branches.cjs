@@ -68,14 +68,22 @@ vm.runInContext('(' + function ()
     assert.equal(result.collateral.get('J').size, 2);
     assert.equal(result.collateral.has('W'), false);
     assert.equal(result.collateral.has('Y'), false);
+    assert.equal(result.descendants.has('R'), true);
+    assert.equal(result.descendants.has('Y'), true);
+    assert.equal(result.descendants.has('X'), false);
     assert.equal(resolveTreeBranches(graph, 'R', 2, false).collateral.size, 0);
-    const cards = ['R', 'E', 'G', 'C', 'D', 'A-one', 'A-two', 'B-one', 'B-two'].map(id =>
+    const cards = ['R', 'E', 'G', 'C', 'D', 'A-one', 'A-two', 'B-one', 'B-two', 'Y', 'X'].map(id =>
         ({ id, canonicalPersonId: id.split('-')[0], occurrenceCount: id.includes('-') ? 2 : 1 }));
     const scene = { cards, byOccurrence: new Map(cards.map(card => [card.id, card])), colorFamilies: [
         { canonicalId: 'same', parents: ['A-one', 'B-one'], children: ['C'] },
         { canonicalId: 'same', parents: ['A-two', 'B-two'], children: ['D'] }
     ] };
     const slots = treeBranchSceneSlots(scene, result);
+    assert.equal(slots.get('R'), 'descendants');
+    assert.equal(slots.get('Y'), 'descendants');
+    assert.equal(slots.has('X'), false);
+    assert.equal(treeBranchConnectionSlot(['R', 'Y'], slots), 'descendants');
+    assert.equal(treeBranchConnectionSlot(['R', 'X', 'Y'], slots), 0);
     assert.equal(slots.get('A-one'), 1);
     assert.equal(slots.get('B-two'), 2);
     assert.equal(treeBranchConnectionSlot(['A-one', 'B-one', 'C'], slots), 1);
@@ -84,6 +92,23 @@ vm.runInContext('(' + function ()
     const ambiguous = { ...scene, colorFamilies: [{ canonicalId: 'same', parents: ['A-one'], children: ['C', 'D'] }] };
     assert.equal(treeBranchSceneSlots(ambiguous, result).has('A-one'), false);
     assert.equal(resolveTreeBranches(graph, 'missing', 16, true).visits, 0);
+    for (const preset of [2, 4, 8, 16])
+        for (const collateral of [false, true])
+        {
+            const next = resolveTreeBranches(graph, 'R', preset, collateral);
+            assert.equal(next.descendants.has('R'), true);
+            assert.equal(next.descendants.has('Y'), true);
+            assert.equal(next.descendants.has('X'), false);
+            assert.equal(next.descendants.has('E'), false);
+        }
+    const extendedPeople = [...people2, person('Z'), person('Q')];
+    const extendedFamilies = [...families2, family('grandchild', 'Y', null, ['Z']),
+        family('new-parent', 'Q', null, ['A'])];
+    const extended = resolveTreeBranches(treeBranchGraph(extendedPeople, extendedFamilies), 'R', 2, false);
+    assert.equal(extended.descendants.has('Z'), true);
+    assert.equal(extended.ancestor.get('Q').size, 2);
+    assert.equal(resolveTreeBranches(treeBranchGraph(extendedPeople,
+        [...extendedFamilies, family('unknown-child', 'Y', null, ['Q'], false)]), 'R', 2, false).descendants.has('Q'), false);
     const cycle = treeBranchGraph(people2, [...families2, family('cycle', 'C', null, ['A'])]);
     const visits = resolveTreeBranches(cycle, 'R', 16, true).visits;
     assert.ok(visits < people2.length * 32);
@@ -93,6 +118,17 @@ vm.runInContext('(' + function ()
     assert.equal(JSON.stringify(treeBranchOriginIds(graph, 'missing', origins16)), JSON.stringify(Array(16).fill('')));
     assert.equal(treePaletteLabelInk('#ffffff'), '#000000');
     assert.equal(treePaletteLabelInk('#000000'), '#ffffff');
+    const addedPeople = [person('R'), person('F'), person('N')];
+    const beforeFamily = family('r', 'F', null, ['R']);
+    const addedFamily = family('f', null, 'N', ['F']);
+    const beforeGraph = treeBranchGraph(addedPeople, [beforeFamily]);
+    const afterGraph = treeBranchGraph(addedPeople, [beforeFamily, addedFamily]);
+    assert.notEqual(beforeGraph.key, afterGraph.key);
+    assert.equal(resolveTreeBranches(beforeGraph, 'R', 4, false).ancestor.has('N'), false);
+    assert.equal(resolveTreeBranches(afterGraph, 'R', 4, false).ancestor.get('N').has(3), true);
+    const newCards = addedPeople.map(person => ({ id: person.id, occurrenceCount: 1 }));
+    const newScene = { cards: newCards, byOccurrence: new Map(newCards.map(card => [card.id, card])) };
+    assert.equal(treeBranchSceneSlots(newScene, resolveTreeBranches(afterGraph, 'R', 4, false)).get('N'), 3);
     const props = new Map();
     const runtime = { shell: { style: { setProperty: (key, value) => props.set(key, value) } } };
     const palette = { light: { neutral: '#112233', '16': '#334455' }, dark: { neutral: '#aabbcc', '16': '#ddeeff' } };

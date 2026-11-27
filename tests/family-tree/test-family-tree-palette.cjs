@@ -15,7 +15,7 @@ vm.runInContext(`
         const dark = theme === 'dark';
         const canvas = dark ? '#0b0f0e' : '#f1f2f3';
         const primary = dark ? '#e5e9eb' : '#202729';
-        const secondary = dark ? '#b7c1c5' : '#515e63';
+        const secondary = dark ? '#e0e7eb' : '#515e63';
         const colors = [...Object.values(defaults[theme]), '#000000', '#ffffff', '#808080'];
         for (const r of ['00', '55', 'aa', 'ff'])
             for (const g of ['00', '55', 'aa', 'ff'])
@@ -45,9 +45,9 @@ vm.runInContext(`
     let writes = 0;
     const runtime = { shell: { style: { setProperty(key, value) { writes++; props.set(key, value); } } } };
     applyTreePalette(runtime, defaults);
-    assert.equal(writes, 40 * 7);
+    assert.equal(writes, 42 * 7);
     applyTreePalette(runtime, defaults);
-    assert.equal(writes, 40 * 7);
+    assert.equal(writes, 42 * 7);
     const next = normalizeTreePalette({ light: { male: '#ff0000' } });
     applyTreePalette(runtime, next);
     assert.equal(props.get('--tree-palette-light-male-detail'), treePaletteTones('#ff0000', 'light').detail);

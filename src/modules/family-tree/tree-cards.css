@@ -65,7 +65,12 @@
     --tree-card-category-ink: var(--tree-gender-tone-ink);
     --tree-card-fill: var(--tree-card-category-detail);
     --tree-card-hover-lift: 3%;
+    --tree-card-secondary: var(--text-secondary);
     --tree-action-size: 28px;
+}
+
+:root[data-theme="dark"] .tree-workspace.has-color-fill .tree-person-card:not(.selected) {
+    --tree-card-secondary: #e0e7eb;
 }
 
 .tree-card-avatar-stack {
@@ -220,7 +225,7 @@
     margin:
         4px 0 0;
     color:
-        var(--text-secondary);
+        var(--tree-card-secondary);
     font-size:
         12px;
     overflow:
@@ -280,7 +285,7 @@
     border: 0;
     border-radius: 6px;
     background: transparent;
-    color: var(--text-secondary);
+    color: var(--tree-card-secondary, var(--text-secondary));
     display: grid;
     place-items: center;
 }

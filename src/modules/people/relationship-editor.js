@@ -1585,20 +1585,21 @@ function familyCanAcceptParent(family, parentId)
     return !familyPartnerAId(family) || !familyPartnerBId(family);
 }
 
-function assignParentToFamily(family, parentId)
+function assignParentToFamily(family, parentId, explicitRole = '')
 {
     if (!family || !parentId) return false;
     if (familyIncludesPerson(family, parentId)) return true;
 
-    const preferredSlot = parentSlotPreference(parentId);
-    const roleHint = relationshipRoleHintForPerson(parentId);
+    const roleHint = explicitRole === 'father' ? 'HUSB' : explicitRole === 'mother' ? 'WIFE'
+        : relationshipRoleHintForPerson(parentId);
+    const preferredSlot = roleHint === 'WIFE' ? 'mother' : roleHint === 'HUSB' ? 'father' : parentSlotPreference(parentId);
 
     if (preferredSlot === 'mother' && !familyPartnerBId(family))
     {
         family.partnerBId = parentId;
 
 
-        family.partnerBRoleHint = roleHint || 'WIFE';
+        family.partnerBRoleHint = roleHint;
         return true;
     }
 
@@ -1607,7 +1608,7 @@ function assignParentToFamily(family, parentId)
         family.partnerAId = parentId;
 
 
-        family.partnerARoleHint = roleHint || 'HUSB';
+        family.partnerARoleHint = roleHint;
         return true;
     }
 
@@ -1632,7 +1633,7 @@ function assignParentToFamily(family, parentId)
     return false;
 }
 
-function createParentChildFamily(parentId, childId)
+function createParentChildFamily(parentId, childId, explicitRole = '')
 {
     const parent = getPerson(parentId);
     const child = getPerson(childId);
@@ -1658,7 +1659,7 @@ function createParentChildFamily(parentId, childId)
         updatedAt: new Date().toISOString()
     };
 
-    assignParentToFamily(family, parentId);
+    assignParentToFamily(family, parentId, explicitRole);
     centralFamilyRecords().push(family);
 
     return family;
@@ -1894,7 +1895,7 @@ function connectSiblingsThroughFamily(anchorPersonId, siblingPersonId, familyId,
     };
 }
 
-function connectParentToChild(parentId, childId)
+function connectParentToChild(parentId, childId, explicitRole = '')
 {
     const validation = validateParentChildConnection(parentId, childId);
 
@@ -1912,13 +1913,13 @@ function connectParentToChild(parentId, childId)
 
     if (!family)
     {
-        family = createParentChildFamily(parentId, childId);
+        family = createParentChildFamily(parentId, childId, explicitRole);
     }
     else
     {
         family.childIds = [...new Set([...(family.childIds || []), childId])];
 
-        assignParentToFamily(family, parentId);
+        assignParentToFamily(family, parentId, explicitRole);
         family.updatedAt = new Date().toISOString();
     }
 
@@ -2044,6 +2045,7 @@ function connectPeopleByRelationship({
     relationshipType,
     parentFamilySelection = '',
     detailType = '',
+    explicitParentRole = '',
     partnerChildrenMode = PARTNER_CHILDREN_ADD_PARENT
 } = {})
 {
@@ -2071,13 +2073,24 @@ function connectPeopleByRelationship({
         return validation;
     }
 
+    if (type === 'parent' && !parentFamilySelection && effectiveDetailType === 'Biological'
+        && ['father', 'mother'].includes(explicitParentRole)
+        && centralFamilyRecords().some(family => family.childIds.includes(anchorId)
+            && [familyPartnerAId(family), familyPartnerBId(family)].some(id => id && id !== relativeId
+                && familyPartnerRole(family, id, { explicitOnly: true }) === explicitParentRole
+                && parentChildRelationshipType(family, id, anchorId) === 'Biological')))
+    {
+        return { ok: false, title: t('Biological parent unavailable'),
+            message: t('This person already has two biological parents or a biological parent of the same gender. Choose another relationship type.') };
+    }
+
     let result;
 
     if (type === 'parent')
     {
         result = parentFamilySelection
             ? connectChildToParentFamily(relativeId, anchorId, parentFamilySelection, 'parent')
-            : connectParentToChild(relativeId, anchorId);
+            : connectParentToChild(relativeId, anchorId, explicitParentRole);
     }
     else if (type === 'child')
     {
@@ -2540,6 +2553,7 @@ function commitAddPersonModalCreate(title, subtitle, options = {})
             relationshipType: connectionIntent.relationshipType,
             parentFamilySelection,
             detailType: connectionDetailType,
+            explicitParentRole: ['father', 'mother'].includes(options.relativeType) ? options.relativeType : '',
             partnerChildrenMode:
             addPersonPartnerChildrenMode(options)
         });

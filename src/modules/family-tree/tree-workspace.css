@@ -130,6 +130,13 @@
     --tree-branch-neutral-outline: var(--tree-palette-light-neutral-outline);
     --tree-branch-neutral-connector: var(--tree-palette-light-neutral-connector);
     --tree-branch-neutral-ink: var(--tree-palette-light-neutral-ink);
+    --tree-branch-descendants: var(--tree-palette-light-descendants);
+    --tree-branch-descendants-detail: var(--tree-palette-light-descendants-detail);
+    --tree-branch-descendants-compact: var(--tree-palette-light-descendants-compact);
+    --tree-branch-descendants-actions: var(--tree-palette-light-descendants-actions);
+    --tree-branch-descendants-outline: var(--tree-palette-light-descendants-outline);
+    --tree-branch-descendants-connector: var(--tree-palette-light-descendants-connector);
+    --tree-branch-descendants-ink: var(--tree-palette-light-descendants-ink);
     --tree-gender-male: var(--tree-palette-light-male);
     --tree-gender-male-detail: var(--tree-palette-light-male-detail);
     --tree-gender-male-compact: var(--tree-palette-light-male-compact);
@@ -1775,6 +1782,13 @@ html.tree-fullscreen .tree-shell {
     --tree-branch-neutral-outline: var(--tree-palette-dark-neutral-outline);
     --tree-branch-neutral-connector: var(--tree-palette-dark-neutral-connector);
     --tree-branch-neutral-ink: var(--tree-palette-dark-neutral-ink);
+    --tree-branch-descendants: var(--tree-palette-dark-descendants);
+    --tree-branch-descendants-detail: var(--tree-palette-dark-descendants-detail);
+    --tree-branch-descendants-compact: var(--tree-palette-dark-descendants-compact);
+    --tree-branch-descendants-actions: var(--tree-palette-dark-descendants-actions);
+    --tree-branch-descendants-outline: var(--tree-palette-dark-descendants-outline);
+    --tree-branch-descendants-connector: var(--tree-palette-dark-descendants-connector);
+    --tree-branch-descendants-ink: var(--tree-palette-dark-descendants-ink);
     --tree-gender-male: var(--tree-palette-dark-male);
     --tree-gender-male-detail: var(--tree-palette-dark-male-detail);
     --tree-gender-male-compact: var(--tree-palette-dark-male-compact);

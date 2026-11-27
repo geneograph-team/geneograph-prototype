@@ -520,14 +520,14 @@ const TREE_PALETTE_DEFAULTS = Object.freeze({
         '5': '#c6b2f3', '6': '#f28b92', '7': '#85d9d8', '8': '#f5b68b',
         '9': '#e79555', '10': '#d2e88a', '11': '#a4adee', '12': '#c5ebd6',
         '13': '#c5a37b', '14': '#d495da', '15': '#c1e7f5', '16': '#f9c4c3',
-        'neutral': '#d2dad6', 'male': '#a6d5f5', 'female': '#f2b9d2', 'unknown': '#ded2c5'
+        'neutral': '#fafbfc', 'descendants': '#a5dfc1', 'male': '#a6d5f5', 'female': '#f2b9d2', 'unknown': '#ded2c5'
     }),
     dark: Object.freeze({
         '1': '#59b4f2', '2': '#e28fc6', '3': '#42ce91', '4': '#f2c94c',
         '5': '#bc93f1', '6': '#f05b64', '7': '#50caca', '8': '#ef9d6b',
         '9': '#d86520', '10': '#b2d64b', '11': '#7885e5', '12': '#b7e8c6',
         '13': '#b48658', '14': '#b35cbb', '15': '#a9dff8', '16': '#f7adb0',
-        'neutral': '#828f86', 'male': '#59b4f2', 'female': '#e28fc6', 'unknown': '#d1c2b7'
+        'neutral': '#b5bec5', 'descendants': '#2fae74', 'male': '#59b4f2', 'female': '#e28fc6', 'unknown': '#d1c2b7'
     })
 });
 
@@ -837,8 +837,8 @@ function treePaletteRowsMarkup(palette, theme, preset, origins, originIds, peopl
         </div>`;
     };
     const hint = t('The eye indicates inclusion in the selected branch count, not visibility on the tree. All slots remain editable.');
-    return `<h4>${escapeHtml(t('Gender and neutral colors'))}</h4><div class="tree-palette-category-grid">`
-        + [['male', 'Male'], ['female', 'Female'], ['unknown', 'Unknown gender'], ['neutral', 'Neutral']]
+    return `<h4>${escapeHtml(t('Category colors'))}</h4><div class="tree-palette-category-grid">`
+        + [['male', 'Male'], ['female', 'Female'], ['unknown', 'Unknown gender'], ['neutral', 'Neutral'], ['descendants', 'Reference & descendants']]
             .map(([key, label]) => row(key, t(label))).join('')
         + `</div><h4 class="tree-palette-branch-heading">${escapeHtml(t('Branch colors'))}<span class="tree-palette-info-wrap"><span class="tree-palette-info" tabindex="0" aria-describedby="treePaletteEyeHint" aria-label="${escapeHtml(t('Branch colors'))}">${icon.info}</span><span class="tree-palette-tooltip" id="treePaletteEyeHint" role="tooltip">${escapeHtml(hint)}</span></span></h4>`
         + origins.map((path, index) => row(String(index + 1), t('Branch') + ' ' + (index + 1), path, originIds[index])).join('');

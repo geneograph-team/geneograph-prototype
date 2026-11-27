@@ -19,25 +19,31 @@ assert.equal(read('p1').orientation, 'vertical');
 assert.equal(read('p1').colors.reference, 'a');
 const save = context.saveTreeDisplaySettings;
 const defaults = context.normalizeTreePalette();
-assert.equal(Object.keys(defaults.light).length, 20);
-assert.equal(Object.keys(defaults.dark).length, 20);
+assert.equal(Object.keys(defaults.light).length, 21);
+assert.equal(Object.keys(defaults.dark).length, 21);
 assert.equal(defaults.light['1'], '#91c9f4');
 assert.equal(defaults.dark['1'], '#59b4f2');
 assert.equal(defaults.light.female, '#f2b9d2');
 assert.equal(defaults.dark.female, '#e28fc6');
+assert.equal(defaults.light.neutral, '#fafbfc');
+assert.equal(defaults.dark.neutral, '#b5bec5');
+assert.equal(defaults.light.descendants, '#a5dfc1');
+assert.equal(defaults.dark.descendants, '#2fae74');
+assert.equal(context.normalizeTreePalette({ light: { neutral: '#d2dad6' } }).light.neutral, '#d2dad6');
+assert.equal(context.normalizeTreePalette({ light: { neutral: '#d2dad6' } }).light.descendants, '#a5dfc1');
 assert.equal(new Set(Array.from({ length: 16 }, (_, i) => defaults.light[i + 1])).size, 16);
 assert.equal(new Set(Array.from({ length: 16 }, (_, i) => defaults.dark[i + 1])).size, 16);
 assert.equal(context.normalizeTreePalette({ light: { '1': '#3976ad' }, dark: { '1': '#71b2eb' } }).light['1'], '#3976ad');
 save('p1', { orientation: 'horizontal', ancestorGenerations: 4, descendantGenerations: 0, showCousins: false,
     colors: { reference: 'a', preset: 8, collateral: true, fill: 'branch', outline: 'neutral', connectors: 'branch', palette: {
-        light: { '1': '#AaBbCc', '16': '#123456', male: '#445566', neutral: '#778899' },
+        light: { '1': '#AaBbCc', '16': '#123456', male: '#445566', neutral: '#778899', descendants: '#112233' },
         dark: { '1': '#ff0000', '16': '#invalid', female: '#abcdef' }
     } } });
 save('p2', { orientation: 'vertical', ancestorGenerations: 12, colorFill: false, colors: { reference: 'a' } });
 assert.deepEqual(JSON.parse(JSON.stringify(read('p1'))), { orientation: 'horizontal', ancestorGenerations: 4,
     descendantGenerations: 0, showCousins: false,
     colors: { reference: 'a', preset: 8, collateral: true, fill: 'branch', outline: 'neutral', connectors: 'branch',
-        palette: { light: { ...defaults.light, '1': '#aabbcc', '16': '#123456', male: '#445566', neutral: '#778899' },
+        palette: { light: { ...defaults.light, '1': '#aabbcc', '16': '#123456', male: '#445566', neutral: '#778899', descendants: '#112233' },
             dark: { ...defaults.dark, '1': '#ff0000', female: '#abcdef' } } } });
 assert.equal(read('p2').ancestorGenerations, 8);
 assert.equal(read('p2').colors.palette.light['1'], defaults.light['1']);
@@ -45,6 +51,8 @@ const reduced = read('p1');
 reduced.colors.preset = 2;
 save('p1', reduced);
 assert.equal(read('p1').colors.palette.light['16'], '#123456');
+assert.equal(read('p1').colors.palette.light.descendants, '#112233');
+assert.equal(read('p2').colors.palette.light.descendants, defaults.light.descendants);
 const draft = read('p1');
 context.resetTreePaletteColor(draft.colors.palette, 'light', '1');
 assert.equal(draft.colors.palette.light['1'], defaults.light['1']);

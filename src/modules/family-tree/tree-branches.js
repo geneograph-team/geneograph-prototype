@@ -110,6 +110,20 @@ function resolveTreeBranches(graph, reference, preset, includeCollateral)
             queue.push({ id: edge.parent, slot: next, path: prefix?.length < split ? prefix : null });
         });
     }
+    // Resolve descendants from the reference, not from the current viewport
+    // or the collateral traversal. Ancestor membership wins if a malformed
+    // cyclic graph makes a person both ancestor and descendant.
+    const descendants = new Set();
+    const descendantWork = graph.ids.has(reference) ? [reference] : [];
+    if (descendantWork.length) descendants.add(reference);
+    for (let i = 0; i < descendantWork.length; i++)
+        for (const child of graph.children.get(descendantWork[i]) || [])
+        {
+            if (descendants.has(child)) continue;
+            descendants.add(child);
+            descendantWork.push(child);
+        }
+    for (const id of ancestor.keys()) descendants.delete(id);
     let collateralVisits = 0;
     if (includeCollateral)
     {
@@ -120,7 +134,7 @@ function resolveTreeBranches(graph, reference, preset, includeCollateral)
             collateralVisits++;
             for (const child of graph.children.get(id) || [])
             {
-                if (child === reference || ancestor.has(child)) continue;
+                if (child === reference || ancestor.has(child) || descendants.has(child)) continue;
                 if (!collateral.has(child)) collateral.set(child, new Set());
                 const slots = collateral.get(child);
                 if (slots.has(slot)) continue;
@@ -129,7 +143,8 @@ function resolveTreeBranches(graph, reference, preset, includeCollateral)
             }
         }
     }
-    return { reference, origins, originIds, ancestor, collateral, transitions, links, visits: seen.size + collateralVisits };
+    return { reference, origins, originIds, ancestor, descendants, collateral, transitions, links,
+        visits: seen.size + descendantWork.length + collateralVisits };
 }
 
 function treeBranchSceneSlots(scene, resolution)
@@ -141,9 +156,10 @@ function treeBranchSceneSlots(scene, resolution)
     {
         const person = card.canonicalPersonId || card.id;
         const slots = resolution.ancestor.get(person) || resolution.collateral.get(person);
-        if (person === resolution.reference || (slots?.size === 1 && !(card.occurrenceCount > 1 && resolution.ancestor.has(person))))
+        if (person === resolution.reference || resolution.descendants.has(person)
+            || (slots?.size === 1 && !(card.occurrenceCount > 1 && resolution.ancestor.has(person))))
         {
-            const slot = person === resolution.reference ? 0 : [...slots][0];
+            const slot = person === resolution.reference ? 0 : resolution.descendants.has(person) ? 'descendants' : [...slots][0];
             candidates.set(card.id, new Set([slot]));
             work.push([card.id, slot]);
         }
@@ -182,8 +198,8 @@ function treeBranchSceneSlots(scene, resolution)
     const blocked = new Set([...outgoing.keys()].filter(id => !candidates.get(id)?.size));
     for (const child of blocked)
         for (const { parent } of outgoing.get(child) || []) blocked.add(parent);
-    return new Map([...candidates].filter(([id, slots]) => !blocked.has(id) && slots.size === 1 && !slots.has(0))
-        .map(([id, slots]) => [id, [...slots][0]]));
+    return new Map([...candidates].filter(([id, slots]) => !blocked.has(id) && slots.size === 1)
+        .map(([id, slots]) => [id, slots.has(0) ? 'descendants' : [...slots][0]]));
 }
 
 function treeBranchConnectionSlot(endpoints, slots)
@@ -295,7 +311,7 @@ function treePaletteTones(color, theme)
     const lab = treePaletteLab(color), dark = theme === 'dark';
     const clamp = (value, low, high) => Math.max(low, Math.min(high, value));
     const canvas = dark ? '#0b0f0e' : '#f1f2f3';
-    const secondary = dark ? '#b7c1c5' : '#515e63';
+    const secondary = dark ? '#e0e7eb' : '#515e63';
     const surface = (lightness, scale, cap) =>
     {
         let tone = treePaletteTone(lab, lightness, scale, cap);
@@ -307,12 +323,13 @@ function treePaletteTones(color, theme)
         }
         return tone;
     };
-    const overviewL = clamp(lab[0], dark ? 0.58 : 0.70, 0.92);
+    const overviewL = clamp(lab[0], dark ? 0.58 : 0.70, dark ? 0.92 : 0.995);
     const overview = overviewL === lab[0] ? color : treePaletteTone(lab, overviewL, 1, 0.32);
-    const detail = surface(dark ? 0.405 : 0.945, dark ? 0.78 : 0.46, dark ? 0.105 : 0.065);
-    const compact = surface(dark ? 0.415 : 0.915, dark ? 0.84 : 0.60, dark ? 0.115 : 0.085);
-    const actions = surface(dark ? 0.43 : 0.885, dark ? 0.90 : 0.75, dark ? 0.12 : 0.10);
-    const outline = treePaletteTone(lab, dark ? clamp(lab[0], 0.74, 0.87) : 0.51, 1, 0.18);
+    const lightSurface = Math.max(0, lab[0] - 0.945);
+    const detail = surface(dark ? 0.46 : 0.945 + lightSurface, 0.46, 0.065);
+    const compact = surface(dark ? 0.465 : 0.915 + lightSurface, dark ? 0.48 : 0.60, dark ? 0.07 : 0.085);
+    const actions = surface(dark ? 0.475 : 0.885 + lightSurface, dark ? 0.50 : 0.75, dark ? 0.075 : 0.10);
+    const outline = treePaletteTone(lab, dark ? clamp(lab[0], 0.82, 0.90) : 0.51, 1, 0.18);
     let connectorL = dark ? clamp(lab[0], 0.56, 0.70) : 0.55;
     let connector = treePaletteTone(lab, connectorL, 0.85, 0.15);
     for (let i = 0; i < 20 && treePaletteContrast(connector, canvas) < 3; i++)
@@ -398,7 +415,8 @@ function paintTreeColors(runtime)
         card.style.setProperty('--tree-outline-category', category(settings.outline, '-outline'));
         card.dataset.branchSlot = slot || '';
         if (settings.fill === 'branch' || settings.outline === 'branch')
-            card.setAttribute('aria-description', slot ? t('Branch') + ' ' + slot : t('Neutral'));
+            card.setAttribute('aria-description', slot === 'descendants' ? t('Reference & descendants')
+                : slot ? t('Branch') + ' ' + slot : t('Neutral'));
         else card.removeAttribute('aria-description');
     }
     for (const node of runtime.lines.children)

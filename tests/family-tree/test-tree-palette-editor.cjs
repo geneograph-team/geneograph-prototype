@@ -22,8 +22,8 @@ const people = new Map([['f', { name: 'Father <name>' }], ['m', { name: 'Mother'
 for (const preset of [2, 4, 8, 16])
 {
     const html = treePaletteRowsMarkup(palette, 'light', preset, origins, ids, people);
-    assert.equal((html.match(/data-tree-palette-color=/g) || []).length, 20);
-    assert.equal((html.match(/data-tree-palette-reset=/g) || []).length, 20);
+    assert.equal((html.match(/data-tree-palette-color=/g) || []).length, 21);
+    assert.equal((html.match(/data-tree-palette-reset=/g) || []).length, 21);
     assert.equal((html.match(/aria-label="Included in branch count"/g) || []).length, preset);
     assert.equal((html.match(/aria-label="Not included in branch count"/g) || []).length, 16 - preset);
     assert.ok(html.includes('Vacant branch origin'));
@@ -32,11 +32,13 @@ for (const preset of [2, 4, 8, 16])
 palette.dark['16'] = '#112233';
 const html = treePaletteRowsMarkup(palette, 'dark', 2, origins, ids, people);
 assert.ok(html.includes('data-color-value="#112233"'));
-assert.ok(html.indexOf('Gender and neutral colors') < html.indexOf('Branch colors'));
+assert.ok(html.indexOf('Category colors') < html.indexOf('Branch colors'));
 assert.ok(html.includes('role="tooltip"'));
-assert.equal((html.match(/geneo-paint-swatch/g) || []).length, 20);
+assert.ok(html.includes('Reference &amp; descendants'));
+assert.ok(html.includes('data-tree-palette-color="descendants"'));
+assert.equal((html.match(/geneo-paint-swatch/g) || []).length, 21);
 assert.equal(html.includes('type="color"'), false);
-assert.equal((html.match(/tree-palette-category-row/g) || []).length, 4);
+assert.equal((html.match(/tree-palette-category-row/g) || []).length, 5);
 assert.equal((html.match(/tree-palette-branch-row/g) || []).length, 16);
 assert.ok(html.includes('class="tree-palette-category-grid"'));
 assert.equal(html.includes('button secondary tree-palette-reset'), false);
