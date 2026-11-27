@@ -254,7 +254,7 @@ function openUnifiedImagePeopleModal(photoId, { mode = 'tag', activePersonId = n
               photo-people-footer
             ">
 
-            <button type="button" class="button secondary albums-full-preview" data-albums-full-preview>${escapeHtml(t('Full preview'))}</button>
+            <button type="button" class="button secondary albums-full-preview" data-albums-full-preview>${escapeHtml(t('Back to photo'))}</button>
             <div class="albums-preview-footer-tools">
               <button type="button" class="button primary albums-lightbox-tag" data-lightbox-tag>${icon.plus}<span>${escapeHtml(t(archiveMode ? 'Tag person' : 'Tag people'))}</span></button>
               <label class="albums-marked-toggle"><input type="checkbox" data-albums-show-marked ${markedAreasVisible() ? 'checked' : ''}><span>${escapeHtml(t('Show marked areas'))}</span></label>
