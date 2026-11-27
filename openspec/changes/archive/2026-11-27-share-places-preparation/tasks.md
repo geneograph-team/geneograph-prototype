@@ -4,7 +4,7 @@
 - [x] Share scoped associations and exact duplicate comparisons and reuse one owner snapshot.
 - [x] Retain compatible map hosts and suppress stale scheduled mounts.
 - [x] Run focused deterministic tests and hosted and direct-file Edge checks.
-- [ ] Verify the founder’s imported GEDCOM and obtain acceptance.
+- [x] Verify imported-project performance and obtain explicit founder acceptance (see accepted closeout and limitations).
 
 ## Verification
 
@@ -55,4 +55,12 @@ View all and Show less retained their original contents and controls. Hosted exp
 
 Hosted English and direct-file Russian checks passed for heavy and sparse selection, search and clear, View all and Show less, save refresh, and person evidence navigation. Hosted map editing continuity with routes, theme, language, project switch and exact and approximate saves passed again. Deterministic inspector, map editing, map mount, association, duplicate, unlinked Places, project-data-contract and Diagnostics checks passed. The founder's private GEDCOM and live source/media/note link edits were outside this follow-up capture. Founder acceptance remains pending.
 
+## Accepted closeout — 27 November 2026
 
+Founder explicitly accepted #455 and requested archival. Implementation `5e0eab21521ebbb7c2ca4c156d14ebd0513cc56a`, map editing continuity correction `288d2190f79f94f3014d5c1bac166e78fa29778b`, inspector correction `1a06703a43d487299031dbe4aabd6150ea50d4af`. Both capability deltas are already integrated in current specs; no new runtime or normative changes at archival.
+
+Final founder Detailed schema-3 recording on imported GEDCOM: 33 completed operations, zero drops, one recording epoch, 6,481 people / 1,950 families / 151 initial matching places. Places navigation 57.2 ms, initial render 52.5 ms; 14 render/query samples 7.7–55.9 ms, each with one query call (0.3–2.6 ms except the final 16.2 ms query including association preparation). Five selections 8.6–22.9 ms; selection evidence 4.7–16.2 ms, DOM 0.9–1.3 ms. Maximum evidence across Places render/query/selection 17.8 ms. Heavy selection #32: 946 connected events, 1,312 owner visits, 498 groups prepared, five groups and 13 rows rendered; projection 11.3 ms, total 22.9 ms, frame opportunity 26.8 ms. Final render #33 reports the same group/event counts, projection 10.7 ms and 55.9 ms total. Earlier imported test maxima were selection 474 ms, render 834.3 ms, evidence 474.8 ms; these observational comparisons corroborate the synthetic correction but are not controlled matched benchmarks or paint times. Earlier Test B repeated per-place association queries were removed; association provider builds 9.9–14.6 ms in final capture, duplicate builds 15.0–20.1 ms, with compatible reuse.
+
+Two map initializations completed, zero canceled: 2,236/415.4 ms async elapsed with 12.1/10.7 ms synchronous setup. Page-wide 10 long tasks, total 1,761 ms, max 542 ms include import/Tree and other work, not attributable solely to Places. Two legacy invalidations/eight evictions remain #474 evidence; #312 owns insight destination functionality and #460 integrated regression.
+
+Founder accepts normal browsing/selection and documented limitations. Large expanded event views retain existing full content and substantial DOM cost (synthetic hosted View all 417–511 ms, Show less 1,013–1,175 ms). Touch dragging, full saved-filter/project-switch matrix, live source/media/note link edits and comprehensive cross-engine/viewport coverage remain incomplete; the final trace does not establish every map edit, save/cancel or review correctness outcome. No runtime tests independently rerun at archival; prior local deterministic/browser results remain as reported. Original unchecked issue criteria remain historical, not claims that every check ran. No private dataset or raw export committed.
