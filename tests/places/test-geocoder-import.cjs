@@ -126,6 +126,11 @@ async function run()
     await h.api.search('Москва, Россия');
     await h.api.searchImport('Москва, Россия');
     assert.deepEqual(h.queries,[['Москва, Россия','ru'],['Москва, Россия','ru']]);
+    h=harness([{body:{results:[city]}},{body:{results:[city]}}]);
+    h.sandbox.gedcomLookupContext=() => ({query:'Бряндино, Чердаклинский район, Россия', language:'ru'});
+    await h.api.search('с. Бряндино, Чердаклинский р-н, Россия');
+    await h.api.searchImport('Бряндино, Чердаклинский район, Россия');
+    assert.deepEqual(h.queries,[['Бряндино, Чердаклинский район, Россия','ru'],['Бряндино, Чердаклинский район, Россия','ru']]);
     await verifyDispatchPriority();
     console.log('Import geocoder single-provider request, quota, candidate and manual-search checks passed.');
 }

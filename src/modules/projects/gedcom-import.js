@@ -2379,7 +2379,7 @@ function gedcomEvaluatePlaceMatch(plan, result)
     const candidate = selected.candidate;
     const strict = selected.strongName && selected.completeContext && plausible.length === 1
         && providerOnly.length === 0 ? gedcomVerifiedPlaceMatch(plan, result) : null;
-    const verified = strict?.identity && strict.point?.lat === candidate.coordinates.lat
+    const verified = strict?.identity?.ids?.length && strict.point?.lat === candidate.coordinates.lat
         && strict.point?.lng === candidate.coordinates.lng;
     return { point: { ...candidate.coordinates }, reason: 'assigned',
         identity: verified ? strict.identity : null,
@@ -2716,7 +2716,8 @@ function flushGedcomMatchingJob(job)
     stats.assigned -= job.rejected.size;
     stats.uncertain += job.rejected.size;
     for (const diagnostic of diagnostics)
-        if (diagnostic.reason === 'assigned' && job.rejected.has(diagnostic.id)) diagnostic.reason = 'stale-place';
+        if (diagnostic.reason === 'assigned' && (job.rejected.has(diagnostic.id) || job.invalidated.has(diagnostic.id)))
+            diagnostic.reason = 'stale-place';
     stats.merged = job.mergedCount || 0;
     job.report.placeMatching = stats;
     const retried = new Set(diagnostics.map(item => item.id));
