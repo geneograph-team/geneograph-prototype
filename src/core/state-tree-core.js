@@ -874,7 +874,7 @@ function openTreeSettingsModal()
         <form id="treeSettingsForm">
           <div class="modal-body tree-settings-body global-settings-layout">
             <nav class="global-settings-nav tree-settings-nav" aria-label="${escapeHtml(t('Tree settings sections'))}">
-              ${sections.map(([key, label], index) => `<button class="global-settings-nav-button ${index === 0 ? 'active' : ''}" type="button" data-tree-settings-section="${key}" ${index === 0 ? 'aria-current="true"' : ''} aria-controls="tree-settings-${key}">${escapeHtml(t(label))}</button>`).join('')}
+              ${sections.map(([key, label], index) => `<button class="global-settings-nav-button ${index === 0 ? 'active' : ''}" type="button" data-tree-settings-section="${key}" ${index === 0 ? 'aria-current="true" data-modal-initial-focus' : ''} aria-controls="tree-settings-${key}">${escapeHtml(t(label))}</button>`).join('')}
             </nav>
             <div class="global-settings-panel tree-settings-panel">
               <section id="tree-settings-visibility" data-tree-settings-panel="visibility" aria-labelledby="tree-settings-visibility-title">
@@ -965,9 +965,10 @@ function openTreeSettingsModal()
     const navButtons = [...form.querySelectorAll('[data-tree-settings-section]')];
     const panels = [...form.querySelectorAll('[data-tree-settings-panel]')];
     const panel = form.querySelector('.tree-settings-panel');
-    navButtons.forEach(button => button.addEventListener('click', () =>
+    const selectSection = section =>
     {
-        const section = button.dataset.treeSettingsSection;
+        const button = navButtons.find(candidate => candidate.dataset.treeSettingsSection === section);
+        if (!button) return;
         if (section === 'palette') renderPalette();
         for (const candidate of navButtons)
         {
@@ -978,7 +979,15 @@ function openTreeSettingsModal()
         }
         for (const candidate of panels) candidate.hidden = candidate.dataset.treeSettingsPanel !== section;
         panel.scrollTop = 0;
-    }));
+    };
+    navButtons.forEach(button => button.addEventListener('click', () => selectSection(button.dataset.treeSettingsSection)));
+    // Native form validation still applies to controls in hidden sections.
+    // Reveal the invalid field before the browser tries to focus it.
+    form.addEventListener('invalid', event =>
+    {
+        const section = event.target.closest('[data-tree-settings-panel]');
+        if (section?.hidden) selectSection(section.dataset.treeSettingsPanel);
+    }, true);
     form.querySelector('#treePaletteTheme').addEventListener('change', event =>
     {
         paletteTheme = event.target.value === 'dark' ? 'dark' : 'light';

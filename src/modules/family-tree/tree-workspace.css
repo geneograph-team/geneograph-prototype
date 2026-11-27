@@ -505,6 +505,23 @@
     min-width: 0;
     min-height: 0;
     overflow-y: auto;
+    overscroll-behavior: contain;
+}
+
+.tree-settings-nav {
+    min-height: 0;
+    overflow-y: auto;
+}
+
+.tree-settings-nav .global-settings-nav-button {
+    min-width: 0;
+    overflow-wrap: anywhere;
+    white-space: normal;
+}
+
+/* Keep the modal body fixed under shared full-screen mobile modal rules. */
+#modalBackdrop > .tree-settings-modal > form > .tree-settings-body {
+    overflow: hidden;
 }
 
 .tree-settings-panel > section {
@@ -606,7 +623,23 @@
 
     .tree-settings-nav .global-settings-nav-button {
         justify-content: center;
+        text-align: center;
         padding-inline: var(--space-1);
+    }
+}
+
+@media (max-width: 480px) {
+    .tree-settings-panel {
+        padding: var(--space-3);
+    }
+
+    .tree-settings-generation-grid {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .tree-settings-focus {
+        flex-wrap: wrap;
+        overflow-wrap: anywhere;
     }
 }
 
