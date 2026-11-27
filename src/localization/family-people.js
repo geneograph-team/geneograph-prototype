@@ -24,6 +24,8 @@ const RU_UI_FAMILY_TREE = {
     'Horizontal tree': 'Горизонтальное древо',
     'Branch coloring': 'Цвета ветвей',
     'Branch reference person': 'Исходный человек для ветвей',
+    'Branch colors follow the ancestors of this person. This can differ from the default person and the current tree focus.': 'Цвета ветвей определяются предками этого человека. Он может отличаться от человека по умолчанию и текущего человека в фокусе древа.',
+    'Choose a default person for this project.': 'Выберите человека по умолчанию для этого проекта.',
     'Branch count': 'Количество ветвей',
     'Include collateral relatives': 'Включать боковые ветви',
     'Outline': 'Контур',

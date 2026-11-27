@@ -848,21 +848,28 @@ function openTreeSettingsModal()
 {
     const projectId = currentFamilyTreeProjectId();
     const view = treeProjectViewState(projectId);
-    const defaultPerson = getPerson(sampleData.projects.find(project => project.id === projectId)?.defaultPersonId);
+    const project = sampleData.projects.find(item => item.id === projectId);
+    if (!project) return;
+    let defaultPersonId = treeDefaultPersonId(projectId);
     const draft = treeDisplaySettings(projectId, view);
     const colors = draft.colors;
     let reference = colors.reference;
     let paletteTheme = document.documentElement.dataset.theme === 'dark' ? 'dark' : 'light';
     let paletteGraph = null, palettePeople = null, referenceOptions = null;
-    const referenceSchema = [{
-        key: 'reference', label: 'Branch reference person', control: 'combobox', layout: 'full',
+    const personOptions = () => referenceOptions ||= getPeople(projectId).filter(person => !person.deleted).map(person => ({
+        value: person.id, label: formatPersonFullName(person) || t('Unnamed person')
+    }));
+    const personField = (key, label, helpText = '') => ({
+        key, label, helpText, control: 'combobox', layout: 'full',
         placeholder: 'Search people', defaultValue: '',
-        getOptions: () => referenceOptions ||= getPeople(projectId).map(person => ({
-            value: person.id, label: formatPersonFullName(person) || t('Unnamed person')
-        })),
+        getOptions: personOptions,
         renderSelectedIdentity: (id, label) => treeSettingsPersonPreview(getPerson(id), label)
-    }];
-    const referencePicker = { schema: referenceSchema, values: { reference }, prefix: 'tree-branch-person' };
+    });
+    const defaultPicker = { schema: [personField('defaultPerson', 'Default person')],
+        values: { defaultPerson: defaultPersonId }, prefix: 'tree-default-person' };
+    const referencePicker = { schema: [personField('reference', 'Branch reference person',
+        'Branch colors follow the ancestors of this person. This can differ from the default person and the current tree focus.')],
+        values: { reference }, prefix: 'tree-branch-person' };
     const option = (value, selected, label = value) =>
         `<option value="${value}" ${value === selected ? 'selected' : ''}>${escapeHtml(t(label))}</option>`;
     const select = (id, options) => `<span class="common-select-shell"><select class="common-select" id="${id}">${options}</select><span class="common-select-chevron" aria-hidden="true">${icon.chevron}</span></span>`;
@@ -887,10 +894,7 @@ function openTreeSettingsModal()
             <div class="global-settings-panel tree-settings-panel">
               <section id="tree-settings-visibility" data-tree-settings-panel="visibility" aria-labelledby="tree-settings-visibility-title">
                 <h3 id="tree-settings-visibility-title">${escapeHtml(t('Visibility'))}</h3>
-                <div class="tree-settings-default">
-                  <span class="tree-settings-field-label">${escapeHtml(t('Default person'))}</span>
-                  ${treeSettingsPersonPreview(defaultPerson?.projectId === projectId ? defaultPerson : null)}
-                </div>
+                <div class="tree-branch-reference tree-settings-default">${renderSharedFilterFields(defaultPicker)}</div>
                 <div class="two-col-form tree-settings-generation-grid">
                   <div class="field">
                     <label for="treeAncestorGenerations">${escapeHtml(t('Ancestor generations'))}</label>
@@ -965,6 +969,7 @@ function openTreeSettingsModal()
         const originIds = treeBranchOriginIds(paletteGraph, reference, origins);
         rows.innerHTML = treePaletteRowsMarkup(colors.palette, paletteTheme, Number(presetInput.value), origins, originIds, palettePeople);
     };
+    const defaultBinding = bindSharedFilterFields(form, { ...defaultPicker, onChange: next => { defaultPersonId = next.defaultPerson; } });
     bindSharedFilterFields(form, { ...referencePicker, onChange: next => { reference = next.reference; } });
     const navButtons = [...form.querySelectorAll('[data-tree-settings-section]')];
     const panels = [...form.querySelectorAll('[data-tree-settings-panel]')];
@@ -1049,6 +1054,15 @@ function openTreeSettingsModal()
         event.preventDefault();
         closeGeneoDraftColorPicker({ restoreFocus: false });
         if (currentFamilyTreeProjectId() !== projectId) { closeModal(); return; }
+        const selectedDefault = getPerson(defaultPersonId);
+        if ((!selectedDefault || selectedDefault.deleted || selectedDefault.projectId !== projectId)
+            && (defaultPersonId || getPeople(projectId).some(person => !person.deleted)))
+        {
+            selectSection('visibility');
+            showToast(t('Choose a default person for this project.'));
+            defaultBinding?.focusFirst();
+            return;
+        }
         const previousStructure = [view.ancestorGenerations, view.descendantGenerations, view.showCousins];
         const ancestorValue = form.querySelector('#treeAncestorGenerations').valueAsNumber;
         const descendantValue = form.querySelector('#treeDescendantGenerations').valueAsNumber;
@@ -1059,6 +1073,11 @@ function openTreeSettingsModal()
         colors.preset = Number(presetInput.value);
         colors.collateral = form.querySelector('#treeBranchCollateral').checked;
         for (const key of ['fill', 'outline', 'connectors']) colors[key] = form.querySelector('#tree-color-' + key).value;
+        if (selectedDefault && project.defaultPersonId !== selectedDefault.id)
+        {
+            project.defaultPersonId = selectedDefault.id;
+            touchProjectModified(project);
+        }
         Object.assign(view, treeDisplaySettings(projectId, draft));
         saveTreeDisplaySettings(projectId, view);
         closeModal();

@@ -23,7 +23,8 @@ const get = key => { if (!controls.has(key)) controls.set(key, make()); return c
 const form = make();
 form.querySelector = get;
 form.querySelectorAll = key => key === '[data-tree-settings-section]' ? buttons : panels;
-let picked = null;
+let picked = null, touches = 0, toast = '', pickerFocus = 0;
+const pickerChanges = {};
 let saves = 0, renders = 0, repaints = 0, closes = 0, html = '', currentProject = 'p1';
 const setup = () =>
 {
@@ -38,8 +39,8 @@ const submit = () => form.events.submit({ preventDefault() {} });
 const change = (element, value) => element.events.change({ target: { value } });
 const dependencies = {
     currentFamilyTreeProjectId: () => currentProject, treeProjectViewState: () => view,
-    getPerson: id => id === 'a' ? { id: 'a', projectId: 'p1', name: 'Person A' } : id === 'b' ? { id: 'b', projectId: 'p1', name: 'Focus B' } : null,
-    getPeople: () => [{ id: 'a', projectId: 'p1', name: 'Person A' }],
+    getPerson: id => id === 'a' ? { id: 'a', projectId: 'p1', name: 'Person A' } : id === 'b' ? { id: 'b', projectId: 'p1', name: 'Focus B' } : id === 'c' ? { id: 'c', projectId: 'p1', name: 'Person C' } : null,
+    getPeople: () => [{ id: 'a', projectId: 'p1', name: 'Person A' }, { id: 'b', projectId: 'p1', name: 'Focus B' }, { id: 'c', projectId: 'p1', name: 'Person C' }],
     sampleData: { projects: [{ id: 'p1', defaultPersonId: 'a' }] },
     clampNumber: (n, min, max) => Math.min(max, Math.max(min, n)),
     document: { documentElement: { dataset: { theme: 'light' } } },
@@ -48,7 +49,9 @@ const dependencies = {
     closeGeneoDraftColorPicker: () => {}, openGeneoDraftColorPicker: options => { picked = options; },
     openModal: markup => { html = markup; setup(); },
     modalBackdrop: { querySelector: () => form },
-    renderSharedFilterFields: () => '', bindSharedFilterFields: () => {},
+    renderSharedFilterFields: options => options.schema.map(field => field.label + ' ' + (field.helpText || '') + ' ' + (options.values[field.key] === 'a' ? 'Person A' : '')).join(' '),
+    bindSharedFilterFields: (_form, options) => { pickerChanges[options.prefix] = options.onChange; return { focusFirst() { pickerFocus++; } }; },
+    touchProjectModified: () => { touches++; }, showToast: value => { toast = value; },
     centralFamilyRecords: () => [], treeBranchGraph: () => ({ parents: new Map() }),
     treeBranchPaths: () => ({ origins: Array(16).fill('F') }), treeBranchOriginIds: () => Array(16).fill(''),
     closeModal: () => { closes++; }, localStorage: { setItem() { saves++; } },
@@ -65,6 +68,8 @@ assert.ok(html.includes('Default person'));
 assert.ok(html.includes('Person A'));
 assert.equal(html.includes('Focus B'), false);
 assert.equal(html.includes('data-tree-palette-reference'), false);
+assert.ok(html.includes('Branch colors follow the ancestors of this person.'));
+assert.ok(typeof pickerChanges['tree-default-person'] === 'function');
 const pickColor = color => {
     const button = { dataset: { treePaletteColor: '16', treePaletteLabel: 'Branch 16' } };
     get('[data-tree-palette-rows]').events.click({ target: { closest: selector => selector === '[data-tree-palette-color]' ? button : null } });
@@ -116,4 +121,33 @@ currentProject = 'p2';
 submit();
 assert.equal(saves, 2);
 assert.equal(renders, 1);
-console.log('Tree settings staged section/theme edits, validation navigation, Apply and discard paths passed.');
+currentProject = 'p1';
+run.openTreeSettingsModal();
+pickerChanges['tree-default-person']({ defaultPerson: 'c' });
+assert.equal(dependencies.sampleData.projects[0].defaultPersonId, 'a');
+assert.equal(touches, 0);
+dependencies.closeModal();
+run.openTreeSettingsModal();
+assert.equal(dependencies.sampleData.projects[0].defaultPersonId, 'a');
+pickerChanges['tree-default-person']({ defaultPerson: '' });
+submit();
+assert.equal(saves, 2);
+assert.equal(touches, 0);
+assert.equal(pickerFocus, 1);
+assert.equal(toast, 'Choose a default person for this project.');
+pickerChanges['tree-default-person']({ defaultPerson: 'outside' });
+submit();
+assert.equal(saves, 2);
+assert.equal(touches, 0);
+pickerChanges['tree-default-person']({ defaultPerson: 'c' });
+submit();
+assert.equal(dependencies.sampleData.projects[0].defaultPersonId, 'c');
+assert.equal(view.focusPersonId, 'b');
+assert.equal(view.colors.reference, 'a');
+assert.equal(touches, 1);
+assert.equal(saves, 3);
+assert.equal(renders, 1);
+run.openTreeSettingsModal();
+submit();
+assert.equal(touches, 1);
+console.log('Tree settings staged section/theme edits, default person selection, validation navigation, Apply and discard paths passed.');

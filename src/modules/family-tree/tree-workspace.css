@@ -655,12 +655,14 @@
     gap: var(--space-2);
 }
 
-.tree-palette-info-wrap {
+.tree-palette-info-wrap,
+.tree-branch-reference .shared-filter-hint-wrap {
     position: relative;
     display: inline-flex;
 }
 
-.tree-palette-tooltip {
+.tree-palette-tooltip,
+.tree-branch-reference .shared-filter-tooltip {
     display: none;
     position: absolute;
     z-index: 3;
@@ -680,11 +682,14 @@
 }
 
 .tree-palette-info-wrap:hover .tree-palette-tooltip,
-.tree-palette-info-wrap:focus-within .tree-palette-tooltip {
+.tree-palette-info-wrap:focus-within .tree-palette-tooltip,
+.tree-branch-reference .shared-filter-hint-wrap:hover .shared-filter-tooltip,
+.tree-branch-reference .shared-filter-hint-wrap:focus-within .shared-filter-tooltip {
     display: block;
 }
 
-.tree-palette-info {
+.tree-palette-info,
+.tree-branch-reference .shared-filter-hint {
     display: inline-grid;
     place-items: center;
     width: 24px;
@@ -696,7 +701,8 @@
     cursor: help;
 }
 
-.tree-palette-info svg {
+.tree-palette-info svg,
+.tree-branch-reference .shared-filter-hint svg {
     width: 16px;
     height: 16px;
 }
@@ -719,16 +725,23 @@
     border-bottom: 1px solid var(--surface-row-divider);
 }
 
-.tree-settings-field-label,
-.tree-branch-reference .shared-filter-field > label {
+.tree-branch-reference .shared-filter-field > label,
+.tree-branch-reference .shared-filter-label-row > label {
     color: var(--text-secondary);
     font-size: inherit;
     font-weight: 600;
     letter-spacing: normal;
 }
 
-.tree-settings-default > .tree-settings-person-preview {
-    padding: 0;
+.tree-branch-reference .shared-filter-label-row {
+    display: flex;
+    align-items: center;
+    gap: var(--space-1);
+}
+
+.tree-branch-reference .shared-filter-hint {
+    width: 20px;
+    height: 20px;
 }
 
 .tree-settings-person-preview strong {

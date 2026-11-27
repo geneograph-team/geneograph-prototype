@@ -593,6 +593,7 @@ function renderSharedFilterFields({
               <div
                 class="${fieldClass}">
 
+                ${definition.helpText ? '<div class="shared-filter-label-row">' : ''}
                 <label
                   for="${escapeHtml(fieldId)}">
                   ${escapeHtml(
@@ -601,6 +602,10 @@ function renderSharedFilterFields({
                         )
                     )}
                 </label>
+                ${definition.helpText ? `<span class="shared-filter-hint-wrap">
+                  <span class="shared-filter-hint" tabindex="0" aria-label="${escapeHtml(translateText(definition.label))}" aria-describedby="${escapeHtml(fieldId)}-hint">${icon.info}</span>
+                  <span class="shared-filter-tooltip" id="${escapeHtml(fieldId)}-hint" role="tooltip">${escapeHtml(translateText(definition.helpText))}</span>
+                </span></div>` : ''}
 
                 <div
                   class="shared-filter-combobox"
