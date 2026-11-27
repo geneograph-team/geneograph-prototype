@@ -346,7 +346,19 @@ function treePaletteTones(color, theme)
         connectorL += dark ? 0.01 : -0.01;
         connector = treePaletteTone(lab, connectorL, 0.85, 0.15);
     }
-    return { overview, detail, compact, actions, outline, 'detail-outline': detailOutline, connector, ink: treePaletteLabelInk(overview) };
+    // Portrait initials are visible at full/short detail. Derive a stronger
+    // same-hue tint from the actual detail surface, not the actions fill.
+    // Keep dark initials readable even for arbitrary custom RGB bases.
+    const avatarInk = dark ? '#14221c' : '#202729';
+    let avatarL = treePaletteLab(detail)[0] - 0.15;
+    let avatar = treePaletteTone(lab, avatarL, 1, 0.16);
+    for (let i = 0; i < 20 && treePaletteContrast(avatar, avatarInk) < 4.5; i++)
+    {
+        avatarL += 0.01;
+        avatar = treePaletteTone(lab, avatarL, 1, 0.16);
+    }
+    return { overview, detail, compact, actions, avatar, outline, 'detail-outline': detailOutline,
+        connector, ink: treePaletteLabelInk(overview) };
 }
 
 function applyTreePalette(runtime, palette)
@@ -419,7 +431,7 @@ function paintTreeColors(runtime)
         card.treeColorStamp = stamp;
         const category = (mode, role = '') => mode === 'gender' ? 'var(--tree-gender-tone' + role + ')'
             : treeBranchColor(mode === 'branch' ? slot : 0, role);
-        for (const role of ['', '-detail', '-compact', '-actions', '-ink'])
+        for (const role of ['', '-detail', '-compact', '-actions', '-avatar', '-ink'])
             card.style.setProperty('--tree-card-category' + role, category(settings.fill, role));
         card.style.setProperty('--tree-outline-category', category(settings.outline, '-outline'));
         card.style.setProperty('--tree-outline-detail-category', category(settings.outline, '-detail-outline'));

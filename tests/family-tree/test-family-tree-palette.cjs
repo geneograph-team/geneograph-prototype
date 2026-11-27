@@ -28,6 +28,10 @@ vm.runInContext(`
             assert.ok(treePaletteContrast(tones.overview, tones.ink) >= 4.5, color + ' label');
             assert.ok(treePaletteContrast(tones.connector, canvas) >= 3, color + ' connector');
             assert.ok(treePaletteContrast(tones.outline, canvas) >= 3, color + ' outline');
+            assert.ok(treePaletteContrast(tones.avatar, primary) >= 4.5, color + ' avatar initials');
+            // Avatar background is decorative, not a separate control; a
+            // perceptible tonal step is sufficient while the ink meets AA.
+            assert.ok(treePaletteContrast(tones.detail, tones.avatar) >= 1.5, color + ' avatar separation');
             for (const role of ['detail', 'compact', 'actions'])
             {
                 assert.ok(treePaletteContrast(tones[role], primary) >= 4.5, color + ' ' + role);
@@ -56,13 +60,17 @@ vm.runInContext(`
                     assert.ok(treePaletteContrast(fill[role], outline['detail-outline']) >= 3,
                         theme + ' independent detailed outline');
     }
+    assert.ok(treePaletteContrast('#80c5a0', '#153d29') >= 4.5, 'light selected avatar initials');
+    assert.ok(treePaletteContrast('#80c5a0', '#ddeee3') >= 1.5, 'light selected avatar separation');
+    assert.ok(treePaletteContrast('#89d7ab', '#14221c') >= 4.5, 'dark selected avatar initials');
+    assert.ok(treePaletteContrast('#89d7ab', '#123c2b') >= 3, 'dark selected avatar separation');
     const props = new Map();
     let writes = 0;
     const runtime = { shell: { style: { setProperty(key, value) { writes++; props.set(key, value); } } } };
     applyTreePalette(runtime, defaults);
-    assert.equal(writes, 42 * 8);
+    assert.equal(writes, 42 * 9);
     applyTreePalette(runtime, defaults);
-    assert.equal(writes, 42 * 8);
+    assert.equal(writes, 42 * 9);
     const next = normalizeTreePalette({ light: { male: '#ff0000' } });
     applyTreePalette(runtime, next);
     assert.equal(props.get('--tree-palette-light-male-detail'), treePaletteTones('#ff0000', 'light').detail);

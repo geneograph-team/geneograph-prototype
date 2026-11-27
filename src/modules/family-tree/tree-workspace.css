@@ -15,6 +15,7 @@
     --tree-branch-1-detail: var(--tree-palette-light-1-detail);
     --tree-branch-1-compact: var(--tree-palette-light-1-compact);
     --tree-branch-1-actions: var(--tree-palette-light-1-actions);
+    --tree-branch-1-avatar: var(--tree-palette-light-1-avatar);
     --tree-branch-1-outline: var(--tree-palette-light-1-outline);
     --tree-branch-1-detail-outline: var(--tree-palette-light-1-detail-outline);
     --tree-branch-1-connector: var(--tree-palette-light-1-connector);
@@ -23,6 +24,7 @@
     --tree-branch-2-detail: var(--tree-palette-light-2-detail);
     --tree-branch-2-compact: var(--tree-palette-light-2-compact);
     --tree-branch-2-actions: var(--tree-palette-light-2-actions);
+    --tree-branch-2-avatar: var(--tree-palette-light-2-avatar);
     --tree-branch-2-outline: var(--tree-palette-light-2-outline);
     --tree-branch-2-detail-outline: var(--tree-palette-light-2-detail-outline);
     --tree-branch-2-connector: var(--tree-palette-light-2-connector);
@@ -31,6 +33,7 @@
     --tree-branch-3-detail: var(--tree-palette-light-3-detail);
     --tree-branch-3-compact: var(--tree-palette-light-3-compact);
     --tree-branch-3-actions: var(--tree-palette-light-3-actions);
+    --tree-branch-3-avatar: var(--tree-palette-light-3-avatar);
     --tree-branch-3-outline: var(--tree-palette-light-3-outline);
     --tree-branch-3-detail-outline: var(--tree-palette-light-3-detail-outline);
     --tree-branch-3-connector: var(--tree-palette-light-3-connector);
@@ -39,6 +42,7 @@
     --tree-branch-4-detail: var(--tree-palette-light-4-detail);
     --tree-branch-4-compact: var(--tree-palette-light-4-compact);
     --tree-branch-4-actions: var(--tree-palette-light-4-actions);
+    --tree-branch-4-avatar: var(--tree-palette-light-4-avatar);
     --tree-branch-4-outline: var(--tree-palette-light-4-outline);
     --tree-branch-4-detail-outline: var(--tree-palette-light-4-detail-outline);
     --tree-branch-4-connector: var(--tree-palette-light-4-connector);
@@ -47,6 +51,7 @@
     --tree-branch-5-detail: var(--tree-palette-light-5-detail);
     --tree-branch-5-compact: var(--tree-palette-light-5-compact);
     --tree-branch-5-actions: var(--tree-palette-light-5-actions);
+    --tree-branch-5-avatar: var(--tree-palette-light-5-avatar);
     --tree-branch-5-outline: var(--tree-palette-light-5-outline);
     --tree-branch-5-detail-outline: var(--tree-palette-light-5-detail-outline);
     --tree-branch-5-connector: var(--tree-palette-light-5-connector);
@@ -55,6 +60,7 @@
     --tree-branch-6-detail: var(--tree-palette-light-6-detail);
     --tree-branch-6-compact: var(--tree-palette-light-6-compact);
     --tree-branch-6-actions: var(--tree-palette-light-6-actions);
+    --tree-branch-6-avatar: var(--tree-palette-light-6-avatar);
     --tree-branch-6-outline: var(--tree-palette-light-6-outline);
     --tree-branch-6-detail-outline: var(--tree-palette-light-6-detail-outline);
     --tree-branch-6-connector: var(--tree-palette-light-6-connector);
@@ -63,6 +69,7 @@
     --tree-branch-7-detail: var(--tree-palette-light-7-detail);
     --tree-branch-7-compact: var(--tree-palette-light-7-compact);
     --tree-branch-7-actions: var(--tree-palette-light-7-actions);
+    --tree-branch-7-avatar: var(--tree-palette-light-7-avatar);
     --tree-branch-7-outline: var(--tree-palette-light-7-outline);
     --tree-branch-7-detail-outline: var(--tree-palette-light-7-detail-outline);
     --tree-branch-7-connector: var(--tree-palette-light-7-connector);
@@ -71,6 +78,7 @@
     --tree-branch-8-detail: var(--tree-palette-light-8-detail);
     --tree-branch-8-compact: var(--tree-palette-light-8-compact);
     --tree-branch-8-actions: var(--tree-palette-light-8-actions);
+    --tree-branch-8-avatar: var(--tree-palette-light-8-avatar);
     --tree-branch-8-outline: var(--tree-palette-light-8-outline);
     --tree-branch-8-detail-outline: var(--tree-palette-light-8-detail-outline);
     --tree-branch-8-connector: var(--tree-palette-light-8-connector);
@@ -79,6 +87,7 @@
     --tree-branch-9-detail: var(--tree-palette-light-9-detail);
     --tree-branch-9-compact: var(--tree-palette-light-9-compact);
     --tree-branch-9-actions: var(--tree-palette-light-9-actions);
+    --tree-branch-9-avatar: var(--tree-palette-light-9-avatar);
     --tree-branch-9-outline: var(--tree-palette-light-9-outline);
     --tree-branch-9-detail-outline: var(--tree-palette-light-9-detail-outline);
     --tree-branch-9-connector: var(--tree-palette-light-9-connector);
@@ -87,6 +96,7 @@
     --tree-branch-10-detail: var(--tree-palette-light-10-detail);
     --tree-branch-10-compact: var(--tree-palette-light-10-compact);
     --tree-branch-10-actions: var(--tree-palette-light-10-actions);
+    --tree-branch-10-avatar: var(--tree-palette-light-10-avatar);
     --tree-branch-10-outline: var(--tree-palette-light-10-outline);
     --tree-branch-10-detail-outline: var(--tree-palette-light-10-detail-outline);
     --tree-branch-10-connector: var(--tree-palette-light-10-connector);
@@ -95,6 +105,7 @@
     --tree-branch-11-detail: var(--tree-palette-light-11-detail);
     --tree-branch-11-compact: var(--tree-palette-light-11-compact);
     --tree-branch-11-actions: var(--tree-palette-light-11-actions);
+    --tree-branch-11-avatar: var(--tree-palette-light-11-avatar);
     --tree-branch-11-outline: var(--tree-palette-light-11-outline);
     --tree-branch-11-detail-outline: var(--tree-palette-light-11-detail-outline);
     --tree-branch-11-connector: var(--tree-palette-light-11-connector);
@@ -103,6 +114,7 @@
     --tree-branch-12-detail: var(--tree-palette-light-12-detail);
     --tree-branch-12-compact: var(--tree-palette-light-12-compact);
     --tree-branch-12-actions: var(--tree-palette-light-12-actions);
+    --tree-branch-12-avatar: var(--tree-palette-light-12-avatar);
     --tree-branch-12-outline: var(--tree-palette-light-12-outline);
     --tree-branch-12-detail-outline: var(--tree-palette-light-12-detail-outline);
     --tree-branch-12-connector: var(--tree-palette-light-12-connector);
@@ -111,6 +123,7 @@
     --tree-branch-13-detail: var(--tree-palette-light-13-detail);
     --tree-branch-13-compact: var(--tree-palette-light-13-compact);
     --tree-branch-13-actions: var(--tree-palette-light-13-actions);
+    --tree-branch-13-avatar: var(--tree-palette-light-13-avatar);
     --tree-branch-13-outline: var(--tree-palette-light-13-outline);
     --tree-branch-13-detail-outline: var(--tree-palette-light-13-detail-outline);
     --tree-branch-13-connector: var(--tree-palette-light-13-connector);
@@ -119,6 +132,7 @@
     --tree-branch-14-detail: var(--tree-palette-light-14-detail);
     --tree-branch-14-compact: var(--tree-palette-light-14-compact);
     --tree-branch-14-actions: var(--tree-palette-light-14-actions);
+    --tree-branch-14-avatar: var(--tree-palette-light-14-avatar);
     --tree-branch-14-outline: var(--tree-palette-light-14-outline);
     --tree-branch-14-detail-outline: var(--tree-palette-light-14-detail-outline);
     --tree-branch-14-connector: var(--tree-palette-light-14-connector);
@@ -127,6 +141,7 @@
     --tree-branch-15-detail: var(--tree-palette-light-15-detail);
     --tree-branch-15-compact: var(--tree-palette-light-15-compact);
     --tree-branch-15-actions: var(--tree-palette-light-15-actions);
+    --tree-branch-15-avatar: var(--tree-palette-light-15-avatar);
     --tree-branch-15-outline: var(--tree-palette-light-15-outline);
     --tree-branch-15-detail-outline: var(--tree-palette-light-15-detail-outline);
     --tree-branch-15-connector: var(--tree-palette-light-15-connector);
@@ -135,6 +150,7 @@
     --tree-branch-16-detail: var(--tree-palette-light-16-detail);
     --tree-branch-16-compact: var(--tree-palette-light-16-compact);
     --tree-branch-16-actions: var(--tree-palette-light-16-actions);
+    --tree-branch-16-avatar: var(--tree-palette-light-16-avatar);
     --tree-branch-16-outline: var(--tree-palette-light-16-outline);
     --tree-branch-16-detail-outline: var(--tree-palette-light-16-detail-outline);
     --tree-branch-16-connector: var(--tree-palette-light-16-connector);
@@ -143,6 +159,7 @@
     --tree-branch-neutral-detail: var(--tree-palette-light-neutral-detail);
     --tree-branch-neutral-compact: var(--tree-palette-light-neutral-compact);
     --tree-branch-neutral-actions: var(--tree-palette-light-neutral-actions);
+    --tree-branch-neutral-avatar: var(--tree-palette-light-neutral-avatar);
     --tree-branch-neutral-outline: var(--tree-palette-light-neutral-outline);
     --tree-branch-neutral-detail-outline: var(--tree-palette-light-neutral-detail-outline);
     --tree-branch-neutral-connector: var(--tree-palette-light-neutral-connector);
@@ -151,6 +168,7 @@
     --tree-branch-descendants-detail: var(--tree-palette-light-descendants-detail);
     --tree-branch-descendants-compact: var(--tree-palette-light-descendants-compact);
     --tree-branch-descendants-actions: var(--tree-palette-light-descendants-actions);
+    --tree-branch-descendants-avatar: var(--tree-palette-light-descendants-avatar);
     --tree-branch-descendants-outline: var(--tree-palette-light-descendants-outline);
     --tree-branch-descendants-detail-outline: var(--tree-palette-light-descendants-detail-outline);
     --tree-branch-descendants-connector: var(--tree-palette-light-descendants-connector);
@@ -159,6 +177,7 @@
     --tree-gender-male-detail: var(--tree-palette-light-male-detail);
     --tree-gender-male-compact: var(--tree-palette-light-male-compact);
     --tree-gender-male-actions: var(--tree-palette-light-male-actions);
+    --tree-gender-male-avatar: var(--tree-palette-light-male-avatar);
     --tree-gender-male-outline: var(--tree-palette-light-male-outline);
     --tree-gender-male-detail-outline: var(--tree-palette-light-male-detail-outline);
     --tree-gender-male-ink: var(--tree-palette-light-male-ink);
@@ -166,6 +185,7 @@
     --tree-gender-female-detail: var(--tree-palette-light-female-detail);
     --tree-gender-female-compact: var(--tree-palette-light-female-compact);
     --tree-gender-female-actions: var(--tree-palette-light-female-actions);
+    --tree-gender-female-avatar: var(--tree-palette-light-female-avatar);
     --tree-gender-female-outline: var(--tree-palette-light-female-outline);
     --tree-gender-female-detail-outline: var(--tree-palette-light-female-detail-outline);
     --tree-gender-female-ink: var(--tree-palette-light-female-ink);
@@ -173,6 +193,7 @@
     --tree-gender-unknown-detail: var(--tree-palette-light-unknown-detail);
     --tree-gender-unknown-compact: var(--tree-palette-light-unknown-compact);
     --tree-gender-unknown-actions: var(--tree-palette-light-unknown-actions);
+    --tree-gender-unknown-avatar: var(--tree-palette-light-unknown-avatar);
     --tree-gender-unknown-outline: var(--tree-palette-light-unknown-outline);
     --tree-gender-unknown-detail-outline: var(--tree-palette-light-unknown-detail-outline);
     --tree-gender-unknown-ink: var(--tree-palette-light-unknown-ink);
@@ -1688,6 +1709,7 @@ html.tree-fullscreen .tree-shell {
     --tree-branch-1-detail: var(--tree-palette-dark-1-detail);
     --tree-branch-1-compact: var(--tree-palette-dark-1-compact);
     --tree-branch-1-actions: var(--tree-palette-dark-1-actions);
+    --tree-branch-1-avatar: var(--tree-palette-dark-1-avatar);
     --tree-branch-1-outline: var(--tree-palette-dark-1-outline);
     --tree-branch-1-detail-outline: var(--tree-palette-dark-1-detail-outline);
     --tree-branch-1-connector: var(--tree-palette-dark-1-connector);
@@ -1696,6 +1718,7 @@ html.tree-fullscreen .tree-shell {
     --tree-branch-2-detail: var(--tree-palette-dark-2-detail);
     --tree-branch-2-compact: var(--tree-palette-dark-2-compact);
     --tree-branch-2-actions: var(--tree-palette-dark-2-actions);
+    --tree-branch-2-avatar: var(--tree-palette-dark-2-avatar);
     --tree-branch-2-outline: var(--tree-palette-dark-2-outline);
     --tree-branch-2-detail-outline: var(--tree-palette-dark-2-detail-outline);
     --tree-branch-2-connector: var(--tree-palette-dark-2-connector);
@@ -1704,6 +1727,7 @@ html.tree-fullscreen .tree-shell {
     --tree-branch-3-detail: var(--tree-palette-dark-3-detail);
     --tree-branch-3-compact: var(--tree-palette-dark-3-compact);
     --tree-branch-3-actions: var(--tree-palette-dark-3-actions);
+    --tree-branch-3-avatar: var(--tree-palette-dark-3-avatar);
     --tree-branch-3-outline: var(--tree-palette-dark-3-outline);
     --tree-branch-3-detail-outline: var(--tree-palette-dark-3-detail-outline);
     --tree-branch-3-connector: var(--tree-palette-dark-3-connector);
@@ -1712,6 +1736,7 @@ html.tree-fullscreen .tree-shell {
     --tree-branch-4-detail: var(--tree-palette-dark-4-detail);
     --tree-branch-4-compact: var(--tree-palette-dark-4-compact);
     --tree-branch-4-actions: var(--tree-palette-dark-4-actions);
+    --tree-branch-4-avatar: var(--tree-palette-dark-4-avatar);
     --tree-branch-4-outline: var(--tree-palette-dark-4-outline);
     --tree-branch-4-detail-outline: var(--tree-palette-dark-4-detail-outline);
     --tree-branch-4-connector: var(--tree-palette-dark-4-connector);
@@ -1720,6 +1745,7 @@ html.tree-fullscreen .tree-shell {
     --tree-branch-5-detail: var(--tree-palette-dark-5-detail);
     --tree-branch-5-compact: var(--tree-palette-dark-5-compact);
     --tree-branch-5-actions: var(--tree-palette-dark-5-actions);
+    --tree-branch-5-avatar: var(--tree-palette-dark-5-avatar);
     --tree-branch-5-outline: var(--tree-palette-dark-5-outline);
     --tree-branch-5-detail-outline: var(--tree-palette-dark-5-detail-outline);
     --tree-branch-5-connector: var(--tree-palette-dark-5-connector);
@@ -1728,6 +1754,7 @@ html.tree-fullscreen .tree-shell {
     --tree-branch-6-detail: var(--tree-palette-dark-6-detail);
     --tree-branch-6-compact: var(--tree-palette-dark-6-compact);
     --tree-branch-6-actions: var(--tree-palette-dark-6-actions);
+    --tree-branch-6-avatar: var(--tree-palette-dark-6-avatar);
     --tree-branch-6-outline: var(--tree-palette-dark-6-outline);
     --tree-branch-6-detail-outline: var(--tree-palette-dark-6-detail-outline);
     --tree-branch-6-connector: var(--tree-palette-dark-6-connector);
@@ -1736,6 +1763,7 @@ html.tree-fullscreen .tree-shell {
     --tree-branch-7-detail: var(--tree-palette-dark-7-detail);
     --tree-branch-7-compact: var(--tree-palette-dark-7-compact);
     --tree-branch-7-actions: var(--tree-palette-dark-7-actions);
+    --tree-branch-7-avatar: var(--tree-palette-dark-7-avatar);
     --tree-branch-7-outline: var(--tree-palette-dark-7-outline);
     --tree-branch-7-detail-outline: var(--tree-palette-dark-7-detail-outline);
     --tree-branch-7-connector: var(--tree-palette-dark-7-connector);
@@ -1744,6 +1772,7 @@ html.tree-fullscreen .tree-shell {
     --tree-branch-8-detail: var(--tree-palette-dark-8-detail);
     --tree-branch-8-compact: var(--tree-palette-dark-8-compact);
     --tree-branch-8-actions: var(--tree-palette-dark-8-actions);
+    --tree-branch-8-avatar: var(--tree-palette-dark-8-avatar);
     --tree-branch-8-outline: var(--tree-palette-dark-8-outline);
     --tree-branch-8-detail-outline: var(--tree-palette-dark-8-detail-outline);
     --tree-branch-8-connector: var(--tree-palette-dark-8-connector);
@@ -1752,6 +1781,7 @@ html.tree-fullscreen .tree-shell {
     --tree-branch-9-detail: var(--tree-palette-dark-9-detail);
     --tree-branch-9-compact: var(--tree-palette-dark-9-compact);
     --tree-branch-9-actions: var(--tree-palette-dark-9-actions);
+    --tree-branch-9-avatar: var(--tree-palette-dark-9-avatar);
     --tree-branch-9-outline: var(--tree-palette-dark-9-outline);
     --tree-branch-9-detail-outline: var(--tree-palette-dark-9-detail-outline);
     --tree-branch-9-connector: var(--tree-palette-dark-9-connector);
@@ -1760,6 +1790,7 @@ html.tree-fullscreen .tree-shell {
     --tree-branch-10-detail: var(--tree-palette-dark-10-detail);
     --tree-branch-10-compact: var(--tree-palette-dark-10-compact);
     --tree-branch-10-actions: var(--tree-palette-dark-10-actions);
+    --tree-branch-10-avatar: var(--tree-palette-dark-10-avatar);
     --tree-branch-10-outline: var(--tree-palette-dark-10-outline);
     --tree-branch-10-detail-outline: var(--tree-palette-dark-10-detail-outline);
     --tree-branch-10-connector: var(--tree-palette-dark-10-connector);
@@ -1768,6 +1799,7 @@ html.tree-fullscreen .tree-shell {
     --tree-branch-11-detail: var(--tree-palette-dark-11-detail);
     --tree-branch-11-compact: var(--tree-palette-dark-11-compact);
     --tree-branch-11-actions: var(--tree-palette-dark-11-actions);
+    --tree-branch-11-avatar: var(--tree-palette-dark-11-avatar);
     --tree-branch-11-outline: var(--tree-palette-dark-11-outline);
     --tree-branch-11-detail-outline: var(--tree-palette-dark-11-detail-outline);
     --tree-branch-11-connector: var(--tree-palette-dark-11-connector);
@@ -1776,6 +1808,7 @@ html.tree-fullscreen .tree-shell {
     --tree-branch-12-detail: var(--tree-palette-dark-12-detail);
     --tree-branch-12-compact: var(--tree-palette-dark-12-compact);
     --tree-branch-12-actions: var(--tree-palette-dark-12-actions);
+    --tree-branch-12-avatar: var(--tree-palette-dark-12-avatar);
     --tree-branch-12-outline: var(--tree-palette-dark-12-outline);
     --tree-branch-12-detail-outline: var(--tree-palette-dark-12-detail-outline);
     --tree-branch-12-connector: var(--tree-palette-dark-12-connector);
@@ -1784,6 +1817,7 @@ html.tree-fullscreen .tree-shell {
     --tree-branch-13-detail: var(--tree-palette-dark-13-detail);
     --tree-branch-13-compact: var(--tree-palette-dark-13-compact);
     --tree-branch-13-actions: var(--tree-palette-dark-13-actions);
+    --tree-branch-13-avatar: var(--tree-palette-dark-13-avatar);
     --tree-branch-13-outline: var(--tree-palette-dark-13-outline);
     --tree-branch-13-detail-outline: var(--tree-palette-dark-13-detail-outline);
     --tree-branch-13-connector: var(--tree-palette-dark-13-connector);
@@ -1792,6 +1826,7 @@ html.tree-fullscreen .tree-shell {
     --tree-branch-14-detail: var(--tree-palette-dark-14-detail);
     --tree-branch-14-compact: var(--tree-palette-dark-14-compact);
     --tree-branch-14-actions: var(--tree-palette-dark-14-actions);
+    --tree-branch-14-avatar: var(--tree-palette-dark-14-avatar);
     --tree-branch-14-outline: var(--tree-palette-dark-14-outline);
     --tree-branch-14-detail-outline: var(--tree-palette-dark-14-detail-outline);
     --tree-branch-14-connector: var(--tree-palette-dark-14-connector);
@@ -1800,6 +1835,7 @@ html.tree-fullscreen .tree-shell {
     --tree-branch-15-detail: var(--tree-palette-dark-15-detail);
     --tree-branch-15-compact: var(--tree-palette-dark-15-compact);
     --tree-branch-15-actions: var(--tree-palette-dark-15-actions);
+    --tree-branch-15-avatar: var(--tree-palette-dark-15-avatar);
     --tree-branch-15-outline: var(--tree-palette-dark-15-outline);
     --tree-branch-15-detail-outline: var(--tree-palette-dark-15-detail-outline);
     --tree-branch-15-connector: var(--tree-palette-dark-15-connector);
@@ -1808,6 +1844,7 @@ html.tree-fullscreen .tree-shell {
     --tree-branch-16-detail: var(--tree-palette-dark-16-detail);
     --tree-branch-16-compact: var(--tree-palette-dark-16-compact);
     --tree-branch-16-actions: var(--tree-palette-dark-16-actions);
+    --tree-branch-16-avatar: var(--tree-palette-dark-16-avatar);
     --tree-branch-16-outline: var(--tree-palette-dark-16-outline);
     --tree-branch-16-detail-outline: var(--tree-palette-dark-16-detail-outline);
     --tree-branch-16-connector: var(--tree-palette-dark-16-connector);
@@ -1816,6 +1853,7 @@ html.tree-fullscreen .tree-shell {
     --tree-branch-neutral-detail: var(--tree-palette-dark-neutral-detail);
     --tree-branch-neutral-compact: var(--tree-palette-dark-neutral-compact);
     --tree-branch-neutral-actions: var(--tree-palette-dark-neutral-actions);
+    --tree-branch-neutral-avatar: var(--tree-palette-dark-neutral-avatar);
     --tree-branch-neutral-outline: var(--tree-palette-dark-neutral-outline);
     --tree-branch-neutral-detail-outline: var(--tree-palette-dark-neutral-detail-outline);
     --tree-branch-neutral-connector: var(--tree-palette-dark-neutral-connector);
@@ -1824,6 +1862,7 @@ html.tree-fullscreen .tree-shell {
     --tree-branch-descendants-detail: var(--tree-palette-dark-descendants-detail);
     --tree-branch-descendants-compact: var(--tree-palette-dark-descendants-compact);
     --tree-branch-descendants-actions: var(--tree-palette-dark-descendants-actions);
+    --tree-branch-descendants-avatar: var(--tree-palette-dark-descendants-avatar);
     --tree-branch-descendants-outline: var(--tree-palette-dark-descendants-outline);
     --tree-branch-descendants-detail-outline: var(--tree-palette-dark-descendants-detail-outline);
     --tree-branch-descendants-connector: var(--tree-palette-dark-descendants-connector);
@@ -1832,6 +1871,7 @@ html.tree-fullscreen .tree-shell {
     --tree-gender-male-detail: var(--tree-palette-dark-male-detail);
     --tree-gender-male-compact: var(--tree-palette-dark-male-compact);
     --tree-gender-male-actions: var(--tree-palette-dark-male-actions);
+    --tree-gender-male-avatar: var(--tree-palette-dark-male-avatar);
     --tree-gender-male-outline: var(--tree-palette-dark-male-outline);
     --tree-gender-male-detail-outline: var(--tree-palette-dark-male-detail-outline);
     --tree-gender-male-ink: var(--tree-palette-dark-male-ink);
@@ -1839,6 +1879,7 @@ html.tree-fullscreen .tree-shell {
     --tree-gender-female-detail: var(--tree-palette-dark-female-detail);
     --tree-gender-female-compact: var(--tree-palette-dark-female-compact);
     --tree-gender-female-actions: var(--tree-palette-dark-female-actions);
+    --tree-gender-female-avatar: var(--tree-palette-dark-female-avatar);
     --tree-gender-female-outline: var(--tree-palette-dark-female-outline);
     --tree-gender-female-detail-outline: var(--tree-palette-dark-female-detail-outline);
     --tree-gender-female-ink: var(--tree-palette-dark-female-ink);
@@ -1846,6 +1887,7 @@ html.tree-fullscreen .tree-shell {
     --tree-gender-unknown-detail: var(--tree-palette-dark-unknown-detail);
     --tree-gender-unknown-compact: var(--tree-palette-dark-unknown-compact);
     --tree-gender-unknown-actions: var(--tree-palette-dark-unknown-actions);
+    --tree-gender-unknown-avatar: var(--tree-palette-dark-unknown-avatar);
     --tree-gender-unknown-outline: var(--tree-palette-dark-unknown-outline);
     --tree-gender-unknown-detail-outline: var(--tree-palette-dark-unknown-detail-outline);
     --tree-gender-unknown-ink: var(--tree-palette-dark-unknown-ink);

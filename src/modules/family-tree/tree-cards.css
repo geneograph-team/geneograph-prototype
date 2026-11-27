@@ -55,6 +55,7 @@
     --tree-gender-tone-detail: var(--tree-gender-male-detail, var(--surface-card));
     --tree-gender-tone-compact: var(--tree-gender-male-compact, var(--surface-card));
     --tree-gender-tone-actions: var(--tree-gender-male-actions, var(--surface-card));
+    --tree-gender-tone-avatar: var(--tree-gender-male-avatar, var(--surface-card));
     --tree-gender-tone-outline: var(--tree-gender-male-outline, var(--gg-accent-creative-blue-outline));
     --tree-gender-tone-detail-outline: var(--tree-gender-male-detail-outline, var(--gg-accent-creative-blue-outline));
     --tree-gender-tone-ink: var(--tree-gender-male-ink, var(--text-primary));
@@ -64,6 +65,7 @@
     --tree-card-category-detail: var(--tree-gender-tone-detail);
     --tree-card-category-compact: var(--tree-gender-tone-compact);
     --tree-card-category-actions: var(--tree-gender-tone-actions);
+    --tree-card-category-avatar: var(--tree-gender-tone-avatar);
     --tree-card-category-ink: var(--tree-gender-tone-ink);
     --tree-card-fill: var(--tree-card-category-detail);
     --tree-card-hover-lift: 3%;
@@ -423,6 +425,7 @@
     --tree-gender-tone-detail: var(--tree-gender-female-detail, var(--surface-card));
     --tree-gender-tone-compact: var(--tree-gender-female-compact, var(--surface-card));
     --tree-gender-tone-actions: var(--tree-gender-female-actions, var(--surface-card));
+    --tree-gender-tone-avatar: var(--tree-gender-female-avatar, var(--surface-card));
     --tree-gender-tone-outline: var(--tree-gender-female-outline, var(--gg-accent-investigation-purple-outline));
     --tree-gender-tone-detail-outline: var(--tree-gender-female-detail-outline, var(--gg-accent-investigation-purple-outline));
     --tree-gender-tone-ink: var(--tree-gender-female-ink, var(--text-primary));
@@ -433,6 +436,7 @@
     --tree-gender-tone-detail: var(--tree-gender-unknown-detail, var(--surface-card));
     --tree-gender-tone-compact: var(--tree-gender-unknown-compact, var(--surface-card));
     --tree-gender-tone-actions: var(--tree-gender-unknown-actions, var(--surface-card));
+    --tree-gender-tone-avatar: var(--tree-gender-unknown-avatar, var(--surface-card));
     --tree-gender-tone-outline: var(--tree-gender-unknown-outline, var(--gg-status-offline-outline));
     --tree-gender-tone-detail-outline: var(--tree-gender-unknown-detail-outline, var(--gg-status-offline-outline));
     --tree-gender-tone-ink: var(--tree-gender-unknown-ink, var(--text-primary));
@@ -621,13 +625,20 @@
 }
 
 .tree-workspace.has-color-fill .tree-card-avatar-stack > .tree-avatar:not(.has-photo) {
-    background: var(--tree-card-category-actions);
+    background: var(--tree-card-category-avatar);
     color: var(--tree-card-primary);
 }
 
+/* Selection is its own semantic state: the placeholder uses a deliberate
+   heritage-green tint rather than the underlying branch or a gray panel. */
+.tree-workspace.has-color-fill .tree-person-card.selected .tree-card-avatar-stack > .tree-avatar:not(.has-photo) {
+    background: #80c5a0;
+    color: #153d29;
+}
+
 :root[data-theme="dark"] .tree-workspace.has-color-fill .tree-person-card.selected .tree-card-avatar-stack > .tree-avatar:not(.has-photo) {
-    background: var(--surface-card);
-    color: var(--text-primary);
+    background: var(--gg-selected-border);
+    color: #14221c;
 }
 
 .tree-card-avatar-stack > .tree-avatar.has-photo {
