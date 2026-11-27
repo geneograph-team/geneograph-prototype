@@ -601,6 +601,7 @@ function deleteSavedPlace(placeId, { unlinkedOnly = false, projectId = currentPr
 {
     const place = (sampleData.places || []).find(item => item.id === placeId && item.projectId === projectId);
     if (!place || projectId !== currentProjectId() || (unlinkedOnly && placeLiveReferenceCount(place))) return false;
+    if (typeof invalidateGedcomPlaceMatch === 'function') invalidateGedcomPlaceMatch(place);
     rewriteProjectPlaceReferences(place);
     sampleData.places = sampleData.places.filter(item => item !== place);
     sampleData.placeIssues = (sampleData.placeIssues || []).filter(issue =>
@@ -709,6 +710,11 @@ function mergeSavedPlaces(keepId, removeId, { aliases = true, locationChoice, fi
     if (!match) return false;
     const result = placeMergeFieldResult(keep, removed, { aliases, locationChoice, fieldChoices });
     if (!result) return false;
+    if (typeof invalidateGedcomPlaceMatch === 'function')
+    {
+        invalidateGedcomPlaceMatch(keep);
+        invalidateGedcomPlaceMatch(removed);
+    }
     const locationChanged = JSON.stringify([keep.coordinates || null, keep.approximateRadiusMeters ?? null])
         !== JSON.stringify([result.coordinates || null, result.approximateRadiusMeters ?? null]);
     for (const key of new Set([...Object.keys(keep), ...Object.keys(result)]))

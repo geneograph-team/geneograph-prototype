@@ -219,10 +219,12 @@ function renderPlacesSidebar(list, owners)
                 }
             </div>
           </div>`}
+          ${typeof renderGedcomMatchingStatus === 'function' ? renderGedcomMatchingStatus(currentProjectId()) : ''}
         </nav>
       `;
 
     bindPlacesSidebarControls();
+    if (typeof bindGedcomMatchingStatus === 'function') bindGedcomMatchingStatus(sidebar);
 }
 
 function renderPlacesCountryTree(list = filteredPlaces())
@@ -244,9 +246,9 @@ function renderPlacesCountryTree(list = filteredPlaces())
     }).join('') || '<p class="places-sidebar-empty">No places</p>';
 }
 
-function bindPlacesSidebarControls()
+function bindPlacesSidebarControls(root = sidebar)
 {
-    sidebar
+    root
         .querySelectorAll(
             '[data-places-view]'
         )
@@ -274,7 +276,7 @@ function bindPlacesSidebarControls()
             );
         });
 
-    sidebar
+    root
         .querySelectorAll(
             '[data-place-country-disclosure]'
         )
@@ -312,7 +314,7 @@ function bindPlacesSidebarControls()
             );
         });
 
-    sidebar
+    root
         .querySelectorAll(
             '[data-place-tree-select]'
         )
@@ -359,7 +361,7 @@ function bindPlacesSidebarControls()
             );
         });
 
-    sidebar
+    root
         .querySelectorAll(
             '[data-place-menu]'
         )
@@ -380,7 +382,7 @@ function bindPlacesSidebarControls()
             );
         });
 
-    sidebar
+    root
         .querySelectorAll(
             '[data-place-saved-filter]'
         )
@@ -398,7 +400,7 @@ function bindPlacesSidebarControls()
             );
         });
 
-    sidebar
+    root
         .querySelectorAll(
             '[data-place-saved-filter-menu]'
         )
@@ -419,7 +421,7 @@ function bindPlacesSidebarControls()
             );
         });
 
-    sidebar
+    root
         .querySelector(
             '#placesSavedFilterPlus'
         )
@@ -1594,7 +1596,13 @@ function renderPlaceReviewGroup(group, query, owners)
 {
     const isOpen = group.items.length > 0
         && (Boolean(query) || Boolean(state.placesReviewExpandedGroups?.[group.key]));
+    const signature = JSON.stringify(group.items.map(item => item.pair
+        ? [item.pair.key, item.pair.left.updatedAt, item.pair.right.updatedAt, item.dismissal?.id,
+            state.selectedPlaceReviewPairKey === item.pair.key]
+        : [item.place.id, item.place.updatedAt, item.issue.type, item.dismissal?.reason,
+            !state.selectedPlaceReviewPairKey && state.selectedPlaceId === item.place.id]));
     return `<details class="places-review-group"
+        data-matching-signature="${escapeHtml(signature)}"
         data-place-review-group="${group.key}" ${isOpen ? 'open' : ''}>
         <summary>
           <strong>${escapeHtml(placeReviewT(group.title))}</strong>
@@ -1728,12 +1736,12 @@ function selectPlaceReviewPair(pairKey)
     return true;
 }
 
-function bindPlacesNeedsReviewControls()
+function bindPlacesNeedsReviewControls(root = main)
 {
-    bindSearchInput(main, '#placesReviewSearch', 'placesSearch', renderPlaces);
-    bindPlaceListRows(main);
+    if (root === main) bindSearchInput(main, '#placesReviewSearch', 'placesSearch', renderPlaces);
+    bindPlaceListRows(root);
 
-    main.querySelectorAll('[data-place-pair-key]').forEach(row =>
+    root.querySelectorAll('[data-place-pair-key]').forEach(row =>
     {
         row.addEventListener('click', event =>
         {
@@ -1747,7 +1755,7 @@ function bindPlacesNeedsReviewControls()
         });
     });
 
-    main.querySelectorAll('[data-place-review-group]').forEach(details =>
+    root.querySelectorAll('[data-place-review-group]').forEach(details =>
     {
         details.addEventListener('toggle', () =>
         {
@@ -1755,20 +1763,20 @@ function bindPlacesNeedsReviewControls()
         });
     });
 
-    main.querySelectorAll('[data-place-pair-merge]').forEach(button => button.addEventListener('click', () =>
+    root.querySelectorAll('[data-place-pair-merge]').forEach(button => button.addEventListener('click', () =>
         openPlaceMergeModal(button.dataset.placePairMerge, button.dataset.placePairOther)));
-    main.querySelectorAll('[data-place-pair-dismiss]').forEach(button => button.addEventListener('click', () =>
+    root.querySelectorAll('[data-place-pair-dismiss]').forEach(button => button.addEventListener('click', () =>
     {
         const pair = getPlaceDuplicatePairs().find(item => item.key === placeDuplicatePairKey(button.dataset.placePairDismiss, button.dataset.placePairOther));
         if (dismissPlaceDuplicatePair(pair)) rerenderPlacesReviewAfterAction(pair.key, 'dismissed', { pair: true });
     }));
-    main.querySelectorAll('[data-place-pair-restore]').forEach(button => button.addEventListener('click', () =>
+    root.querySelectorAll('[data-place-pair-restore]').forEach(button => button.addEventListener('click', () =>
     {
         if (restorePlaceDuplicatePair(button.dataset.placePairRestore))
             rerenderPlacesReviewAfterAction(button.dataset.placePairRestore, 'possible_duplicates', { pair: true });
     }));
 
-    main.querySelectorAll('[data-place-review-fix]').forEach(button => button.addEventListener('click', () =>
+    root.querySelectorAll('[data-place-review-fix]').forEach(button => button.addEventListener('click', () =>
     {
         const placeId = button.dataset.placeReviewFix;
         selectPlace(placeId, { focusMap: false });
@@ -1776,7 +1784,7 @@ function bindPlacesNeedsReviewControls()
         else openPlaceModalForCoordinateReview(placeId);
     }));
 
-    main.querySelectorAll('[data-place-review-dismiss]').forEach(button => button.addEventListener('click', () =>
+    root.querySelectorAll('[data-place-review-dismiss]').forEach(button => button.addEventListener('click', () =>
     {
         const placeId = button.dataset.placeReviewDismiss;
         const groupKey = button.dataset.placeReviewType;
@@ -1785,7 +1793,7 @@ function bindPlacesNeedsReviewControls()
         showToast(t('Review item dismissed.'));
     }));
 
-    main.querySelectorAll('[data-place-review-restore]').forEach(button => button.addEventListener('click', () =>
+    root.querySelectorAll('[data-place-review-restore]').forEach(button => button.addEventListener('click', () =>
     {
         const placeId = button.dataset.placeReviewRestore;
         const groupKey = button.dataset.placeReviewType;
@@ -1794,12 +1802,12 @@ function bindPlacesNeedsReviewControls()
         showToast(t('Review item restored.'));
     }));
 
-    main.querySelectorAll('[data-place-review-reason-editor]').forEach(editor =>
+    root.querySelectorAll('[data-place-review-reason-editor]').forEach(editor =>
     {
         editor.addEventListener('click', event => event.stopPropagation());
         editor.addEventListener('keydown', event => event.stopPropagation());
     });
-    main.querySelectorAll('[data-place-review-edit-reason]').forEach(button => button.addEventListener('click', () =>
+    root.querySelectorAll('[data-place-review-edit-reason]').forEach(button => button.addEventListener('click', () =>
     {
         const row = button.closest('.places-review-list-row');
         const form = row?.querySelector('[data-place-review-reason-form]');
@@ -1812,7 +1820,7 @@ function bindPlacesNeedsReviewControls()
         row.querySelector('[data-place-review-restore]')?.setAttribute('hidden', '');
         form.querySelector('textarea')?.focus();
     }));
-    main.querySelectorAll('[data-place-review-reason-form]').forEach(form =>
+    root.querySelectorAll('[data-place-review-reason-form]').forEach(form =>
     {
         const cancel = () =>
         {
@@ -1858,8 +1866,8 @@ function bindPlacesNeedsReviewControls()
         });
     });
 
-    bindPlacesInspectorControls(main.querySelector('[data-places-inspector]') || main);
-    bindToasts(main);
+    if (root === main) bindPlacesInspectorControls(main.querySelector('[data-places-inspector]') || main);
+    bindToasts(root);
 }
 
 function renderPlacesMain(list, owners)
@@ -2494,7 +2502,9 @@ function renderPlacesListPanel(list, owners = projectPlaceReferenceOwners(curren
                 const reviewIndicator = issueCount
                     ? `<button class="places-list-review" type="button" data-place-review-link="${escapeHtml(place.id)}">${issueCount > 1 ? `${issueCount} issues` : 'Needs review'}</button>`
                     : '';
-                return `<div class="places-list-row ${place.id === state.selectedPlaceId ? 'active' : ''}" data-place-id="${escapeHtml(place.id)}" tabindex="0" role="row" aria-selected="${place.id === state.selectedPlaceId}"><div><strong>${escapeHtml(placePrimaryName(place))}</strong><span>${escapeHtml(placeSecondaryName(place) || 'No broader place recorded')}</span><small class="places-list-mobile-status">${escapeHtml(t(placeHasCoordinates(place) ? 'On map' : 'Not on map'))}</small>${reviewIndicator}</div><span class="places-list-country">${escapeHtml(placeCountry(place) || 'Unknown')}</span><span class="places-list-map-state">${escapeHtml(t(placeHasCoordinates(place) ? 'On map' : 'Not on map'))}</span><span class="places-list-people"><span class="places-list-people-mobile-label">${escapeHtml(t('Linked people'))}: </span>${linkedPeople}</span><span class="places-list-updated">${escapeHtml(formatPlaceUpdatedAt(place.updatedAt))}</span>${place.id === state.selectedPlaceId ? `<button class="mobile-item-details" type="button" data-mobile-open-details aria-label="${escapeHtml(t('Details'))}">${icon.info}<span>${escapeHtml(t('Details'))}</span></button>` : ''}<button class="places-row-more" type="button" data-place-menu="${escapeHtml(place.id)}" aria-label="More actions for ${escapeHtml(place.name)}" aria-haspopup="menu">${icon.more}</button></div>`;
+                const signature = JSON.stringify([place.name, place.updatedAt, placeHasCoordinates(place), issueCount, linkedPeople,
+                    place.id === state.selectedPlaceId, state.language]);
+                return `<div class="places-list-row ${place.id === state.selectedPlaceId ? 'active' : ''}" data-matching-signature="${escapeHtml(signature)}" data-place-id="${escapeHtml(place.id)}" tabindex="0" role="row" aria-selected="${place.id === state.selectedPlaceId}"><div><strong>${escapeHtml(placePrimaryName(place))}</strong><span>${escapeHtml(placeSecondaryName(place) || 'No broader place recorded')}</span><small class="places-list-mobile-status">${escapeHtml(t(placeHasCoordinates(place) ? 'On map' : 'Not on map'))}</small>${reviewIndicator}</div><span class="places-list-country">${escapeHtml(placeCountry(place) || 'Unknown')}</span><span class="places-list-map-state">${escapeHtml(t(placeHasCoordinates(place) ? 'On map' : 'Not on map'))}</span><span class="places-list-people"><span class="places-list-people-mobile-label">${escapeHtml(t('Linked people'))}: </span>${linkedPeople}</span><span class="places-list-updated">${escapeHtml(formatPlaceUpdatedAt(place.updatedAt))}</span>${place.id === state.selectedPlaceId ? `<button class="mobile-item-details" type="button" data-mobile-open-details aria-label="${escapeHtml(t('Details'))}">${icon.info}<span>${escapeHtml(t('Details'))}</span></button>` : ''}<button class="places-row-more" type="button" data-place-menu="${escapeHtml(place.id)}" aria-label="More actions for ${escapeHtml(place.name)}" aria-haspopup="menu">${icon.more}</button></div>`;
             }).join('')}</div>`;
 }
 
@@ -2749,3 +2759,193 @@ function renderPlacesMapShell(list)
       `;
 }
 
+
+// A matching job is independent of the currently displayed module. Only
+// the active Places view receives DOM updates; all other consumers read
+// freshly invalidated canonical data on their next normal render.
+const placesMatchingRefresh = { projectId: null, ids: new Set(), timer: null };
+
+function schedulePlacesMatchingRefresh(projectId, ids)
+{
+    if (state.activeModule !== 'Places' || currentProjectId() !== projectId) return;
+    if (placesMatchingRefresh.projectId !== projectId)
+    {
+        placesMatchingRefresh.ids.clear();
+        placesMatchingRefresh.projectId = projectId;
+    }
+    ids.forEach(id => placesMatchingRefresh.ids.add(id));
+    if (placesMatchingRefresh.timer != null) return;
+    placesMatchingRefresh.timer = setTimeout(flushPlacesMatchingRefresh, 250);
+}
+
+function flushPlacesMatchingRefresh()
+{
+    placesMatchingRefresh.timer = null;
+    const { projectId, ids } = placesMatchingRefresh;
+    if (state.activeModule !== 'Places' || currentProjectId() !== projectId)
+    {
+        ids.clear();
+        return;
+    }
+    const active = document.activeElement;
+    // A pending refresh must not replace any active control, draft or
+    // menu anchor. Search inputs and map interactions retain their nodes.
+    const inEditableRegion = active?.matches?.('input, textarea, select, [contenteditable="true"]')
+        && active.closest('[data-places-inspector], .places-list-panel, .places-country-tree, .places-route-summary');
+    if (modalBackdrop.classList.contains('open') || placesMapRuntime.mode !== 'browse'
+        || document.querySelector('.menu-popover, #placesFilterPopover, .is-editing-reason')
+        || inEditableRegion)
+    {
+        placesMatchingRefresh.timer = setTimeout(flushPlacesMatchingRefresh, 250);
+        return;
+    }
+    const selectedId = state.selectedPlaceId;
+    const focusRow = active?.closest?.('[data-place-id], [data-place-pair-key]');
+    const focusId = focusRow?.dataset.placeId;
+    const focusPair = focusRow?.dataset.placePairKey;
+    const focusGroup = active?.closest?.('[data-place-review-group]')?.dataset.placeReviewGroup;
+    const focusRoot = focusRow || active?.closest?.('[data-places-inspector], .places-country-tree, .places-route-summary');
+    const focusRootSelector = focusRoot?.matches('[data-places-inspector]') ? '[data-places-inspector]'
+        : focusRoot?.matches('.places-country-tree') ? '.places-country-tree'
+        : focusRoot?.matches('.places-route-summary') ? '.places-route-summary' : '';
+    const focusAttribute = active && [...(active.attributes || [])].find(attr =>
+        attr.name.startsWith('data-') && !['data-matching-signature', 'data-place-id', 'data-place-pair-key'].includes(attr.name));
+    const owners = projectPlaceReferenceOwners(projectId);
+    const badge = sidebar.querySelector('[data-places-view="review"] .badge');
+    if (badge) badge.textContent = String(placeReviewPlaceCount(projectId, owners));
+    const list = filteredPlaces();
+    const template = document.createElement('template');
+    const patchPanel = (old, markup, bind, keyAttribute) =>
+    {
+        if (!old) return;
+        template.innerHTML = markup;
+        const next = template.content.firstElementChild;
+        if (!next) return;
+        if (old.className !== next.className)
+        {
+            old.replaceWith(next);
+            bind(next);
+            return;
+        }
+        const scrollTop = old.scrollTop;
+        const oldNodes = new Map([...old.children].filter(node => node.hasAttribute(keyAttribute))
+            .map(node => [node.getAttribute(keyAttribute), node]));
+        const fresh = document.createElement('div');
+        fresh.className = next.className;
+        const ordered = [];
+        for (const node of [...next.children])
+        {
+            const key = node.getAttribute(keyAttribute);
+            if (key === null) continue; // Keep the existing list header.
+            const prior = oldNodes.get(key);
+            oldNodes.delete(key);
+            if (prior && prior.dataset.matchingSignature === node.dataset.matchingSignature
+                && (keyAttribute !== 'data-place-id' || prior.classList.contains('active') === node.classList.contains('active'))
+                && (keyAttribute !== 'data-place-review-group'
+                    || [...prior.querySelectorAll('.places-review-list-row.active')].map(row => row.dataset.placeId || row.dataset.placePairKey).join('|')
+                        === [...node.querySelectorAll('.places-review-list-row.active')].map(row => row.dataset.placeId || row.dataset.placePairKey).join('|')))
+                ordered.push(prior);
+            else
+            {
+                prior?.remove();
+                fresh.append(node);
+                ordered.push(node);
+            }
+        }
+        for (const node of oldNodes.values()) node.remove();
+        bind(fresh);
+        let cursor = [...old.children].find(node => node.hasAttribute(keyAttribute)) || null;
+        for (const node of ordered)
+        {
+            if (node !== cursor) old.insertBefore(node, cursor);
+            cursor = node.nextElementSibling;
+        }
+        old.scrollTop = scrollTop;
+    };
+    const replaceRegion = (old, markup, bind) =>
+    {
+        if (!old) return;
+        const scrollTop = old.scrollTop;
+        template.innerHTML = markup;
+        const next = template.content.firstElementChild;
+        if (!next) return;
+        old.replaceWith(next);
+        bind?.(next);
+        next.scrollTop = scrollTop;
+    };
+    if (state.placesView === 'review')
+    {
+        const review = placesReviewGroups(owners);
+        const pair = selectedVisiblePlaceReviewPair(review.groups);
+        const visible = review.groups.flatMap(group => group.items.flatMap(item =>
+            item.pair ? [item.pair.left, item.pair.right] : [item.place]));
+        if (!pair) selectedPlaceFromVisibleList(visible);
+        const query = String(state.placesSearch || '').trim();
+        const matches = review.groups.reduce((sum, group) => sum + group.items.length, 0);
+        const noResults = query && !matches ? '<p class="places-review-no-results" role="status">'
+            + escapeHtml(t('No matching review items')) + '. ' + escapeHtml(t('Try a different search.')) + '</p>' : '';
+        const region = main.querySelector('.places-review-content');
+        const panel = region?.querySelector('.places-review-list-panel');
+        if (region && panel)
+        {
+            region.querySelector('.places-review-no-results')?.remove();
+            if (noResults) panel.insertAdjacentHTML('beforebegin', noResults);
+            patchPanel(panel, '<div class="places-list-panel places-review-list-panel" role="region" aria-label="'
+                + escapeHtml(t('Places needing review')) + '">' + review.groups.map(group =>
+                    renderPlaceReviewGroup(group, query, owners)).join('') + '</div>', bindPlacesNeedsReviewControls, 'data-place-review-group');
+        }
+        rerenderPlacesInspector();
+    }
+    else
+    {
+        selectedPlaceFromVisibleList(list);
+        const countryTree = sidebar.querySelector('.places-country-tree');
+        const visibleIds = list.map(place => place.id).sort().join('|');
+        const treeIds = countryTree ? [...countryTree.querySelectorAll('[data-place-tree-item]')]
+            .map(row => row.dataset.placeTreeItem).sort().join('|') : '';
+        if (countryTree && visibleIds !== treeIds)
+        {
+            countryTree.innerHTML = renderPlacesCountryTree(list);
+            bindPlacesSidebarControls(countryTree);
+        }
+        else countryTree?.querySelectorAll('[data-place-tree-item]').forEach(row =>
+            row.classList.toggle('active', row.dataset.placeTreeItem === state.selectedPlaceId));
+        if (state.placesViewMode === 'list')
+        {
+            const panel = main.querySelector('.places-list-panel, .places-empty');
+            patchPanel(panel, renderPlacesListPanel(list, owners), bindPlacesListContent, 'data-place-id');
+        }
+        else
+        {
+            if (placesMapRuntime.scheduledMount && !placesMapRuntime.host)
+                schedulePlacesMapMount(list);
+            else updatePlacesMapAfterMatching(list);
+            if (ids.has(state.selectedPlaceId) && placesMapReady()) setPlacesMapStatus();
+            const route = main.querySelector('.places-route-summary');
+            if (route && state.placesShowRoute)
+                replaceRegion(route, renderPlacesRouteSummary(), root =>
+                {
+                    root.querySelector('[data-route-change]')?.addEventListener('click', event =>
+                        openPlacesRouteMenu(event.currentTarget));
+                    root.querySelector('[data-route-panel-clear]')?.addEventListener('click', () =>
+                    { clearPlacesRoute(); renderPlacesMain(); });
+                });
+        }
+        // Review/duplicate indicators in the selected inspector can change
+        // even when a different record acquired coordinates.
+        if (selectedId !== state.selectedPlaceId || ids.size) rerenderPlacesInspector();
+    }
+    ids.clear();
+    if (active && !active.isConnected)
+    {
+        const row = focusId ? main.querySelector('[data-place-id="' + CSS.escape(focusId) + '"]')
+            : focusPair ? main.querySelector('[data-place-pair-key="' + CSS.escape(focusPair) + '"]') : null;
+        const group = focusGroup && main.querySelector('[data-place-review-group="' + CSS.escape(focusGroup) + '"]');
+        const root = row || (focusRootSelector && document.querySelector(focusRootSelector));
+        const control = root && focusAttribute && root.querySelector('[' + focusAttribute.name
+            + '="' + CSS.escape(focusAttribute.value) + '"]');
+        (control || row || group?.querySelector?.('summary')
+            || main.querySelector('[data-place-id="' + CSS.escape(state.selectedPlaceId || '') + '"]')
+            || main.querySelector('#placesReviewSearch, #placesSearch'))?.focus({ preventScroll: true });
+    }
+}

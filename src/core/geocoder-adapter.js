@@ -14,6 +14,8 @@ const geneographGeocoder = (function ()
         locationiq: 1150
     });
     const nextRequestAt = { geoapify: 0, locationiq: 0 };
+    const dispatchQueues = { geoapify: [], locationiq: [] };
+    const dispatchTimers = { geoapify: false, locationiq: false };
     const cooldownUntil = { geoapify: 0, locationiq: 0 };
     const timeoutMs = 6500;
     const maxQueryLength = 200;
@@ -274,24 +276,62 @@ const geneographGeocoder = (function ()
         return cleanText(window.GENEOGRAPH_CONFIG?.[field] || '');
     }
 
-    function wait(ms, signal)
+    function pumpDispatch(source)
+    {
+        if (dispatchTimers[source]) return;
+        const queue = dispatchQueues[source];
+        if (!queue.length) return;
+        const now = Date.now();
+        if (now < cooldownUntil[source])
+        {
+            for (const entry of queue.splice(0))
+                entry.finish(new Error('Geocoder temporarily unavailable'));
+            return;
+        }
+        const delay = nextRequestAt[source] - now;
+        if (delay > 0)
+        {
+            dispatchTimers[source] = true;
+            setTimeout(() =>
+            {
+                dispatchTimers[source] = false;
+                pumpDispatch(source);
+            }, delay);
+            return;
+        }
+        const manual = queue.findIndex(entry => !entry.importMode);
+        const entry = queue.splice(manual < 0 ? 0 : manual, 1)[0];
+        if (entry.signal?.aborted) entry.finish(abortError());
+        else
+        {
+            nextRequestAt[source] = now + limits[source];
+            entry.finish();
+        }
+        // Let the released caller start fetch before dispatching another.
+        Promise.resolve().then(() => pumpDispatch(source));
+    }
+
+    function waitForDispatch(source, signal, importMode)
     {
         if (signal?.aborted) return Promise.reject(abortError());
-        if (ms <= 0) return Promise.resolve();
         return new Promise((resolve, reject) =>
         {
-            const done = () =>
+            const queue = dispatchQueues[source];
+            const entry = { signal, importMode, finish: error =>
             {
                 signal?.removeEventListener('abort', cancel);
-                resolve();
-            };
+                if (error) reject(error);
+                else resolve();
+            } };
             const cancel = () =>
             {
-                clearTimeout(timer);
-                reject(abortError());
+                const index = queue.indexOf(entry);
+                if (index >= 0) queue.splice(index, 1);
+                entry.finish(abortError());
             };
-            const timer = setTimeout(done, ms);
+            queue.push(entry);
             signal?.addEventListener('abort', cancel, { once: true });
+            pumpDispatch(source);
         });
     }
 
@@ -329,11 +369,9 @@ const geneographGeocoder = (function ()
             throw new Error('Geocoder temporarily unavailable');
         }
 
-        const readyAt = Math.max(now, nextRequestAt[source]);
-        nextRequestAt[source] = readyAt + limits[source];
-        await wait(readyAt - Date.now(), signal);
-
+        await waitForDispatch(source, signal, importMode);
         if (signal?.aborted) throw abortError();
+        if (Date.now() < cooldownUntil[source]) throw new Error('Geocoder temporarily unavailable');
         // Modern browsers can compose the user's cancellation and our
         // timeout without a second abort event/forwarding listener.
         // This avoids manufacturing a new AbortError inside forwardAbort.

@@ -6,7 +6,8 @@ const path = require('node:path');
 const vm = require('node:vm');
 
 const context = vm.createContext({
-    TextDecoder, TextEncoder, Blob, File, URL, Response, AbortSignal, performance, structuredClone,
+    TextDecoder, TextEncoder, Blob, File, URL, Response, AbortController, AbortSignal, performance, structuredClone,
+    setTimeout, clearTimeout,
     state: { language: 'en' },
     document: { documentElement: { lang: 'en' } },
     t: value => value,
@@ -234,6 +235,7 @@ assert.ok(!attachmentHtml.includes('fallback.jpg'));
 const resultSource = context.showGedcomImportResult.toString();
 assert.ok(!resultSource.includes('gedcomPlaceMatchingSummary'));
 assert.ok(resultSource.includes('attributionHtml'));
+assert.ok(resultSource.includes('renderGedcomMatchingStatus'));
 assert.ok(!context.gedcomImportWarnings({...classifiedReport,placeMatching:{assigned:23,uncertain:33,ineligible:93}}).includes('Place coordinate lookup'));
 assert.ok(context.gedcomImportWarnings({...classifiedReport,placeMatching:{quota:5,unavailable:2}}).includes('Place coordinate lookup interrupted by provider quota (5)'));
 
@@ -936,9 +938,10 @@ const automaticImportDialogSource = context.openImportModal.toString();
 assert.ok(!automaticImportDialogSource.includes('data-gedcom-geocode-enabled'));
 assert.ok(!automaticImportDialogSource.includes('gedcomGeocodeTitle'));
 assert.ok(automaticImportDialogSource.includes('data-gedcom-geocode-notice hidden'));
-assert.ok(automaticImportDialogSource.includes('data-gedcom-geocode-progress aria-live="polite" hidden'));
-assert.ok(automaticImportDialogSource.includes('data-gedcom-geocode-stop hidden'));
-assert.ok(automaticImportDialogSource.includes('await matchGedcomPlaceCoordinates(draft, {'));
+assert.ok(!automaticImportDialogSource.includes('data-gedcom-geocode-progress'));
+assert.ok(!automaticImportDialogSource.includes('data-gedcom-geocode-stop'));
+assert.ok(!automaticImportDialogSource.includes('await matchGedcomPlaceCoordinates'));
+assert.ok(automaticImportDialogSource.indexOf('commitGedcomImport(draft, report)') < automaticImportDialogSource.indexOf('startGedcomPlaceMatchingJob(draft, report)'));
 
 async function verifyAutomaticPlaceMatching()
 {
@@ -966,11 +969,9 @@ async function verifyAutomaticPlaceMatching()
     assert.equal(result.stats.ineligible, 4);
     assert.equal(result.diagnostics.find(item => item.query === 'Rzeszów').reason, 'weak-confidence');
     assert.equal(JSON.stringify(draft.records.places), before);
-    context.applyGedcomPlaceMatching(draft, result);
     assert.equal(draft.records.places[0].name, 'Rzeszow, Podkarpackie, Poland');
-    assert.equal(draft.records.places[0].coordinates.lat, 50.04);
+    assert.equal(result.coordinates.get(draft.records.places[0].id).lat, 50.04);
     assert.equal(draft.records.places.find(place => place.name === 'Other, Poland').coordinates.lat, 50);
-    assert.equal(context.gedcomImportReport(draft).placeMatching.assigned, 2);
     const plan = { primary:'Rzeszów', country:'PL', admin:[] };
     assert.equal(context.gedcomStrongPlaceMatch(plan, {status:'results',candidates:[candidate,{...candidate, identities:['two'],coordinates:{lat:51,lng:22}}]}), null);
     assert.equal(context.gedcomStrongPlaceMatch(plan, {status:'results',candidates:[candidate],truncated:true}), null);
@@ -1092,9 +1093,178 @@ async function verifyAutomaticPlaceMatching()
     const duplicateResult=await context.matchGedcomPlaceCoordinates(duplicate,{lookup:emptyLookup});
     assert.equal(duplicateResult.stats.lookups,1);
     assert.equal(duplicateResult.stats.checked,2);
+
+    let activeLookups = 0, peak = 0;
+    const small = {records:{places:Array.from({length:4},(_,i)=>({id:'p'+i,name:'City '+i+', Poland',coordinates:null}))}};
+    const parallel = await context.matchGedcomPlaceCoordinates(small,{concurrency:2,lookup:async()=>{
+        activeLookups++; peak=Math.max(peak,activeLookups);
+        await Promise.resolve(); await Promise.resolve(); activeLookups--;
+        return {status:'empty',candidates:[]};
+    }});
+    assert.equal(peak,2);
+    assert.equal(parallel.stats.checked,4);
+    let dedupCalls=0;
+    const shared = await context.matchGedcomPlaceCoordinates(duplicate,{concurrency:2,lookup:async()=>{
+        dedupCalls++; await Promise.resolve(); return {status:'empty',candidates:[]};
+    }});
+    assert.equal(dedupCalls,1);
+    assert.equal(shared.stats.checked,2);
+    const lateController = new AbortController();
+    let quotaParallelCalls=0;
+    const halted=await context.matchGedcomPlaceCoordinates(small,{concurrency:2,signal:lateController.signal,
+        onHalt:()=>lateController.abort(),lookup:async()=>{
+            quotaParallelCalls++;
+            return {status:'quota',candidates:[]};
+        }});
+    assert.ok(quotaParallelCalls<=2);
+    assert.equal(halted.stats.quota,4);
 }
 
-verifyAttachments().then(verifyOnlinePhotos).then(verifyMyHeritageCutouts).then(verifyAutomaticPlaceMatching).then(() =>
+
+async function verifySessionMatchingJobs()
+{
+    // Controlled timers and provider gates: no wall-clock assumptions or
+    // credentials. The test owns only the injected session globals.
+    let timerId = 0;
+    const timers = new Map();
+    const runTimer = async delay =>
+    {
+        const entries = [...timers].filter(([, timer]) => timer.delay === delay);
+        for (const [id, timer] of entries)
+        {
+            if (!timers.delete(id)) continue;
+            timer.callback();
+        }
+        for (let i = 0; i < 24; i++) await Promise.resolve();
+    };
+    const reportMap = vm.runInContext('gedcomImportReports', context);
+    const jobs = vm.runInContext('gedcomPlaceMatchingJobs', context);
+    const previousState = { ...context.state };
+    const stubs = {
+        sampleData: { projects: [], places: [] },
+        touchProjectModified: (_project, domains) => { assert.deepEqual(Array.from(domains), ['projects','places']); },
+        setTimeout: (callback, delay) => { const id = ++timerId; timers.set(id,{callback,delay}); return id; },
+        clearTimeout: id => timers.delete(id),
+        schedulePlacesMatchingRefresh: () => {}
+    };
+    const prior = Object.fromEntries(Object.keys(stubs).map(key => [key, context[key]]));
+    const make = (id, names) =>
+    {
+        const project = { id };
+        const places = names.map((name,i)=>({id:id+'-'+i,projectId:id,name,alternativeNames:[],coordinates:null,
+            createdAt:'2026-01-01T00:00:00Z',updatedAt:'2026-01-01T00:00:00Z'}));
+        return {project,records:{places}};
+    };
+    const install = draft =>
+    {
+        const report = {};
+        context.sampleData.projects.push(draft.project);
+        context.sampleData.places.push(...draft.records.places);
+        reportMap.set(draft.project.id,report);
+        return report;
+    };
+    const gates = new Map();
+    let peak = 0, inFlight = 0;
+    const lookup = (query, signal) => new Promise(resolve =>
+    {
+        inFlight++; peak=Math.max(peak,inFlight);
+        const finish = result =>
+        {
+            signal.removeEventListener('abort', abort);
+            gates.delete(query);
+            inFlight--;
+            resolve(result);
+        };
+        const abort = () => finish({status:'stopped',candidates:[]});
+        signal.addEventListener('abort',abort,{once:true});
+        gates.set(query, point => finish({status:'results',provider:'geoapify',candidates:[{
+            names:[query.split(',')[0]],countryCode:'PL',admin:[],type:'city',typeReliable:true,
+            identities:[query],confidence:.99,cityConfidence:.99,coordinates:point
+        }]}));
+    });
+    const settle = async () => { for(let i=0;i<32;i++) await Promise.resolve(); };
+    try
+    {
+        Object.assign(context,stubs);
+        Object.assign(context.state,{activeModule:'Family Tree',currentProjectId:'job-one'});
+        const first=make('job-one',['Alpha, Poland','Beta, Poland','Gamma, Poland']);
+        const second=make('job-two',['Delta, Poland']);
+        const report=install(first), reportTwo=install(second);
+        const job=context.startGedcomPlaceMatchingJob(first,report,{lookup});
+        const jobTwo=context.startGedcomPlaceMatchingJob(second,reportTwo,{lookup});
+        assert.ok(job && jobTwo);
+        assert.equal(context.startGedcomPlaceMatchingJob(first,report,{lookup}),null);
+        assert.equal(gates.size,0); // no provider work until the scheduled turn
+        assert.equal(report.matchingState,'running');
+        await runTimer(0);
+        assert.equal(gates.size,2);
+        assert.equal(peak,2);
+        // Resolve out of order, apply one result while another is in flight.
+        gates.get('Beta, Poland')({lat:51,lng:21});
+        await settle();
+        await runTimer(180);
+        assert.equal(first.records.places[1].coordinates.lat,51);
+        assert.equal(first.records.places[0].coordinates,null);
+        assert.equal(report.matchingState,'running');
+        // Manual set and clear in the same timestamp must still invalidate.
+        const edited=first.records.places[0];
+        edited.coordinates={lat:49,lng:20};
+        context.invalidateGedcomPlaceMatch(edited);
+        edited.coordinates=null;
+        context.state.currentProjectId='job-two';
+        gates.get('Alpha, Poland')({lat:52,lng:22});
+        await settle();
+        // Whichever pending job wins a global slot, finish the second project
+        // and cancel the first; its already-applied point remains.
+        if (gates.has('Delta, Poland')) gates.get('Delta, Poland')({lat:50,lng:20});
+        await settle();
+        context.cancelGedcomPlaceMatching('job-one');
+        await settle();
+        if (gates.has('Delta, Poland')) gates.get('Delta, Poland')({lat:50,lng:20});
+        await settle();
+        await job.done;
+        await jobTwo.done;
+        assert.equal(edited.coordinates,null);
+        assert.equal(first.records.places[1].coordinates.lat,51);
+        assert.equal(first.records.places[2].coordinates,null);
+        assert.equal(second.records.places[0].coordinates.lat,50);
+        assert.equal(report.matchingState,'stopped');
+        assert.equal(reportTwo.matchingState,'completed');
+        assert.equal(report.placeMatching.assigned,1);
+        assert.ok(report.matchingDiagnostics.some(item=>item.id===edited.id && item.reason==='stale-place'));
+        assert.ok(peak<=2);
+        // Deletion/replacement invalidates a live lookup even if it ignores abort.
+        const deleted=make('job-delete',['Epsilon, Poland']);
+        const deletedReport=install(deleted);
+        let release;
+        const late=context.startGedcomPlaceMatchingJob(deleted,deletedReport,{lookup:()=>new Promise(resolve=>{release=resolve;})});
+        await runTimer(0);
+        assert.ok(release);
+        context.cancelGedcomPlaceMatching('job-delete',{discard:true});
+        context.sampleData.projects=context.sampleData.projects.filter(p=>p!==deleted.project);
+        release({status:'results',candidates:[{names:['Epsilon'],countryCode:'PL',admin:[],type:'city',
+            identities:['epsilon'],confidence:1,cityConfidence:1,coordinates:{lat:50,lng:20}}]});
+        await late.done;
+        assert.equal(deleted.records.places[0].coordinates,null);
+        assert.equal(reportMap.has('job-delete'),false);
+        assert.equal(jobs.size,0);
+        const failed=make('failed-import',['Zeta, Poland']);
+        assert.equal(context.startGedcomPlaceMatchingJob(failed,{}, {lookup}),null);
+        assert.equal(gates.size,0);
+    }
+    finally
+    {
+        for (const id of ['job-one','job-two','job-delete']) {
+            context.cancelGedcomPlaceMatching(id,{discard:true}); reportMap.delete(id);
+        }
+        Object.assign(context,prior);
+        for (const key of Object.keys(context.state)) delete context.state[key];
+        Object.assign(context.state,previousState);
+    }
+}
+
+verifyAttachments().then(verifyOnlinePhotos).then(verifyMyHeritageCutouts).then(verifyAutomaticPlaceMatching)
+    .then(verifySessionMatchingJobs).then(() =>
 {
     console.log('GEDCOM decoding, canonical mapping, warnings, attachment matching, and invalid inputs passed.');
 }).catch(error =>

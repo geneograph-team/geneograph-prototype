@@ -36,6 +36,17 @@ function bindPlaceListMenus(root)
     });
 }
 
+function bindPlacesListContent(root)
+{
+    bindPlaceListRows(root, { showOnMapOnDoubleClick: state.placesViewMode === 'list' });
+    bindPlaceListMenus(root);
+    root.querySelectorAll('[data-place-review-link]').forEach(button => button.addEventListener('click', event =>
+    {
+        event.stopPropagation();
+        openPlacesNeedsReview(button.dataset.placeReviewLink);
+    }));
+}
+
 function bindPlacesControls(list)
 {
     bindSearchInput(
@@ -118,13 +129,7 @@ function bindPlacesControls(list)
         if (state.placesViewMode === 'list') destroyPlacesMap();
         renderPlacesMain();
     }));
-    bindPlaceListRows(main, { showOnMapOnDoubleClick: state.placesViewMode === 'list' });
-    bindPlaceListMenus(main);
-    main.querySelectorAll('[data-place-review-link]').forEach(button => button.addEventListener('click', event =>
-    {
-        event.stopPropagation();
-        openPlacesNeedsReview(button.dataset.placeReviewLink);
-    }));
+    bindPlacesListContent(main);
     main
         .querySelector(
             '#placesRouteMenu'

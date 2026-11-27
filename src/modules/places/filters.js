@@ -1053,6 +1053,27 @@ function getPlaceDuplicatePairsWithDiagnosticsBody(projectId = currentProjectId(
     return pairs.sort((a, b) => b.score - a.score || a.key.localeCompare(b.key));
 }
 
+function refreshPlaceDuplicatePairsAfterMatching(projectId, previous, changedIds)
+{
+    const changed = new Set(changedIds);
+    const places = projectPlaces(projectId);
+    const prepared = places.map(preparePlaceDuplicateComparison);
+    const pairs = previous.filter(pair => !changed.has(pair.left.id) && !changed.has(pair.right.id));
+    for (let i = 0; i < places.length; i++)
+        if (changed.has(places[i].id))
+            for (let j = 0; j < places.length; j++)
+            {
+                if (i === j || (j < i && changed.has(places[j].id))) continue;
+                const a = Math.min(i, j), b = Math.max(i, j);
+                const match = matchDuplicatePlaces(places[a], places[b], prepared[a], prepared[b]);
+                if (match) pairs.push({ left: places[a], right: places[b],
+                    key: placeDuplicatePairKey(places[a].id, places[b].id), ...match });
+            }
+    pairs.sort((a, b) => b.score - a.score || a.key.localeCompare(b.key));
+    acquireProjectReadModel(projectId).read('places:duplicate-pairs', ['places'], () => pairs);
+    return pairs;
+}
+
 function placeDuplicateDismissal(pair)
 {
     return (sampleData.placeIssues || []).find(issue => issue.projectId === pair.left.projectId

@@ -575,6 +575,7 @@ function render()
 function renderApplicationShell()
 {
     cancelSharedSearch();
+    if (typeof pruneGedcomPlaceMatchingJobs === 'function') pruneGedcomPlaceMatchingJobs();
     setProjectReadModelActive(state.projectOpen ? currentProjectId() : null);
     invalidateLinkedPlaceDismissals();
     if (state.activeModule !== 'Family Tree')

@@ -24,6 +24,45 @@ function harness(responses)
     const api=vm.runInNewContext(source+'\ngeneographGeocoder;',sandbox);
     return {api,calls,sandbox};
 }
+
+async function verifyDispatchPriority()
+{
+    let now=0, next=0;
+    const timers=new Map(), calls=[];
+    const sandbox={URL,DOMException,AbortController,AbortSignal,
+        window:{GENEOGRAPH_CONFIG:{geoapifyKey:'synthetic',locationiqKey:''}},
+        state:{language:'en'},Date:{now:()=>now},
+        setTimeout:(fn,ms)=>{const id=++next;timers.set(id,{fn,at:now+ms});return id;},
+        clearTimeout:id=>timers.delete(id),
+        fetch:async url=>{
+            calls.push([url.searchParams.get('text'),now]);
+            return {ok:true,status:200,json:async()=>({results:[city]})};
+        }};
+    const api=vm.runInNewContext(source+'\ngeneographGeocoder;',sandbox);
+    const settle=async()=>{for(let i=0;i<24;i++)await Promise.resolve();};
+    const advance=async value=>{
+        now=value;
+        for(const [id,timer] of [...timers])if(timer.at<=now){timers.delete(id);timer.fn();}
+        await settle();
+    };
+    const first=api.searchImport('first');
+    const second=api.searchImport('second');
+    const aborted=new AbortController();
+    const canceled=api.searchImport('cancelled',aborted.signal).catch(error=>error.name);
+    const manual=api.search('manual',undefined,5);
+    aborted.abort();
+    await settle();
+    assert.deepEqual(calls,[['first',0]]);
+    await advance(299);
+    assert.equal(calls.length,1);
+    await advance(300);
+    assert.deepEqual(calls,[['first',0],['manual',300]]);
+    await advance(600);
+    await Promise.all([first,second,manual]);
+    assert.equal(await canceled,'AbortError');
+    assert.deepEqual(calls,[['first',0],['manual',300],['second',600]]);
+}
+
 async function run()
 {
     let h=harness([{body:{results:[city,{...city,place_id:'two',lat:52} ]}}]);
@@ -77,6 +116,7 @@ async function run()
     assert.equal(manual[0].name,'Rzeszów, Subcarpathian Voivodeship, Poland');
     assert.equal(manual[0].confidence,undefined);
     assert.equal(h.calls.length,1);
+    await verifyDispatchPriority();
     console.log('Import geocoder request, fallback, quota, candidate and manual-search checks passed.');
 }
 run().catch(error=>{console.error(error);process.exitCode=1;});

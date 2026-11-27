@@ -423,6 +423,30 @@ function updatePlacesMapData(places, { force = false } = {})
     updatePlacesMapToolControls();
 }
 
+function updatePlacesMapAfterMatching(list)
+{
+    placesMapRuntime.currentPlaces = [...list];
+    if (!placesMapReady()) return;
+    const visible = new Set(list.filter(placeHasCoordinates).map(place => place.id));
+    for (const [id, marker] of placesMapRuntime.markersById)
+        if (!visible.has(id))
+        {
+            marker.remove();
+            placesMapRuntime.markersById.delete(id);
+        }
+    for (const place of list)
+        if (visible.has(place.id) && !placesMapRuntime.markersById.has(place.id))
+        {
+            const marker = createPlaceMapMarker(place);
+            if (marker) placesMapRuntime.markersById.set(place.id, marker);
+        }
+    placesMapRuntime.mountedListKey = JSON.stringify([placesMapDataKey(list), state.language, list.map(place => place.name)]);
+    updatePlacesMapSelection(state.selectedPlaceId);
+    renderPlacesRouteLayer();
+    updatePlacesRouteControl();
+    updatePlacesMapToolControls();
+}
+
 function updatePlacesMapSelection(placeId, { focusMap = false } = {})
 {
     placesMapRuntime.markersById.forEach((marker, id) =>

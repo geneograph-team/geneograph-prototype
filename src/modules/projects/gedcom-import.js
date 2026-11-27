@@ -2193,9 +2193,10 @@ function gedcomStrongPlaceMatch(plan, result)
 }
 
 async function matchGedcomPlaceCoordinates(draft, { signal, onProgress = () => {},
+    onMatch = () => {}, onHalt = () => {}, shouldLookup = () => true, concurrency = 1,
+    plan = gedcomPlaceLookupPlan(draft),
     lookup = (query, abortSignal, language) => geneographGeocoder.searchImport(query, abortSignal, language) } = {})
 {
-    const plan = gedcomPlaceLookupPlan(draft);
     const selected = plan.candidates.slice(0, GEDCOM_PLACE_LOOKUP_LIMIT);
     const stats = { existing: plan.existing, ineligible: plan.ineligible, eligible: plan.candidates.length,
         assigned: 0, uncertain: 0, unavailable: 0, budget: 0, stopped: 0, quota: 0, checked: 0, lookups: 0 };
@@ -2208,57 +2209,320 @@ async function matchGedcomPlaceCoordinates(draft, { signal, onProgress = () => {
     for (const item of plan.candidates.slice(GEDCOM_PLACE_LOOKUP_LIMIT)) record(item, 'budget');
     stats.budget = plan.candidates.length - selected.length;
     const cache = new Map();
-    let halt = '';
+    let halt = '', next = 0;
     onProgress(0, selected.length);
-    for (const item of selected)
+    const worker = async () =>
     {
-        if (signal?.aborted) halt = 'stopped';
-        if (halt) { stats[halt]++; record(item, halt); continue; }
-        const key = JSON.stringify([item.query, item.language]);
-        let result = cache.get(key);
-        if (!result)
+        while (next < selected.length)
         {
-            stats.lookups++;
-            try { result = await lookup(item.query, signal, item.language); }
-            catch { result = { status: signal?.aborted ? 'stopped' : 'unavailable', candidates: [] }; }
-            if (signal?.aborted) result = { status: 'stopped', candidates: [] };
-            cache.set(key, result);
+            const item = selected[next++];
+            if (!halt && signal?.aborted) halt = 'stopped';
+            if (halt) { stats[halt]++; record(item, halt); continue; }
+            if (!shouldLookup(item)) { stats.uncertain++; record(item, 'stale-place'); continue; }
+            if (signal?.aborted) { halt = 'stopped'; stats.stopped++; record(item, halt); continue; }
+            const key = JSON.stringify([item.query, item.language]);
+            if (!cache.has(key))
+            {
+                stats.lookups++;
+                cache.set(key, Promise.resolve().then(() => lookup(item.query, signal, item.language))
+                    .catch(() => ({ status: signal?.aborted ? 'stopped' : 'unavailable', candidates: [] })));
+            }
+            const result = await cache.get(key);
+            if (!halt && result.status === 'quota') { halt = 'quota'; onHalt(halt); }
+            if (!halt && (signal?.aborted || result.status === 'stopped')) halt = 'stopped';
+            if (halt) { stats[halt]++; record(item, halt, result); continue; }
+            stats.checked++;
+            if (result.status === 'unavailable') { stats.unavailable++; record(item, 'unavailable', result); }
+            else
+            {
+                const { point, reason } = gedcomEvaluatePlaceMatch(item, result);
+                record(item, reason, result);
+                if (point)
+                {
+                    coordinates.set(item.id, point);
+                    stats.assigned++;
+                    onMatch(item, point);
+                }
+                else stats.uncertain++;
+            }
+            onProgress(stats.checked, selected.length);
         }
-        if (result.status === 'quota' || result.status === 'stopped')
-        {
-            halt = result.status;
-            stats[halt]++;
-            record(item, halt, result);
-            continue;
-        }
-        stats.checked++;
-        if (result.status === 'unavailable') { stats.unavailable++; record(item, 'unavailable', result); }
-        else
-        {
-            const { point, reason } = gedcomEvaluatePlaceMatch(item, result);
-            record(item, reason, result);
-            if (point) { coordinates.set(item.id, point); stats.assigned++; }
-            else stats.uncertain++;
-        }
-        onProgress(stats.checked, selected.length);
-    }
+    };
+    await Promise.all(Array.from({ length: Math.min(2, Math.max(1, concurrency), selected.length) }, worker));
     return { stats, coordinates, diagnostics };
 }
 
-function applyGedcomPlaceMatching(draft, result)
+// Session-local jobs never own the import transaction or an active view.
+const gedcomPlaceMatchingJobs = new Map();
+const gedcomPlaceLookupQueue = [];
+let gedcomPlaceLookupsRunning = 0;
+
+function pumpGedcomPlaceLookups()
 {
-    for (const place of draft.records.places)
-        if (!placeHasCoordinates(place) && result.coordinates.has(place.id))
-            place.coordinates = { ...result.coordinates.get(place.id) };
-    const errors = validateProjectDraft(draft.project, draft.records);
-    if (errors.length)
+    while (gedcomPlaceLookupsRunning < 2 && gedcomPlaceLookupQueue.length)
     {
-        const failure = new GedcomImportError('The GEDCOM records could not be validated.');
-        failure.diagnostic = errors[0];
-        throw failure;
+        const entry = gedcomPlaceLookupQueue.shift();
+        if (entry.signal.aborted) { entry.cancel(); continue; }
+        entry.signal.removeEventListener('abort', entry.cancel);
+        gedcomPlaceLookupsRunning++;
+        Promise.resolve().then(() => entry.signal.aborted ? { status: 'stopped', candidates: [] }
+            : entry.lookup(entry.query, entry.signal, entry.language))
+            .then(entry.resolve, entry.reject).finally(() =>
+            {
+                gedcomPlaceLookupsRunning--;
+                pumpGedcomPlaceLookups();
+            });
     }
-    draft.placeMatching = result.stats;
-    draft.placeMatchingDiagnostics = result.diagnostics;
+}
+
+function queueGedcomPlaceLookup(query, signal, language, lookup)
+{
+    return new Promise((resolve, reject) =>
+    {
+        const entry = { query, signal, language, lookup, resolve, reject, cancel: () =>
+        {
+            const index = gedcomPlaceLookupQueue.indexOf(entry);
+            if (index >= 0) gedcomPlaceLookupQueue.splice(index, 1);
+            signal.removeEventListener('abort', entry.cancel);
+            resolve({ status: 'stopped', candidates: [] });
+        } };
+        if (signal.aborted) { entry.cancel(); return; }
+        gedcomPlaceLookupQueue.push(entry);
+        signal.addEventListener('abort', entry.cancel, { once: true });
+        pumpGedcomPlaceLookups();
+    });
+}
+
+function gedcomMatchingInput(place)
+{
+    return JSON.stringify([place.name, place.alternativeNames, place.coordinates, place.approximateRadiusMeters, place.updatedAt]);
+}
+
+function gedcomMatchingJobCurrent(job)
+{
+    return gedcomPlaceMatchingJobs.get(job.project.id) === job
+        && sampleData.projects.some(project => project === job.project)
+        && gedcomImportReports.get(job.project.id) === job.report;
+}
+
+function gedcomMatchingPlaceCurrent(job, item)
+{
+    const snapshot = job.snapshots.get(item.id);
+    if (!snapshot || job.invalidated.has(item.id) || !gedcomMatchingJobCurrent(job)) return null;
+    const place = sampleData.places.find(record => record.id === item.id && record.projectId === job.project.id);
+    return place === snapshot.place && place.coordinates === null
+        && gedcomMatchingInput(place) === snapshot.input ? place : null;
+}
+
+function invalidateGedcomPlaceMatch(place)
+{
+    const job = place && gedcomPlaceMatchingJobs.get(place.projectId);
+    if (job) job.invalidated.add(place.id);
+}
+
+function cancelGedcomPlaceMatching(projectId, { discard = false } = {})
+{
+    const job = gedcomPlaceMatchingJobs.get(projectId);
+    if (!job) return;
+    job.controller.abort();
+    if (discard)
+    {
+        clearTimeout(job.timer);
+        job.pending.clear();
+        gedcomPlaceMatchingJobs.delete(projectId);
+        if (gedcomImportReports.get(projectId) === job.report) gedcomImportReports.delete(projectId);
+    }
+}
+
+function pruneGedcomPlaceMatchingJobs()
+{
+    for (const [projectId, job] of gedcomPlaceMatchingJobs)
+        if (!gedcomMatchingJobCurrent(job)) cancelGedcomPlaceMatching(projectId, { discard: true });
+}
+
+function gedcomMatchingCanApply(job)
+{
+    // Do not change live records beneath an open editor/merge preview.
+    // The import success report is read-only and never holds up enrichment.
+    if (typeof document === 'undefined' || typeof modalBackdrop === 'undefined') return true;
+    if (state.currentProjectId !== job.project.id) return true;
+    return !(modalBackdrop.classList.contains('open') && !modalBackdrop.querySelector('#gedcomResultTitle'))
+        && !(typeof placesMapRuntime !== 'undefined' && placesMapRuntime.mode !== 'browse');
+}
+
+function applyGedcomMatchingPoint(job, item, point)
+{
+    const place = gedcomMatchingPlaceCurrent(job, item);
+    if (!place || typeof point?.lat !== 'number' || typeof point?.lng !== 'number'
+        || !validLatitude(point.lat) || !validLongitude(point.lng)
+        || placeHasRadiusValue(place)) return false;
+    // The original record passed full detached validation. The only new
+    // canonical fields are a validated exact point and ISO timestamp.
+    place.coordinates = { lat: point.lat, lng: point.lng };
+    place.updatedAt = new Date().toISOString();
+    return true;
+}
+
+function scheduleGedcomMatchingFlush(job)
+{
+    if (job.timer != null) return;
+    job.timer = setTimeout(() =>
+    {
+        job.timer = null;
+        flushGedcomMatchingJob(job);
+    }, 180);
+}
+
+function flushGedcomMatchingJob(job)
+{
+    if (!gedcomMatchingJobCurrent(job))
+    {
+        job.controller.abort();
+        if (gedcomPlaceMatchingJobs.get(job.project.id) === job) gedcomPlaceMatchingJobs.delete(job.project.id);
+        return;
+    }
+    if (job.pending.size && !gedcomMatchingCanApply(job))
+    {
+        scheduleGedcomMatchingFlush(job);
+        return;
+    }
+    const changed = [];
+    const previousPairs = job.pending.size && typeof getPlaceDuplicatePairs === 'function'
+        && state.activeModule === 'Places' && state.currentProjectId === job.project.id
+        ? getPlaceDuplicatePairs(job.project.id) : null;
+    for (const [id, { item, point }] of job.pending)
+    {
+        if (applyGedcomMatchingPoint(job, item, point)) changed.push(id);
+        else job.rejected.add(id);
+    }
+    job.pending.clear();
+    if (changed.length)
+    {
+        job.appliedCount += changed.length;
+        touchProjectModified(job.project, ['projects', 'places']);
+        if (previousPairs && typeof refreshPlaceDuplicatePairsAfterMatching === 'function')
+            refreshPlaceDuplicatePairsAfterMatching(job.project.id, previousPairs, changed);
+        if (typeof schedulePlacesMatchingRefresh === 'function') schedulePlacesMatchingRefresh(job.project.id, changed);
+    }
+    if (!job.result) return;
+    clearTimeout(job.timer);
+    job.timer = null;
+    const { stats, diagnostics } = job.result;
+    stats.assigned -= job.rejected.size;
+    stats.uncertain += job.rejected.size;
+    for (const diagnostic of diagnostics)
+        if (diagnostic.reason === 'assigned' && job.rejected.has(diagnostic.id)) diagnostic.reason = 'stale-place';
+    job.report.placeMatching = stats;
+    job.report.matchingDiagnostics = diagnostics;
+    job.report.matchingState = stats.quota ? 'quota' : stats.unavailable ? 'unavailable'
+        : job.controller.signal.aborted ? 'stopped' : 'completed';
+    gedcomPlaceMatchingJobs.delete(job.project.id);
+    updateGedcomMatchingStatus(job.project.id);
+}
+
+function startGedcomPlaceMatchingJob(draft, report, {
+    lookup = (query, signal, language) => geneographGeocoder.searchImport(query, signal, language)
+} = {})
+{
+    const projectId = draft.project.id;
+    if (gedcomPlaceMatchingJobs.has(projectId) || report.matchingState
+        || gedcomImportReports.get(projectId) !== report
+        || !sampleData.projects.includes(draft.project)) return null;
+    const plan = gedcomPlaceLookupPlan(draft);
+    if (!plan.candidates.length)
+    {
+        report.matchingDiagnostics = plan.diagnostics;
+        return null;
+    }
+    const places = new Map(draft.records.places.map(place => [place.id, place]));
+    const snapshots = new Map(plan.candidates.slice(0, GEDCOM_PLACE_LOOKUP_LIMIT).map(item =>
+    {
+        const place = places.get(item.id);
+        return [item.id, { place, input: gedcomMatchingInput(place) }];
+    }));
+    const job = { project: draft.project, report, snapshots, invalidated: new Set(), rejected: new Set(),
+        controller: new AbortController(), pending: new Map(), timer: null, result: null, appliedCount: 0 };
+    gedcomPlaceMatchingJobs.set(projectId, job);
+    report.matchingState = 'running';
+    updateGedcomMatchingStatus(projectId);
+    // Yield after the successful synchronous commit and result dialog.
+    job.done = new Promise(resolve => setTimeout(resolve, 0)).then(async () =>
+    {
+        if (!gedcomMatchingJobCurrent(job)) return;
+        job.result = await matchGedcomPlaceCoordinates(null, {
+            plan, signal: job.controller.signal, concurrency: 2,
+            shouldLookup: item =>
+            {
+                if (!gedcomMatchingJobCurrent(job)) job.controller.abort();
+                return Boolean(gedcomMatchingPlaceCurrent(job, item));
+            },
+            lookup: (query, signal, language) => queueGedcomPlaceLookup(query, signal, language, lookup),
+            onHalt: () => job.controller.abort(),
+            onMatch: (item, point) =>
+            {
+                if (!gedcomMatchingJobCurrent(job)) return;
+                job.pending.set(item.id, { item, point });
+                scheduleGedcomMatchingFlush(job);
+            }
+        });
+        flushGedcomMatchingJob(job);
+    }).catch(() =>
+    {
+        if (!gedcomMatchingJobCurrent(job)) return;
+        // Provider failure cannot roll back the imported project.
+        job.controller.abort();
+        job.result = { stats: { assigned: job.appliedCount + job.pending.size + job.rejected.size,
+            uncertain: 0, unavailable: 1, quota: 0, lookups: 0 }, diagnostics: [] };
+        flushGedcomMatchingJob(job);
+    });
+    return job;
+}
+
+function gedcomMatchingStatusText(report)
+{
+    return ({ running: 'Finding missing place coordinates…', completed: 'Place coordinate matching complete.',
+        stopped: 'Place coordinate matching stopped.', quota: 'Place coordinate lookup interrupted by provider quota',
+        unavailable: 'Place coordinate lookup unavailable' })[report?.matchingState] || '';
+}
+
+function renderGedcomMatchingStatus(projectId)
+{
+    const report = gedcomImportReports.get(projectId);
+    const text = gedcomMatchingStatusText(report);
+    if (!text) return '';
+    return '<div data-gedcom-matching-status="' + escapeHtml(projectId) + '">'
+        + '<p class="gedcom-session-note" role="status">' + escapeHtml(t(text)) + '</p>'
+        + (report.matchingState === 'running' ? '<button class="button secondary" type="button" data-gedcom-stop-matching>'
+            + escapeHtml(t('Stop lookup')) + '</button>' : '') + '</div>';
+}
+
+function bindGedcomMatchingStatus(root)
+{
+    root.querySelectorAll('[data-gedcom-stop-matching]').forEach(button =>
+    {
+        if (button.dataset.gedcomBound) return;
+        button.dataset.gedcomBound = 'true';
+        button.addEventListener('click', () =>
+        {
+            cancelGedcomPlaceMatching(button.closest('[data-gedcom-matching-status]').dataset.gedcomMatchingStatus);
+            button.disabled = true;
+        });
+    });
+}
+
+function updateGedcomMatchingStatus(projectId)
+{
+    if (typeof document === 'undefined' || !document.querySelectorAll) return;
+    const report = gedcomImportReports.get(projectId);
+    for (const root of document.querySelectorAll('[data-gedcom-matching-status]'))
+    {
+        if (root.dataset.gedcomMatchingStatus !== projectId) continue;
+        const text = gedcomMatchingStatusText(report);
+        const status = root.querySelector('[role="status"]');
+        if (status) status.textContent = t(text);
+        const stop = root.querySelector('[data-gedcom-stop-matching]');
+        if (stop && report?.matchingState !== 'running') stop.disabled = true;
+    }
 }
 
 function gedcomImportReport(draft)
@@ -2385,9 +2649,7 @@ function openImportModal()
         <div class="gedcom-preview" data-gedcom-warnings></div>
         </div><div class="modal-footer gedcom-import-footer">
         <p class="gedcom-session-note">${escapeHtml(t('Imported projects stay in this session. Reloading discards them and any edits.'))} <span data-gedcom-geocode-notice hidden>${escapeHtml(t('Import may send place names to Geoapify or LocationIQ to find coordinates.'))}</span></p>
-        <p class="gedcom-session-note" data-gedcom-geocode-progress aria-live="polite" hidden></p>
         <div class="gedcom-import-footer-actions">
-            <button class="button secondary" type="button" data-gedcom-geocode-stop hidden>${escapeHtml(t('Stop lookup and continue import'))}</button>
             <button class="button secondary" type="button" data-close>${escapeHtml(t('Cancel'))}</button>
             <button class="button primary" type="submit" hidden disabled>${escapeHtml(t('Import to new project'))}</button>
         </div></div></form></div>`);
@@ -2417,11 +2679,7 @@ function openImportModal()
     let matches = new Map();
     let onlineMatches = new Map();
     let downloadController;
-    let geocodeController, geocodeResult;
     const geocodeNotice = find('[data-gedcom-geocode-notice]');
-    const geocodeProgress = find('[data-gedcom-geocode-progress]');
-    const geocodeStop = find('[data-gedcom-geocode-stop]');
-    geocodeStop.addEventListener('click', () => geocodeController?.abort());
     let revision = 0;
     const isCurrent = request => form.isConnected && request === revision;
     function showError(failure)
@@ -2469,11 +2727,7 @@ function openImportModal()
         const request = ++revision;
         parsed = null;
         downloadController?.abort();
-        geocodeController?.abort();
-        geocodeResult = null;
         geocodeNotice.hidden = true;
-        geocodeProgress.hidden = true;
-        geocodeProgress.textContent = '';
         onlineMatches = new Map();
         downloadStatus.textContent = '';
         download.disabled = false;
@@ -2617,42 +2871,20 @@ function openImportModal()
             if (isCurrent(request)) download.disabled = folderChoose.disabled = folderRemove.disabled = submit.disabled = false;
         }
     });
-    form.addEventListener('submit', async event =>
+    form.addEventListener('submit', event =>
     {
         event.preventDefault();
         if (!parsed || !name.value.trim() || submit.disabled) return;
         const request = ++revision;
-        const controller = new AbortController();
-        geocodeController = controller;
-        const closeObserver = new MutationObserver(() =>
-        {
-            if (!form.isConnected) controller.abort();
-        });
-        closeObserver.observe(modalBackdrop, { childList: true, subtree: true });
         const controls = [submit, choose, name, folderChoose, folderRemove, download, input, folderInput];
         const previousDisabled = controls.map(control => control.disabled);
         controls.forEach(control => { control.disabled = true; });
         error.hidden = true;
-        let report;
+        let draft, report;
         try
         {
-            const draft = buildDraft();
-            if (!geocodeResult)
-            {
-                geocodeResult = await matchGedcomPlaceCoordinates(draft, {
-                    signal: controller.signal, onProgress: (done, total) =>
-                    {
-                        if (!isCurrent(request) || !total) return;
-                        geocodeStop.hidden = false;
-                        geocodeProgress.hidden = false;
-                        geocodeProgress.textContent = t('Matching places: {done} of {total}')
-                            .replace('{done}', done).replace('{total}', total);
-                    } });
-            }
-            // Stop means continue with completed results. Closing the modal
-            // instead discards the entire detached draft, even on late reply.
+            draft = buildDraft();
             if (!isCurrent(request)) return;
-            applyGedcomPlaceMatching(draft, geocodeResult);
             report = gedcomImportReport(draft);
             commitGedcomImport(draft, report);
         }
@@ -2663,28 +2895,25 @@ function openImportModal()
         }
         finally
         {
-            closeObserver.disconnect();
-            if (isCurrent(request))
-            {
-                controls.forEach((control, index) => { control.disabled = previousDisabled[index]; });
-                geocodeStop.hidden = true;
-                geocodeProgress.hidden = true;
-                geocodeProgress.textContent = '';
-            }
+            if (isCurrent(request)) controls.forEach((control, index) => { control.disabled = previousDisabled[index]; });
         }
-        if (!isCurrent(request)) return;
         closeModal();
+        try { startGedcomPlaceMatchingJob(draft, report); }
+        catch { report.matchingState = 'unavailable'; }
         showGedcomImportResult(report);
     });
 }
 
 function showGedcomImportResult(report)
 {
+    const projectId = [...gedcomImportReports].find(([, value]) => value === report)?.[0];
     openModal('<div class="modal" role="dialog" aria-modal="true" aria-labelledby="gedcomResultTitle">'
         + '<div class="modal-header"><h2 id="gedcomResultTitle">' + escapeHtml(t('GEDCOM imported')) + '</h2></div>'
         + '<div class="modal-body">' + gedcomImportSummary(report) + gedcomAttachmentSummary(report, true)
         + '<p>' + escapeHtml(t('Imported projects stay in this session. Reloading discards them and any edits.')) + '</p>' + gedcomImportWarnings(report)
-        + (report.placeMatching?.lookups ? geneographGeocoder.attributionHtml() : '') + '</div>'
+        + (projectId ? renderGedcomMatchingStatus(projectId) : '')
+        + (report.matchingState || report.placeMatching?.lookups ? geneographGeocoder.attributionHtml() : '') + '</div>'
         + '<div class="modal-footer"><button class="button primary" type="button" data-close>'
         + escapeHtml(t('Done')) + '</button></div></div>');
+    bindGedcomMatchingStatus(modalBackdrop);
 }

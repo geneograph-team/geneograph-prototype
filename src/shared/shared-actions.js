@@ -1623,6 +1623,7 @@ function deleteProject(projectId)
 {
     const project = sampleData.projects.find(item => item.id === projectId);
     if (!project) return false;
+    if (typeof cancelGedcomPlaceMatching === 'function') cancelGedcomPlaceMatching(projectId, { discard: true });
 
     const deletedBoardIds = new Set(
         (sampleData.boards || [])
@@ -1635,6 +1636,7 @@ function deleteProject(projectId)
         sampleData[collectionName] = sampleData[collectionName].filter(record => record?.projectId !== project.id);
     });
     sampleData.projects = sampleData.projects.filter(item => item.id !== project.id);
+    if (typeof gedcomImportReports !== 'undefined') gedcomImportReports.delete(projectId);
     markPrototypeSessionEdited();
 
     if (sampleData.projectContinuation?.projectId === project.id) sampleData.projectContinuation = null;

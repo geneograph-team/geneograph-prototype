@@ -925,6 +925,7 @@ function commitPlaceEditorDraft()
             || (placeHasRadiusValue(existing)
                 && Number(existing.approximateRadiusMeters) !== draft.approximateRadiusMeters))
     );
+    if (existing && typeof invalidateGedcomPlaceMatch === 'function') invalidateGedcomPlaceMatch(existing);
     place.name = draft.name;
     place.alternativeNames = draft.alternativeNames.slice();
     place.coordinates = clonePlaceEditorCoordinates(draft.coordinates);
