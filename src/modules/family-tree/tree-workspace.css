@@ -677,8 +677,30 @@
     overflow-wrap: anywhere;
 }
 
+.tree-branch-reference .shared-filter-combobox {
+    display: flex;
+    align-items: center;
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-sm);
+    background: var(--surface-input);
+}
+
+.tree-branch-reference .shared-filter-combobox:hover {
+    border-color: var(--border-strong);
+    background: var(--surface-card-hover);
+}
+
+.tree-branch-reference .shared-filter-combobox:focus-within {
+    border-color: var(--control-field-focus-color);
+}
+
 .tree-branch-reference .shared-filter-selected {
-    display: block;
+    display: flex;
+    flex: 0 1 auto;
+    min-width: 0;
+    max-width: 48%;
+    margin: 0;
+    padding-left: 8px;
 }
 
 .tree-branch-reference .shared-filter-selected[hidden] {
@@ -686,20 +708,52 @@
 }
 
 .tree-branch-reference .shared-filter-token {
-    width: 100%;
     min-width: 0;
-    box-sizing: border-box;
-    justify-content: space-between;
-    padding: var(--space-2) var(--space-3);
-    border-color: var(--border-default);
-    background: var(--surface-panel-soft);
-    border-radius: var(--radius-sm);
+    min-height: 0;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    gap: 4px;
 }
 
 .tree-branch-reference .shared-filter-token-label {
     flex: 1;
     min-width: 0;
-    white-space: normal;
+}
+
+.tree-branch-reference .tree-settings-person-preview {
+    gap: 8px;
+}
+
+.tree-branch-reference .tree-settings-person-avatar {
+    flex: 0 0 26px;
+    width: 26px;
+    height: 26px;
+    font-size: 11px;
+}
+
+.tree-branch-reference .tree-settings-person-preview strong {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.tree-branch-reference .shared-filter-combobox-input {
+    flex: 1 1 0;
+    min-width: 0;
+    height: 40px;
+    border: 0;
+    background: transparent;
+}
+
+.tree-branch-reference .shared-filter-selected:not([hidden]) + .shared-filter-combobox-input {
+    margin-left: 8px;
+    padding-left: 8px;
+    border-left: 1px solid var(--border-default);
+    border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
 }
 
 .tree-branch-options {
@@ -1441,15 +1495,15 @@ html.tree-fullscreen .tree-shell {
 .tree-branch-settings {
     min-width: 0;
     margin: 0;
-    padding: 12px;
+    padding: 0;
     display: grid;
     gap: 12px;
-    border: 1px solid var(--border-default);
-    border-radius: var(--radius-sm);
+    border: 0;
 }
 
 .tree-branch-settings legend {
-    padding-inline: 5px;
+    padding: 0;
+    margin-bottom: 12px;
     font-weight: 700;
 }
 
