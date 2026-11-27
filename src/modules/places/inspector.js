@@ -1280,6 +1280,7 @@ function renderPlacesInspector(
             place
         );
     const approximate = placeHasApproximateArea(place);
+    const provisionalMatch = typeof gedcomProvisionalMatchDiagnostic === 'function' ? gedcomProvisionalMatchDiagnostic(place) : null;
 
     const tags = [
         {
@@ -1519,6 +1520,10 @@ function renderPlacesInspector(
             `}
           </div>
 
+          ${provisionalMatch ? `<div class="places-inspector-approximate" role="note">
+            ${icon.info}<span>${escapeHtml(t('Automatically selected map position. Check if needed.'))}
+              ${escapeHtml(gedcomMatchingDiagnosticDetail(provisionalMatch))}</span>
+          </div>` : ''}
           ${approximate ? `<div class="places-inspector-approximate" role="note">
             ${icon.info}
             <span><strong>${escapeHtml(t('Approximate location'))}</strong>

@@ -236,7 +236,7 @@ const geneographGeocoder = (function ()
         const address = source === 'geoapify' ? item : item.address || {};
         const raw = source === 'geoapify' ? item.datasource?.raw || {} : item.namedetails || {};
         const names = [...new Set([source === 'geoapify' ? item.name || item.city : item.display_place,
-            address.name, raw.name, ...['en','ru','uk','pl','be','ro','de','fr','bg','sr','hu','cs'].flatMap(lang =>
+            result?.primary, address.name, raw.name, ...['en','ru','uk','pl','be','ro','de','fr','bg','sr','hu','cs'].flatMap(lang =>
                 [raw['name:' + lang], raw['official_name:' + lang], ...String(raw['alt_name:' + lang] || '').split(';')]),
             ...String(raw.alt_name || '').split(';'), ...String(raw.official_name || '').split(';')]
             .map(cleanText).filter(Boolean))];
@@ -445,15 +445,20 @@ const geneographGeocoder = (function ()
         }
     }
 
+    function lookupLanguage(query)
+    {
+        return /\p{Script=Cyrillic}/u.test(query) ? 'ru' : 'en';
+    }
+
     async function search(query, signal, limit = 5)
     {
-        const text = cleanText(query).slice(0, maxQueryLength);
+        const input = cleanText(query).slice(0, maxQueryLength);
         if (signal?.aborted) throw abortError();
-        if (!text) return [];
-
+        if (!input) return [];
+        const plan = typeof gedcomLookupContext === 'function' ? gedcomLookupContext({ name: input }) : null;
+        const text = plan?.query || input;
         const count = Math.max(1, Math.min(10, Number(limit) || 5));
-        const language = typeof state !== 'undefined' && state.language === 'ru'
-            ? 'ru' : 'en';
+        const language = plan?.language || lookupLanguage(input);
         let primaryError = null;
         try
         {
@@ -479,7 +484,7 @@ const geneographGeocoder = (function ()
         }
     }
 
-    async function searchImport(query, signal, language = 'en')
+    async function searchImport(query, signal, language = lookupLanguage(query))
     {
         const text = cleanText(query);
         if (signal?.aborted) throw abortError();

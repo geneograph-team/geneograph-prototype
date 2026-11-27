@@ -10,19 +10,20 @@ const fallbackCity = {class:'place',type:'town',lat:'50.04',lon:'22',display_pla
     display_name:'Rzeszów, PK, Poland',osm_type:'node',osm_id:'1',address:{country_code:'pl',country:'Poland',state:'Podkarpackie'}};
 function harness(responses)
 {
-    const calls = [];
+    const calls = [], queries = [];
     let now = 0;
     const sandbox = { URL, DOMException, AbortController, AbortSignal, setTimeout, clearTimeout,
         window:{GENEOGRAPH_CONFIG:{geoapifyKey:'synthetic',locationiqKey:'synthetic'}},
         Date:{now:()=>now+=2000}, state:{language:'en'}, fetch:async url=>{
             calls.push(url.hostname);
+            queries.push([url.searchParams.get('text') || url.searchParams.get('q'), url.searchParams.get('lang') || url.searchParams.get('accept-language')]);
             const response = responses.shift();
             if (!response) throw new Error('unexpected request');
             if (response.error) throw new TypeError('network failure');
             return {ok:!response.status||response.status===200,status:response.status||200,json:async()=>response.body};
         }};
     const api=vm.runInNewContext(source+'\ngeneographGeocoder;',sandbox);
-    return {api,calls,sandbox};
+    return {api,calls,queries,sandbox};
 }
 
 async function verifyDispatchPriority()
@@ -121,6 +122,10 @@ async function run()
     assert.equal(manual[0].name,'Rzeszów, Subcarpathian Voivodeship, Poland');
     assert.equal(manual[0].confidence,undefined);
     assert.equal(h.calls.length,1);
+    h=harness([{body:{results:[city]}},{body:{results:[city]}}]);
+    await h.api.search('Москва, Россия');
+    await h.api.searchImport('Москва, Россия');
+    assert.deepEqual(h.queries,[['Москва, Россия','ru'],['Москва, Россия','ru']]);
     await verifyDispatchPriority();
     console.log('Import geocoder single-provider request, quota, candidate and manual-search checks passed.');
 }

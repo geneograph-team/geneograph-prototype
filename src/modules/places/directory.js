@@ -1557,7 +1557,7 @@ function renderPlaceReviewListRow(item, owners)
           <strong>${placeName}</strong>
           ${placeSecondaryName(place) ? `<span>${escapeHtml(placeSecondaryName(place))}</span>` : ''}
           <small>${escapeHtml(t('Linked records'))}: ${linked}</small>
-          ${matching ? `<small>${escapeHtml(t(matching.label))}</small>` : ''}
+          ${matching ? `<small>${escapeHtml(t(matching.label))}</small>${matching.detail ? `<small>${escapeHtml(matching.detail)}</small>` : ''}` : ''}
           ${reasonMarkup}
         </div>
         <div class="places-review-row-actions">${matching?.retry ? `<button class="button ghost places-review-quiet-button" type="button" data-place-review-retry="${placeId}">${escapeHtml(t('Retry lookup'))}</button>` : ''}${actions}${selected ? `<button class="mobile-item-details" type="button" data-mobile-open-details aria-label="${escapeHtml(t('Details'))}">${icon.info}<span>${escapeHtml(t('Details'))}</span></button>` : ''}</div>

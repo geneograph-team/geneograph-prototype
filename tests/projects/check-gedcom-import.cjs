@@ -973,13 +973,13 @@ async function verifyAutomaticPlaceMatching()
     assert.equal(result.coordinates.get(draft.records.places[0].id).lat, 50.04);
     assert.equal(draft.records.places.find(place => place.name === 'Other, Poland').coordinates.lat, 50);
     const plan = { primary:'Rzeszów', country:'PL', admin:[] };
-    assert.equal(context.gedcomStrongPlaceMatch(plan, {status:'results',candidates:[candidate,{...candidate, identities:['two'],coordinates:{lat:51,lng:22}}]}), null);
-    assert.equal(context.gedcomStrongPlaceMatch(plan, {status:'results',candidates:[candidate],truncated:true}), null);
-    assert.equal(context.gedcomStrongPlaceMatch({...plan,admin:['Different County']}, {status:'results',candidates:[candidate]}), null);
+    assert.equal(context.gedcomStrongPlaceMatch(plan, {status:'results',candidates:[candidate,{...candidate, identities:['two'],coordinates:{lat:51,lng:22}}]}).lat, 50.04);
+    assert.equal(context.gedcomStrongPlaceMatch(plan, {status:'results',candidates:[candidate],truncated:true}).lat, 50.04);
+    assert.equal(context.gedcomStrongPlaceMatch({...plan,admin:['Different County']}, {status:'results',candidates:[candidate]}).lat, 50.04);
     const namesake = {...candidate, identities:['two'], admin:['Mazowieckie'], regionNames:['Mazowieckie'], coordinates:{lat:52,lng:21}};
     assert.equal(context.gedcomStrongPlaceMatch({...plan,admin:['Podkarpackie']},{status:'results',candidates:[candidate,namesake]}).lat,50.04);
-    assert.equal(context.gedcomStrongPlaceMatch({...plan,admin:['Podkarpackie']},{status:'results',candidates:[candidate,{...namesake,regionNames:[]}]}),null);
-    assert.equal(context.gedcomStrongPlaceMatch(plan,{status:'results',candidates:[candidate,{...candidate,coordinates:{lat:51,lng:22}}]}),null);
+    assert.equal(context.gedcomStrongPlaceMatch({...plan,admin:['Podkarpackie']},{status:'results',candidates:[candidate,{...namesake,regionNames:[]}]}).lat,50.04);
+    assert.equal(context.gedcomStrongPlaceMatch(plan,{status:'results',candidates:[candidate,{...candidate,coordinates:{lat:51,lng:22}}]}).lat,50.04);
     assert.equal(context.gedcomStrongPlaceMatch(plan, {status:'results',candidates:[{...candidate,countryCode:'DE'}]}), null);
 
     const publicExamples = ['Aberdeen, Scotland','Великий Бобрик, Сумская область','г. Кишинёв',
@@ -1001,7 +1001,7 @@ async function verifyAutomaticPlaceMatching()
     const village = {...city,type:'village',identities:['village'],coordinates:{lat:52,lng:130}};
     const evaluate = (plan,candidates) => context.gedcomEvaluatePlaceMatch(plan,{status:'results',candidates});
     assert.equal(evaluate(ukhta,[city,village]).reason,'assigned');
-    assert.equal(evaluate(ukhta,[city,{...village,typeReliable:false}]).point,null);
+    assert.equal(evaluate(ukhta,[city,{...village,typeReliable:false}]).reason,'assigned');
     assert.equal(evaluate(ukhta,[{...city,typeReliable:false}]).reason,'assigned');
     const sumy = get('Великий Бобрик, Сумская область');
     assert.equal(evaluate(sumy,[{...candidate,names:['Великий Бобрик','Великий Бобрик'],countryCode:'UA',admin:['Sumy Oblast'],regionNames:['Sumy Oblast'],type:'village'}]).reason,'assigned');
@@ -1009,9 +1009,9 @@ async function verifyAutomaticPlaceMatching()
     const bareCity = {...city,names:['Екатеринбург','Yekaterinburg'],confidence:.99,cityConfidence:.99};
     assert.equal(evaluate(bare,[bareCity]).reason,'assigned');
     assert.equal(evaluate(bare,[{...bareCity,cityConfidence:null}]).reason,'assigned');
-    assert.equal(evaluate(bare,[bareCity,{...bareCity,identities:['different'],countryCode:'UA'}]).reason,'competing-matches');
-    assert.equal(evaluate(bare,[{...bareCity,confidence:.4}]).reason,'weak-confidence');
-    assert.equal(evaluate(bare,[bareCity,{...bareCity,identities:['unknown'],coordinates:null}]).point,null);
+    assert.equal(evaluate(bare,[bareCity,{...bareCity,identities:['different'],countryCode:'UA'}]).identity,null);
+    assert.equal(evaluate(bare,[{...bareCity,confidence:.4}]).detail.selection,'provisional');
+    assert.equal(evaluate(bare,[bareCity,{...bareCity,identities:['unknown'],coordinates:null}]).reason,'assigned');
     const matches = [
         ['Aberdeen, Scotland','Aberdeen','GB',['Scotland'],'city'],
         ['г. Кишинёв','Кишинёв','MD',[],'city'],
