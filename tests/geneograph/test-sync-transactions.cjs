@@ -34,6 +34,11 @@ const sourceDirectory = path.join(__dirname, '../../src');
 const indexHtml = fs.readFileSync(path.join(sourceDirectory, 'index.html'), 'utf8');
 const orderedScripts = Array.from(indexHtml.matchAll(/<script\b[^>]*\bsrc="([^"]+\.js)"/g), match => match[1]);
 const scriptOrder = new Map(orderedScripts.map((name, index) => [name, index]));
+// Load the existing shared graph color recipe without Tree runtime state.
+const treePaletteSource = fs.readFileSync(path.join(__dirname, '../../src/core/state-tree-core.js'), 'utf8');
+const treeToneSource = fs.readFileSync(path.join(__dirname, '../../src/modules/family-tree/tree-branches.js'), 'utf8');
+vm.runInContext(treePaletteSource.slice(treePaletteSource.indexOf('const TREE_PALETTE_DEFAULTS'), treePaletteSource.indexOf('function normalizeTreePalette'))
+    + treeToneSource.slice(treeToneSource.indexOf('function treePaletteLinearRgb'), treeToneSource.indexOf('function applyTreePalette')), context);
 for (const file of files) assert.ok(scriptOrder.has(file + '.js'), file + ' must be part of the app startup');
 files.sort((left, right) => scriptOrder.get(left + '.js') - scriptOrder.get(right + '.js'));
 

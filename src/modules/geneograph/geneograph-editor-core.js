@@ -2822,24 +2822,26 @@ function snapGeneographPoint(point)
     };
 }
 
-const GENEO_BOARD_COLORS = [
-    { color: '#101817', name: 'Ink' },
-    { color: '#26312E', name: 'Graphite' },
-    { color: '#D9E5E1', name: 'Mist' },
-    { color: '#F3F1E9', name: 'Paper' },
-    { color: '#173029', name: 'Deep moss' },
-    { color: '#172A32', name: 'Archive blue' },
-    { color: '#2D2437', name: 'Plum' },
-    { color: '#302B1D', name: 'Sepia' },
-    { color: '#2FAE74', name: 'Geneograph green' },
-    { color: '#62D99A', name: 'Mint' },
-    { color: '#4FB3A5', name: 'Teal' },
-    { color: '#5DADEC', name: 'Blue' },
-    { color: '#AA8CE8', name: 'Violet' },
-    { color: '#D4AA6B', name: 'Amber' },
-    { color: '#D9828B', name: 'Rose' },
-    { color: '#C75B5B', name: 'Conflict red' }
-];
+function geneoBoardColorGroups()
+{
+    const palette = TREE_PALETTE_DEFAULTS[geneoSharedPaletteTheme()];
+    const names = ['Blue', 'Magenta', 'Green', 'Gold', 'Violet', 'Crimson', 'Cyan', 'Copper',
+        'Burnt orange', 'Lime', 'Indigo', 'Mint', 'Bronze', 'Plum', 'Ice blue', 'Coral rose'];
+    const item = (name, color) => ({ name, color: color.toUpperCase() });
+    return [
+        { name: 'Shared colors', items: names.map((name, i) => item(name, palette[i + 1])) },
+        { name: 'Neutral shades', items: [
+            item('Ink', '#101817'), item('Graphite', '#26312E'), item('Neutral', palette.neutral),
+            item('Paper', '#FAFBFC')
+        ] },
+        { name: 'Brand and status', items: [
+            item('Geneograph green', palette.descendants),
+            item('Success', geneoSemanticColor('--gg-status-success-accent')),
+            item('Warning', geneoSemanticColor('--gg-status-warning-accent')),
+            item('Conflict red', geneoSemanticColor('--gg-status-error-accent'))
+        ] }
+    ];
+}
 
 function normalizeGeneoHexColor(value, fallback = '#101817')
 {
@@ -3853,6 +3855,7 @@ function geneoNodeDefaults(type)
 
     if (type === 'shape')
     {
+        const tones = geneoSharedPaletteTones('descendants');
         return {
             ...common,
             width: 180,
@@ -3861,8 +3864,9 @@ function geneoNodeDefaults(type)
             minHeight: 60,
             appearance: {
                 ...common.appearance,
-                fill: { color: geneoThemeColor('#173029', '#E4EDE7'), opacity: 100, enabled: true },
-                stroke: { color: geneoThemeColor('#62D99A', '#1B6847'), opacity: 100, enabled: true },
+                fill: { color: tones.detail.toUpperCase(), opacity: 100, enabled: true },
+                stroke: { color: tones['detail-outline'].toUpperCase(), opacity: 100, enabled: true },
+                text: { color: geneoThemeColor('#14221C', '#202729'), opacity: 100, enabled: true },
                 strokeWidth: 2,
                 strokePattern: 'solid',
                 cornerRadius: 8

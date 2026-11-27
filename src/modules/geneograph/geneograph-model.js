@@ -339,35 +339,38 @@ function geneoDefaultPersonCardSettings(
     };
 }
 
+const geneoSharedPaletteCache = new Map();
+
+function geneoSharedPaletteTheme()
+{
+    return geneoThemeColor('dark', 'light');
+}
+
+function geneoSharedPaletteTones(category, theme = geneoSharedPaletteTheme())
+{
+    const key = theme + ':' + category;
+    if (!geneoSharedPaletteCache.has(key))
+        geneoSharedPaletteCache.set(key, treePaletteTones(TREE_PALETTE_DEFAULTS[theme][category], theme));
+    return geneoSharedPaletteCache.get(key);
+}
+
 function geneoDefaultCardAppearances()
 {
-    const neutral = {
-        fill: { color: geneoSemanticColor('--surface-card'), opacity: 100, enabled: true },
-        stroke: { color: geneoSemanticColor('--border-default'), opacity: 100, enabled: false },
-        text: { color: geneoSemanticColor('--text-primary'), opacity: 100, enabled: true },
-        paintOverrides: { fill: false, stroke: false, text: false },
-        strokeWidth: 2,
-        strokePattern: 'solid',
-        cornerRadius: 8
-    };
-    return {
-        neutral,
-        male: {
-            ...structuredClone(neutral),
-            fill: { color: geneoSemanticColor('--gg-accent-creative-blue-subtle-container'), opacity: 100, enabled: true },
-            stroke: { color: geneoSemanticColor('--gg-accent-creative-blue-outline'), opacity: 100, enabled: true }
-        },
-        female: {
-            ...structuredClone(neutral),
-            fill: { color: geneoSemanticColor('--gg-accent-investigation-purple-subtle-container'), opacity: 100, enabled: true },
-            stroke: { color: geneoSemanticColor('--gg-accent-investigation-purple-outline'), opacity: 100, enabled: true }
-        },
-        unknown: {
-            ...structuredClone(neutral),
-            fill: { color: geneoSemanticColor('--gg-status-offline-subtle-container'), opacity: 100, enabled: true },
-            stroke: { color: geneoSemanticColor('--gg-status-offline-outline'), opacity: 100, enabled: true }
-        }
-    };
+    const theme = geneoSharedPaletteTheme();
+    const paint = (color, enabled = true) => ({ color: color.toUpperCase(), opacity: 100, enabled });
+    return Object.fromEntries(['neutral', 'male', 'female', 'unknown'].map(category =>
+    {
+        const tones = geneoSharedPaletteTones(category, theme);
+        return [category, {
+            fill: paint(tones.detail),
+            stroke: paint(tones['detail-outline']),
+            text: paint(theme === 'dark' ? '#14221C' : '#202729'),
+            paintOverrides: { fill: false, stroke: false, text: false },
+            strokeWidth: 2,
+            strokePattern: 'solid',
+            cornerRadius: 8
+        }];
+    }));
 }
 
 function normalizeGeneoCardAppearances(value, radius = 8)

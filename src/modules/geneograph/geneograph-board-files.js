@@ -385,6 +385,7 @@ function importGeneographBoardPayload(payload, projectId = currentProjectId())
         modifiedAt: now, createdAt: now,
         thumb: 'theory', diagram
     });
+    geneoApplyThemeDefaultsToDiagram(board.diagram);
     // Commit only after normalization has succeeded.
     sampleData.boards.unshift(board);
     markPrototypeSessionEdited();

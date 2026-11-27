@@ -755,6 +755,7 @@ function resolveGeneoPaintTarget(reference)
     const defaults = geneoNodeDefaults(node.type).appearance;
     const person = node.type === 'person';
     const inheritedPaint = person ? geneoPersonGenderAppearance(node)?.[property] : null;
+    const effectivePaint = person ? geneoResolveVisibleNodeAppearance(node)?.[property] : null;
     const hasPaintOverride = person && node.appearance.paintOverrides?.[property] === true;
     return {
         scope, id, property, entity: node,
@@ -771,7 +772,7 @@ function resolveGeneoPaintTarget(reference)
         // The inspector reads the same effective paint as the canvas.
         // Do not expose an inherited preset for mutation: edits must be
         // written as an individual node override instead.
-        paint: person && !hasPaintOverride ? structuredClone(inheritedPaint) : node.appearance[property],
+        paint: person && !hasPaintOverride ? structuredClone(effectivePaint) : node.appearance[property],
         supportsOpacity: true,
         supportsNone: property !== 'text',
         resettable: property === 'text',
@@ -944,6 +945,44 @@ function geneoContrastRatio(first, second)
     return (light + .05) / (dark + .05);
 }
 
+function geneoRgbHex(rgb)
+{
+    return '#' + [rgb.r, rgb.g, rgb.b].map(value => value.toString(16).padStart(2, '0')).join('');
+}
+
+function geneoPersonEffectiveBackground(fill, diagram)
+{
+    const canvas = geneoHexToRgb(diagram?.canvas?.backgroundPaint?.color || geneoDefaultCanvasColor());
+    return geneoRgbHex(fill?.enabled
+        ? geneoCompositeRgb(geneoHexToRgb(fill.color), canvas, fill.opacity / 100)
+        : canvas);
+}
+
+function geneoReadableInheritedText(text, fill, diagram)
+{
+    if (!text?.enabled) return text;
+    const background = geneoPersonEffectiveBackground(fill, diagram);
+    const composed = geneoCompositeRgb(geneoHexToRgb(text.color), geneoHexToRgb(background), text.opacity / 100);
+    if (treePaletteContrast(geneoRgbHex(composed), background) >= 4.5) return text;
+    return { ...text, color: treePaletteLabelInk(background).toUpperCase() };
+}
+
+function geneoPersonAvatarPaint(appearance, diagram)
+{
+    const background = geneoPersonEffectiveBackground(appearance.fill, diagram);
+    const category = appearance.gender || 'neutral';
+    const tones = geneoSharedPaletteTones(category);
+    if (background.toLowerCase() === tones.detail.toLowerCase())
+        return { fill: tones.avatar, ink: geneoThemeColor('#14221C', '#202729') };
+
+    // Custom, disabled or translucent paints are not rewritten. Derive a
+    // decorative tile from the actually visible background instead.
+    const lab = treePaletteLab(background);
+    const lightness = Math.max(0.12, Math.min(0.96, lab[0] + (lab[0] >= 0.58 ? -0.15 : 0.19)));
+    const fill = treePaletteTone(lab, lightness, 1, 0.16);
+    return { fill, ink: treePaletteLabelInk(fill) };
+}
+
 function geneoPersonGenderAppearance(
     node,
     diagram =
@@ -1019,18 +1058,19 @@ function geneoResolveVisibleNodeAppearance(
                 ? savedAppearance[property]
                 : genderAppearance[property];
 
+    const fill = resolvePaint('fill');
+    const text = resolvePaint('text');
+    const inheritedText = paintOverrides.text !== true && genderAppearance.paintOverrides?.text !== true;
     return {
         gender:
           genderAppearance.gender,
 
-        fill:
-          resolvePaint('fill'),
+        fill,
 
         stroke:
           resolvePaint('stroke'),
 
-        text:
-          resolvePaint('text'),
+        text: inheritedText ? geneoReadableInheritedText(text, fill, diagram) : text,
         strokeWidth: savedAppearance.styleOverrides?.strokeWidth
             ? savedAppearance.strokeWidth : genderAppearance.strokeWidth,
         strokePattern: savedAppearance.styleOverrides?.strokePattern
@@ -1114,6 +1154,14 @@ function geneoPaintTargetMatches(element, target)
     return geneoPaintTargetKey(reference) === geneoPaintTargetKey(target);
 }
 
+function geneoUpdatePersonPaintVariables(element, visible, diagram)
+{
+    const avatar = geneoPersonAvatarPaint(visible, diagram);
+    element.style.setProperty('--geneo-person-avatar-bg', avatar.fill);
+    element.style.setProperty('--geneo-person-avatar-ink', avatar.ink);
+    element.style.setProperty('--geneo-person-action-bg', geneoPersonEffectiveBackground(visible.fill, diagram));
+}
+
 function applyGeneoPaintTargetToDom(reference)
 {
     const target = resolveGeneoPaintTarget(reference);
@@ -1129,6 +1177,7 @@ function applyGeneoPaintTargetToDom(reference)
             element.style.setProperty('--geneo-node-gap-bg', geneoPersonActionGapColor(visible.fill));
             element.style.setProperty('--geneo-node-stroke', geneoPaintCssColor(visible.stroke));
             element.style.setProperty('--geneo-node-text', geneoPaintCssColor(visible.text));
+            geneoUpdatePersonPaintVariables(element, visible, selectedGeneographDiagram());
             element.style.setProperty('--geneo-node-stroke-style', visible.stroke?.enabled ? visible.strokePattern : 'none');
             element.style.setProperty('--geneo-node-stroke-width', `${visible.strokeWidth}px`);
         });
@@ -1199,6 +1248,9 @@ function applyGeneoPaintTargetToDom(reference)
                 )
             );
 
+            if (node.type === 'person')
+                geneoUpdatePersonPaintVariables(element, visibleAppearance, selectedGeneographDiagram());
+
             if (node.type === 'sticky')
             {
                 element.classList.toggle(
@@ -1240,6 +1292,16 @@ function applyGeneoPaintTargetToDom(reference)
     else
     {
         main.querySelector('[data-geneo-canvas-viewport]')?.style.setProperty('--geneo-canvas-background', geneoPaintCssColor(target.paint));
+        const diagram = selectedGeneographDiagram();
+        for (const node of diagram?.nodes || [])
+        {
+            if (node.type !== 'person') continue;
+            const element = main.querySelector(`[data-geneo-node="${CSS.escape(node.id)}"]`);
+            if (!element) continue;
+            const visible = geneoResolveVisibleNodeAppearance(node, diagram);
+            element.style.setProperty('--geneo-node-text', geneoPaintCssColor(visible.text));
+            geneoUpdatePersonPaintVariables(element, visible, diagram);
+        }
     }
 }
 
@@ -1981,7 +2043,7 @@ function renderGeneoPaintPopover(reference)
             role="group"
             aria-label="Suggested board colors">
             ${
-                GENEO_BOARD_COLORS.map(item =>
+                geneoBoardColorGroups().map(group => `<span class="geneo-paint-group-label">${escapeHtml(t(group.name))}</span>` + group.items.map(item =>
                 {
                     const selected = !target.mixed?.color &&
                         normalizeGeneoHexColor(item.color)
@@ -1993,16 +2055,16 @@ function renderGeneoPaintPopover(reference)
                     data-geneo-paint-suggestion="${item.color}"
                     style="--geneo-suggestion:${item.color}"
                     aria-label="${escapeHtml(
-                        `${item.name}, ${item.color}`
+                        `${t(item.name)}, ${item.color}`
                     )}"
                     aria-pressed="${selected}"
                     title="${escapeHtml(
-                        `${item.name} · ${item.color}`
+                        `${t(item.name)} · ${item.color}`
                     )}"
                     ${disabled ? 'disabled' : ''}>
                   </button>
                 `;
-                }).join('')
+                }).join('')).join('')
             }
           </div>
 

@@ -162,7 +162,7 @@ function geneoPreviewNode(node, board)
     const { x, y, width, height } = node;
     const appearance = geneoResolveVisibleNodeAppearance(node, board.diagram);
     const fill = geneoPaintCssColor(appearance.fill);
-    const stroke = geneoPaintCssColor(appearance.stroke, { disabledColor: '#52615D' });
+    const stroke = geneoPaintCssColor(appearance.stroke);
     const previewInk = escapeHtml(geneoPaintCssColor(appearance.text, { disabledColor: 'var(--text-primary)' }));
     const outline = `fill="${escapeHtml(fill)}" stroke="${escapeHtml(stroke)}" stroke-width="2"`;
     if (node.type === 'drawing' && Array.isArray(node.points) && node.points.length > 1)
@@ -185,7 +185,8 @@ function geneoPreviewNode(node, board)
     else if (node.type === 'person')
     {
         const photoSize = Math.min(height - 16, width * .27, 72);
-        content = `<rect x="${x + 8}" y="${y + 8}" width="${photoSize}" height="${photoSize}" rx="5" fill="var(--surface-hover)"/>`
+        const avatar = geneoPersonAvatarPaint(appearance, board.diagram);
+        content = `<rect x="${x + 8}" y="${y + 8}" width="${photoSize}" height="${photoSize}" rx="5" fill="${escapeHtml(image ? 'transparent' : avatar.fill)}"/>`
             + (image ? `<image href="${escapeHtml(image)}" x="${x + 8}" y="${y + 8}"
                 width="${photoSize}" height="${photoSize}" preserveAspectRatio="xMidYMid slice"/>` : '')
             + `<rect x="${x + photoSize + 17}" y="${y + 15}" width="${Math.max(8, width - photoSize - 31)}" height="8" rx="4" fill="${previewInk}" opacity=".40"/>`

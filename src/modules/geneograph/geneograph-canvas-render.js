@@ -924,6 +924,7 @@ function renderGeneographObject(node)
 
     const visibleText =
         visibleAppearance.text;
+    const avatarPaint = node.type === 'person' ? geneoPersonAvatarPaint(visibleAppearance, selectedGeneographDiagram()) : null;
 
     const strokePattern =
         (visibleAppearance.strokePattern || appearance.strokePattern)
@@ -961,6 +962,11 @@ function renderGeneographObject(node)
         `--geneo-node-text:${geneoPaintCssColor(
             visibleText
         )}`,
+        ...(avatarPaint ? [
+            `--geneo-person-avatar-bg:${avatarPaint.fill}`,
+            `--geneo-person-avatar-ink:${avatarPaint.ink}`,
+            `--geneo-person-action-bg:${geneoPersonEffectiveBackground(visibleFill, selectedGeneographDiagram())}`
+        ] : []),
         `--geneo-node-radius:${
             geneoNodeCornerRadius(node)
         }px`,
