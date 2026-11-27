@@ -21,7 +21,13 @@ const save = context.saveTreeDisplaySettings;
 const defaults = context.normalizeTreePalette();
 assert.equal(Object.keys(defaults.light).length, 20);
 assert.equal(Object.keys(defaults.dark).length, 20);
-assert.notEqual(defaults.light['1'], defaults.dark['1']);
+assert.equal(defaults.light['1'], '#91c9f4');
+assert.equal(defaults.dark['1'], '#59b4f2');
+assert.equal(defaults.light.female, '#f2b9d2');
+assert.equal(defaults.dark.female, '#e28fc6');
+assert.equal(new Set(Array.from({ length: 16 }, (_, i) => defaults.light[i + 1])).size, 16);
+assert.equal(new Set(Array.from({ length: 16 }, (_, i) => defaults.dark[i + 1])).size, 16);
+assert.equal(context.normalizeTreePalette({ light: { '1': '#3976ad' }, dark: { '1': '#71b2eb' } }).light['1'], '#3976ad');
 save('p1', { orientation: 'horizontal', ancestorGenerations: 4, descendantGenerations: 0, showCousins: false,
     colors: { reference: 'a', preset: 8, collateral: true, fill: 'branch', outline: 'neutral', connectors: 'branch', palette: {
         light: { '1': '#AaBbCc', '16': '#123456', male: '#445566', neutral: '#778899' },

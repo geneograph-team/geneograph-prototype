@@ -51,12 +51,20 @@
             10px);
     row-gap: 2px;
     overflow: hidden;
-    --tree-gender-border: var(--tree-gender-male, var(--gg-accent-creative-blue-outline));
-    --tree-gender-ink: var(--tree-gender-male-ink, var(--surface-card));
-    border: 2px solid var(--tree-outline-category, var(--tree-gender-border));
-    --tree-card-category: var(--tree-gender-border);
-    --tree-placeholder-tint: var(--tree-card-category);
-    --tree-overview-fill: 13%;
+    --tree-gender-tone: var(--tree-gender-male, var(--gg-accent-creative-blue-outline));
+    --tree-gender-tone-detail: var(--tree-gender-male-detail, var(--surface-card));
+    --tree-gender-tone-compact: var(--tree-gender-male-compact, var(--surface-card));
+    --tree-gender-tone-actions: var(--tree-gender-male-actions, var(--surface-card));
+    --tree-gender-tone-outline: var(--tree-gender-male-outline, var(--gg-accent-creative-blue-outline));
+    --tree-gender-tone-ink: var(--tree-gender-male-ink, var(--text-primary));
+    border: 2px solid var(--tree-outline-category, var(--tree-gender-tone-outline));
+    --tree-card-category: var(--tree-gender-tone);
+    --tree-card-category-detail: var(--tree-gender-tone-detail);
+    --tree-card-category-compact: var(--tree-gender-tone-compact);
+    --tree-card-category-actions: var(--tree-gender-tone-actions);
+    --tree-card-category-ink: var(--tree-gender-tone-ink);
+    --tree-card-fill: var(--tree-card-category-detail);
+    --tree-card-hover-lift: 3%;
     --tree-action-size: 28px;
 }
 
@@ -391,13 +399,21 @@
 }
 
 .tree-person-card.female {
-    --tree-gender-border: var(--tree-gender-female, var(--gg-accent-investigation-purple-outline));
-    --tree-gender-ink: var(--tree-gender-female-ink, var(--surface-card));
+    --tree-gender-tone: var(--tree-gender-female, var(--gg-accent-investigation-purple-outline));
+    --tree-gender-tone-detail: var(--tree-gender-female-detail, var(--surface-card));
+    --tree-gender-tone-compact: var(--tree-gender-female-compact, var(--surface-card));
+    --tree-gender-tone-actions: var(--tree-gender-female-actions, var(--surface-card));
+    --tree-gender-tone-outline: var(--tree-gender-female-outline, var(--gg-accent-investigation-purple-outline));
+    --tree-gender-tone-ink: var(--tree-gender-female-ink, var(--text-primary));
 }
 
 .tree-person-card.unknown-gender {
-    --tree-gender-border: var(--tree-gender-unknown, var(--gg-status-offline-outline));
-    --tree-gender-ink: var(--tree-gender-unknown-ink, var(--surface-card));
+    --tree-gender-tone: var(--tree-gender-unknown, var(--gg-status-offline-outline));
+    --tree-gender-tone-detail: var(--tree-gender-unknown-detail, var(--surface-card));
+    --tree-gender-tone-compact: var(--tree-gender-unknown-compact, var(--surface-card));
+    --tree-gender-tone-actions: var(--tree-gender-unknown-actions, var(--surface-card));
+    --tree-gender-tone-outline: var(--tree-gender-unknown-outline, var(--gg-status-offline-outline));
+    --tree-gender-tone-ink: var(--tree-gender-unknown-ink, var(--text-primary));
 }
 
 .tree-person-card.selected {
@@ -526,7 +542,8 @@
 .tree-stage[data-detail-level="marker"] .tree-person-card {
     border-width: 5px;
     border-radius: 20px;
-    --tree-overview-fill: 99%;
+    --tree-card-fill: var(--tree-card-category);
+    --tree-card-hover-lift: 0%;
 }
 
 .tree-stage[data-detail-level="marker"] .tree-person-card.is-focus-person:not(.selected) {
@@ -551,16 +568,12 @@
     margin-bottom: 0;
 }
 
-.tree-workspace:not(.has-color-fill) .tree-person-card {
-    --tree-placeholder-tint: var(--gg-status-offline-outline);
-}
-
 .tree-workspace.has-color-fill .tree-person-card:not(.selected) {
-    background: color-mix(in oklab, var(--tree-card-category) var(--tree-overview-fill), var(--surface-card));
+    background: var(--tree-card-fill);
 }
 
 .tree-workspace.has-color-fill .tree-person-card:not(.selected):hover {
-    background: color-mix(in oklab, var(--tree-card-category) var(--tree-overview-fill), var(--tree-card-hover));
+    background: color-mix(in oklab, var(--tree-card-fill), var(--text-primary) var(--tree-card-hover-lift));
 }
 
 .tree-person-card > .tree-focus-badge {
@@ -580,7 +593,11 @@
     border: 0;
     color: var(--text-primary);
     font-size: 23px;
-    background: color-mix(in oklab, var(--tree-placeholder-tint) 33%, var(--surface-card));
+    background: var(--surface-card);
+}
+
+.tree-workspace.has-color-fill .tree-card-avatar-stack > .tree-avatar:not(.has-photo) {
+    background: var(--tree-card-category-actions);
 }
 
 .tree-card-avatar-stack > .tree-avatar.has-photo {
@@ -646,6 +663,7 @@
 
 .tree-stage[data-detail-level="compact"] .tree-person-card {
     --tree-action-size: 42px;
+    --tree-card-fill: var(--tree-card-category-compact);
     padding-bottom: 45px;
 }
 
@@ -661,7 +679,7 @@
 
 .tree-stage[data-detail-level="actions"] .tree-person-card {
     --tree-action-size: 66px;
-    --tree-overview-fill: 25%;
+    --tree-card-fill: var(--tree-card-category-actions);
     padding-inline-end: 156px;
 }
 
@@ -680,7 +698,8 @@
 }
 
 .tree-stage[data-detail-level="label"] .tree-person-card {
-    --tree-overview-fill: 90%;
+    --tree-card-fill: var(--tree-card-category);
+    --tree-card-hover-lift: 0%;
 }
 
 .tree-workspace.has-color-fill .tree-stage[data-detail-level="label"] .tree-person-card:not(.selected) {

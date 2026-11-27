@@ -210,35 +210,131 @@ function treeColorSettings(projectId, view)
     return view.colors;
 }
 
-function treeBranchColor(slot)
+function treeBranchColor(slot, role = '')
 {
-    return slot ? 'var(--tree-branch-' + slot + ')' : 'var(--tree-branch-neutral)';
+    return 'var(--tree-branch-' + (slot || 'neutral') + role + ')';
 }
 
-// Choose readable text on strongly colored overview labels. The category color
-// is the same in every detail level; CSS still owns zoom-dependent mixing.
-function treePaletteLabelInk(color)
+function treePaletteLinearRgb(color)
 {
-    const channels = [1, 3, 5].map(offset =>
+    return [1, 3, 5].map(offset =>
     {
         const value = parseInt(color.slice(offset, offset + 2), 16) / 255;
         return value <= 0.04045 ? value / 12.92 : Math.pow((value + 0.055) / 1.055, 2.4);
     });
-    const luminance = channels[0] * 0.2126 + channels[1] * 0.7152 + channels[2] * 0.0722;
-    return luminance > 0.179 ? '#000000' : '#ffffff';
+}
+
+function treePaletteLuminance(color)
+{
+    const [r, g, b] = treePaletteLinearRgb(color);
+    return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+}
+
+function treePaletteContrast(a, b)
+{
+    const x = treePaletteLuminance(a), y = treePaletteLuminance(b);
+    return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05);
+}
+
+function treePaletteLabelInk(color)
+{
+    return treePaletteLuminance(color) > 0.179 ? '#000000' : '#ffffff';
+}
+
+// OKLab coordinates; scaling the chromatic axes together preserves hue.
+function treePaletteLab(color)
+{
+    const [r, g, b] = treePaletteLinearRgb(color);
+    const l = Math.cbrt(0.4122214708 * r + 0.5363325363 * g + 0.0514459929 * b);
+    const m = Math.cbrt(0.2119034982 * r + 0.6806995451 * g + 0.1073969566 * b);
+    const s = Math.cbrt(0.0883024619 * r + 0.2817188376 * g + 0.6299787005 * b);
+    return [0.2104542553 * l + 0.7936177850 * m - 0.0040720468 * s,
+        1.9779984951 * l - 2.4285922050 * m + 0.4505937099 * s,
+        0.0259040371 * l + 0.7827717662 * m - 0.8086757660 * s];
+}
+
+function treePaletteTone(lab, lightness, chromaScale, chromaLimit)
+{
+    const chroma = Math.hypot(lab[1], lab[2]);
+    const scale = chroma ? Math.min(chromaScale, chromaLimit / chroma) : 0;
+    const rgb = factor =>
+    {
+        const a = lab[1] * scale * factor, b = lab[2] * scale * factor;
+        const l = Math.pow(lightness + 0.3963377774 * a + 0.2158037573 * b, 3);
+        const m = Math.pow(lightness - 0.1055613458 * a - 0.0638541728 * b, 3);
+        const s = Math.pow(lightness - 0.0894841775 * a - 1.2914855480 * b, 3);
+        return [4.0767416621 * l - 3.3077115913 * m + 0.2309699292 * s,
+            -1.2684380046 * l + 2.6097574011 * m - 0.3413193965 * s,
+            -0.0041960863 * l - 0.7034186147 * m + 1.7076147010 * s];
+    };
+    const inGamut = values => values.every(value => value >= -1e-7 && value <= 1 + 1e-7);
+    let values = rgb(1);
+    if (!inGamut(values))
+    {
+        let low = 0, high = 1;
+        for (let i = 0; i < 16; i++)
+        {
+            const middle = (low + high) / 2;
+            if (inGamut(rgb(middle))) low = middle;
+            else high = middle;
+        }
+        values = rgb(low);
+    }
+    return '#' + values.map(value =>
+    {
+        value = Math.min(1, Math.max(0, value));
+        const encoded = value <= 0.0031308 ? 12.92 * value : 1.055 * Math.pow(value, 1 / 2.4) - 0.055;
+        return Math.round(encoded * 255).toString(16).padStart(2, '0');
+    }).join('');
+}
+
+// Derive bounded presentation tones only when the palette changes. The
+// editable hex remains the base, not a separately stored surface or outline.
+function treePaletteTones(color, theme)
+{
+    const lab = treePaletteLab(color), dark = theme === 'dark';
+    const clamp = (value, low, high) => Math.max(low, Math.min(high, value));
+    const canvas = dark ? '#0b0f0e' : '#f1f2f3';
+    const secondary = dark ? '#b7c1c5' : '#515e63';
+    const surface = (lightness, scale, cap) =>
+    {
+        let tone = treePaletteTone(lab, lightness, scale, cap);
+        // Reserve contrast for the subtle hover lift toward primary text.
+        for (let i = 0; i < 20 && treePaletteContrast(tone, secondary) < 5; i++)
+        {
+            lightness += dark ? -0.01 : 0.01;
+            tone = treePaletteTone(lab, lightness, scale, cap);
+        }
+        return tone;
+    };
+    const overviewL = clamp(lab[0], dark ? 0.58 : 0.70, 0.92);
+    const overview = overviewL === lab[0] ? color : treePaletteTone(lab, overviewL, 1, 0.32);
+    const detail = surface(dark ? 0.405 : 0.945, dark ? 0.78 : 0.46, dark ? 0.105 : 0.065);
+    const compact = surface(dark ? 0.415 : 0.915, dark ? 0.84 : 0.60, dark ? 0.115 : 0.085);
+    const actions = surface(dark ? 0.43 : 0.885, dark ? 0.90 : 0.75, dark ? 0.12 : 0.10);
+    const outline = treePaletteTone(lab, dark ? clamp(lab[0], 0.74, 0.87) : 0.51, 1, 0.18);
+    let connectorL = dark ? clamp(lab[0], 0.56, 0.70) : 0.55;
+    let connector = treePaletteTone(lab, connectorL, 0.85, 0.15);
+    for (let i = 0; i < 20 && treePaletteContrast(connector, canvas) < 3; i++)
+    {
+        connectorL += dark ? 0.01 : -0.01;
+        connector = treePaletteTone(lab, connectorL, 0.85, 0.15);
+    }
+    return { overview, detail, compact, actions, outline, connector, ink: treePaletteLabelInk(overview) };
 }
 
 function applyTreePalette(runtime, palette)
 {
-    // Set both themes on the shell. CSS switches the aliases on theme changes,
-    // including system-theme changes, without touching geometry or selection.
+    // Both themes live on the shell; CSS switches aliases without repainting
+    // geometry or recomputing colors on viewport gestures.
     if (runtime.appliedPalette === palette) return;
     runtime.appliedPalette = palette;
     for (const theme of ['light', 'dark'])
         for (const [key, color] of Object.entries(palette[theme]))
         {
-            runtime.shell.style.setProperty('--tree-palette-' + theme + '-' + key, color);
-            runtime.shell.style.setProperty('--tree-palette-' + theme + '-' + key + '-ink', treePaletteLabelInk(color));
+            const prefix = '--tree-palette-' + theme + '-' + key;
+            for (const [role, value] of Object.entries(treePaletteTones(color, theme)))
+                runtime.shell.style.setProperty(prefix + (role === 'overview' ? '' : '-' + role), value);
         }
 }
 
@@ -295,14 +391,11 @@ function paintTreeColors(runtime)
         const stamp = [settings.fill, settings.outline, slot, state.language].join('|');
         if (card.treeColorStamp === stamp && card.style.getPropertyValue('--tree-card-category')) continue;
         card.treeColorStamp = stamp;
-        const category = mode => mode === 'gender' ? 'var(--tree-gender-border)'
-            : treeBranchColor(mode === 'branch' ? slot : 0);
-        const fill = category(settings.fill);
-        card.style.setProperty('--tree-card-category', fill);
-        card.style.setProperty('--tree-card-category-ink', settings.fill === 'gender' ? 'var(--tree-gender-ink)'
-            : 'var(--tree-branch-' + (settings.fill === 'branch' && slot ? slot : 'neutral') + '-ink)');
-        card.style.setProperty('--tree-outline-category', category(settings.outline));
-        card.style.setProperty('--tree-placeholder-tint', fill);
+        const category = (mode, role = '') => mode === 'gender' ? 'var(--tree-gender-tone' + role + ')'
+            : treeBranchColor(mode === 'branch' ? slot : 0, role);
+        for (const role of ['', '-detail', '-compact', '-actions', '-ink'])
+            card.style.setProperty('--tree-card-category' + role, category(settings.fill, role));
+        card.style.setProperty('--tree-outline-category', category(settings.outline, '-outline'));
         card.dataset.branchSlot = slot || '';
         if (settings.fill === 'branch' || settings.outline === 'branch')
             card.setAttribute('aria-description', slot ? t('Branch') + ' ' + slot : t('Neutral'));
@@ -321,6 +414,6 @@ function paintTreeColors(runtime)
         const slot = settings.connectors === 'branch' ? routeSlots.get(route.key) : 0;
         if (node.treeBranchSlot === slot) continue;
         node.treeBranchSlot = slot;
-        node.style.setProperty('--tree-branch-stroke', treeBranchColor(slot));
+        node.style.setProperty('--tree-branch-stroke', treeBranchColor(slot, '-connector'));
     }
 }

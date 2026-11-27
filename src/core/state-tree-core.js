@@ -516,18 +516,18 @@ const TREE_DISPLAY_STORAGE_KEY = 'geneograph-tree-display-v1';
 // Tree-only palette defaults, independent of the application brand palette.
 const TREE_PALETTE_DEFAULTS = Object.freeze({
     light: Object.freeze({
-        '1': '#3976ad', '2': '#b75e81', '3': '#278275', '4': '#ad782c',
-        '5': '#7958b1', '6': '#ad503f', '7': '#548531', '8': '#3987a7',
-        '9': '#9b6689', '10': '#697fbd', '11': '#8e8331', '12': '#328f9d',
-        '13': '#a55778', '14': '#6a925f', '15': '#b76e39', '16': '#8177a2',
-        'neutral': '#87938b', 'male': '#00639b', 'female': '#6c4f9d', 'unknown': '#675c55'
+        '1': '#91c9f4', '2': '#e9a6d2', '3': '#8fd8ae', '4': '#f6d671',
+        '5': '#c6b2f3', '6': '#f28b92', '7': '#85d9d8', '8': '#f5b68b',
+        '9': '#e79555', '10': '#d2e88a', '11': '#a4adee', '12': '#c5ebd6',
+        '13': '#c5a37b', '14': '#d495da', '15': '#c1e7f5', '16': '#f9c4c3',
+        'neutral': '#d2dad6', 'male': '#a6d5f5', 'female': '#f2b9d2', 'unknown': '#ded2c5'
     }),
     dark: Object.freeze({
-        '1': '#71b2eb', '2': '#e98eaf', '3': '#59c3b0', '4': '#e6b75b',
-        '5': '#bba0f1', '6': '#ed927c', '7': '#a6c96b', '8': '#70c7e6',
-        '9': '#d7a0d0', '10': '#9baee9', '11': '#d0c96b', '12': '#6dcfcb',
-        '13': '#e9a2b4', '14': '#a1c49a', '15': '#efad79', '16': '#b6acd6',
-        'neutral': '#828f86', 'male': '#59b4f2', 'female': '#bc93f1', 'unknown': '#d1c2b7'
+        '1': '#59b4f2', '2': '#e28fc6', '3': '#42ce91', '4': '#f2c94c',
+        '5': '#bc93f1', '6': '#f05b64', '7': '#50caca', '8': '#ef9d6b',
+        '9': '#d86520', '10': '#b2d64b', '11': '#7885e5', '12': '#b7e8c6',
+        '13': '#b48658', '14': '#b35cbb', '15': '#a9dff8', '16': '#f7adb0',
+        'neutral': '#828f86', 'male': '#59b4f2', 'female': '#e28fc6', 'unknown': '#d1c2b7'
     })
 });
 

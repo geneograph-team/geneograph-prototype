@@ -97,12 +97,12 @@ vm.runInContext('(' + function ()
     const runtime = { shell: { style: { setProperty: (key, value) => props.set(key, value) } } };
     const palette = { light: { neutral: '#112233', '16': '#334455' }, dark: { neutral: '#aabbcc', '16': '#ddeeff' } };
     applyTreePalette(runtime, palette);
-    assert.equal(props.get('--tree-palette-light-neutral'), '#112233');
-    assert.equal(props.get('--tree-palette-dark-neutral'), '#aabbcc');
-    assert.equal(props.get('--tree-palette-dark-16'), '#ddeeff');
+    assert.equal(props.get('--tree-palette-light-neutral'), treePaletteTones('#112233', 'light').overview);
+    assert.equal(props.get('--tree-palette-dark-neutral'), treePaletteTones('#aabbcc', 'dark').overview);
+    assert.equal(props.get('--tree-palette-dark-16'), treePaletteTones('#ddeeff', 'dark').overview);
     const replacement = { ...palette, light: { ...palette.light, neutral: '#abcdef' } };
     applyTreePalette(runtime, replacement);
-    assert.equal(props.get('--tree-palette-light-neutral'), '#abcdef');
-    assert.equal(props.get('--tree-palette-dark-neutral'), '#aabbcc');
+    assert.equal(props.get('--tree-palette-light-neutral'), treePaletteTones('#abcdef', 'light').overview);
+    assert.equal(props.get('--tree-palette-dark-neutral'), treePaletteTones('#aabbcc', 'dark').overview);
     console.log('Complete 63-person pedigree, vacant origins, collateral conflicts, cycle, occurrence fragments and connector provenance passed.');
 }.toString() + ')()', context);

@@ -10,14 +10,14 @@
 
 .tree-line {
     fill: none;
-    stroke: var(--tree-branch-stroke, var(--tree-branch-neutral, var(--tree-connection)));
+    stroke: var(--tree-branch-stroke, var(--tree-branch-neutral-connector, var(--tree-connection)));
     stroke-width: 3.2;
     stroke-linecap: round;
     stroke-linejoin: round;
 }
 
 .tree-line.partner {
-    stroke: var(--tree-branch-stroke, var(--tree-branch-neutral, var(--tree-connection-partner)));
+    stroke: var(--tree-branch-stroke, var(--tree-branch-neutral-connector, var(--tree-connection-partner)));
 }
 
 .tree-line.partner.is-separated-or-divorced {
