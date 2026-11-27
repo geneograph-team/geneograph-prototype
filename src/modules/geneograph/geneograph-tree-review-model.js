@@ -11,6 +11,7 @@ const GENEO_REVIEW_FACTS = [
 
 function geneoReviewEqual(left, right)
 {
+    if (left === right) return true;
     const stable = value =>
     {
         if (Array.isArray(value)) return value.map(stable);
@@ -181,11 +182,31 @@ function geneoReviewParents(families, childId)
         .flatMap(family => [familyPartnerAId(family), familyPartnerBId(family)]).filter(Boolean));
 }
 
-function geneoTreeImportMatches(person, projectId, draft = geneoTreeImportDraft, { evaluateEligibility = true } = {})
+function geneoReviewMatchNames(read)
+{
+    return read.read('people:geneo-match-names', ['people'], () =>
+    {
+        const display = new Map(), first = new Map();
+        const append = (index, key, person) =>
+        {
+            if (!index.has(key)) index.set(key, []);
+            index.get(key).push(person);
+        };
+        for (const person of projectPeopleIndex(read).eligible)
+        {
+            append(display, connectPersonName(person).toLocaleLowerCase(), person);
+            const given = person.names?.first?.trim().toLocaleLowerCase();
+            if (given) append(first, given, person);
+        }
+        return { display, first, births: new Map() };
+    }, [state.language]);
+}
+
+function geneoTreeImportMatches(person, projectId, draft = geneoTreeImportDraft, { evaluateEligibility = true, eligibleOnly = false } = {})
 {
     const names = normalizeGeneographPersonNames(person);
     const name = geneoPersonDisplayName(person).toLocaleLowerCase();
-    const graph = draft ? geneoReviewGraph(draft.diagram) : new Map();
+    const graph = draft ? (draft.matchGraph ||= geneoReviewGraph(draft.diagram)) : new Map();
     const read = acquireProjectReadModel(projectId);
     const people = projectPeopleIndex(read);
     let familyIndex;
@@ -200,21 +221,44 @@ function geneoTreeImportMatches(person, projectId, draft = geneoTreeImportDraft,
             parents: edge.role === 'Parents' || edge.role === 'Partners' ? null : parentIds(id) }];
     });
     const birth = geneoReviewFact(person, 'birth.date');
-    return people.eligible.map(candidate =>
+    let candidates = people.eligible;
+    const index = eligibleOnly ? geneoReviewMatchNames(read) : null;
+    if (index)
+    {
+        // Eligibility requires an exact display name or a matching given name.
+        const shortlist = new Set([...(index.display.get(name) || []), ...(index.first.get(names.first.trim().toLocaleLowerCase()) || [])]);
+        // Preserve the original candidate order for equal scores and display names.
+        candidates = shortlist.size > 1 ? candidates.filter(candidate => shortlist.has(candidate)) : [...shortlist];
+    }
+    const trace = typeof appPerf === 'undefined' ? null : appPerf.currentDetailed('Geneograph');
+    if (trace) appPerf.count(trace, 'recordsScanned', candidates.length, true);
+    return candidates.map(candidate =>
     {
         const displayName = connectPersonName(candidate);
         const compatibleName = Boolean(names.first || names.last) && (displayName.toLocaleLowerCase() === name
             || Boolean(names.first && names.last && candidate.names?.first?.toLocaleLowerCase() === names.first.toLocaleLowerCase()
                 && candidate.names?.last?.toLocaleLowerCase() === names.last.toLocaleLowerCase()));
-        const otherBirth = geneoReviewFact(candidate, 'birth.date');
+        const givenNameAgrees = Boolean(names.first) && names.first.trim().toLocaleLowerCase() === candidate.names?.first?.trim().toLocaleLowerCase();
+        if (eligibleOnly && !compatibleName && (!givenNameAgrees || !birth.first?.year)) return null;
+        const statusConflict = evaluateEligibility && (
+            person.gender !== 'unknown' && candidate.gender !== 'unknown' && person.gender !== candidate.gender
+            || person.livingStatus !== 'Unknown' && candidate.livingStatus !== 'Unknown' && person.livingStatus !== candidate.livingStatus);
+        if (eligibleOnly && statusConflict) return null;
+        if (index && !index.births.has(candidate)) index.births.set(candidate, geneoReviewFact(candidate, 'birth.date'));
+        const otherBirth = index ? index.births.get(candidate) : geneoReviewFact(candidate, 'birth.date');
         const recordedBirth = !geneoReviewFactEmpty(birth) && !geneoReviewFactEmpty(otherBirth);
         const birthAgrees = recordedBirth && Boolean(birth.first?.year && otherBirth.first?.year) && genealogyDatesCompatible(birth, otherBirth);
-        const givenNameAgrees = Boolean(names.first) && names.first.trim().toLocaleLowerCase() === candidate.names?.first?.trim().toLocaleLowerCase();
-        const vitalConflict = evaluateEligibility && (person.gender !== 'unknown' && candidate.gender !== 'unknown' && person.gender !== candidate.gender
-            || person.livingStatus !== 'Unknown' && candidate.livingStatus !== 'Unknown' && person.livingStatus !== candidate.livingStatus
-            || ['birth.date', 'death.date'].some(key =>
-            !geneoReviewFactEmpty(geneoReviewFact(person, key)) && !geneoReviewFactEmpty(geneoReviewFact(candidate, key))
-            && !genealogyDatesCompatible(geneoReviewFact(person, key), geneoReviewFact(candidate, key))));
+        if (eligibleOnly && !compatibleName && !birthAgrees) return null;
+        const birthConflict = () => recordedBirth && !genealogyDatesCompatible(birth, otherBirth);
+        const deathConflict = () =>
+        {
+            const death = geneoReviewFact(person, 'death.date');
+            if (geneoReviewFactEmpty(death)) return false;
+            const otherDeath = geneoReviewFact(candidate, 'death.date');
+            return !geneoReviewFactEmpty(otherDeath) && !genealogyDatesCompatible(death, otherDeath);
+        };
+        const vitalConflict = evaluateEligibility && (statusConflict || birthConflict() || deathConflict());
+        if (eligibleOnly && vitalConflict) return null;
         const context = [];
         let candidateParents;
         for (const relative of relatives)
@@ -230,7 +274,7 @@ function geneoTreeImportMatches(person, projectId, draft = geneoTreeImportDraft,
             + (names.last && candidate.names?.last === names.last ? 10 : 0);
         const eligible = evaluateEligibility && !vitalConflict && (compatibleName || givenNameAgrees && birthAgrees);
         return { person: candidate, displayName, score, context, eligible, strong: eligible && context.length > 0 && compatibleName && birthAgrees };
-    }).sort((a, b) => b.score - a.score || a.displayName.localeCompare(b.displayName));
+    }).filter(match => !eligibleOnly || match?.eligible).sort((a, b) => b.score - a.score || a.displayName.localeCompare(b.displayName));
 }
 
 function geneoReviewFamilyParents(family)
@@ -313,10 +357,12 @@ function geneoReviewAllRelations(draft)
     for (const family of sampleData.families.filter(item => item.projectId === draft.projectId))
     {
         const parents = geneoReviewFamilyParents(family);
-        const boardId = id => boardByTree.get(id) || draft.treeBoardPeople?.get(id)?.id;
-        const boardParents = parents.map(boardId);
         const children = family.childIds || [];
-        if (!parents.length || boardParents.some(id => !id) || ![...parents, ...children].some(id => boardByTree.has(id))) continue;
+        if (!parents.length || ![...parents, ...children].some(id => boardByTree.has(id))) continue;
+        const boardId = id => boardByTree.get(id) || geneoReviewTreeBoardPerson(draft, id)?.id;
+        const boardParents = parents.map(boardId);
+        if (boardParents.some(id => !id)) continue;
+        geneoReviewPrepareFamilyIds(draft, family.id);
         for (const child of children.filter(id => boardByTree.has(id)))
         {
             for (const sibling of children.filter(id => id !== child && boardId(id)))
@@ -631,35 +677,55 @@ function geneoReviewPrepareTreeRelationIds(draft)
     draft.treeFamilyIds = new Map();
     draft.treeSubsetFamilyIds = new Map();
     draft.treeConnectionIds = new Map();
-    draft.treeBoardPeople = draft.treeBoardPeople || new Map();
-    draft.treeNodeIds = draft.treeNodeIds || new Map();
-    for (const person of sampleData.people.filter(item => item.projectId === draft.projectId && !item.deleted))
+    draft.matchGraph = null;
+    const previousPeople = draft.treeBoardPeople;
+    draft.treeBoardPeople = new Map();
+    draft.treePersonIds = new Map([...(draft.treePersonIds || []),
+        ...[...(previousPeople || [])].map(([id, person]) => [id, person.id])]);
+    draft.treeNodeIds ||= new Map();
+    draft.boardPeopleByTreeId = new Map();
+    for (const person of draft.diagram.people)
+        if (person.treePersonId && !draft.boardPeopleByTreeId.has(person.treePersonId))
+            draft.boardPeopleByTreeId.set(person.treePersonId, person);
+}
+
+function geneoReviewPrepareFamilyIds(draft, familyId)
+{
+    if (draft.treeFamilyIds.has(familyId)) return;
+    const family = draft.baseline.get(`families:${familyId}`);
+    if (!family || family.projectId !== draft.projectId) return;
+    const parents = geneoReviewFamilyParents(family);
+    draft.treeFamilyIds.set(familyId, createRuntimeId('geneo-family'));
+    for (const parent of parents) draft.treeSubsetFamilyIds.set(`${familyId}|${parent}`, createRuntimeId('geneo-family'));
+    draft.treeConnectionIds.set(`tree:${familyId}:partner`, createRuntimeId('geneo-connection'));
+    for (const childId of family.childIds || [])
     {
-        const existing = draft.diagram.people.find(item => item.treePersonId === person.id);
-        const before = draft.treeBoardPeople.get(person.id);
-        const updated = existing ? structuredClone(existing) : createGeneographLinkedBoardPerson(person, draft.projectId);
-        if (before && !existing) updated.id = before.id;
-        draft.treeBoardPeople.set(person.id, updated);
-        if (!draft.treeNodeIds.has(person.id)) draft.treeNodeIds.set(person.id, createRuntimeId('geneo-node'));
-    }
-    for (const family of sampleData.families.filter(item => item.projectId === draft.projectId))
-    {
-        draft.treeFamilyIds.set(family.id, createRuntimeId('geneo-family'));
-        for (const parent of geneoReviewFamilyParents(family)) draft.treeSubsetFamilyIds.set(`${family.id}|${parent}`, createRuntimeId('geneo-family'));
-        draft.treeConnectionIds.set(`tree:${family.id}:partner`, createRuntimeId('geneo-connection'));
-        for (const childId of family.childIds || [])
+        draft.treeConnectionIds.set(`tree:${familyId}:child:${childId}`, createRuntimeId('geneo-connection'));
+        for (const parent of parents)
+            draft.treeConnectionIds.set(`tree:${familyId}:child:${childId}:parent:${parent}`, createRuntimeId('geneo-connection'));
+        for (const sibling of family.childIds)
         {
-            draft.treeConnectionIds.set(`tree:${family.id}:child:${childId}`, createRuntimeId('geneo-connection'));
-            for (const parent of geneoReviewFamilyParents(family))
-                draft.treeConnectionIds.set(`tree:${family.id}:child:${childId}:parent:${parent}`, createRuntimeId('geneo-connection'));
-            for (const sibling of (family.childIds || []).filter(id => id !== childId))
-            {
-                const key = `tree:${family.id}:sibling:${[childId, sibling].sort().join(':')}`;
-                if (!draft.treeConnectionIds.has(key)) draft.treeConnectionIds.set(key, createRuntimeId('geneo-connection'));
-                if (!draft.treeSubsetFamilyIds.has(key)) draft.treeSubsetFamilyIds.set(key, createRuntimeId('geneo-family'));
-            }
+            if (sibling === childId) continue;
+            const key = `tree:${familyId}:sibling:${[childId, sibling].sort().join(':')}`;
+            if (!draft.treeConnectionIds.has(key)) draft.treeConnectionIds.set(key, createRuntimeId('geneo-connection'));
+            if (!draft.treeSubsetFamilyIds.has(key)) draft.treeSubsetFamilyIds.set(key, createRuntimeId('geneo-family'));
         }
     }
+}
+
+function geneoReviewTreeBoardPerson(draft, treeId)
+{
+    const person = draft.baseline.get(`people:${treeId}`);
+    if (!person || person.deleted || person.projectId !== draft.projectId) return null;
+    if (!draft.treeBoardPeople.has(treeId))
+    {
+        const existing = draft.boardPeopleByTreeId.get(treeId);
+        const boardPerson = existing ? structuredClone(existing) : createGeneographLinkedBoardPerson(person, draft.projectId);
+        if (!existing && draft.treePersonIds.has(treeId)) boardPerson.id = draft.treePersonIds.get(treeId);
+        draft.treeBoardPeople.set(treeId, boardPerson);
+        if (!draft.treeNodeIds.has(treeId)) draft.treeNodeIds.set(treeId, createRuntimeId('geneo-node'));
+    }
+    return draft.treeBoardPeople.get(treeId);
 }
 
 function geneoReviewPersonById(draft, id)
@@ -739,7 +805,12 @@ function geneoTreeImportPreview(draft)
         fail('The board is no longer available.');
         return { ...result, error: result.errors[0].message };
     }
-    const projected = { people: structuredClone(sampleData.people), families: structuredClone(sampleData.families),
+    const writesPeople = [...draft.choices.values()].includes('create')
+        || [...draft.fields.values()].some(fields => [...fields.values()].includes('board'));
+    const writesFamilies = [...draft.relationChoices.values()].includes('board')
+        || [...draft.relationshipFields.values()].some(fields => [...fields.values()].includes('board'));
+    const projected = { people: writesPeople ? structuredClone(sampleData.people) : sampleData.people,
+        families: writesFamilies ? structuredClone(sampleData.families) : sampleData.families,
         'board.people': structuredClone(board.diagram.people), 'board.families': structuredClone(board.diagram.families),
         'board.connections': structuredClone(board.diagram.connections), 'board.nodes': structuredClone(board.diagram.nodes) };
     const touchedPeople = new Set();
@@ -859,7 +930,7 @@ function geneoTreeImportPreview(draft)
             {
                 if (relation.type === 'child' && relation.treeIds.length > 2)
                 {
-                    const missingParent = relation.treeIds.slice(0, -1).some(id => !projected['board.nodes'].some(node => node.personId === draft.treeBoardPeople.get(id)?.id)
+                    const missingParent = relation.treeIds.slice(0, -1).some(id => !projected['board.nodes'].some(node => node.personId === geneoReviewTreeBoardPerson(draft, id)?.id)
                         && ![...result.mapping].some(([personId, treeId]) => treeId === id && projected['board.nodes'].some(node => node.personId === personId)));
                     const selected = draft.treeParentChoices?.get(relation.id);
                     if (missingParent && !selected)
@@ -887,7 +958,7 @@ function geneoTreeImportPreview(draft)
                     let person = projected['board.people'].find(item => item.id === personId);
                     if (!person)
                     {
-                        person = structuredClone(draft.treeBoardPeople.get(treeId));
+                        person = structuredClone(geneoReviewTreeBoardPerson(draft, treeId));
                         projected['board.people'].push(person);
                     }
                     const noCard = !projected['board.nodes'].some(node => node.personId === personId);
@@ -1177,7 +1248,7 @@ function geneoTreeImportPreview(draft)
     }
     // Validate the projected ancestry, including existing links, without invoking live mutators.
     const ancestry = new Map();
-    for (const family of projected.families.filter(item => item.projectId === draft.projectId))
+    for (const family of touchedFamilies.size ? projected.families.filter(item => item.projectId === draft.projectId) : [])
     {
         for (const child of family.childIds || [])
         {
@@ -1237,8 +1308,8 @@ function geneoTreeImportPreview(draft)
     {
         const rebuilt = buildSampleEvents({ people: structuredClone(projected.people), families: structuredClone(projected.families), places: sampleData.places });
         projected.events = [...sampleData.events.filter(event => !affectedEvent(event)), ...rebuilt.filter(affectedEvent)];
-        const removed = new Set(sampleData.events.filter(event => affectedEvent(event) && !projected.events.some(item => item.id === event.id)).map(event => event.id));
         const eventProjects = new Map(projected.events.map(event => [event.id, event.projectId]));
+        const removed = new Set(sampleData.events.filter(event => affectedEvent(event) && !eventProjects.has(event.id)).map(event => event.id));
         projected.archiveFiles = projectEventReferences(sampleData.archiveFiles, eventProjects);
         projected.notes = projectEventReferences(sampleData.notes, eventProjects);
         projected.sourceLinks = (sampleData.sourceLinks || []).filter(link => !(link.targetType === 'event' && removed.has(link.targetId)));
@@ -1276,11 +1347,22 @@ function geneoTreeImportPreview(draft)
     for (const [key, after] of Object.entries(projected))
     {
         const before = geneoReviewCollection(key, board) || [];
-        const ids = new Set([...before, ...after].map(record => record.id));
+        const changed = key === 'people' ? touchedPeople
+            : key === 'families' ? new Set([...touchedFamilies, ...fieldFamilies.keys()]) : null;
+        if (changed && !changed.size) continue;
+        const byId = records =>
+        {
+            const index = new Map();
+            for (const record of records) if ((!changed || changed.has(record.id)) && !index.has(record.id)) index.set(record.id, record);
+            return index;
+        };
+        const previous = byId(before);
+        const next = byId(after);
+        const ids = new Set([...previous.keys(), ...next.keys()]);
         for (const id of ids)
         {
-            const left = before.find(record => record.id === id) || null;
-            const right = after.find(record => record.id === id) || null;
+            const left = previous.get(id) || null;
+            const right = next.get(id) || null;
             if (geneoReviewEqual(left, right)) continue;
             read(key, id);
             result.patches.push({ key, id, before: structuredClone(left), after: structuredClone(right) });
@@ -1344,16 +1426,27 @@ function geneoReviewRestoreHistory(entry)
 
 function geneoTreeImportCommit()
 {
+    if (typeof appPerf !== 'undefined' && appPerf.enabled('Geneograph'))
+        return appPerf.run('Geneograph', 'mutation', geneoTreeImportCommitBody);
+    return geneoTreeImportCommitBody();
+}
+
+function geneoTreeImportCommitBody()
+{
     const draft = geneoTreeImportDraft;
     if (!draft) return false;
-    const plan = geneoTreeImportPreview(draft);
+    const trace = typeof appPerf === 'undefined' ? null : appPerf.currentDetailed('Geneograph');
+    const prepare = () => geneoTreeImportPreview(draft);
+    const plan = trace ? appPerf.measure(trace, 'projection', prepare) : prepare();
     if (plan.error) { draft.error = plan.error; geneoTreeImportRender(); return false; }
     const board = getGeneographBoard(draft.boardId, { projectId: draft.projectId });
     if (!geneoReviewPatchesSafe(board, plan.patches)) return false;
     const modifiedAt = board.modifiedAt;
     try
     {
-        geneoReviewWritePatches(board, plan.patches, 'after');
+        const write = () => geneoReviewWritePatches(board, plan.patches, 'after');
+        if (trace) appPerf.measure(trace, 'evidence', write);
+        else write();
         touchGeneographBoard(board);
         if (plan.patches.length)
             geneoPushHistorySnapshot(JSON.stringify({ geneoReviewHistory: true, boardId: board.id, side: 'before', patches: plan.patches }));

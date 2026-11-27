@@ -269,12 +269,31 @@ function geneoReviewSummary(draft, plan)
     }).join('') || `<p class="gr-muted">${escapeHtml(t('No changes selected'))}</p>`}</div>`;
 }
 
-function geneoTreeImportRender()
+const GENEO_REVIEW_PLAN_DOMAINS = ['people', 'families', 'boards', 'places', 'events', 'archive', 'notes', 'sources'];
+
+function geneoTreeImportRender(reusePlan = false)
+{
+    if (typeof appPerf !== 'undefined' && appPerf.enabled('Geneograph') && !appPerf.currentDetailed('Geneograph'))
+        return appPerf.run('Geneograph', 'review', () => geneoTreeImportRenderBody(reusePlan));
+    return geneoTreeImportRenderBody(reusePlan);
+}
+
+function geneoTreeImportRenderBody(reusePlan)
 {
     const draft = geneoTreeImportDraft;
     const modal = modalBackdrop.querySelector('.geneo-family-review');
     if (!draft || !modal) return;
-    const plan = geneoTreeImportPreview(draft);
+    const trace = typeof appPerf === 'undefined' ? null : appPerf.currentDetailed('Geneograph');
+    const read = acquireProjectReadModel(draft.projectId);
+    const token = read.revisionToken(GENEO_REVIEW_PLAN_DOMAINS);
+    const board = getGeneographBoard(draft.boardId, { projectId: draft.projectId });
+    const cached = draft.preview;
+    const canReuse = reusePlan && token !== null && cached?.token === token && cached.generation === read.generation
+        && cached.language === state.language && cached.board === board && cached.diagram === board?.diagram && cached.modifiedAt === board?.modifiedAt;
+    const build = () => geneoTreeImportPreview(draft);
+    const plan = canReuse ? cached.plan : trace ? appPerf.measure(trace, 'projection', build) : build();
+    draft.preview = { token, generation: read.generation, language: state.language, board, diagram: board?.diagram, modifiedAt: board?.modifiedAt, plan };
+    if (trace) appPerf.count(trace, 'visiblePeople', draft.people.length);
     const active = document.activeElement;
     const focusKey = active && modal.contains(active) ? active.dataset.grFocus : '';
     const selection = active instanceof HTMLInputElement ? active.selectionStart : null;
@@ -283,7 +302,8 @@ function geneoTreeImportRender()
     modal.querySelectorAll('[data-gr-relationship-settings]').forEach(element => draft.relationshipExpanded.set(element.dataset.grRelationshipSettings, element.open));
     const body = modal.querySelector('[data-gr-body]');
     modal.classList.toggle('gr-mobile-detail', draft.mobileDetail);
-    body.innerHTML = `${geneoReviewRail(draft, plan)}${geneoReviewPersonDetail(draft, plan)}`;
+    const markup = () => `${geneoReviewRail(draft, plan)}${geneoReviewPersonDetail(draft, plan)}`;
+    body.innerHTML = trace ? appPerf.measure(trace, 'detail', markup) : markup();
     modal.querySelector('[data-gr-changes]').innerHTML = draft.summaryOpen ? geneoReviewSummary(draft, plan) : '';
     modal.querySelector('[data-gr-changes]').hidden = !draft.summaryOpen;
     modal.querySelectorAll('select.common-select').forEach(select =>
@@ -514,11 +534,20 @@ function geneoStageReviewRelativeTarget(draft, relationId, personId, target)
 
 function openGeneographTreeImport(options = {})
 {
+    if (typeof appPerf !== 'undefined' && appPerf.enabled('Geneograph'))
+        return appPerf.run('Geneograph', 'review', () => openGeneographTreeImportBody(options));
+    return openGeneographTreeImportBody(options);
+}
+
+function openGeneographTreeImportBody(options)
+{
     const board = selectedGeneographBoard();
     const node = selectedGeneographNode();
     const startId = options.personId || (node?.type === 'person' ? node.personId : '');
     if (!board || board.projectId !== currentProjectId() || !board.diagram.people.some(person => person.id === startId)) return;
-    geneoTreeImportDraft = geneoReviewDraft(board, startId);
+    const trace = typeof appPerf === 'undefined' ? null : appPerf.currentDetailed('Geneograph');
+    const prepare = () => geneoReviewDraft(board, startId);
+    geneoTreeImportDraft = trace ? appPerf.measure(trace, 'input', prepare) : prepare();
     openModal(`<div class="modal geneo-family-review" role="dialog" aria-modal="true" aria-labelledby="geneoReviewTitle">
         <header class="modal-header"><h2 id="geneoReviewTitle">${escapeHtml(t('Sync board and Family Tree'))}</h2><button class="close-button" type="button" data-close aria-label="${escapeHtml(t('Close'))}">${icon.close}</button></header>
         <div class="gr-body" data-gr-body></div>
@@ -534,7 +563,7 @@ function openGeneographTreeImport(options = {})
         if (dismissFilter) draft.filterOpen = false;
         const button = event.target.closest('button');
         if (!button || button.disabled || button.hasAttribute('data-close'))
-        { if (dismissFilter && !button?.hasAttribute('data-close')) geneoTreeImportRender(); return; }
+        { if (dismissFilter && !button?.hasAttribute('data-close')) geneoTreeImportRender(true); return; }
         const person = draft.people.find(item => item.id === draft.activePersonId);
         draft.error = '';
         if (button.hasAttribute('data-gr-change-anchor') || button.hasAttribute('data-gr-link') || button.hasAttribute('data-gr-relative-search'))
@@ -655,7 +684,9 @@ function openGeneographTreeImport(options = {})
             if (!draft.people.some(item => item.id === draft.activePersonId)) draft.activePersonId = draft.anchorId;
         }
         else return;
-        geneoTreeImportRender();
+        const presentationOnly = ['scope', 'status', 'filter-toggle', 'person', 'locate', 'locate-error', 'list', 'summary']
+            .some(action => button.hasAttribute(`data-gr-${action}`));
+        geneoTreeImportRender(presentationOnly);
         if (button.closest('.gr-filter-menu')) modal.querySelector('[data-gr-filter-toggle]')?.focus();
         if (button.hasAttribute('data-gr-filter-toggle') && draft.filterOpen) modal.querySelector('.gr-filter-menu button[aria-pressed="true"]')?.focus();
         if (button.hasAttribute('data-gr-person') || button.hasAttribute('data-gr-locate') || button.hasAttribute('data-gr-locate-error'))
@@ -669,7 +700,7 @@ function openGeneographTreeImport(options = {})
     {
         if (event.target.hasAttribute('data-gr-search')) geneoTreeImportDraft.search = event.target.value;
         else return;
-        geneoTreeImportRender();
+        geneoTreeImportRender(true);
     });
     modal.addEventListener('change', event =>
     {
@@ -696,7 +727,7 @@ function openGeneographTreeImport(options = {})
             return;
         }
         if (event.key === 'Escape' && geneoTreeImportDraft?.filterOpen)
-        { event.preventDefault(); event.stopPropagation(); geneoTreeImportDraft.filterOpen = false; geneoTreeImportRender(); modal.querySelector('[data-gr-filter-toggle]')?.focus(); }
+        { event.preventDefault(); event.stopPropagation(); geneoTreeImportDraft.filterOpen = false; geneoTreeImportRender(true); modal.querySelector('[data-gr-filter-toggle]')?.focus(); }
     });
     geneoTreeImportRender();
     if (options.match) modal.querySelector('[data-gr-link]')?.click();

@@ -38,22 +38,27 @@ function geneoReviewRelationType(draft, relation, direction)
     return new Set(types).size === 1 ? types[0] : '';
 }
 
-function geneoReviewRelativeTarget(draft, relation, personId)
+function geneoReviewRelativeTarget(draft, relation, personId, automaticMatch = id => geneoReviewAutomaticMatch(draft, id))
 {
     const explicit = draft.relativeTargets?.get(`${relation.id}|${personId}`);
     if (explicit) return explicit;
     const choice = draft.choices.get(personId);
     if (choice && !['skip', 'unlink'].includes(choice)) return choice;
     if (choice === 'unlink') return '';
-    const person = geneoReviewPersonById(draft, personId);
-    return geneoTreeImportMatches(person, draft.projectId, draft).find(item => item.eligible)?.person.id || 'create';
+    return automaticMatch(personId)?.person.id || 'create';
 }
 
-function geneoReviewRelativeTreeCell(draft, relation, personId, plan, canTransfer, addLabel)
+function geneoReviewAutomaticMatch(draft, personId)
+{
+    const person = geneoReviewPersonById(draft, personId);
+    return geneoTreeImportMatches(person, draft.projectId, draft, { eligibleOnly: true })[0];
+}
+
+function geneoReviewRelativeTreeCell(draft, relation, personId, canTransfer, addLabel, automaticMatch)
 {
     const person = geneoReviewPersonById(draft, personId);
     const sourceId = relation.treeIds?.[relation.ids.indexOf(personId)];
-    const choice = relation.origin === 'tree' ? sourceId : geneoReviewRelativeTarget(draft, relation, personId);
+    const choice = relation.origin === 'tree' ? sourceId : geneoReviewRelativeTarget(draft, relation, personId, automaticMatch);
     const attrs = `data-relation="${escapeHtml(relation.id)}" data-person="${escapeHtml(personId)}"`;
     const searchButton = `<button type="button" class="gr-record-search" data-gr-relative-search ${attrs} aria-label="${escapeHtml(t('Use an existing person'))}" title="${escapeHtml(t('Use an existing person'))}">${icon.link}</button>`;
     const recordHeader = record => `<div class="gr-record-header">${record}${searchButton}</div>`;
@@ -62,7 +67,7 @@ function geneoReviewRelativeTreeCell(draft, relation, personId, plan, canTransfe
     const tree = !['skip', 'create', 'unlink'].includes(choice) ? getPerson(choice) : null;
     if (automatic && tree)
     {
-        const suggestion = geneoTreeImportMatches(person, draft.projectId, draft).find(item => item.person.id === tree.id);
+        const suggestion = automaticMatch(personId);
         const duplicate = geneoReviewDuplicate(draft, personId, tree.id);
         return `${recordHeader(geneoReviewIdentity(tree))}<span class="gr-record-type">${escapeHtml(t(suggestion?.strong ? 'Strong match' : 'Possible match'))}</span>
             ${duplicate ? `<button type="button" class="gr-text" data-gr-locate="${escapeHtml(duplicate.id)}">${escapeHtml(t('Locate existing'))}</button>` : ''}
@@ -95,6 +100,12 @@ function geneoReviewRelations(draft, person, plan)
 {
     const relations = plan.relations.filter(relation => relation.ids.includes(person.id) && !geneoReviewAutomaticParentLink(draft, relation, person.id) && (plan.statuses.get(relation.id) !== 'Same relationship' || plan.errors.some(error => error.relationId === relation.id)));
     if (!relations.length) return '';
+    const matches = new Map();
+    const automaticMatch = id =>
+    {
+        if (!matches.has(id)) matches.set(id, geneoReviewAutomaticMatch(draft, id));
+        return matches.get(id);
+    };
     const groups = new Map(['Parents', 'Partners', 'Children', 'Siblings'].map(group => [group, []]));
     for (const relation of relations)
     {
@@ -139,13 +150,13 @@ function geneoReviewRelations(draft, person, plan)
             const typeFieldLabel = relation.type === 'partner'
                 ? t('Relationship type') : parentChildRelationshipTypeFieldLabel();
             const ready = relation.ids.every(id => id === person.id || subjects.includes(id)
-                ? relation.origin === 'tree' || !['', 'skip', 'unlink'].includes(geneoReviewRelativeTarget(draft, relation, id))
+                ? relation.origin === 'tree' || !['', 'skip', 'unlink'].includes(geneoReviewRelativeTarget(draft, relation, id, automaticMatch))
                 : plan.mapping.has(id));
             const canRight = relation.origin !== 'tree' && ready && proposedType;
             const canLeft = relation.origin === 'tree' && proposedType;
             const arrow = (direction, enabled) =>
             {
-                const target = subjects.length === 1 ? geneoReviewRelativeTarget(draft, relation, subjects[0]) : '';
+                const target = subjects.length === 1 ? geneoReviewRelativeTarget(draft, relation, subjects[0], automaticMatch) : '';
                 const targetName = target === 'create' || !target ? title : connectPersonName(getPerson(target));
                 const missingPerson = direction === 'tree' && subjects.some(id => !draft.people.some(person => person.id === id));
                 const action = missingPerson || target === 'create' ? 'Add missing relative' : 'Add missing connection';
@@ -165,7 +176,7 @@ function geneoReviewRelations(draft, person, plan)
             const addLabel = relation.type === 'child'
                 ? relation.ids.at(-1) === person.id ? 'Add parent to Family Tree' : 'Add child to Family Tree'
                 : relation.type === 'partner' ? 'Add partner to Family Tree' : 'Add sibling to Family Tree';
-            const treeCell = subjects.map(id => geneoReviewRelativeTreeCell(draft, relation, id, plan, canRight, addLabel)).join('');
+            const treeCell = subjects.map(id => geneoReviewRelativeTreeCell(draft, relation, id, canRight, addLabel, automaticMatch)).join('');
             const needsConfiguration = !proposedType
                 || parentFamilies.length > 1 && !draft.treeFamilyChoices?.get(relation.id)
                 || relation.type === 'sibling' && relation.origin !== 'tree' && !draft.siblingFamilies.get(relation.id);

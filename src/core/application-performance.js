@@ -9,7 +9,7 @@ const appPerf = (() =>
     for (const kind of treeKinds) operations.get('Family Tree').add(kind);
     for (const kind of ['activation', 'gedcomParse', 'gedcomMap', 'gedcomCommit']) operations.get('Projects').add(kind);
     operations.get('Geneograph').add('boardOpen');
-    operations.get('Geneograph').add('boardRender');
+    for (const kind of ['boardRender', 'review', 'mutation']) operations.get('Geneograph').add(kind);
     operations.get('Places').add('mapInitialize');
     operations.get('Places').add('review');
     operations.get('People').add('profile');
@@ -20,7 +20,7 @@ const appPerf = (() =>
     operations.get('Publish').add('preview');
     const frameKinds = new Set(['selection', 'review', 'editor', 'profile', 'picker', 'preview']);
     const providerKeys = new Set(['people:index', 'families:index', 'families:graph', 'families:labels', 'people:directory',
-        'people:link-search', 'places:selector-people-counts', 'people:photo-filter-search']);
+        'people:link-search', 'places:selector-people-counts', 'people:photo-filter-search', 'people:geneo-match-names']);
     const domainKeys = new Set(['projects', 'people', 'families', 'places', 'media', 'sources', 'notes',
         'boards', 'events', 'archive', 'albums', 'activity']);
     const stages = new Set(['navigation', 'people', 'families', 'projection', 'input', 'occurrences',

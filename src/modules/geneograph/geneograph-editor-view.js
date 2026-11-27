@@ -1,14 +1,18 @@
 function syncGeneographPersonCardTextFit()
 {
     const gap = Math.max(.5, state.geneoZoom / 100);
-    main.querySelectorAll('.geneo-node-person .geneo-person-node-content').forEach(content =>
+    const cards = [...main.querySelectorAll('.geneo-node-person .geneo-person-node-content')];
+    for (const content of cards)
     {
         content.classList.remove('geneo-person-hide-status', 'geneo-person-hide-death',
             'geneo-person-hide-events', 'geneo-person-clamp-name', 'geneo-person-hide-life');
+    }
+    const measure = cards.map(content =>
+    {
         const card = content.closest('.geneo-node-person');
         const identity = content.querySelector('.geneo-person-identity-block');
         const life = content.querySelector('.geneo-person-life');
-        if (!card || !identity || !life) return;
+        if (!card || !identity || !life) return null;
 
         const visible = element => Boolean(element?.getClientRects().length);
         const fits = () =>
@@ -34,26 +38,25 @@ function syncGeneographPersonCardTextFit()
             return true;
         };
 
-        if (fits()) return;
-        if (life.querySelectorAll('.geneo-person-life-event').length > 1)
-        {
-            content.classList.add('geneo-person-hide-death');
-            if (fits()) return;
-        }
-        if (life.querySelector('.geneo-person-life-events'))
-        {
-            content.classList.add('geneo-person-hide-events');
-            if (fits()) return;
-        }
-        content.classList.add('geneo-person-clamp-name');
-        if (fits()) return;
-        if (visible(life.querySelector('.geneo-person-status')))
-        {
-            content.classList.add('geneo-person-hide-status');
-            if (fits()) return;
-        }
-        content.classList.add('geneo-person-hide-life');
-    });
+        return { content, life, fits };
+    }).filter(Boolean);
+
+    // Measure the cards together before changing classes for the next fit pass.
+    let pending = measure.filter(card => !card.fits());
+    const passes = [
+        ['geneo-person-hide-death', life => life.querySelectorAll('.geneo-person-life-event').length > 1],
+        ['geneo-person-hide-events', life => life.querySelector('.geneo-person-life-events')],
+        ['geneo-person-clamp-name', () => true],
+        ['geneo-person-hide-status', life => life.querySelector('.geneo-person-status')?.getClientRects().length]
+    ];
+    for (const [className, applies] of passes)
+    {
+        if (!pending.length) break;
+        const changed = pending.filter(({ life }) => applies(life));
+        for (const { content } of changed) content.classList.add(className);
+        if (changed.length) pending = pending.filter(card => !card.fits());
+    }
+    for (const { content } of pending) content.classList.add('geneo-person-hide-life');
 }
 
 function renderGeneographEditor(...args)
@@ -64,6 +67,7 @@ function renderGeneographEditor(...args)
 
 function renderGeneographEditorWithDiagnosticsBody()
 {
+    const trace = typeof appPerf === 'undefined' ? null : appPerf.currentDetailed('Geneograph');
     geneoClearAlignmentGuides();
     if (geneoImageCropRuntime?.boardId !== selectedGeneographBoard()?.id) geneoImageCropRuntime = null;
     if (geneoImageCropRuntime && !resolveGeneographImageSource(getGeneographNode(geneoImageCropRuntime.nodeId)).available)
@@ -94,7 +98,8 @@ function renderGeneographEditorWithDiagnosticsBody()
         state.geneoView = 'home'; renderGeneographHome(); return;
     }
     const zoom = Math.max(.1, Math.min(2, state.geneoZoom / 100));
-    renderGeneographEditorSidebar(board);
+    if (trace) appPerf.measure(trace, 'detail', () => renderGeneographEditorSidebar(board));
+    else renderGeneographEditorSidebar(board);
     const diagram = board.diagram;
     const bounds = geneoDerivedCanvasBounds(diagram);
     geneoCanvasRuntime.bounds = bounds;
@@ -125,7 +130,7 @@ function renderGeneographEditorWithDiagnosticsBody()
         diagram.canvas.alwaysShowSockets ? 'show-sockets' : ''
     ].filter(Boolean).join(' ');
     geneoCanvasRuntime.suppressEdgeExpansion = true;
-    main.innerHTML = `<section class="geneo-editor">
+    const markup = () => `<section class="geneo-editor">
       <div
         class="geneo-editor-toolbar"
         role="toolbar"
@@ -288,6 +293,10 @@ function renderGeneographEditorWithDiagnosticsBody()
           ${renderGeneographConnectors()}<div class="geneo-panel-draft" data-geneo-panel-draft hidden><span data-geneo-panel-draft-size></span></div><div class="geneo-selection-marquee" data-geneo-marquee hidden></div><div class="geneo-alignment-guides" aria-hidden="true"><div class="geneo-alignment-guide vertical" data-geneo-align-x hidden></div><div class="geneo-alignment-guide horizontal" data-geneo-align-y hidden></div></div>${ordered.map(renderGeneographObject).join('')}
           </div></div></div><div class="geneo-zoom-overlay canvas-zoom"><button class="geneo-zoom-button zoom-button" type="button" data-geneo-zoom="out" aria-label="Zoom out">${icon.zoomOut}</button><span class="geneo-zoom-value zoom-value">${geneoDisplayZoom()}%</span><button class="geneo-zoom-button zoom-button" type="button" data-geneo-zoom="in" aria-label="Zoom in">${icon.zoomIn}</button><button class="geneo-zoom-button zoom-button" type="button" data-geneo-zoom="fit" aria-label="Fit board">${icon.home}</button></div></div>${renderGeneographInspector()}</div>
           </section>`;
+    const html = trace ? appPerf.measure(trace, 'markup', markup) : markup();
+    const mount = () => { main.innerHTML = html; };
+    if (trace) appPerf.measure(trace, 'dom', mount);
+    else mount();
     localizeUI(
         main,
         {
@@ -298,7 +307,13 @@ function renderGeneographEditorWithDiagnosticsBody()
     const autoHeightsChanged =
         syncGeneographAutoPersonCardHeights();
 
-    syncGeneographPersonCardTextFit();
+    if (trace)
+    {
+        appPerf.count(trace, 'recordsRendered', ordered.length);
+        appPerf.count(trace, 'edges', diagram.connections.length);
+        appPerf.measure(trace, 'cards', syncGeneographPersonCardTextFit);
+    }
+    else syncGeneographPersonCardTextFit();
 
     const autoPlaceSizesChanged =
         syncGeneographAutoPlaceSizes();
