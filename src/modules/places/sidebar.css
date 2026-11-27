@@ -28,6 +28,42 @@
     min-width: 0;
 }
 
+/* Reuse the import result panel in the narrower Places navigation. */
+.places-sidebar .gedcom-matching-panel-sidebar {
+    flex: 0 0 auto;
+    min-width: 0;
+    margin-top: 0;
+    grid-template-columns: 28px minmax(0, 1fr);
+    align-items: start;
+    gap: var(--space-2);
+}
+
+.gedcom-matching-panel-sidebar .gedcom-matching-indicator {
+    width: 28px;
+    height: 28px;
+}
+
+.gedcom-matching-panel-sidebar .gedcom-matching-copy p {
+    font-size: 13px;
+}
+
+.gedcom-matching-panel-sidebar .gedcom-matching-copy .gedcom-matching-description {
+    margin-top: var(--space-2);
+    font-weight: 400;
+    color: var(--text-secondary);
+    line-height: 1.5;
+}
+
+.gedcom-matching-panel-sidebar .gedcom-matching-copy .place-search-attribution {
+    padding-top: var(--space-2);
+}
+
+.gedcom-matching-panel-sidebar .gedcom-matching-stop {
+    grid-column: 2;
+    justify-self: end;
+    font-size: 13px;
+}
+
 /*
 * The shared .side-section-title already supplies the same
 * title-to-content margin used by Albums.

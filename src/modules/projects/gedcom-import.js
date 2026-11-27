@@ -2485,18 +2485,22 @@ function gedcomMatchingStatusText(report)
         unavailable: 'Place coordinate lookup unavailable' })[report?.matchingState] || '';
 }
 
-function renderGedcomMatchingStatus(projectId)
+function renderGedcomMatchingStatus(projectId, { placement = 'result' } = {})
 {
     const report = gedcomImportReports.get(projectId);
+    const inPlaces = placement === 'places';
     const text = gedcomMatchingStatusText(report);
-    if (!text) return '';
-    return '<div class="gedcom-matching-panel" data-gedcom-matching-status="' + escapeHtml(projectId)
+    if (!text || (inPlaces && report.matchingState !== 'running')) return '';
+    return '<div class="gedcom-matching-panel' + (inPlaces ? ' gedcom-matching-panel-sidebar' : '')
+        + '" data-gedcom-matching-status="' + escapeHtml(projectId)
+        + '" data-matching-placement="' + (inPlaces ? 'places' : 'result')
         + '" data-matching-state="' + escapeHtml(report.matchingState) + '">'
         + '<div class="gedcom-matching-indicator" aria-hidden="true">'
         + '<span class="gedcom-matching-spinner"></span>'
         + '<span class="gedcom-matching-complete">' + icon.check + '</span>'
         + '<span class="gedcom-matching-idle">' + icon.info + '</span></div>'
         + '<div class="gedcom-matching-copy"><p role="status" tabindex="-1">' + escapeHtml(t(text)) + '</p>'
+        + (inPlaces ? '<p class="gedcom-matching-description">' + escapeHtml(t('Missing coordinates from your import are being looked up automatically. Places and map markers update as matches are found. You can keep working.')) + '</p>' : '')
         + geneographGeocoder.attributionHtml() + '</div>'
         + (report.matchingState === 'running' ? '<button class="button ghost gedcom-matching-stop" type="button" data-gedcom-stop-matching>'
             + escapeHtml(t('Stop lookup')) + '</button>' : '') + '</div>';
@@ -2528,6 +2532,18 @@ function updateGedcomMatchingStatus(projectId)
     for (const root of document.querySelectorAll('[data-gedcom-matching-status]'))
     {
         if (root.dataset.gedcomMatchingStatus !== projectId) continue;
+        if (root.dataset.matchingPlacement === 'places' && report?.matchingState !== 'running')
+        {
+            // Remove the transient panel rather than leaving a disabled
+            // Stop action or a stale completion message in navigation.
+            if (root.contains(document.activeElement))
+            {
+                const nav = root.closest('.places-sidebar');
+                (nav?.querySelector('[data-places-view].active') || nav?.querySelector('[data-places-view="all"]'))?.focus();
+            }
+            root.remove();
+            continue;
+        }
         const text = gedcomMatchingStatusText(report);
         root.dataset.matchingState = report?.matchingState || '';
         const status = root.querySelector('[role="status"]');

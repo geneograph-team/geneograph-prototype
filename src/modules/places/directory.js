@@ -168,6 +168,9 @@ function renderPlacesSidebar(list, owners)
             </div>
           </div>
 
+          ${typeof renderGedcomMatchingStatus === 'function'
+              ? renderGedcomMatchingStatus(currentProjectId(), { placement: 'places' }) : ''}
+
           ${state.placesView === 'review' ? '' : `<div class="places-sidebar-section">
             <div class="side-section-title">
               Countries
@@ -219,7 +222,6 @@ function renderPlacesSidebar(list, owners)
                 }
             </div>
           </div>`}
-          ${typeof renderGedcomMatchingStatus === 'function' ? renderGedcomMatchingStatus(currentProjectId()) : ''}
         </nav>
       `;
 

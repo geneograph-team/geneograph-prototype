@@ -954,6 +954,7 @@ const RU_UI_PROJECTS = Object.freeze({
     "Import may send place names to Geoapify or LocationIQ to find coordinates.": "При импорте названия мест могут отправляться в Geoapify или LocationIQ для поиска координат.",
     "Stop lookup": "Остановить поиск",
     "Finding missing place coordinates…": "Поиск недостающих координат мест…",
+    "Missing coordinates from your import are being looked up automatically. Places and map markers update as matches are found. You can keep working.": "Недостающие координаты импортированных мест определяются автоматически. Список мест и метки на карте обновляются по мере нахождения совпадений. Вы можете продолжать работу.",
     "Place coordinate matching complete.": "Сопоставление координат мест завершено.",
     "Place coordinate matching stopped.": "Сопоставление координат мест остановлено.",
     "Online photo files not imported: {count}": "Не импортировано фотографий по интернет-ссылкам: {count}",
