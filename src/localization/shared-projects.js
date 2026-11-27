@@ -936,6 +936,7 @@ const RU_UI_PROJECTS = Object.freeze({
     "Families": "Семьи",
     "Lines": "Строки",
     "Dates preserved as text": "Даты сохранены как текст",
+    "Imported text formatting simplified or unsafe content omitted": "Форматирование импортированного текста упрощено или небезопасное содержимое пропущено",
     "Showing the first 25 tag types.": "Показаны первые 25 типов тегов.",
     "This project exceeds the 50,000-record limit for project backups.": "В проекте больше 50 000 записей. Это превышает лимит резервной копии проекта.",
     'GEDCOM child claims disagree about a family.': 'В GEDCOM указаны противоречивые сведения о ребёнке в семье.',

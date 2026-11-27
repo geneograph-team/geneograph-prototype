@@ -88,6 +88,60 @@ assert.equal(context.parseGedcomDate('CAL 2 MAR 1870').value.dateType, 'Calculat
 assert.equal(context.parseGedcomDate('FROM 1904 TO 1915').valid, false);
 assert.match(context.genealogyDateDisplay(interpreted.records.people[0].birth), /^Calculated /);
 
+
+const richNotes = map(file([
+    '1 SOUR MYHERITAGE',
+    '0 @I1@ INDI', '1 NAME Ada /Example/', '1 NOTE @N1@',
+    '1 OCCU Researcher', '2 NOTE <p>Archive <em>extract</em></p>',
+    '1 SOUR @S1@', '2 PAGE <span>Record &amp; page</span>',
+    '2 DATA', '3 TEXT <p><strong>Evidence</strong> <a href="https://example.test/record?a=1&amp;b=2">link</a></p>',
+    '0 @I2@ INDI', '1 NOTE @N1@',
+    '0 @N1@ NOTE <p style="text-align:left;"><strong><span style="font-family:Calibri;font-size:13pt">Архив &amp; ',
+    '1 CONC опись</span></strong><br />запись&nbsp;№ 29</p>',
+    '1 CONT <p><u>Second</u> &lt;literal&gt; &#x41;</p><ul><li>One</li><li><i>Two</i></li></ul><p>&nbsp;</p>',
+    '0 @S1@ SOUR', '1 TITL <b>Archive</b>', '1 TEXT <p>Source &amp; text</p>'
+]));
+assert.deepEqual(Array.from(richNotes.errors), []);
+const importedRich = richNotes.records.notes[0];
+assert.equal(importedRich.title, 'Архив & опись');
+assert.equal(importedRich.body, 'Архив & опись\nзапись № 29\nSecond <literal> A\nOne\nTwo');
+assert.equal(importedRich.bodyFormat, 'quill-delta-v1');
+assert.equal(importedRich.bodyDelta.ops.map(op => op.insert).join(''), importedRich.body + '\n');
+assert.ok(importedRich.bodyDelta.ops.some(op => op.attributes?.bold && op.insert.includes('Архив')));
+assert.ok(importedRich.bodyDelta.ops.some(op => op.attributes?.underline && op.insert === 'Second'));
+assert.equal(importedRich.bodyDelta.ops.filter(op => op.attributes?.list === 'bullet').length, 2);
+assert.equal(importedRich.linkedPersonIds.length, 2);
+assert.equal(richNotes.records.people[0].attributes[0].notes, 'Archive extract');
+assert.equal(richNotes.records.sources[0].title, 'Archive');
+assert.equal(richNotes.records.sources[0].notes, 'Source & text');
+const citationRich = richNotes.records.notes.find(note => note.body.includes('Evidence'));
+assert.ok(citationRich.body.includes('Page or reference: Record & page'));
+assert.ok(citationRich.bodyDelta.ops.some(op => op.attributes?.link === 'https://example.test/record?a=1&b=2'));
+assert.equal(citationRich.bodyDelta.ops.map(op => op.insert).join(''), citationRich.body + '\n');
+assert.ok(richNotes.warnings.some(warning => warning.kind === 'text-format'));
+const literalNotes = map(file(['0 @I1@ INDI', '1 NOTE 2 < 3; <placeholder>; A & B &amp; C']));
+assert.equal(literalNotes.records.notes[0].body, '2 < 3; <placeholder>; A & B &amp; C');
+assert.equal(literalNotes.records.notes[0].bodyDelta, null);
+const unsafeNotes = map(file(['0 @I1@ INDI',
+    '1 NOTE <p onclick="bad()">Safe <script>bad()</script><img src="https://example.test/x" onerror="bad()">',
+    '2 CONC <a href="jav&#x61;script:bad()">click</a> <b>bold</p>',
+    '1 NOTE <style>hidden</style><iframe src="https://example.test/y">hidden</iframe>'
+]));
+assert.deepEqual(Array.from(unsafeNotes.errors), []);
+assert.equal(unsafeNotes.records.notes.length, 1);
+assert.equal(unsafeNotes.records.notes[0].body, 'Safe click bold');
+assert.ok(!unsafeNotes.records.notes[0].bodyDelta.ops.some(op => op.attributes?.link));
+assert.ok(unsafeNotes.warnings.some(warning => warning.kind === 'text-format'));
+const familyRich = map(file([
+    '0 @I1@ INDI', '0 @I2@ INDI', '0 @F1@ FAM', '1 HUSB @I1@', '1 WIFE @I2@',
+    '1 ENGA', '2 DATE 1890', '2 NOTE <p><b>First</b></p>', '2 NOTE @N1@',
+    '0 @N1@ NOTE <ol><li>Second</li></ol>'
+]));
+assert.deepEqual(Array.from(familyRich.errors), []);
+assert.equal(familyRich.records.notes[0].body, '1890\n\nFirst\n\nSecond');
+assert.equal(familyRich.records.notes[0].bodyDelta.ops.map(op => op.insert).join(''), '1890\n\nFirst\n\nSecond\n');
+assert.equal(familyRich.records.notes[0].bodyDelta.ops.at(-1).attributes.list, 'ordered');
+
 const familyEventNotes = map(file([
     '0 @I1@ INDI', '0 @I2@ INDI', '0 @F1@ FAM', '1 HUSB @I1@', '1 WIFE @I2@',
     '1 MARR', '2 DATE 1890', '1 ENGA', '2 DATE 1889', '2 PLAC Hall',

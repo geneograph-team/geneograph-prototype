@@ -402,6 +402,250 @@ async function downloadGedcomPhotos(references, localMatches, signal, onProgress
     return matches;
 }
 
+// Imported HTML is never inserted into a document or passed to Quill's HTML
+// clipboard. Only text and a small allowlist of canonical Delta attributes
+// are emitted. Decode entities after tokenization, never as executable markup.
+function gedcomPlainContent(body)
+{
+    return { body, ops: null, simplified: false };
+}
+
+function gedcomDecodeHtmlEntities(value, onUnknown)
+{
+    const named = { amp: '&', lt: '<', gt: '>', quot: '"', apos: "'", nbsp: '\u00a0',
+        ensp: '\u2002', emsp: '\u2003', ndash: '–', mdash: '—', hellip: '…',
+        lsquo: '‘', rsquo: '’', ldquo: '“', rdquo: '”', laquo: '«', raquo: '»',
+        bull: '•', copy: '©', reg: '®', trade: '™', euro: '€' };
+    let decoder;
+    return value.replace(/&(#(?:x[0-9a-f]+|\d+)|[a-z][a-z0-9]*);/gi, (entity, name) =>
+    {
+        if (name[0] === '#')
+        {
+            const hex = name[1]?.toLowerCase() === 'x';
+            const code = parseInt(name.slice(hex ? 2 : 1), hex ? 16 : 10);
+            if (code > 0 && code <= 0x10ffff && !(code >= 0xd800 && code <= 0xdfff)
+                && !(code < 32 && ![9, 10, 13].includes(code))) return String.fromCodePoint(code);
+            onUnknown();
+            return '\ufffd';
+        }
+        if (Object.hasOwn(named, name)) return named[name];
+        // Decode only this isolated, syntactically checked entity, not HTML.
+        if (typeof document !== 'undefined' && typeof document.createElement === 'function')
+        {
+            decoder ||= document.createElement('textarea');
+            decoder.innerHTML = entity;
+            if (decoder.value !== entity) return decoder.value;
+        }
+        onUnknown();
+        return entity;
+    });
+}
+
+function gedcomSafeHtmlLink(value)
+{
+    if (!value || /[\s\u0000-\u001f\u007f]/.test(value)) return '';
+    try
+    {
+        const url = new URL(value);
+        return ['https:', 'http:', 'mailto:'].includes(url.protocol) && !url.username && !url.password ? value : '';
+    }
+    catch { return ''; }
+}
+
+function gedcomRichContent(value, checkDeadline = () => {})
+{
+    // Treat comparisons, unknown angle-bracket placeholders and unmatched
+    // inline examples as literal plain text, not as a markup document.
+    const opening = /<(p|div|span|strong|b|i|em|u|s|strike|del|a|ul|ol|li|blockquote|h[1-6]|table|tr|td|th|pre|font)(?=[\s>])/i;
+    const closing = /<\/(?:p|div|span|strong|b|i|em|u|s|strike|del|a|ul|ol|li|blockquote|h[1-6]|table|tr|td|th|pre|font)\s*>/i;
+    const blockStart = /^\s*<(?:p|div|ul|ol|li|blockquote|h[1-6]|table|pre|html|body)(?=[\s>])/i;
+    const special = /<(?:br|hr|img|script|style|iframe|object|embed|svg|math|link|meta|video|audio|input|form|template)(?=[\s/>])/i;
+    if (!(opening.test(value) && closing.test(value)) && !blockStart.test(value) && !special.test(value))
+        return gedcomPlainContent(value);
+
+    const inline = { b: 'bold', strong: 'bold', i: 'italic', em: 'italic', u: 'underline',
+        s: 'strike', strike: 'strike', del: 'strike' };
+    const blocks = new Set(['p', 'div', 'li', 'blockquote', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
+        'ul', 'ol', 'table', 'tr', 'td', 'th', 'pre']);
+    const wrappers = new Set(['span', 'a', 'font', 'html', 'body', 'tbody', 'thead', 'tfoot']);
+    const suppressed = new Set(['script', 'style', 'iframe', 'object', 'svg', 'math', 'template',
+        'video', 'audio', 'head', 'noscript']);
+    const voidTags = new Set(['br', 'hr', 'img', 'embed', 'link', 'meta', 'input', 'source', 'wbr', 'area', 'base', 'col', 'param']);
+    const stack = [], lines = [];
+    let current = [], pendingSpace = false, simplified = false, ignored = null;
+    const mark = () => { simplified = true; };
+    const attrsEqual = (a, b) => JSON.stringify(a || {}) === JSON.stringify(b || {});
+    const append = (insert, attributes = {}) =>
+    {
+        if (!insert) return;
+        const last = current.at(-1);
+        if (last && attrsEqual(last.attributes, attributes)) last.insert += insert;
+        else current.push(Object.keys(attributes).length ? { insert, attributes } : { insert });
+    };
+    const lineAttributes = () =>
+    {
+        const result = {};
+        const list = stack.filter(frame => ['ul', 'ol'].includes(frame.tag));
+        if (stack.some(frame => frame.tag === 'li') && list.length)
+        {
+            result.list = list.at(-1).tag === 'ol' ? 'ordered' : 'bullet';
+            if (list.length > 1) result.indent = Math.min(8, list.length - 1);
+            if (list.length > 9) mark();
+        }
+        else if (stack.some(frame => frame.tag === 'blockquote')) result.blockquote = true;
+        else
+        {
+            const heading = stack.findLast(frame => /^h[1-6]$/.test(frame.tag));
+            if (heading) result.header = heading.tag === 'h1' || heading.tag === 'h2' ? 2 : 3;
+        }
+        return result;
+    };
+    const flush = (force = false) =>
+    {
+        if (current.length || force) lines.push({ ops: current, attributes: lineAttributes() });
+        current = [];
+        pendingSpace = false;
+    };
+    const text = raw =>
+    {
+        if (!raw || ignored) return;
+        const decoded = gedcomDecodeHtmlEntities(raw, mark).replace(/\u00a0/g, ' ');
+        const attributes = Object.assign({}, ...stack.map(frame => frame.attributes));
+        if (stack.some(frame => frame.tag === 'pre'))
+        {
+            const parts = decoded.replace(/\r\n?/g, '\n').split('\n');
+            for (const [index, part] of parts.entries())
+            {
+                if (index) flush(true);
+                append(part, attributes);
+            }
+            return;
+        }
+        const collapsed = decoded.replace(/[ \t\r\n\f]+/g, ' ');
+        const trimmed = collapsed.trim();
+        if (trimmed)
+        {
+            if (current.length && (pendingSpace || collapsed.startsWith(' '))) append(' ', attributes);
+            append(trimmed, attributes);
+            pendingSpace = collapsed.endsWith(' ');
+        }
+        else if (collapsed && current.length) pendingSpace = true;
+    };
+    const readAttributes = raw =>
+    {
+        const attributes = new Map();
+        for (const match of raw.matchAll(/([^\s=/"'<>]+)(?:\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'=<>]+)))?/g))
+            attributes.set(match[1].toLowerCase(), gedcomDecodeHtmlEntities(match[2] ?? match[3] ?? match[4] ?? '', mark));
+        return attributes;
+    };
+    // The tokenizer is quote-aware; tag payloads are never evaluated.
+    const tokens = /<!--[\s\S]*?(?:-->|$)|<!DOCTYPE[^>]*>|<\/?[a-z][\w:-]*(?=[\s/>])(?:"[^"]*"|'[^']*'|[^"'<>])*?>/gi;
+    let offset = 0;
+    for (const match of value.matchAll(tokens))
+    {
+        checkDeadline();
+        text(value.slice(offset, match.index));
+        offset = match.index + match[0].length;
+        const raw = match[0];
+        if (raw.startsWith('<!')) { mark(); continue; }
+        const tagMatch = /^<(\/?)([a-z][\w:-]*)/i.exec(raw);
+        const closing = Boolean(tagMatch[1]);
+        const tag = tagMatch[2].toLowerCase();
+        if (ignored)
+        {
+            if (tag === ignored.tag)
+            {
+                if (closing && --ignored.depth === 0) ignored = null;
+                else if (!closing && !/\/>$/.test(raw)) ignored.depth++;
+            }
+            continue;
+        }
+        if (suppressed.has(tag))
+        {
+            mark();
+            if (!closing && !/\/>$/.test(raw)) ignored = { tag, depth: 1 };
+            continue;
+        }
+        if (tag === 'br' || tag === 'hr')
+        {
+            if (tag === 'hr') mark();
+            if (!closing) flush(true);
+            continue;
+        }
+        if (voidTags.has(tag)) { mark(); continue; }
+        if (closing)
+        {
+            const index = stack.findLastIndex(frame => frame.tag === tag);
+            if (index < 0) { mark(); continue; }
+            if (index !== stack.length - 1) mark();
+            if (blocks.has(tag)) flush();
+            stack.length = index;
+            continue;
+        }
+        if (blocks.has(tag)) flush();
+        if (stack.length >= 64) { mark(); continue; }
+        if (!blocks.has(tag) && !wrappers.has(tag) && !Object.hasOwn(inline, tag)) mark();
+        if (['table', 'tr', 'td', 'th', 'pre', 'font', 'h1', 'h4', 'h5', 'h6'].includes(tag)) mark();
+        const attributes = {};
+        if (Object.hasOwn(inline, tag)) attributes[inline[tag]] = true;
+        const rawAttributes = readAttributes(raw.slice(tagMatch[0].length, -1));
+        for (const [name, attr] of rawAttributes)
+        {
+            if (name === 'href' && tag === 'a')
+            {
+                const link = gedcomSafeHtmlLink(attr.trim());
+                if (link) attributes.link = link;
+                else mark();
+            }
+            else if (name === 'style')
+            {
+                for (const declaration of attr.split(';'))
+                {
+                    const colon = declaration.indexOf(':');
+                    if (colon < 0) { if (declaration.trim()) mark(); continue; }
+                    const key = declaration.slice(0, colon).trim().toLowerCase();
+                    const val = declaration.slice(colon + 1).trim().toLowerCase();
+                    if (key === 'font-weight' && /^(?:bold|[6-9]00)$/.test(val)) attributes.bold = true;
+                    else if (key === 'font-style' && /^(?:italic|oblique)$/.test(val)) attributes.italic = true;
+                    else if (key === 'text-decoration' || key === 'text-decoration-line')
+                    {
+                        if (/\bunderline\b/.test(val)) attributes.underline = true;
+                        if (/\bline-through\b/.test(val)) attributes.strike = true;
+                        if (!/^(?:underline|line-through)(?:\s+(?:underline|line-through))*$/.test(val)) mark();
+                    }
+                    else mark();
+                }
+            }
+            else if (name !== 'dir' && name !== 'lang') mark();
+        }
+        if (tag === 'a' && !rawAttributes.has('href')) mark();
+        if (!/\/>$/.test(raw)) stack.push({ tag, attributes });
+    }
+    text(value.slice(offset));
+    if (stack.length || ignored) mark();
+    flush();
+    const first = lines.findIndex(line => line.ops.length);
+    while (lines.length && !lines.at(-1).ops.length) lines.pop();
+    const ops = (first < 0 ? [] : lines.slice(first)).flatMap(line => [...line.ops, Object.keys(line.attributes).length
+        ? { insert: '\n', attributes: line.attributes } : { insert: '\n' }]);
+    const body = ops.map(op => op.insert).join('').slice(0, -1);
+    return { body, ops: ops.some(op => op.attributes) ? ops : null, simplified };
+}
+
+// Compose event/citation labels and formatted excerpts without losing the
+// final newline carrying Quill's list or heading attribute.
+function gedcomJoinContent(parts)
+{
+    const values = parts.map(part => typeof part === 'string' ? gedcomPlainContent(part) : part)
+        .filter(part => part.body.trim());
+    const body = values.map(part => part.body).join('\n\n');
+    const ops = values.some(part => part.ops) ? values.flatMap((part, index) => [
+        ...(part.ops || [{ insert: part.body + '\n' }]),
+        ...(index < values.length - 1 ? [{ insert: '\n' }] : [])
+    ]) : null;
+    return { body, ops, simplified: values.some(part => part.simplified) };
+}
+
 function mapGedcomImport(...args)
 {
     if (typeof appPerf === 'undefined' || !appPerf.enabled('Projects')) return mapGedcomImportWithDiagnosticsBody(...args);
@@ -433,8 +677,17 @@ function mapGedcomImportWithDiagnosticsBody(parsed, project, matches = new Map()
     const sources = new Map();
     const sourceLinks = new Map();
     const onlinePhotos = new Set();
-    const readText = node =>
+    const textCache = new WeakMap();
+    const simplifiedText = new WeakSet();
+    const reportSimplifiedText = node =>
     {
+        if (simplifiedText.has(node)) return;
+        simplifiedText.add(node);
+        warn(node.tag, node.line, 'text-format');
+    };
+    const readRichText = node =>
+    {
+        if (textCache.has(node)) return textCache.get(node);
         used.add(node);
         const parts = [node.value.replace(/^@@/, '@')];
         for (const part of node.children)
@@ -444,13 +697,24 @@ function mapGedcomImportWithDiagnosticsBody(parsed, project, matches = new Map()
             parts.push(part.tag === 'CONT' ? '\n' : '', part.value);
             used.add(part);
         }
-        return parts.join('');
+        const content = gedcomRichContent(parts.join(''), checkDeadline);
+        if (content.simplified) reportSimplifiedText(node);
+        textCache.set(node, content);
+        return content;
     };
-    const addNote = (key, body, title = body.trim().split(/\r?\n/, 1)[0].slice(0, 100)) =>
+    const readText = node =>
     {
+        const content = readRichText(node);
+        if (content.ops) reportSimplifiedText(node);
+        return content.body;
+    };
+    const addNote = (key, content, title) =>
+    {
+        const { body, ops } = typeof content === 'string' ? gedcomPlainContent(content) : content;
         const note = {
-            id: projectId + '-note-' + (notes.size + 1), projectId, title, body,
-            bodyDelta: null, bodyFormat: '', favorite: false, archived: false, tags: [], checklist: [],
+            id: projectId + '-note-' + (notes.size + 1), projectId,
+            title: title ?? body.trim().split(/\r?\n/, 1)[0].slice(0, 100), body,
+            bodyDelta: ops ? { ops } : null, bodyFormat: ops ? 'quill-delta-v1' : '', favorite: false, archived: false, tags: [], checklist: [],
             createdAt: importedAt, updatedAt: importedAt,
             linkedPersonIds: [], linkedEventIds: [], linkedPlaceIds: [], linkedPhotoIds: [],
             linkedArchiveFileIds: [], collectionIds: [], relatedNoteIds: []
@@ -476,9 +740,9 @@ function mapGedcomImportWithDiagnosticsBody(parsed, project, matches = new Map()
             let note = notes.get(source);
             if (!note)
             {
-                const body = readText(source);
-                if (!body.trim()) continue;
-                note = addNote(source, body);
+                const content = readRichText(source);
+                if (!content.body.trim()) continue;
+                note = addNote(source, content);
             }
             for (const id of personIds)
                 if (!note.linkedPersonIds.includes(id)) note.linkedPersonIds.push(id);
@@ -650,9 +914,9 @@ function mapGedcomImportWithDiagnosticsBody(parsed, project, matches = new Map()
             importNotes(node, [record.id]);
             for (const description of node.children.filter(child => child.tag === 'DSCR'))
             {
-                const body = readText(description);
-                if (!body.trim()) continue;
-                addNote(description, body, t('Physical description')).linkedPersonIds.push(record.id);
+                const content = readRichText(description);
+                if (!content.body.trim()) continue;
+                addNote(description, content, t('Physical description')).linkedPersonIds.push(record.id);
             }
             if (hasBirth)
             {
@@ -872,19 +1136,19 @@ function mapGedcomImportWithDiagnosticsBody(parsed, project, matches = new Map()
             const { placeId, placeText } = readPlace(event);
             const type = read(event, 'TYPE');
             const details = event.children.filter(child => child.tag === 'NOTE' && !/^@[^@]+@$/.test(child.value.trim()))
-                .map(readText);
-            const note = addNote(event, [type, date, placeText, ...details].filter(value => value.trim()).join('\n\n') || title, title);
-            Object.assign(note, restrictionFields(event));
-            note.linkedPersonIds = parents;
-            if (placeId) note.linkedPlaceIds.push(placeId);
+                .map(readRichText);
             for (const pointer of event.children.filter(child => child.tag === 'NOTE' && /^@[^@]+@$/.test(child.value.trim())))
             {
                 const target = parsed.xrefs.get(pointer.value.trim());
                 if (target?.tag !== 'NOTE') continue;
                 used.add(pointer);
-                const body = readText(target);
-                if (body.trim()) note.body += '\n\n' + body;
+                details.push(readRichText(target));
             }
+            const content = gedcomJoinContent([type, date, placeText, ...details]);
+            const note = addNote(event, content.body ? content : title, title);
+            Object.assign(note, restrictionFields(event));
+            note.linkedPersonIds = parents;
+            if (placeId) note.linkedPlaceIds.push(placeId);
         }
         for (const childId of family.childIds)
         {
@@ -901,7 +1165,8 @@ function mapGedcomImportWithDiagnosticsBody(parsed, project, matches = new Map()
         checkDeadline();
         if (node.tag !== 'SOUR' || !node.xref) continue;
         used.add(node);
-        const title = read(node, 'TITL') || t('Untitled source');
+        const titleNode = take(node, 'TITL');
+        const title = (titleNode && readText(titleNode).trim()) || t('Untitled source');
         const authorNode = take(node, 'AUTH');
         const author = authorNode ? readText(authorNode).trim() : '';
         const classification = myHeritage ? read(node, '_TYPE') : '';
@@ -937,12 +1202,14 @@ function mapGedcomImportWithDiagnosticsBody(parsed, project, matches = new Map()
             if (!source) continue;
             used.add(citation);
             const targets = [...eventIds];
-            const details = [sourceDetail('Page or reference', read(citation, 'PAGE'))];
+            const page = take(citation, 'PAGE');
+            const details = [sourceDetail('Page or reference', page ? readText(page).trim() : '')];
             for (const context of citation.children.filter(child => child.tag === 'EVEN'))
             {
                 used.add(context);
-                details.push(sourceDetail('Cited event', context.value.trim()),
-                    sourceDetail('Role', read(context, 'ROLE')));
+                const role = take(context, 'ROLE');
+                details.push(sourceDetail('Cited event', readText(context).trim()),
+                    sourceDetail('Role', role ? readText(role).trim() : ''));
                 if (node.tag !== 'INDI' && node.tag !== 'FAM') continue;
                 const tags = context.value.trim().toUpperCase().split(/\s*,\s*/);
                 const candidates = node.children.filter(child => tags.includes(child.tag) && eventOwners.has(child));
@@ -952,14 +1219,14 @@ function mapGedcomImportWithDiagnosticsBody(parsed, project, matches = new Map()
             {
                 used.add(data);
                 details.push(sourceDetail('Citation date', read(data, 'DATE')));
-                for (const text of data.children.filter(child => child.tag === 'TEXT')) details.push(readText(text));
+                for (const text of data.children.filter(child => child.tag === 'TEXT')) details.push(readRichText(text));
             }
-            for (const text of citation.children.filter(child => child.tag === 'TEXT')) details.push(readText(text));
+            for (const text of citation.children.filter(child => child.tag === 'TEXT')) details.push(readRichText(text));
             for (const id of personIds) linkSource(source.id, 'person', id);
             for (const id of targets) linkSource(source.id, 'event', id);
-            const body = details.filter(value => value.trim()).join('\n\n');
-            if (!body) continue;
-            const note = addNote(citation, body, source.title.slice(0, 100));
+            const content = gedcomJoinContent(details);
+            if (!content.body) continue;
+            const note = addNote(citation, content, source.title.slice(0, 100));
             note.linkedPersonIds = [...personIds];
             note.linkedEventIds = [...new Set(targets)];
             linkSource(source.id, 'note', note.id);
@@ -1244,6 +1511,7 @@ function gedcomImportWarnings(report)
         + warningGroup('place-coordinates-conflict', 'Conflicting place coordinates skipped')
         + warningGroup('skipped', 'Skipped or unsupported GEDCOM data')
         + warningGroup('date-text', 'Dates preserved as text')
+        + warningGroup('text-format', 'Imported text formatting simplified or unsafe content omitted')
         + (report.overBackupRecordLimit ? '<p>' + escapeHtml(t('This project exceeds the 50,000-record limit for project backups.')) + '</p>' : '')
         + (report.overBackupManifestLimit ? '<p>' + escapeHtml(t('This project exceeds the 32 MiB metadata limit for project backups.')) + '</p>' : '');
 }
