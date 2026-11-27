@@ -8,5 +8,6 @@
 - [x] Preserve explicit named parent roles during creation and add regression coverage for branch attribution.
 - [ ] Reproduce original newly-added neutral screenshot through actual UI; verify all creation/link flows, cache updates and intended neutral cases.
 - [ ] Run native Node regressions and browser QA of themes, stages, orientations, presets and channel combinations; compare zoom/pan performance.
-- [ ] Obtain founder visual approval of refined placeholders and complete neutral/descendant integration review.
+- [x] Founder approves refined placeholders in both themes, including selected treatment.
+- [ ] Complete neutral/descendant integration review.
 - [ ] Reconcile verified baseline specs and archive after acceptance.
