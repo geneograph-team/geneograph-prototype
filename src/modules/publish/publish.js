@@ -50,7 +50,7 @@ function renderPublishHome()
 {
     const filtered = filteredPublishDrafts();
     const showTemplates = state.publishSide === 'drafts';
-    main.innerHTML = `
+    replaceSharedSearchMarkup(main, `
         <div class="publish-main">
           <div class="publish-page-head">
             <div><h1 class="app-page-title">Publish</h1><p>Create reports, charts, and export packages from your family history research.</p></div>
@@ -80,7 +80,7 @@ function renderPublishHome()
               </div>
             </aside>
           </div>
-        </div>`;
+        </div>`);
     bindSearchInput(main, '#publishSearch', 'publishSearch', renderPublishHome);
     main.querySelectorAll('[data-publish-type]').forEach(button => button.addEventListener('click', () => openPublishWizard(button.dataset.publishType)));
     main.querySelectorAll('[data-continue-draft]').forEach(button => button.addEventListener('click', () =>

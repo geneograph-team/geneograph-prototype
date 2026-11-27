@@ -1641,7 +1641,7 @@ function renderPlacesNeedsReviewPage(owners = projectPlaceReferenceOwners(curren
           </p>`
         : '';
 
-    main.innerHTML = `<div class="${placesInspectorShellClasses()}">
+    replaceSharedSearchMarkup(main, `<div class="${placesInspectorShellClasses()}">
         <section class="places-main"><div class="places-review-shell">
           <header class="places-page-head places-review-head">
             <div class="places-title"><h1 class="app-page-title">${escapeHtml(t('Needs review'))}</h1>
@@ -1664,7 +1664,7 @@ function renderPlacesNeedsReviewPage(owners = projectPlaceReferenceOwners(curren
           </div>
         </div></section>
         ${renderPlacesInspectorAside(selected, selectedPair, owners)}
-      </div>`;
+      </div>`);
 
     bindPlacesNeedsReviewControls();
     const focusId = state.placesReviewFocusId;
@@ -2137,7 +2137,7 @@ function replacePlacesMainMarkup(markup)
     if (!retain)
     {
         if (host) destroyPlacesMap();
-        main.innerHTML = markup;
+        replaceSharedSearchMarkup(main, markup);
         return;
     }
     const oldNodes = [...main.childNodes];
@@ -2146,6 +2146,9 @@ function replacePlacesMainMarkup(markup)
     template.innerHTML = markup;
     const nextHost = template.content.querySelector('#placesVectorMap');
     const nextStatus = template.content.querySelector('[data-places-map-status]');
+    const retained = [[host, nextHost]];
+    if (oldStatus && nextStatus) retained.push([oldStatus, nextStatus]);
+    if (replaceSharedSearchBranch(main, template.content, retained)) return;
     main.append(template.content);
     if (typeof nextHost.parentNode.moveBefore === 'function')
     {

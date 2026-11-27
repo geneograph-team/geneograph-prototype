@@ -24,6 +24,8 @@ current.set('.notes-shell', shell);
 replacement.set('.notes-shell', { className: 'new shell', style: { cssText: 'width: 100%' } });
 const main = { contains: node => node === editor, querySelector: key => current.get(key), innerHTML: '' };
 const context = vm.createContext({ main, state, notesRichTextRuntime: runtime, icon: {}, connectedSourceFilterOptions() {},
+    replaceSharedSearchBranch: () => false,
+    replaceSharedSearchMarkup: (root, markup) => { root.innerHTML = markup; },
     document: { createElement: () => ({ content: { querySelector: key => replacement.get(key) } }) } });
 for (const file of ['notes-model.js', 'browser.js'])
     vm.runInContext(fs.readFileSync(path.join(__dirname, '../../src/modules/notes', file), 'utf8'), context, { filename: file });

@@ -574,6 +574,7 @@ function render()
 
 function renderApplicationShell()
 {
+    cancelSharedSearch();
     setProjectReadModelActive(state.projectOpen ? currentProjectId() : null);
     invalidateLinkedPlaceDismissals();
     if (state.activeModule !== 'Family Tree')
@@ -665,36 +666,200 @@ function renderApplicationShell()
     else renderStartup();
 }
 
+// Explicit clear action only; ordinary typing never restores focus asynchronously.
 function restoreSearchInputFocus(selector, selectionStart, selectionEnd)
 {
-    requestAnimationFrame(() =>
+    const input = document.querySelector(selector);
+    if (!input) return;
+    input.focus({ preventScroll: true });
+    if (typeof input.setSelectionRange !== 'function') return;
+    const valueLength = input.value.length;
+    const start = Math.min(selectionStart ?? valueLength, valueLength);
+    const end = Math.min(selectionEnd ?? start, valueLength);
+    input.setSelectionRange(start, end);
+}
+
+// Shared view search: one pending refresh, scoped to the live input and view.
+const sharedSearchBindings = new WeakMap();
+let pendingSharedSearch = null;
+let sharedSearchFrame = null;
+let activeSharedSearch = null;
+
+function sharedSearchScope()
+{
+    return [state.activeModule, state.currentProjectId, state.projectOpen, state.language];
+}
+
+function sharedSearchIsCurrent(update)
+{
+    return update.input.isConnected && update.root.contains(update.input)
+        && main.contains(update.input) && main.querySelector(update.selector) === update.input
+        && sharedSearchScope().every((value, index) => value === update.scope[index])
+        && state[update.stateKey] === update.value && update.input.value === update.value;
+}
+
+function cancelSharedSearch()
+{
+    if (sharedSearchFrame !== null) cancelAnimationFrame(sharedSearchFrame);
+    sharedSearchFrame = null;
+    pendingSharedSearch = null;
+}
+
+function flushSharedSearch()
+{
+    const update = pendingSharedSearch;
+    if (!update) return;
+    if (!sharedSearchIsCurrent(update))
     {
-        const input = document.querySelector(selector);
-        if (!input) return;
-        input.focus({ preventScroll: true });
-        if (typeof input.setSelectionRange !== 'function') return;
-        const valueLength = input.value.length;
-        const start = Math.min(selectionStart ?? valueLength, valueLength);
-        const end = Math.min(selectionEnd ?? start, valueLength);
-        input.setSelectionRange(start, end);
+        cancelSharedSearch();
+        return;
+    }
+    // Do not replace the underlying view while a modal owns interaction.
+    if (modalBackdrop.classList.contains('open')) return;
+    cancelSharedSearch();
+    activeSharedSearch = update;
+    try
+    {
+        update.render();
+    }
+    finally
+    {
+        activeSharedSearch = null;
+    }
+}
+
+function resumeSharedSearch()
+{
+    if (!pendingSharedSearch || sharedSearchFrame !== null) return;
+    sharedSearchFrame = requestAnimationFrame(() =>
+    {
+        sharedSearchFrame = null;
+        flushSharedSearch();
     });
 }
 
-function handleSearchInput(event, { stateKey, render, selector })
+function handleSearchInput(event, binding)
 {
-    const input = event.target;
-    const nextValue = input.value;
-    const fallbackPosition = nextValue.length;
-    const selectionStart = typeof input.selectionStart === 'number' ? input.selectionStart : fallbackPosition;
-    const selectionEnd = typeof input.selectionEnd === 'number' ? input.selectionEnd : selectionStart;
-    state[stateKey] = nextValue;
-    render();
-    restoreSearchInputFocus(selector || `#${input.id}`, selectionStart, selectionEnd);
+    const input = event.currentTarget;
+    if (!input.isConnected || !binding.root.contains(input) || !main.contains(input)) return;
+    // The native field owns the text and caret; accept its complete value immediately.
+    state[binding.stateKey] = input.value;
+    cancelSharedSearch();
+    if (binding.composing || event.isComposing) return;
+    pendingSharedSearch = { ...binding, input, value: input.value, scope: sharedSearchScope() };
+    resumeSharedSearch();
 }
 
 function bindSearchInput(root, selector, stateKey, render)
 {
-    root.querySelector(selector)?.addEventListener('input', event => handleSearchInput(event, { stateKey, render, selector }));
+    const input = root.querySelector(selector);
+    if (!input) return;
+    if (pendingSharedSearch && pendingSharedSearch.input !== input) cancelSharedSearch();
+    let binding = sharedSearchBindings.get(input);
+    if (binding)
+    {
+        Object.assign(binding, { root, selector, stateKey, render });
+        return;
+    }
+    binding = { root, selector, stateKey, render, composing: false };
+    sharedSearchBindings.set(input, binding);
+    input.addEventListener('input', event => handleSearchInput(event, binding));
+    input.addEventListener('compositionstart', () =>
+    {
+        binding.composing = true;
+        if (pendingSharedSearch?.input === input) cancelSharedSearch();
+    });
+    input.addEventListener('compositionend', event =>
+    {
+        binding.composing = false;
+        handleSearchInput(event, binding);
+    });
+    input.addEventListener('keydown', event =>
+    {
+        // Publish the latest result set before native keyboard navigation.
+        if (!binding.composing && !event.isComposing && ['Tab', 'Enter'].includes(event.key)
+            && pendingSharedSearch?.input === input) flushSharedSearch();
+    });
+}
+
+// The consumer still produces its ordinary complete markup. During its search
+// refresh, keep the input and passive ancestor path connected, replacing only
+// sibling regions. Optional retained leaves belong to existing consumer lifecycles
+// (e.g. the Places map). This is not a general-purpose DOM reconciler.
+function replaceSharedSearchBranch(root, nextRoot, retained = [])
+{
+    const search = activeSharedSearch;
+    if (!search || !root.contains(search.input)) return false;
+    const nextInput = nextRoot.querySelector(search.selector);
+    if (!nextInput) return false;
+    const pairs = new Map([[root, nextRoot]]);
+    const reverse = new Map([[nextRoot, root]]);
+    const leaves = new Set();
+    for (const [oldLeaf, newLeaf] of [[search.input, nextInput], ...retained])
+    {
+        if (!oldLeaf || !newLeaf || !root.contains(oldLeaf) || !nextRoot.contains(newLeaf)) return false;
+        leaves.add(oldLeaf);
+        let current = oldLeaf, next = newLeaf;
+        while (current !== root && next !== nextRoot)
+        {
+            if (!current || !next || current.nodeName !== next.nodeName
+                || (pairs.has(current) && pairs.get(current) !== next)
+                || (reverse.has(next) && reverse.get(next) !== current)) return false;
+            pairs.set(current, next);
+            reverse.set(next, current);
+            current = current.parentNode;
+            next = next.parentNode;
+        }
+        if (current !== root || next !== nextRoot) return false;
+    }
+    // Preflight every retained branch before mutating anything. A real view
+    // transition may have a different structure; normal search views do not.
+    for (const [current, next] of pairs)
+    {
+        if (leaves.has(current)) continue;
+        const oldOrder = [...current.childNodes].filter(child => pairs.has(child));
+        const newOrder = [...next.childNodes].filter(child => reverse.has(child)).map(child => reverse.get(child));
+        if (oldOrder.length !== newOrder.length || oldOrder.some((child, index) => child !== newOrder[index])) return false;
+    }
+    function updateBranch(current)
+    {
+        if (leaves.has(current)) return;
+        const next = pairs.get(current);
+        if (current !== root || next.nodeType === current.nodeType)
+        {
+            for (const attribute of [...current.attributes])
+                if (!next.hasAttribute(attribute.name)) current.removeAttribute(attribute.name);
+            for (const attribute of next.attributes)
+                if (current.getAttribute(attribute.name) !== attribute.value) current.setAttribute(attribute.name, attribute.value);
+        }
+        for (const child of [...current.childNodes])
+            if (!pairs.has(child)) child.remove();
+        let anchor = current.firstChild;
+        for (const child of [...next.childNodes])
+        {
+            const kept = reverse.get(child);
+            if (kept)
+            {
+                updateBranch(kept);
+                anchor = kept.nextSibling;
+            }
+            else current.insertBefore(child, anchor);
+        }
+    }
+    updateBranch(root);
+    return true;
+}
+
+function replaceSharedSearchMarkup(root, markup)
+{
+    if (activeSharedSearch && root.contains(activeSharedSearch.input))
+    {
+        const template = document.createElement('template');
+        template.innerHTML = markup;
+        if (replaceSharedSearchBranch(root, template.content)) return;
+    }
+    if (pendingSharedSearch && root.contains(pendingSharedSearch.input)) cancelSharedSearch();
+    root.innerHTML = markup;
 }
 
 function renderTopbar()

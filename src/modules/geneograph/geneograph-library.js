@@ -141,7 +141,7 @@ function renderGeneographHomeWithDiagnosticsBody()
         </nav>
       `;
 
-    main.innerHTML = `
+    replaceSharedSearchMarkup(main, `
         <section
           class="
             geneo-home-page
@@ -300,7 +300,7 @@ function renderGeneographHomeWithDiagnosticsBody()
             )}
           </div>
         </section>
-      `;
+      `);
 
     bindGeneographHome();
 }

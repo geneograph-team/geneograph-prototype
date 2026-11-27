@@ -149,13 +149,16 @@ function replaceNotesMarkup(markup, note)
         {
             shell.className = nextShell.className;
             shell.style.cssText = nextShell.style.cssText;
-            for (const [current, next] of sections) current.replaceWith(next);
+            for (const [current, next] of sections)
+            {
+                if (!replaceSharedSearchBranch(current, next)) current.replaceWith(next);
+            }
             return true;
         }
     }
 
     destroyNotesRichTextEditor();
-    main.innerHTML = markup;
+    replaceSharedSearchMarkup(main, markup);
     return false;
 }
 

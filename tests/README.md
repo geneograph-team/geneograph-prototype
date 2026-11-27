@@ -9,6 +9,7 @@ Reusable regression checks are tracked in this directory, grouped by the domain 
 | `people/` | Person identity matching |
 | `places/` | Unlinked Places and safe canonical reference handling |
 | `notes/` | Search projection freshness and compatible rich-text editor retention |
+| `search/` | Shared search scheduling, composition, cancellation and connected-input retention |
 | `temp/` | Ignored disposable test scripts, experiments and logs |
 
 Run an individual reusable check from the repository root with a current Node.js version (Node 22 was used for the integrated Tree verification):
@@ -19,6 +20,7 @@ node tests/projects/check-gedcom-import.cjs
 node tests/projects/check-project-data-contract.cjs
 node tests/people/test-person-match-engine.cjs
 node tests/places/test-unlinked-places.cjs
+node tests/search/test-shared-search-input.cjs
 ```
 
 Select the checks relevant to the change. A nonzero exit means failure. `tree-cases.cjs` is a shared topology builder, not an executable test. The internal stress-project check must be removed with its temporary application fixture before open user testing; see the [removal guide](../doc/family-tree-stress-test.md).

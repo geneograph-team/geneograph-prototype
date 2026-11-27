@@ -37,7 +37,7 @@ function renderStartupWithDiagnosticsBody()
     sidebar.querySelector('#importGedcom').addEventListener('click', () => openImportModal());
     bindToasts(sidebar);
 
-    main.innerHTML = `
+    replaceSharedSearchMarkup(main, `
         <div class="page-grid startup-page">
           <section class="main-column">
             <div class="header-row">
@@ -81,7 +81,7 @@ function renderStartupWithDiagnosticsBody()
             ${renderOfflineProjectsCard()}
           </aside>
         </div>
-      `;
+      `);
     bindProjectControls();
     bindStartupRightColumn();
     localizeUI(

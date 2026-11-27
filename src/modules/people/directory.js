@@ -2025,7 +2025,7 @@ function renderPeopleWithDiagnosticsBody()
 
     if (perfTrace) appPerf.span(perfTrace, 'markup', appPerf.now() - markupStarted);
     const domStarted = perfTrace ? appPerf.now() : 0;
-    main.innerHTML = markup;
+    replaceSharedSearchMarkup(main, markup);
     if (perfTrace) appPerf.span(perfTrace, 'dom', appPerf.now() - domStarted);
     bindPeopleControls(
         visibleRows

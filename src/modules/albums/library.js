@@ -1134,8 +1134,7 @@ function renderAlbumsWithDiagnosticsBody()
     sidebar.innerHTML =
         nextSidebarMarkup;
 
-    main.innerHTML =
-        nextMainMarkup;
+    replaceSharedSearchMarkup(main, nextMainMarkup);
     const nextDetail = main.querySelector('.albums-detail');
     if (nextDetail) nextDetail.scrollTop = previousDetailScrollTop;
 

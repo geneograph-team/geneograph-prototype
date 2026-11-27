@@ -2793,6 +2793,7 @@ function closeModal(options = {})
 
     setApplicationInert(false);
     if (afterClose && !options.skipAfterClose) queueMicrotask(afterClose);
+    resumeSharedSearch();
 
     const returnTarget = modalReturnFocus;
     modalReturnFocus = null;

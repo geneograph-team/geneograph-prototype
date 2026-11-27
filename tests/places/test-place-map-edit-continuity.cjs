@@ -56,6 +56,8 @@ const draft = { ...original, mapSession: original, disclosures: {} };
 let reopened, resets = 0;
 const context = vm.createContext({
     main, state, placesMapRuntime: runtime, placeEditorDraft: draft, window: { addEventListener() {} },
+    replaceSharedSearchBranch: () => false,
+    replaceSharedSearchMarkup: (root, markup) => { root.innerHTML = markup; },
     document: { querySelector: main.querySelector, createElement: () => ({ content: shell() }) },
     currentProjectId: () => 'p1', getPlace: () => ({ name: 'Example' }),
     validLatitude: lat => Number.isFinite(lat) && Math.abs(lat) <= 90,

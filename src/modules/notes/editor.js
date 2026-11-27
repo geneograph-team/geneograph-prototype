@@ -722,10 +722,10 @@ function renderNotesPreservingInteraction(
 
     renderNotes();
 
-    const renderedPane = main.querySelector('.notes-browser-pane');
+    const renderedResults = main.querySelector('.notes-browser-scroll');
     requestAnimationFrame(() =>
     {
-        if (state.activeModule === 'Notes' && main.querySelector('.notes-browser-pane') === renderedPane)
+        if (state.activeModule === 'Notes' && main.querySelector('.notes-browser-scroll') === renderedResults)
             restoreNotesInteractionState(snapshot, options);
     });
 }
