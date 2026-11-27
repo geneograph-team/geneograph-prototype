@@ -69,9 +69,7 @@ function openAddPersonModal(title, subtitle, options = {})
         || (connectionIntent.relationshipType === 'sibling'
             && unknownSiblingParentChoice(initialParentFamilySelection)
             ? 'Unknown parentage'
-            : connectionIntent.relationshipType === 'parent'
-                && parentIdsForPerson(connectionIntent.anchorPersonId).length >= 2
-                ? 'Adoptive' : 'Biological');
+            : 'Biological');
 
     const anchorGender = String(getPerson(connectionIntent.anchorPersonId)?.gender || '').toLowerCase();
     const relativeGender = isPartnerMode && connectionIntent.shouldConnect
@@ -229,19 +227,6 @@ function openAddPersonModal(title, subtitle, options = {})
         if (event.target.matches('[data-parent-family-selection]'))
             updateSiblingParentSelectionHelp(event.target);
     });
-    if (connectionIntent.relationshipType === 'parent')
-    {
-        const typeSelect = modalBackdrop.querySelector('#addPersonConnectionDetailType');
-        const genderSelect = modalBackdrop.querySelector('#addPersonGender');
-        let typeTouched = false;
-        typeSelect?.addEventListener('change', () => { typeTouched = true; });
-        genderSelect?.addEventListener('change', () =>
-        {
-            if (!typeSelect || typeTouched) return;
-            typeSelect.value = newPersonBiologicalConflict(connectionIntent, '', genderSelect.value)
-                ? 'Adoptive' : 'Biological';
-        });
-    }
     bindAddPersonSideCards(options, editPerson);
     bindManageRelativeReturn(options.managerReturn);
     bindRepeatableFacts(modalBackdrop.querySelector('.add-person-modal'));
@@ -374,6 +359,7 @@ function commitAddPersonPossibleMatchAction(options = {})
         parentFamilySelection: familySelection,
         detailType: modalBackdrop?.querySelector('#addPersonConnectionDetailType')?.value
             || addPersonConnectionDetailType(options),
+        explicitParentRole: ['father', 'mother'].includes(options.relativeType) ? options.relativeType : '',
         partnerChildrenMode:
           addPersonPartnerChildrenMode(options)
     });

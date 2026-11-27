@@ -737,20 +737,35 @@ function connectPersonSelectedValidation()
         relativePersonId: connectPersonModalState.selectedPersonId,
         relationshipType: connectPersonModalState.relationshipType,
         parentFamilySelection: connectPersonModalState.parentFamilySelection,
-        detailType: connectPersonDetailType()
+        detailType: connectPersonDetailType(),
+        partnerChildrenMode: connectPersonModalState.partnerChildrenMode
     });
 }
 
-function biologicalParentConflict(parentId, childId, additionalParentIds = [], genderOverride = '')
+function biologicalParentConflict(parentId, childId, additionalParentIds = [], genderOverride = '', explicitRole = '', proposedEdges = [])
 {
-    const parents = parentIdsForPerson(childId).filter(id => id !== parentId &&
-        centralFamilyRecords().some(family => unlinkFamilyChildrenIds(family).includes(childId)
-            && familyIncludesPerson(family, id)
-            && parentChildRelationshipType(family, id, childId) === 'Biological'));
-    parents.push(...additionalParentIds.filter(id => id && id !== parentId && !parents.includes(id)));
-    const role = String(genderOverride || getPerson(parentId)?.gender || '').toLowerCase();
-    return parents.length >= 2 || (['male', 'female'].includes(role) && parents.some(id =>
-        String(getPerson(id)?.gender || '').toLowerCase() === role));
+    const roleFromGender = gender => ({ male: 'father', female: 'mother' })[String(gender || '').toLowerCase()] || '';
+    const parents = new Map();
+    for (const family of parentFamiliesForPerson(childId))
+        for (const id of [familyPartnerAId(family), familyPartnerBId(family)])
+        {
+            if (!id || id === parentId || parentChildRelationshipType(family, id, childId) !== 'Biological') continue;
+            if (!parents.has(id)) parents.set(id, new Set());
+            const role = familyPartnerRole(family, id);
+            if (role) parents.get(id).add(role);
+        }
+    for (const id of additionalParentIds)
+    {
+        if (!id || id === parentId) continue;
+        if (!parents.has(id)) parents.set(id, new Set());
+        const edge = proposedEdges.find(item => item.parentId === id && item.childId === childId);
+        const role = edge ? edge.role : roleFromGender(getPerson(id)?.gender);
+        if (role) parents.get(id).add(role);
+    }
+    const role = explicitRole || roleFromGender(genderOverride || getPerson(parentId)?.gender);
+    const gender = roleFromGender(genderOverride || getPerson(parentId)?.gender);
+    return parents.size >= 2 || Boolean(role && [...parents.values()].some(roles => roles.has(role)))
+        || Boolean(gender && [...parents.keys()].some(id => roleFromGender(getPerson(id)?.gender) === gender));
 }
 
 function connectPersonDetailType()
@@ -758,40 +773,8 @@ function connectPersonDetailType()
     const type = normalizeConnectRelationshipType(connectPersonModalState.relationshipType);
     if (connectPersonModalState.detailType) return connectPersonModalState.detailType;
     if (type === 'partner') return 'Married';
-    if (type === 'sibling'
-        && unknownSiblingParentChoice(connectPersonModalState.parentFamilySelection))
+    if (type === 'sibling' && unknownSiblingParentChoice(connectPersonModalState.parentFamilySelection))
         return 'Unknown parentage';
-    if (type === 'parent' && parentIdsForPerson(connectPersonModalState.anchorPersonId)
-        .filter(id => centralFamilyRecords().some(family => unlinkFamilyChildrenIds(family)
-            .includes(connectPersonModalState.anchorPersonId) && familyIncludesPerson(family, id)
-            && parentChildRelationshipType(family, id, connectPersonModalState.anchorPersonId) === 'Biological'))
-        .length >= 2) return 'Adoptive';
-    if (['child', 'sibling'].includes(type) && newPersonBiologicalConflict({
-        anchorPersonId: connectPersonModalState.anchorPersonId,
-        relationshipType: type
-    }, connectPersonModalState.parentFamilySelection, 'Unknown')) return 'Adoptive';
-    const pair = connectionPairForRelationship(connectPersonModalState.anchorPersonId,
-        connectPersonModalState.selectedPersonId, type);
-    if (pair.parentId && pair.childId)
-    {
-        const otherParent = ['parent', 'child'].includes(type)
-            ? familyPartnerId(parentFamilyChoices(pair.parentId, 'child')
-                .find(choice => choice.value === connectPersonModalState.parentFamilySelection)?.family,
-            pair.parentId) : '';
-        if (type === 'parent' && otherParent) return 'Unknown parentage';
-        return biologicalParentConflict(pair.parentId, pair.childId, otherParent ? [otherParent] : [])
-            || (otherParent && biologicalParentConflict(otherParent, pair.childId, [pair.parentId]))
-            ? 'Adoptive' : 'Biological';
-    }
-    if (type === 'sibling' && pair.siblingPersonId)
-    {
-        const choice = parentFamilyChoices(pair.anchorPersonId, 'sibling', pair.siblingPersonId)
-            .find(item => item.value === connectPersonModalState.parentFamilySelection);
-        const targetPersonId = choice?.sourcePersonId === pair.anchorPersonId
-            ? pair.siblingPersonId : pair.anchorPersonId;
-        if (choice?.parentIds.some(parentId => biologicalParentConflict(parentId, targetPersonId,
-            choice.parentIds.filter(id => id !== parentId)))) return 'Adoptive';
-    }
     return 'Biological';
 }
 

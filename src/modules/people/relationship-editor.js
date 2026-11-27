@@ -1489,75 +1489,101 @@ function connectionPairForRelationship(anchorPersonId, relativePersonId, relatio
     };
 }
 
+// Validate all proposed edges before changing any family membership.
+function parentageRoleForConnection(parentId, family = null, explicitRole = '')
+{
+    return explicitRole || familyPartnerRole(family, parentId, { explicitOnly: true })
+        || ({ HUSB: 'father', WIFE: 'mother' })[relationshipRoleHintForPerson(parentId)] || '';
+}
+
+function plannedParentageEdge(parentId, childId, type, family = null, explicitRole = '')
+{
+    return { parentId, childId, type, role: parentageRoleForConnection(parentId, family, explicitRole) };
+}
+
+function biologicalParentageError()
+{
+    return { ok: false, title: t('Biological parent unavailable'),
+        message: t('This person already has two biological parents or a biological parent of the same gender. Choose another relationship type.') };
+}
+
+function validatePlannedParentage(edges)
+{
+    for (const edge of edges)
+    {
+        const { parentId, childId, type, role } = edge;
+        const validation = validateParentChildConnection(parentId, childId);
+        if (!validation.ok) return validation;
+        if (type === 'Biological' && biologicalParentConflict(parentId, childId,
+            edges.filter(other => other !== edge && other.childId === childId && other.type === 'Biological')
+                .map(other => other.parentId), '', role, edges))
+            return biologicalParentageError();
+    }
+    return { ok: true };
+}
+
+// Retain the existing unique-family Add parent behavior. Multiple eligible
+// families require a separate parent-only family rather than a guessed one.
+function parentCreationFamily(parentId, childId)
+{
+    const matches = parentFamiliesForPerson(childId).filter(family => familyCanAcceptParent(family, parentId));
+    return matches.length === 1 ? matches[0] : null;
+}
+
+function inheritedParentageEdges(family, existingParentId, newParentId, selectedChildId = '', selectedType = '', explicitRole = '')
+{
+    return unlinkFamilyChildrenIds(family).map(childId => plannedParentageEdge(newParentId, childId,
+        childId === selectedChildId ? selectedType : parentChildRelationshipType(family, existingParentId, childId),
+        null, explicitRole));
+}
+
 function validateRelationshipConnection({
     anchorPersonId,
     relativePersonId,
     relationshipType,
     parentFamilySelection = '',
-    detailType = 'Biological'
+    detailType = 'Biological',
+    explicitParentRole = '',
+    partnerChildrenMode = PARTNER_CHILDREN_ADD_PARENT
 } = {})
 {
     const pair = connectionPairForRelationship(anchorPersonId, relativePersonId, relationshipType);
 
     if (pair.type === 'parent' || pair.type === 'child')
     {
-        const parentChildValidation = validateParentChildConnection(pair.parentId, pair.childId);
-        if (!parentChildValidation.ok) return parentChildValidation;
-        if (detailType === 'Biological' && biologicalParentConflict(pair.parentId, pair.childId))
-        {
-            return { ok: false, title: t('Biological parent unavailable'),
-                message: t('This person already has two biological parents or a biological parent of the same gender. Choose another relationship type.') };
-        }
-
-        // The newly created parent in Add Person has no existing family
-        // selection. Existing-person Connect always provides a choice.
+        const { parentId, childId } = pair;
         if (pair.type === 'parent' && !parentFamilySelection)
-            return parentChildValidation;
-
+        {
+            const family = parentCreationFamily(parentId, childId);
+            const existingParent = family && [familyPartnerAId(family), familyPartnerBId(family)].find(Boolean);
+            return validatePlannedParentage(family
+                ? inheritedParentageEdges(family, existingParent, parentId, childId, detailType, explicitParentRole)
+                : [plannedParentageEdge(parentId, childId, detailType, null, explicitParentRole)]);
+        }
         const selectionValidation = validateParentFamilySelection({
-            anchorPersonId: pair.type === 'parent' ? pair.childId : pair.parentId,
+            anchorPersonId: pair.type === 'parent' ? childId : parentId,
             relationshipType: pair.type,
             selection: parentFamilySelection,
-            otherPersonId: pair.type === 'parent' ? pair.parentId : ''
+            otherPersonId: pair.type === 'parent' ? parentId : ''
         });
         if (!selectionValidation.ok) return selectionValidation;
-
-        if (parentFamilySelection !== SINGLE_PARENT_FAMILY_CHOICE)
-        {
-            const choice = parentFamilyChoices(pair.parentId, 'child')
-                .find(item => item.value === parentFamilySelection);
-            const otherParentId = choice?.family
-                ? familyPartnerId(choice.family, pair.parentId) : '';
-            if (otherParentId)
-            {
-                // Prevent duplicate links and ancestry cycles through the
-                // additionally selected parent before mutating any family.
-                const otherValidation = validateParentChildConnection(otherParentId, pair.childId);
-                if (!otherValidation.ok) return otherValidation;
-                if (detailType === 'Biological'
-                    && (biologicalParentConflict(pair.parentId, pair.childId, [otherParentId])
-                        || biologicalParentConflict(otherParentId, pair.childId, [pair.parentId])))
-                {
-                    return { ok: false, title: t('Biological parent unavailable'),
-                        message: t('This child cannot have another biological parent in the selected family. Choose another relationship type or family.') };
-                }
-            }
-        }
-
-        return parentChildValidation;
+        const family = parentFamilySelection === SINGLE_PARENT_FAMILY_CHOICE
+            ? null : partnerFamiliesForPerson(parentId).find(item => item.id === parentFamilySelection);
+        const otherParentId = family ? familyPartnerId(family, parentId) : '';
+        return validatePlannedParentage([
+            plannedParentageEdge(parentId, childId, detailType, family),
+            ...(otherParentId ? [plannedParentageEdge(otherParentId, childId, detailType, family)] : [])
+        ]);
     }
 
     if (pair.type === 'sibling')
-    {
-        return validateSiblingConnection(
-            pair.anchorPersonId,
-            pair.siblingPersonId,
-            parentFamilySelection,
-            detailType
-        );
-    }
+        return validateSiblingConnection(pair.anchorPersonId, pair.siblingPersonId, parentFamilySelection, detailType);
 
-    return validatePartnerConnection(pair.personAId, pair.personBId);
+    const validation = validatePartnerConnection(pair.personAId, pair.personBId);
+    if (!validation.ok) return validation;
+    const family = normalizePartnerChildrenMode(partnerChildrenMode) === PARTNER_CHILDREN_ADD_PARENT
+        ? singleParentFamilyWithChildrenForPerson(pair.personAId) : null;
+    return family ? validatePlannedParentage(inheritedParentageEdges(family, pair.personAId, pair.personBId)) : validation;
 }
 
 function relationshipWarningForConnection({ anchorPersonId, relativePersonId, relationshipType } = {})
@@ -1823,15 +1849,9 @@ function validateSiblingConnection(anchorPersonId, siblingPersonId, familyId, de
         };
     }
 
-    for (const parentId of choice.parentIds.filter(id => !hasParentChildRelationship(id, targetPersonId)))
-    {
-        const validation = validateParentChildConnection(parentId, targetPersonId);
-        if (!validation.ok) return validation;
-        if (detailType === 'Biological' && biologicalParentConflict(parentId, targetPersonId,
-            choice.parentIds.filter(id => id !== parentId && !hasParentChildRelationship(id, targetPersonId))))
-            return { ok: false, title: t('Biological parent unavailable'),
-                message: t('This person already has two biological parents or a biological parent of the same gender. Choose another relationship type.') };
-    }
+    const validation = validatePlannedParentage(choice.parentIds.map(parentId =>
+        plannedParentageEdge(parentId, targetPersonId, detailType, family)));
+    if (!validation.ok) return validation;
 
     return { ok: true, family, choice, sourcePersonId, targetPersonId };
 }
@@ -1869,6 +1889,13 @@ function connectSiblingsThroughFamily(anchorPersonId, siblingPersonId, familyId,
     const family = isolateParent
         ? createParentChildFamily(selectedParentId, sourcePersonId)
         : validation.family;
+    if (isolateParent)
+    {
+        const role = familyPartnerRole(validation.family, selectedParentId, { explicitOnly: true });
+        const hint = role === 'father' ? 'HUSB' : role === 'mother' ? 'WIFE' : '';
+        if (familyPartnerAId(family) === selectedParentId) family.partnerARoleHint = hint;
+        else family.partnerBRoleHint = hint;
+    }
     if (validation.choice.parentIds.length === 1)
     {
         const parentId = validation.choice.parentIds[0];
@@ -1895,40 +1922,23 @@ function connectSiblingsThroughFamily(anchorPersonId, siblingPersonId, familyId,
     };
 }
 
-function connectParentToChild(parentId, childId, explicitRole = '')
+function connectParentToChild(parentId, childId, explicitRole = '', detailType = 'Biological')
 {
-    const validation = validateParentChildConnection(parentId, childId);
-
-    if (!validation.ok)
-    {
-        return validation;
-    }
-
+    let family = parentCreationFamily(parentId, childId);
+    const existingParent = family && [familyPartnerAId(family), familyPartnerBId(family)].find(Boolean);
+    const edges = family
+        ? inheritedParentageEdges(family, existingParent, parentId, childId, detailType, explicitRole)
+        : [plannedParentageEdge(parentId, childId, detailType, null, explicitRole)];
+    const validation = validatePlannedParentage(edges);
+    if (!validation.ok) return validation;
     const warning = parentWarningForConnection(parentId, childId);
-
-    const matches = centralFamilyRecords().filter(candidate =>
-        candidate.projectId === currentProjectId() && candidate.childIds.includes(childId) && familyCanAcceptParent(candidate, parentId)
-    );
-    let family = matches.length === 1 ? matches[0] : null;
-
-    if (!family)
-    {
-        family = createParentChildFamily(parentId, childId, explicitRole);
-    }
-    else
-    {
-        family.childIds = [...new Set([...(family.childIds || []), childId])];
-
-        assignParentToFamily(family, parentId, explicitRole);
-        family.updatedAt = new Date().toISOString();
-    }
-
-    return {
-        ok: true,
-        family,
-        relationshipType: 'parentChild',
-        warning
-    };
+    if (!family) family = createParentChildFamily(parentId, childId, explicitRole);
+    else if (!assignParentToFamily(family, parentId, explicitRole))
+        return { ok: false, title: 'Parent family unavailable', message: 'The selected parent family is no longer available.' };
+    for (const edge of edges)
+        setParentChildRelationshipType(family, edge.parentId, edge.childId, edge.type);
+    family.updatedAt = new Date().toISOString();
+    return { ok: true, family, relationshipType: 'parentChild', warning };
 }
 
 function getPartnerRelationshipBetween(personAId, personBId)
@@ -1972,6 +1982,9 @@ function connectPartners(personAId, personBId, options = {})
 
     if (existingChildrenFamily)
     {
+        const edges = inheritedParentageEdges(existingChildrenFamily, personAId, personBId);
+        const parentageValidation = validatePlannedParentage(edges);
+        if (!parentageValidation.ok) return parentageValidation;
         const assigned =
             assignParentToFamily(existingChildrenFamily, personBId);
 
@@ -1984,6 +1997,8 @@ function connectPartners(personAId, personBId, options = {})
             };
         }
 
+        for (const edge of edges)
+            setParentChildRelationshipType(existingChildrenFamily, edge.parentId, edge.childId, edge.type);
         existingChildrenFamily.updatedAt = new Date().toISOString();
 
 
@@ -2065,23 +2080,14 @@ function connectPeopleByRelationship({
         relativePersonId: relativeId,
         relationshipType: type,
         parentFamilySelection,
-        detailType: effectiveDetailType
+        detailType: effectiveDetailType,
+        explicitParentRole,
+        partnerChildrenMode: normalizedPartnerChildrenMode
     });
 
     if (!validation.ok)
     {
         return validation;
-    }
-
-    if (type === 'parent' && !parentFamilySelection && effectiveDetailType === 'Biological'
-        && ['father', 'mother'].includes(explicitParentRole)
-        && centralFamilyRecords().some(family => family.childIds.includes(anchorId)
-            && [familyPartnerAId(family), familyPartnerBId(family)].some(id => id && id !== relativeId
-                && familyPartnerRole(family, id, { explicitOnly: true }) === explicitParentRole
-                && parentChildRelationshipType(family, id, anchorId) === 'Biological')))
-    {
-        return { ok: false, title: t('Biological parent unavailable'),
-            message: t('This person already has two biological parents or a biological parent of the same gender. Choose another relationship type.') };
     }
 
     let result;
@@ -2090,7 +2096,7 @@ function connectPeopleByRelationship({
     {
         result = parentFamilySelection
             ? connectChildToParentFamily(relativeId, anchorId, parentFamilySelection, 'parent')
-            : connectParentToChild(relativeId, anchorId, explicitParentRole);
+            : connectParentToChild(relativeId, anchorId, explicitParentRole, effectiveDetailType);
     }
     else if (type === 'child')
     {
@@ -2140,7 +2146,7 @@ function connectPeopleByRelationship({
                 if (!Object.hasOwn(result.family.parentChildTypes || {}, key))
                 {
                     setParentChildRelationshipType(result.family, id, childId,
-                        id === parentId ? effectiveDetailType : 'Unknown parentage');
+                        effectiveDetailType);
                 }
             });
     }
@@ -2148,16 +2154,7 @@ function connectPeopleByRelationship({
     {
         result.family.relationshipType = effectiveDetailType;
         result.family.relationshipStatus = partnerRelationshipDefinition(effectiveDetailType).status;
-        if (result.inheritedChildren)
-        {
-            unlinkFamilyChildrenIds(result.family).forEach(childId =>
-            {
-                const key = parentChildRelationshipKey(relativeId, childId);
-                if (!Object.hasOwn(result.family.parentChildTypes || {}, key))
-                    setParentChildRelationshipType(result.family, relativeId, childId,
-                        'Unknown parentage');
-            });
-        }
+
     }
 
     rebuildSampleEventsAndPruneSourceLinks();
@@ -2511,15 +2508,6 @@ function commitAddPersonModalCreate(title, subtitle, options = {})
     const connectionIntent = addPersonCreateConnectionIntent(options);
     const connectionDetailType = addPersonConnectionDetailType(options);
     const parentFamilySelection = addPersonParentFamilySelection(options);
-    if (connectionIntent.shouldConnect && connectionDetailType === 'Biological'
-        && newPersonBiologicalConflict(connectionIntent, parentFamilySelection,
-            modalBackdrop.querySelector('#addPersonGender')?.value))
-    {
-        const message = t('This connection cannot be biological. Choose another relationship type.');
-        showToast(message);
-        showAddPersonFamilyError('#addPersonConnectionDetailType', message);
-        return null;
-    }
     if (connectionIntent.shouldConnect
         && ['child', 'sibling'].includes(connectionIntent.relationshipType))
     {
@@ -2538,6 +2526,7 @@ function commitAddPersonModalCreate(title, subtitle, options = {})
     }
 
     const projectPeopleBeforeCreate = getPeople(currentProjectId()).length;
+    const placesBeforeCreate = sampleData.places.length;
     const newPerson = createPersonFromAddPersonModal(options, additionalFacts, {
         birth: birthDate,
         death: deathDate
@@ -2566,6 +2555,7 @@ function commitAddPersonModalCreate(title, subtitle, options = {})
         {
             const index = sampleData.people.indexOf(newPerson);
             if (index >= 0) sampleData.people.splice(index, 1);
+            sampleData.places.splice(placesBeforeCreate);
             showToast(connectionResult.message || 'This relationship cannot be created.');
             return null;
         }
@@ -4505,11 +4495,15 @@ function saveRelationshipEdit(context)
     }
     else
     {
-        const key = parentChildRelationshipKey(latest.parentId, latest.childId);
-        family.parentChildTypes = {
-            ...sanitizeParentChildTypes(family.parentChildTypes),
-            [key]: modalBackdrop.querySelector('#relationshipEditParentChildType').value
-        };
+        const type = modalBackdrop.querySelector('#relationshipEditParentChildType').value;
+        if (type === 'Biological' && parentChildRelationshipType(family, latest.parentId, latest.childId) !== type
+            && biologicalParentConflict(latest.parentId, latest.childId, [], '',
+                parentageRoleForConnection(latest.parentId, family)))
+        {
+            showToast(biologicalParentageError().message);
+            return false;
+        }
+        setParentChildRelationshipType(family, latest.parentId, latest.childId, type);
     }
     family.updatedAt = new Date().toISOString();
     markPrototypeSessionEdited();
