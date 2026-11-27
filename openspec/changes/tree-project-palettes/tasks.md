@@ -8,5 +8,6 @@
 - [x] Founder layout refinements: default-person preview, reference preview, reordered palette, tooltip, shared Geneograph picker with draft-only color target; focused V8 checks.
 - [x] Approved density and alignment refinements; update palette markup regressions and verify staged interactions in V8.
 - [x] Add staged default-person selection and branch-reference tooltip, verify project mutation and independent reference/focus in focused regression tests.
+- [x] Refine Visibility and Coloring layout and localized guidance; extend staged settings markup assertions.
 - [ ] Run native Node Tree regression and localization catalog checks.
 - [ ] Verify EN/RU, both themes/orientations, keyboard and mobile, 16-slot editor, Apply/Cancel, large-project repaint and absence of ELK solve in browser; consolidate current specs/archive after acceptance.

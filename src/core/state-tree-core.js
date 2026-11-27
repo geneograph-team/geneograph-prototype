@@ -894,8 +894,12 @@ function openTreeSettingsModal()
             <div class="global-settings-panel tree-settings-panel">
               <section id="tree-settings-visibility" data-tree-settings-panel="visibility" aria-labelledby="tree-settings-visibility-title">
                 <h3 id="tree-settings-visibility-title">${escapeHtml(t('Visibility'))}</h3>
-                <div class="tree-branch-reference tree-settings-default">${renderSharedFilterFields(defaultPicker)}</div>
-                <div class="two-col-form tree-settings-generation-grid">
+                <div class="tree-branch-reference tree-settings-default">
+                  ${renderSharedFilterFields(defaultPicker)}
+                  <p class="tree-settings-help">${escapeHtml(t('The person used as the initial tree focus.'))}</p>
+                </div>
+                <h4>${escapeHtml(t('Tree visibility'))}</h4>
+                <div class="tree-settings-generation-grid">
                   <div class="field">
                     <label for="treeAncestorGenerations">${escapeHtml(t('Ancestor generations'))}</label>
                     <input id="treeAncestorGenerations" type="number" min="${TREE_ANCESTOR_GENERATION_MIN}" max="${TREE_ANCESTOR_GENERATION_MAX}" step="1" value="${draft.ancestorGenerations}">
@@ -914,7 +918,7 @@ function openTreeSettingsModal()
                 </label>
               </section>
               <section id="tree-settings-coloring" data-tree-settings-panel="coloring" aria-labelledby="tree-settings-coloring-title" hidden>
-                <h3 id="tree-settings-coloring-title">${escapeHtml(t('Coloring'))}</h3>
+                <h3 id="tree-settings-coloring-title">${escapeHtml(t('Color channels'))}</h3>
                 <div class="tree-color-channels">${channel('fill', 'Fill', true)}${channel('outline', 'Outline', true)}
                   ${channel('connectors', 'Connectors', false)}</div>
                 <fieldset class="tree-branch-settings">
@@ -926,7 +930,8 @@ function openTreeSettingsModal()
                       ${select('treeBranchPreset', TREE_BRANCH_PRESETS.map(value => option(value, colors.preset, String(value))).join(''))}
                     </div>
                     <label class="tree-settings-check"><input id="treeBranchCollateral" type="checkbox" ${colors.collateral ? 'checked' : ''}>
-                      <strong>${escapeHtml(t('Include collateral relatives'))}</strong>
+                      <span><strong>${escapeHtml(t('Include collateral relatives'))}</strong>
+                        <small>${escapeHtml(t('Extend branch colors to collateral relatives without changing who is shown in the tree.'))}</small></span>
                     </label>
                   </div>
                 </fieldset>

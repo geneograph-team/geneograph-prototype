@@ -531,6 +531,11 @@
     min-width: 0;
 }
 
+.tree-settings-panel > section:not(#tree-settings-palette) {
+    width: 100%;
+    max-width: 640px;
+}
+
 .tree-settings-panel > section[hidden] {
     display: none;
 }
@@ -703,6 +708,14 @@
 .tree-settings-default {
     display: grid;
     gap: var(--space-2);
+    padding-bottom: var(--space-4);
+    border-bottom: 1px solid var(--surface-row-divider);
+}
+
+.tree-settings-help {
+    color: var(--text-tertiary);
+    font-size: 12px;
+    line-height: 1.4;
 }
 
 .tree-settings-person-preview {
@@ -711,11 +724,6 @@
     gap: var(--space-3);
     min-width: 0;
     color: var(--text-primary);
-}
-
-.tree-settings-default {
-    padding-bottom: var(--space-3);
-    border-bottom: 1px solid var(--surface-row-divider);
 }
 
 .tree-branch-reference .shared-filter-field > label,
@@ -846,22 +854,13 @@
 
 .tree-branch-options {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(0, 2fr);
-    align-items: end;
+    align-content: start;
     gap: var(--space-3);
 }
 
-.tree-branch-options .tree-settings-check {
-    box-sizing: border-box;
-    min-height: var(--control-height);
-    align-items: center;
-    padding: 0;
-}
-
-@media (max-width: 640px) {
-    .tree-branch-options {
-        grid-template-columns: minmax(0, 1fr);
-    }
+.tree-branch-options > .field {
+    width: 100%;
+    max-width: 180px;
 }
 
 .geneo-paint-popover[data-geneo-paint-scope="draft-color"] .geneo-paint-popover-fields.is-color-only {
@@ -915,10 +914,6 @@
         padding: var(--space-3);
     }
 
-    .tree-settings-generation-grid {
-        grid-template-columns: minmax(0, 1fr);
-    }
-
     .tree-palette-category-grid {
         grid-template-columns: minmax(0, 1fr);
     }
@@ -938,7 +933,15 @@
 
 
 .tree-settings-generation-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 240px));
     align-items: start;
+    gap: var(--space-3);
+}
+
+.tree-settings-generation-grid input {
+    width: 100%;
+    max-width: 160px;
 }
 
 .tree-settings-generation-grid .field-help {
@@ -1599,6 +1602,8 @@ html.tree-fullscreen .tree-shell {
 
 .tree-color-channels {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(min(100%, 112px), 1fr));
-    gap: 10px;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 144px), 180px));
+    gap: var(--space-3);
+    padding-bottom: var(--space-4);
+    border-bottom: 1px solid var(--surface-row-divider);
 }

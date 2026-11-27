@@ -1,5 +1,9 @@
 const RU_UI_FAMILY_TREE = {
     'Coloring': 'Цветовое оформление',
+    'Color channels': 'Каналы цветового оформления',
+    'Tree visibility': 'Видимость древа',
+    'The person used as the initial tree focus.': 'Человек, на котором изначально сфокусировано древо.',
+    'Extend branch colors to collateral relatives without changing who is shown in the tree.': 'Распространяет цвета ветвей на боковых родственников, не меняя состав отображаемого древа.',
     'Palette': 'Палитра',
     'Configure tree visibility, coloring and project palettes.': 'Настройте видимость древа, цветовое оформление и палитры проекта.',
     'Tree settings sections': 'Разделы настроек древа',
