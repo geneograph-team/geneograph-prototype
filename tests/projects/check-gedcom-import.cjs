@@ -121,6 +121,40 @@ assert.equal(citationRich.url, 'https://example.test/record?a=1&b=2');
 assert.equal(richNotes.records.notes.length, 2);
 assert.ok(!richNotes.records.notes.some(note => note.body.includes('Evidence')));
 assert.ok(richNotes.warnings.some(warning => warning.kind === 'text-format'));
+
+// MyHeritage evidence can contain HTML delimiters escaped twice. Reconstruct
+// continuations before unwrapping and preserve literal unknown placeholders.
+const escapedEvidence = map(file([
+    '1 SOUR MYHERITAGE', '0 @I1@ INDI', '1 NOTE Literal &amp;lt;br&amp;gt; example',
+    '1 SOUR @S1@', '2 DATA', '3 TEXT Example person&amp;lt;br&amp;',
+    '4 CONC gt;Пол: мужчина&amp;lt;br&amp;gt;Рождение: 1900',
+    '4 CONC &amp;lt;br /&amp;gt;Page: 139&amp;lt;br&amp;gt;&amp;lt;private&amp;gt;',
+    '4 CONC &amp;lt;br&amp;gt;&amp;lt;a id=\'household\'&amp;gt;Household&amp;lt;/a&amp;gt;',
+    '4 CONC &amp;lt;br&amp;gt;&amp;lt;a href=&amp;quot;https://example.test/record?a=1&amp;amp;b=2&amp;quot;&amp;gt;Record&amp;lt;/a&amp;gt;',
+    '4 CONC &amp;lt;br&amp;gt;A&amp;nbsp;B',
+    '0 @S1@ SOUR', '1 TITL Register', '1 TEXT First&lt;br&gt;Second'
+]));
+assert.deepEqual(Array.from(escapedEvidence.errors), []);
+assert.equal(escapedEvidence.records.notes[0].body, 'Literal &amp;lt;br&amp;gt; example');
+const escapedSource = escapedEvidence.records.sources[0];
+assert.equal(escapedSource.notes, 'First\nSecond\n\nExample person\nПол: мужчина\nРождение: 1900\nPage: 139\n<private>\nHousehold\nRecord (https://example.test/record?a=1&b=2)\nA B');
+assert.equal(escapedSource.url, 'https://example.test/record?a=1&b=2');
+const unsafeEscapedEvidence = map(file([
+    '0 @I1@ INDI', '1 SOUR @S1@', '2 TEXT First&amp;lt;br&amp;gt;',
+    '3 CONC &amp;lt;script&amp;gt;bad()&amp;lt;/script&amp;gt;',
+    '3 CONC &amp;lt;a href=&amp;quot;javascript:bad()&amp;quot;&amp;gt;Safe label&amp;lt;/a&amp;gt;',
+    '0 @S1@ SOUR', '1 TITL Register'
+]));
+assert.deepEqual(Array.from(unsafeEscapedEvidence.errors), []);
+assert.equal(unsafeEscapedEvidence.records.sources[0].notes, 'First\nSafe label');
+assert.equal(unsafeEscapedEvidence.records.sources[0].url, '');
+assert.ok(unsafeEscapedEvidence.warnings.some(warning => warning.kind === 'text-format'));
+const literalEvidence = map(file([
+    '0 @I1@ INDI', '1 SOUR @S1@', '2 TEXT A &amp; B &amp;lt;private&amp;gt; and 2 &lt; 3',
+    '0 @S1@ SOUR', '1 TITL Register'
+]));
+assert.equal(literalEvidence.records.sources[0].notes, 'A &amp; B &amp;lt;private&amp;gt; and 2 &lt; 3');
+
 const literalNotes = map(file(['0 @I1@ INDI', '1 NOTE 2 < 3; <placeholder>; A & B &amp; C']));
 assert.equal(literalNotes.records.notes[0].body, '2 < 3; <placeholder>; A & B &amp; C');
 assert.equal(literalNotes.records.notes[0].bodyDelta, null);

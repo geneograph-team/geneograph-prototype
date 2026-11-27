@@ -566,6 +566,27 @@ function gedcomSafeHtmlLink(value)
     catch { return ''; }
 }
 
+// Some MyHeritage source excerpts encode an entire HTML fragment more than
+// once, e.g. &amp;lt;br&amp;gt;. Recognize clear escaped formatting only in
+// evidence fields. Keep unknown placeholders encoded until the text decoder
+// runs, so they remain literal text rather than becoming discarded tags.
+// Never send the restored markup to a DOM or execute it.
+function gedcomUnwrapEvidenceMarkup(value)
+{
+    if (!/&(?:amp;){0,3}lt;/i.test(value)) return value;
+    const normalized = value.replace(/&(?:amp;){1,3}(?=(?:#[0-9]+|#x[0-9a-f]+|[a-z][a-z0-9]*);)/gi, '&');
+    const breaks = /&lt;(?:br|hr)\s*\/?\s*&gt;/i;
+    // Avoid scanning a potentially large excerpt once per unmatched start tag.
+    // A matching closing tag is sufficient to identify an escaped fragment.
+    const openTags = /&lt;(p|div|span|b|strong|i|em|u|s|strike|del|a|ul|ol|li|blockquote|h[1-6]|table|tr|td|th|pre|font)(?=[\s&])/gi;
+    const closeTags = new Set([...normalized.matchAll(/&lt;\/([a-z][a-z0-9]*)\s*&gt;/gi)].map(match => match[1].toLowerCase()));
+    if (!breaks.test(normalized) && ![...normalized.matchAll(openTags)].some(match => closeTags.has(match[1].toLowerCase())))
+        return value;
+    const tags = /&lt;(\/?(?:p|div|span|b|strong|i|em|u|s|strike|del|a|ul|ol|li|blockquote|h[1-6]|table|tr|td|th|pre|font|html|body|tbody|thead|tfoot|br|hr|img|script|style|iframe|object|embed|svg|math|link|meta|video|audio|input|form|template|head|noscript|source|wbr|area|base|col|param)(?=[\s/&])(?:(?!&lt;|&gt;)[^<>]){0,8192})&gt;/gi;
+    return normalized.replace(tags, (_, tag) => '<' + tag
+        .replace(/&quot;|&#34;|&#x22;/gi, '"').replace(/&apos;|&#39;|&#x27;/gi, "'") + '>');
+}
+
 function gedcomRichContent(value, checkDeadline = () => {})
 {
     // Treat comparisons, unknown angle-bracket placeholders and unmatched
@@ -880,6 +901,7 @@ function mapGedcomImportWithDiagnosticsBody(parsed, project, matches = new Map()
     const sourceLinks = new Map();
     const onlinePhotos = new Set();
     const textCache = new WeakMap();
+    const evidenceTextCache = new WeakMap();
     const simplifiedText = new WeakSet();
     const reportSimplifiedText = node =>
     {
@@ -887,9 +909,10 @@ function mapGedcomImportWithDiagnosticsBody(parsed, project, matches = new Map()
         simplifiedText.add(node);
         warn(node.tag, node.line, 'text-format');
     };
-    const readRichText = node =>
+    const readRichText = (node, escapedEvidence = false) =>
     {
-        if (textCache.has(node)) return textCache.get(node);
+        const cache = escapedEvidence === true ? evidenceTextCache : textCache;
+        if (cache.has(node)) return cache.get(node);
         used.add(node);
         const parts = [node.value.replace(/^@@/, '@')];
         for (const part of node.children)
@@ -899,14 +922,21 @@ function mapGedcomImportWithDiagnosticsBody(parsed, project, matches = new Map()
             parts.push(part.tag === 'CONT' ? '\n' : '', part.value);
             used.add(part);
         }
-        const content = gedcomRichContent(parts.join(''), checkDeadline);
+        const value = parts.join('');
+        const content = gedcomRichContent(escapedEvidence === true ? gedcomUnwrapEvidenceMarkup(value) : value, checkDeadline);
         if (content.simplified) reportSimplifiedText(node);
-        textCache.set(node, content);
+        cache.set(node, content);
         return content;
     };
     const readText = node =>
     {
         const content = readRichText(node);
+        if (content.ops) reportSimplifiedText(node);
+        return gedcomPlainEvidence(content);
+    };
+    const readSourceText = node =>
+    {
+        const content = readRichText(node, true);
         if (content.ops) reportSimplifiedText(node);
         return gedcomPlainEvidence(content);
     };
@@ -1373,14 +1403,14 @@ function mapGedcomImportWithDiagnosticsBody(parsed, project, matches = new Map()
         if (node.tag !== 'SOUR' || !node.xref) continue;
         used.add(node);
         const titleNode = take(node, 'TITL');
-        const title = (titleNode && readText(titleNode).trim()) || t('Untitled source');
+        const title = (titleNode && readSourceText(titleNode).trim()) || t('Untitled source');
         const authorNode = take(node, 'AUTH');
-        const author = authorNode ? readText(authorNode).trim() : '';
+        const author = authorNode ? readSourceText(authorNode).trim() : '';
         const classification = myHeritage ? read(node, '_TYPE') : '';
         const medium = myHeritage ? read(node, '_MEDI') : '';
         const publicationNode = take(node, 'PUBL');
-        const publication = publicationNode ? readText(publicationNode).trim() : '';
-        const text = node.children.filter(child => child.tag === 'TEXT').map(readText);
+        const publication = publicationNode ? readSourceText(publicationNode).trim() : '';
+        const text = node.children.filter(child => child.tag === 'TEXT').map(readSourceText);
         const category = ['Collection', 'Discovery', 'Smart Matching'].includes(classification) ? 'online'
             : publication ? 'publication' : '';
         sourceDefinitions.set(node.xref, { record: {
@@ -1431,7 +1461,7 @@ function mapGedcomImportWithDiagnosticsBody(parsed, project, matches = new Map()
             const evidence = (field, label = '', locator = false) =>
             {
                 if (!field) return;
-                const content = readRichText(field);
+                const content = readRichText(field, true);
                 if (content.ops) reportSimplifiedText(field);
                 const value = gedcomPlainEvidence(content).trim();
                 if (value) details.push(label ? sourceDetail(label, value) : value);
