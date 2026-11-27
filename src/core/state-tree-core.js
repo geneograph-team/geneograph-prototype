@@ -826,21 +826,21 @@ function treePaletteRowsMarkup(palette, theme, preset, origins, originIds, peopl
         const originName = origin ? localizedDataFieldValue(formatPersonFullName(origin)) || t('Unnamed person') : t('Vacant branch origin');
         const status = enabled ? t('Included in branch count') : t('Not included in branch count');
         const colorLabel = escapeHtml(label + ' · ' + t(theme === 'light' ? 'Light' : 'Dark'));
-        return `<div class="tree-palette-row">
-            ${isBranch ? `<span class="tree-palette-slot-status ${enabled ? '' : 'inactive'}" role="img" aria-label="${escapeHtml(status)}" title="${escapeHtml(status)}">${enabled ? icon.eye : icon.eyeOff}</span>` : '<span aria-hidden="true"></span>'}
+        return `<div class="tree-palette-row ${isBranch ? 'tree-palette-branch-row' : 'tree-palette-category-row'}">
+            ${isBranch ? `<span class="tree-palette-slot-status ${enabled ? '' : 'inactive'}" role="img" aria-label="${escapeHtml(status)}" title="${escapeHtml(status)}">${enabled ? icon.eye : icon.eyeOff}</span>` : ''}
             <label class="tree-palette-label" for="tree-palette-${key}">
                 <strong>${escapeHtml(label)}</strong>
                 ${isBranch ? `<small>${escapeHtml(roles)} · <span data-i18n-skip>${escapeHtml(originName)}</span></small>` : ''}
             </label>
             <button class="geneo-paint-swatch tree-palette-color" id="tree-palette-${key}" type="button" data-tree-palette-color="${key}" data-tree-palette-label="${colorLabel}" data-color-value="${palette[theme][key]}" style="--geneo-paint-rendered:${palette[theme][key]}" aria-label="${colorLabel}" aria-haspopup="dialog" aria-expanded="false"><span aria-hidden="true"></span></button>
-            <button class="button secondary tree-palette-reset" type="button" data-tree-palette-reset="${key}" title="${escapeHtml(t('Reset color') + ' · ' + label)}" aria-label="${escapeHtml(t('Reset color') + ' · ' + label)}">${icon.undo}</button>
+            <button class="tree-palette-reset" type="button" data-tree-palette-reset="${key}" title="${escapeHtml(t('Reset color') + ' · ' + label)}" aria-label="${escapeHtml(t('Reset color') + ' · ' + label)}">${icon.undo}</button>
         </div>`;
     };
     const hint = t('The eye indicates inclusion in the selected branch count, not visibility on the tree. All slots remain editable.');
-    return `<h4>${escapeHtml(t('Gender and neutral colors'))}</h4>`
+    return `<h4>${escapeHtml(t('Gender and neutral colors'))}</h4><div class="tree-palette-category-grid">`
         + [['male', 'Male'], ['female', 'Female'], ['unknown', 'Unknown gender'], ['neutral', 'Neutral']]
             .map(([key, label]) => row(key, t(label))).join('')
-        + `<h4 class="tree-palette-branch-heading">${escapeHtml(t('Branch colors'))}<span class="tree-palette-info-wrap"><span class="tree-palette-info" tabindex="0" aria-describedby="treePaletteEyeHint" aria-label="${escapeHtml(t('Branch colors'))}">${icon.info}</span><span class="tree-palette-tooltip" id="treePaletteEyeHint" role="tooltip">${escapeHtml(hint)}</span></span></h4>`
+        + `</div><h4 class="tree-palette-branch-heading">${escapeHtml(t('Branch colors'))}<span class="tree-palette-info-wrap"><span class="tree-palette-info" tabindex="0" aria-describedby="treePaletteEyeHint" aria-label="${escapeHtml(t('Branch colors'))}">${icon.info}</span><span class="tree-palette-tooltip" id="treePaletteEyeHint" role="tooltip">${escapeHtml(hint)}</span></span></h4>`
         + origins.map((path, index) => row(String(index + 1), t('Branch') + ' ' + (index + 1), path, originIds[index])).join('');
 }
 
@@ -888,7 +888,7 @@ function openTreeSettingsModal()
               <section id="tree-settings-visibility" data-tree-settings-panel="visibility" aria-labelledby="tree-settings-visibility-title">
                 <h3 id="tree-settings-visibility-title">${escapeHtml(t('Visibility'))}</h3>
                 <div class="tree-settings-default">
-                  <span class="field-help">${escapeHtml(t('Default person'))}</span>
+                  <span class="tree-settings-field-label">${escapeHtml(t('Default person'))}</span>
                   ${treeSettingsPersonPreview(defaultPerson?.projectId === projectId ? defaultPerson : null)}
                 </div>
                 <div class="two-col-form tree-settings-generation-grid">
@@ -934,8 +934,8 @@ function openTreeSettingsModal()
                     <label for="treePaletteTheme">${escapeHtml(t('Palette theme'))}</label>
                     ${select('treePaletteTheme', option('light', paletteTheme, 'Light') + option('dark', paletteTheme, 'Dark'))}
                   </div>
-                  <button class="button secondary" type="button" data-tree-palette-reset-theme>${escapeHtml(t('Reset theme palette'))}</button>
-                  <button class="button secondary" type="button" data-tree-palette-reset-all>${escapeHtml(t('Reset entire palette'))}</button>
+                  <button class="tree-palette-toolbar-action" type="button" data-tree-palette-reset-theme title="${escapeHtml(t('Reset theme palette'))}" aria-label="${escapeHtml(t('Reset theme palette'))}">${escapeHtml(t('Reset theme'))}</button>
+                  <button class="tree-palette-toolbar-action" type="button" data-tree-palette-reset-all title="${escapeHtml(t('Reset entire palette'))}" aria-label="${escapeHtml(t('Reset entire palette'))}">${escapeHtml(t('Reset all'))}</button>
                 </div>
                 <div data-tree-palette-rows></div>
               </section>

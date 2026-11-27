@@ -36,5 +36,9 @@ assert.ok(html.indexOf('Gender and neutral colors') < html.indexOf('Branch color
 assert.ok(html.includes('role="tooltip"'));
 assert.equal((html.match(/geneo-paint-swatch/g) || []).length, 20);
 assert.equal(html.includes('type="color"'), false);
+assert.equal((html.match(/tree-palette-category-row/g) || []).length, 4);
+assert.equal((html.match(/tree-palette-branch-row/g) || []).length, 16);
+assert.ok(html.includes('class="tree-palette-category-grid"'));
+assert.equal(html.includes('button secondary tree-palette-reset'), false);
 `, context);
 console.log('Tree palette editor rows, preset indicators, origin paths and inactive theme values passed.');

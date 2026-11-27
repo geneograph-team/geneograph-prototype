@@ -6,6 +6,8 @@ const RU_UI_FAMILY_TREE = {
     'Show extended family': 'Показывать дальних родственников',
     'Include aunts, uncles, cousins and their descendants.': 'Включает тёть, дядей, двоюродных братьев и сестёр и их потомков.',
     'Palette theme': 'Тема палитры',
+    'Reset theme': 'Сбросить тему',
+    'Reset all': 'Сбросить всё',
     'Reset theme palette': 'Сбросить палитру темы',
     'Reset entire palette': 'Сбросить всю палитру',
     'The eye indicates inclusion in the selected branch count, not visibility on the tree. All slots remain editable.': 'Значок глаза означает включение в выбранное число ветвей, а не видимость на древе. Все цвета можно редактировать.',
