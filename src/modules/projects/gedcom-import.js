@@ -2490,9 +2490,15 @@ function renderGedcomMatchingStatus(projectId)
     const report = gedcomImportReports.get(projectId);
     const text = gedcomMatchingStatusText(report);
     if (!text) return '';
-    return '<div data-gedcom-matching-status="' + escapeHtml(projectId) + '">'
-        + '<p class="gedcom-session-note" role="status">' + escapeHtml(t(text)) + '</p>'
-        + (report.matchingState === 'running' ? '<button class="button secondary" type="button" data-gedcom-stop-matching>'
+    return '<div class="gedcom-matching-panel" data-gedcom-matching-status="' + escapeHtml(projectId)
+        + '" data-matching-state="' + escapeHtml(report.matchingState) + '">'
+        + '<div class="gedcom-matching-indicator" aria-hidden="true">'
+        + '<span class="gedcom-matching-spinner"></span>'
+        + '<span class="gedcom-matching-complete">' + icon.check + '</span>'
+        + '<span class="gedcom-matching-idle">' + icon.info + '</span></div>'
+        + '<div class="gedcom-matching-copy"><p role="status" tabindex="-1">' + escapeHtml(t(text)) + '</p>'
+        + geneographGeocoder.attributionHtml() + '</div>'
+        + (report.matchingState === 'running' ? '<button class="button ghost gedcom-matching-stop" type="button" data-gedcom-stop-matching>'
             + escapeHtml(t('Stop lookup')) + '</button>' : '') + '</div>';
 }
 
@@ -2504,7 +2510,12 @@ function bindGedcomMatchingStatus(root)
         button.dataset.gedcomBound = 'true';
         button.addEventListener('click', () =>
         {
-            cancelGedcomPlaceMatching(button.closest('[data-gedcom-matching-status]').dataset.gedcomMatchingStatus);
+            const panel = button.closest('[data-gedcom-matching-status]');
+            // Keep keyboard focus within the result when the stop control
+            // becomes disabled and subsequently disappears.
+            if (typeof document !== 'undefined' && document.activeElement === button)
+                panel.querySelector('[role="status"]')?.focus();
+            cancelGedcomPlaceMatching(panel.dataset.gedcomMatchingStatus);
             button.disabled = true;
         });
     });
@@ -2518,10 +2529,16 @@ function updateGedcomMatchingStatus(projectId)
     {
         if (root.dataset.gedcomMatchingStatus !== projectId) continue;
         const text = gedcomMatchingStatusText(report);
+        root.dataset.matchingState = report?.matchingState || '';
         const status = root.querySelector('[role="status"]');
-        if (status) status.textContent = t(text);
+        if (status && status.textContent !== t(text)) status.textContent = t(text);
         const stop = root.querySelector('[data-gedcom-stop-matching]');
-        if (stop && report?.matchingState !== 'running') stop.disabled = true;
+        if (stop && report?.matchingState !== 'running')
+        {
+            if (document.activeElement === stop) status?.focus();
+            stop.disabled = true;
+            stop.hidden = true;
+        }
     }
 }
 
@@ -2907,12 +2924,13 @@ function openImportModal()
 function showGedcomImportResult(report)
 {
     const projectId = [...gedcomImportReports].find(([, value]) => value === report)?.[0];
+    const matchingPanel = projectId ? renderGedcomMatchingStatus(projectId) : '';
     openModal('<div class="modal" role="dialog" aria-modal="true" aria-labelledby="gedcomResultTitle">'
         + '<div class="modal-header"><h2 id="gedcomResultTitle">' + escapeHtml(t('GEDCOM imported')) + '</h2></div>'
         + '<div class="modal-body">' + gedcomImportSummary(report) + gedcomAttachmentSummary(report, true)
         + '<p>' + escapeHtml(t('Imported projects stay in this session. Reloading discards them and any edits.')) + '</p>' + gedcomImportWarnings(report)
-        + (projectId ? renderGedcomMatchingStatus(projectId) : '')
-        + (report.matchingState || report.placeMatching?.lookups ? geneographGeocoder.attributionHtml() : '') + '</div>'
+        + matchingPanel
+        + (!matchingPanel && (report.matchingState || report.placeMatching?.lookups) ? geneographGeocoder.attributionHtml() : '') + '</div>'
         + '<div class="modal-footer"><button class="button primary" type="button" data-close>'
         + escapeHtml(t('Done')) + '</button></div></div>');
     bindGedcomMatchingStatus(modalBackdrop);

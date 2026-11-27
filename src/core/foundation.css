@@ -3117,6 +3117,104 @@ button.app-chip:disabled,
     font-variant-numeric: tabular-nums;
 }
 
+.gedcom-matching-panel {
+    display: grid;
+    grid-template-columns: 36px minmax(0, 1fr) auto;
+    align-items: center;
+    gap: var(--space-3);
+    margin-top: var(--space-4);
+    padding: var(--space-3);
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-sm);
+    background: var(--surface-raised);
+}
+
+.gedcom-matching-indicator {
+    display: grid;
+    place-items: center;
+    width: 36px;
+    height: 36px;
+    border-radius: var(--radius-sm);
+    background: var(--surface-field);
+    color: var(--text-secondary);
+}
+
+.gedcom-matching-indicator > span {
+    display: none;
+}
+
+.gedcom-matching-indicator svg {
+    display: block;
+    width: 20px;
+    height: 20px;
+}
+
+.gedcom-matching-panel[data-matching-state="running"] .gedcom-matching-spinner {
+    display: block;
+    width: 18px;
+    height: 18px;
+    box-sizing: border-box;
+    border: 2px solid var(--border-strong);
+    border-inline-start-color: var(--gg-primary);
+    border-radius: 50%;
+    animation: gedcom-matching-spin 0.9s linear infinite;
+}
+
+@keyframes gedcom-matching-spin {
+    to { transform: rotate(360deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .gedcom-matching-panel[data-matching-state="running"] .gedcom-matching-spinner {
+        animation: none;
+    }
+}
+
+.gedcom-matching-panel[data-matching-state="completed"] .gedcom-matching-complete,
+.gedcom-matching-panel:not([data-matching-state="running"]):not([data-matching-state="completed"]) .gedcom-matching-idle {
+    display: block;
+}
+
+.gedcom-matching-panel[data-matching-state="completed"] .gedcom-matching-indicator {
+    color: var(--gg-status-success-accent);
+}
+
+.gedcom-matching-copy {
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+
+.gedcom-matching-copy p {
+    margin: 0;
+    color: var(--text-primary);
+    font-weight: 600;
+    line-height: 1.4;
+}
+
+.gedcom-matching-copy .place-search-attribution {
+    padding: 4px 0 0;
+}
+
+.gedcom-matching-stop {
+    white-space: nowrap;
+    justify-self: end;
+}
+
+.gedcom-matching-stop[hidden] {
+    display: none;
+}
+
+@media (max-width: 540px) {
+    .gedcom-matching-panel {
+        grid-template-columns: 36px minmax(0, 1fr);
+    }
+
+    .gedcom-matching-stop {
+        grid-column: 2;
+        justify-self: end;
+    }
+}
+
 .gedcom-import-footer {
     align-items: center;
     flex-wrap: wrap;
