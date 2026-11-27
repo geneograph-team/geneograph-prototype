@@ -21,7 +21,7 @@ const context = vm.createContext({
 });
 for (const file of [
     'seed/sample-data', 'shared/genealogy-dates', 'shared/person-name-helpers', 'modules/places/place-record-helpers',
-    'shared/relationships', 'modules/family-tree/relationships', 'shared/tree-seed-model',
+    'core/project-read-model', 'shared/relationships', 'shared/project-read-providers', 'modules/family-tree/relationships', 'shared/tree-seed-model',
     'modules/people/person-form-fields', 'modules/people/person-editor', 'modules/people/relationship-editor',
     'modules/archive/archive-sources', 'modules/people/directory', 'core/validation', 'modules/archive/archive-documents',
     'modules/projects/gedcom-import', 'seed/family-tree-stress-data', 'seed/family-tree-stress-test'

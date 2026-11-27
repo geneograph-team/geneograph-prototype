@@ -5,9 +5,10 @@ let prototypeSessionHasEdits = false;
 let prototypeSessionEditRevision = 0;
 let prototypeSessionUnloadListening = false;
 
-function markPrototypeSessionEdited()
+function markPrototypeSessionEdited(projectId, domains)
 {
     prototypeSessionEditRevision++;
+    invalidateProjectReadModel(projectId, domains);
     invalidateLinkedPlaceDismissals();
     if (prototypeSessionHasEdits) return;
     prototypeSessionHasEdits = true;

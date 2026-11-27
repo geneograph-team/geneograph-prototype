@@ -31,6 +31,14 @@ People, families, vital facts, other supported events or attributes, and importe
 
 Future review: additional GEDCOM family events currently import as Notes linked to the recorded partners and Place. Revisit retaining them as separate, editable family events when the UI can manage them without changing the relationship status.
 
+## Project-scoped derived data
+
+The live canonical collections are the source for project reads. A provider borrows canonical objects for read-only use and exposes immutable derived containers. It must not persist indexes, modify canonical records, or resolve a detached validation draft through a live cache. Scoped keys include the owning project even where legacy IDs are globally unique. Callers choose raw or eligible records according to the workflow.
+
+The active project retains one compatible result per provider key. Switching, leaving, replacing or deleting the project releases results. Non-active and obsolete contexts perform uncached reads. Provider dependencies are domain revisions and the unclassified fallback epoch. A semantic setting such as reference person or language is an explicit variant for the projection that consumes it.
+
+Owning mutation paths notify once at a successful logical commit with the project ID and affected domains. Untyped edits preserve the dirty-session contract and invalidate conservatively. Ambiguous paths remain untyped. Notify before the next read or render. Run any intermediate validation against detached or uncached data and discard temporary state after a failed operation. GEDCOM rollback restores canonical collections and resets the live read generation.
+
 ## Implemented detached validation
 
 `prepareProjectDraft()` accepts project metadata and authored collections as JSON-compatible data. Collections may be omitted for an empty project. Supplied collections must be arrays. The input excludes derived events, activity, and notifications. Record IDs are unique within each collection, and project-owned records identify the input project.

@@ -1303,7 +1303,7 @@ function openPeopleActionsMenu(
                 if (!project || !selected || selected.deleted || selected.projectId !== project.id
                     || treeDefaultPersonId(project.id) === selected.id) return;
                 project.defaultPersonId = selected.id;
-                touchProjectModified(project);
+                touchProjectModified(project, ['projects']);
                 showToast(t('Default person updated'));
             }
 

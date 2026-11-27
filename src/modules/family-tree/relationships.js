@@ -201,13 +201,15 @@ function partnerRelationshipMeta(family)
     return [displayType, date].filter(Boolean).join(' · ');
 }
 
-function getRelationshipGroups(personId)
+function getRelationshipGroups(personId, index)
 {
-    const parents = getParents(personId);
-    const siblings = getSiblings(personId);
-    const partnerRelationships =
-        getPartnerRelationships(personId);
-    const children = getChildren(personId);
+    const parents = getParents(personId, index);
+    const siblings = getSiblings(personId, index, parents);
+    const partnerRelationships = getPartnerRelationships(personId, index);
+    const children = getChildren(personId, index);
+    const findParentFamily = (parentId, childId) => unlinkFindCentralFamilyForParentChild(
+        parentId, childId, '', index?.parentFamilies(childId)
+    );
 
     return [
         {
@@ -215,7 +217,7 @@ function getRelationshipGroups(personId)
             items: parents.map(parent =>
             {
                 const family =
-                    unlinkFindCentralFamilyForParentChild(
+                    findParentFamily(
                         parent.id,
                         personId
                     );
@@ -263,10 +265,7 @@ function getRelationshipGroups(personId)
             items: partnerRelationships
                 .map(relationship =>
                 {
-                    const partner = getRelationshipPartner(
-                        relationship,
-                        personId
-                    );
+                    const partner = (index?.lookupPerson || getPerson)(getRelationshipPartnerId(relationship, personId));
 
                     if (!partner) return null;
 
@@ -288,7 +287,7 @@ function getRelationshipGroups(personId)
             items: children.map(child =>
             {
                 const family =
-                    unlinkFindCentralFamilyForParentChild(
+                    findParentFamily(
                         personId,
                         child.id
                     );

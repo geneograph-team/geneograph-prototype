@@ -130,12 +130,12 @@ function uniquePeopleById(people)
     });
 }
 
-function getParents(personId)
+function getParents(personId, index)
 {
-    const parents = centralFamilyRecords()
-        .filter(family =>
-            (family.childIds || []).includes(personId)
-        )
+    const lookupPerson = index?.lookupPerson || getPerson;
+    const families = index ? index.parentFamilies(personId) : centralFamilyRecords().filter(family =>
+        (family.childIds || []).includes(personId));
+    const parents = families
         .flatMap(family =>
             [
                 familyPartnerAId(family),
@@ -144,14 +144,14 @@ function getParents(personId)
                 .filter(Boolean)
                 .map(parentId =>
                 {
-                    const parent = getPerson(parentId);
+                    const parent = lookupPerson(parentId);
 
                     if (!parent) return null;
 
                     return {
                         ...parent,
                         parentRole:
-                  familyPartnerRole(family, parentId)
+                  familyPartnerRole(family, parentId, { lookupPerson })
                   || 'parent'
                     };
                 })
@@ -161,18 +161,15 @@ function getParents(personId)
     return uniquePeopleById(parents);
 }
 
-function getChildren(personId)
+function getChildren(personId, index)
 {
-    const childIds = new Set(
-        centralFamilyRecords()
-            .filter(family =>
-                familyIncludesPerson(family, personId)
-            )
-            .flatMap(family => family.childIds || [])
-    );
+    const lookupPerson = index?.lookupPerson || getPerson;
+    const families = index ? index.partnerFamilies(personId) : centralFamilyRecords().filter(family =>
+        familyIncludesPerson(family, personId));
+    const childIds = new Set(families.flatMap(family => family.childIds || []));
 
     return [...childIds]
-        .map(childId => getPerson(childId))
+        .map(childId => lookupPerson(childId))
         .filter(Boolean);
 }
 
@@ -196,17 +193,19 @@ function relationshipIncludesPerson(rel, personId)
     return isFamilyRelationship(rel) && (relationshipPartnerAId(rel) === personId || relationshipPartnerBId(rel) === personId);
 }
 
-function getPartnerRelationships(personId)
+function getPartnerRelationships(personId, index)
 {
     const id = String(personId || '');
+    const lookupPerson = index?.lookupPerson || getPerson;
+    const families = index ? index.partnerFamilies(id) : centralFamilyRecords();
 
-    return centralFamilyRecords()
+    return families
         .filter(family =>
         {
             if (!familyIncludesPerson(family, id)) return false;
 
             const partnerId = familyPartnerId(family, id);
-            return Boolean(partnerId && getPerson(partnerId));
+            return Boolean(partnerId && lookupPerson(partnerId));
         });
 }
 
@@ -228,7 +227,7 @@ function getPartners(personId)
 }
 
 function genderedPersonRelationship(
-    personId,
+    gender,
     {
         male,
         female,
@@ -236,12 +235,6 @@ function genderedPersonRelationship(
     }
 )
 {
-    const gender =
-        String(
-            getPerson(personId)?.gender
-          || ''
-        ).toLowerCase();
-
     if (gender === 'male')
     {
         return male;
@@ -258,7 +251,8 @@ function genderedPersonRelationship(
 function addPersonRelationshipGraphEdge(
     graph,
     fromPersonId,
-    edge
+    edge,
+    seenEdges
 )
 {
     if (
@@ -272,29 +266,18 @@ function addPersonRelationshipGraphEdge(
         return;
     }
 
-    const edges =
-        graph.get(fromPersonId);
-
-    const duplicate =
-        edges.some(existing =>
-            existing.personId === edge.personId
-          && existing.kind === edge.kind
-          && existing.familyId === edge.familyId
-        );
-
-    if (!duplicate)
-    {
-        edges.push(edge);
-    }
+    const key = JSON.stringify([fromPersonId, edge.personId, edge.kind, edge.familyId]);
+    if (seenEdges.has(key)) return;
+    seenEdges.add(key);
+    graph.get(fromPersonId).push(edge);
 }
 
 function buildPersonRelationshipGraph(
-    projectId
+    projectId, projectPeople = getPeople(projectId), families = centralFamilyRecords(), lookupPerson = getPerson
 )
 {
     const people =
-        getPeople(projectId)
-            .filter(person =>
+        projectPeople.filter(person =>
                 person?.id
             && !person.deleted
             );
@@ -307,7 +290,8 @@ function buildPersonRelationshipGraph(
             ])
         );
 
-    centralFamilyRecords()
+    const seenEdges = new Set();
+    families
         .filter(family =>
             family
           && family.relationshipStatus
@@ -346,7 +330,8 @@ function buildPersonRelationshipGraph(
                   family.id,
 
                         family
-                    }
+                    },
+                    seenEdges
                 );
 
                 addPersonRelationshipGraphEdge(
@@ -363,7 +348,8 @@ function buildPersonRelationshipGraph(
                   family.id,
 
                         family
-                    }
+                    },
+                    seenEdges
                 );
             }
 
@@ -387,7 +373,8 @@ function buildPersonRelationshipGraph(
                     const parentRole =
                         familyPartnerRole(
                             family,
-                            parentId
+                            parentId,
+                            { lookupPerson }
                         )
                 || 'parent';
 
@@ -407,7 +394,8 @@ function buildPersonRelationshipGraph(
                     family.id,
 
                             family
-                        }
+                        },
+                        seenEdges
                     );
 
                     addPersonRelationshipGraphEdge(
@@ -426,7 +414,8 @@ function buildPersonRelationshipGraph(
                     family.id,
 
                             family
-                        }
+                        },
+                        seenEdges
                     );
                 });
             });
@@ -482,7 +471,7 @@ function partnerRelationshipLabel(
 }
 
 function ancestorRelationshipLabel(
-    personId,
+    gender,
     depth,
     firstParentRole = '',
     {
@@ -496,7 +485,7 @@ function ancestorRelationshipLabel(
     {
         label =
             genderedPersonRelationship(
-                personId,
+                gender,
                 {
                     male:
                 'Father',
@@ -513,7 +502,7 @@ function ancestorRelationshipLabel(
     {
         label =
             genderedPersonRelationship(
-                personId,
+                gender,
                 {
                     male:
                 'Grandfather',
@@ -548,7 +537,7 @@ function ancestorRelationshipLabel(
     {
         label =
             genderedPersonRelationship(
-                personId,
+                gender,
                 {
                     male:
                 'Great-grandfather',
@@ -572,7 +561,7 @@ function ancestorRelationshipLabel(
 }
 
 function descendantRelationshipLabel(
-    personId,
+    gender,
     depth,
     {
         inLaw = false
@@ -593,7 +582,7 @@ function descendantRelationshipLabel(
     {
         label =
             genderedPersonRelationship(
-                personId,
+                gender,
                 {
                     male:
                 'Son',
@@ -610,7 +599,7 @@ function descendantRelationshipLabel(
     {
         label =
             genderedPersonRelationship(
-                personId,
+                gender,
                 {
                     male:
                 'Grandson',
@@ -627,7 +616,7 @@ function descendantRelationshipLabel(
     {
         label =
             genderedPersonRelationship(
-                personId,
+                gender,
                 {
                     male:
                 'Great-grandson',
@@ -651,7 +640,7 @@ function descendantRelationshipLabel(
 }
 
 function siblingRelationshipLabel(
-    personId,
+    gender,
     {
         inLaw = false
     } = {}
@@ -659,7 +648,7 @@ function siblingRelationshipLabel(
 {
     const label =
         genderedPersonRelationship(
-            personId,
+            gender,
             {
                 male:
               'Brother',
@@ -678,11 +667,11 @@ function siblingRelationshipLabel(
 }
 
 function stepParentRelationshipLabel(
-    personId
+    gender
 )
 {
     return genderedPersonRelationship(
-        personId,
+        gender,
         {
             male:
             'Stepfather',
@@ -697,11 +686,11 @@ function stepParentRelationshipLabel(
 }
 
 function stepChildRelationshipLabel(
-    personId
+    gender
 )
 {
     return genderedPersonRelationship(
-        personId,
+        gender,
         {
             male:
             'Stepson',
@@ -730,7 +719,7 @@ function pathHasRelationshipKinds(
 }
 
 function personRelationshipLabelFromPath(
-    personId,
+    gender,
     path
 )
 {
@@ -756,7 +745,7 @@ function personRelationshipLabelFromPath(
     )
     {
         return ancestorRelationshipLabel(
-            personId,
+            gender,
             path.length,
             path[0]?.parentRole || ''
         );
@@ -769,7 +758,7 @@ function personRelationshipLabelFromPath(
     )
     {
         return descendantRelationshipLabel(
-            personId,
+            gender,
             path.length
         );
     }
@@ -785,7 +774,7 @@ function personRelationshipLabelFromPath(
     )
     {
         return siblingRelationshipLabel(
-            personId
+            gender
         );
     }
 
@@ -806,7 +795,7 @@ function personRelationshipLabelFromPath(
             path.slice(1);
 
         return ancestorRelationshipLabel(
-            personId,
+            gender,
             ancestorPath.length,
             ancestorPath[0]
                 ?.parentRole
@@ -832,7 +821,7 @@ function personRelationshipLabelFromPath(
     )
     {
         return descendantRelationshipLabel(
-            personId,
+            gender,
             1,
             {
                 inLaw:
@@ -855,7 +844,7 @@ function personRelationshipLabelFromPath(
     )
     {
         return stepParentRelationshipLabel(
-            personId
+            gender
         );
     }
 
@@ -873,7 +862,7 @@ function personRelationshipLabelFromPath(
     )
     {
         return stepChildRelationshipLabel(
-            personId
+            gender
         );
     }
 
@@ -900,7 +889,7 @@ function personRelationshipLabelFromPath(
     )
     {
         return siblingRelationshipLabel(
-            personId,
+            gender,
             {
                 inLaw:
               true
@@ -923,7 +912,7 @@ function personRelationshipLabelFromPath(
     )
     {
         return genderedPersonRelationship(
-            personId,
+            gender,
             {
                 male:
               'Uncle',
@@ -952,7 +941,7 @@ function personRelationshipLabelFromPath(
     )
     {
         return genderedPersonRelationship(
-            personId,
+            gender,
             {
                 male:
               'Nephew',
@@ -991,14 +980,11 @@ function personRelationshipLabelFromPath(
 
 function buildPersonRelationshipLabelMap(
     projectId,
-    referencePersonId =
-        treeDefaultPersonId(projectId)
+    referencePersonId = treeDefaultPersonId(projectId),
+    graph = buildPersonRelationshipGraph(projectId),
+    lookupPerson = getPerson
 )
 {
-    const graph =
-        buildPersonRelationshipGraph(
-            projectId
-        );
 
     const labels =
         new Map(
@@ -1070,7 +1056,7 @@ function buildPersonRelationshipLabelMap(
             labels.set(
                 personId,
                 personRelationshipLabelFromPath(
-                    personId,
+                    String(lookupPerson(personId)?.gender || '').toLowerCase(),
                     path
                 )
             );
@@ -1150,16 +1136,16 @@ function createRelationshipEvent(tag, eventType, values = {})
     };
 }
 
-function getSiblings(personId)
+function getSiblings(personId, index, parents = getParents(personId, index))
 {
-    const parentIds = getParents(personId).map(parent => parent.id);
+    const parentIds = parents.map(parent => parent.id);
     if (!parentIds.length) return [];
     const siblingIds = new Set();
-    parentIds.forEach(parentId => getChildren(parentId).forEach(child =>
+    parentIds.forEach(parentId => getChildren(parentId, index).forEach(child =>
     {
         if (child.id !== personId) siblingIds.add(child.id);
     }));
-    return Array.from(siblingIds).map(getPerson).filter(Boolean);
+    return Array.from(siblingIds).map(index?.lookupPerson || getPerson).filter(Boolean);
 }
 
 function getEventsForPerson(personId)

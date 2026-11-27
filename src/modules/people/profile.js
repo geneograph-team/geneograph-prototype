@@ -60,7 +60,7 @@ function renderProfileHeroName(person, centralPerson)
     ].filter(Boolean).join(' ');
 }
 
-function renderPeopleProfile(person, centralPerson)
+function renderPeopleProfile(person, centralPerson, context)
 {
     main.classList.add('people-profile-main');
 
@@ -214,7 +214,7 @@ function renderPeopleProfile(person, centralPerson)
             ${renderProfileCard(person)}
 
             <div class="profile-family-slot">
-              ${renderProfileFamilyHub(person)}
+              ${renderProfileFamilyHub(person, projectFamilyIndex(context))}
             </div>
           </div>
 
@@ -1231,7 +1231,7 @@ function renderProfileCompactTimeline(person, events)
       `;
 }
 
-function renderProfileFamilyHub(person)
+function renderProfileFamilyHub(person, familyIndex)
 {
     return `
         <section
@@ -1255,7 +1255,7 @@ function renderProfileFamilyHub(person)
           </h3>
 
           <div class="profile-family-scroll">
-            ${renderRelationships(person.id)}
+            ${renderRelationships(person.id, getRelationshipGroups(person.id, familyIndex))}
           </div>
         </section>
       `;

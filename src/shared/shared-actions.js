@@ -124,11 +124,11 @@ function formatProjectModified(
     }`;
 }
 
-function touchProjectModified(project)
+function touchProjectModified(project, domains)
 {
     if (!project) return;
     project.modifiedAt = new Date().toISOString();
-    markPrototypeSessionEdited();
+    markPrototypeSessionEdited(project.id, domains);
 }
 
 function updateProjectName(projectId, value)
@@ -1002,6 +1002,7 @@ function activateProjectWithDiagnosticsBody(projectId, {
     closeMenu();
     state.projectOpen = true;
     state.currentProjectId = project.id;
+    setProjectReadModelActive(project.id);
     state.selectedProjectId = project.id;
 
     if (reset && projectChanged)
@@ -1649,6 +1650,7 @@ function deleteProject(projectId)
     closeModal({ force: true });
 
     state.currentProjectId = null;
+    disposeProjectReadModel();
     state.projectOpen = false;
     state.activeModule = 'Projects';
     state.openSide = 'overview';

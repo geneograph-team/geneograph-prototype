@@ -1152,8 +1152,9 @@ function commitGedcomImportWithDiagnosticsBody(draft, report = gedcomImportRepor
         Object.assign(sampleData, next);
         gedcomImportReports.set(projectId, report);
         for (const [id, blob] of draft.attachmentAssets) archiveDocumentBytes.set(id, blob);
-        if (!activateProject(draft.project.id, { moduleName: 'Family Tree' }))
-            throw new Error('Project activation failed');
+        const activate = () => activateProject(projectId, { moduleName: 'Family Tree' });
+        const activated = withoutProjectReadModelRetention(activate);
+        if (!activated) throw new Error('Project activation failed');
     }
     catch (error)
     {
@@ -1163,6 +1164,8 @@ function commitGedcomImportWithDiagnosticsBody(draft, report = gedcomImportRepor
         gedcomImportReports.delete(projectId);
         Object.assign(sampleData, previous);
         Object.assign(state, previousState);
+        disposeProjectReadModel();
+        setProjectReadModelActive(state.projectOpen ? state.currentProjectId : null);
         try
         {
             if (previousContinuation === null) localStorage.removeItem(PROJECT_CONTINUATION_STORAGE_KEY);
@@ -1180,6 +1183,7 @@ function commitGedcomImportWithDiagnosticsBody(draft, report = gedcomImportRepor
         throw error;
     }
     markPrototypeSessionEdited();
+    setProjectReadModelActive(projectId);
 }
 
 const gedcomImportReports = new Map();

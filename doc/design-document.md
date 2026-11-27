@@ -94,13 +94,21 @@ For connected records, show up to **9 photos** (three columns in thumbnail grids
 
 ## 6. People, Profile, and Family Tree
 
+### Project read model and performance
+
+Canonical records remain local to the session. The shared read model lazily retains project-owned indexes only for the active project. People and Profile use the person and family providers. Directory search, filters and sorting use the complete lightweight population, then render only the visible page and selected preview. Profile resolves one person and relevant families without preparing the directory. Other modules adopt the same boundary incrementally.
+
+Keep UI-critical reads lightweight and synchronous. Render available primary content before optional expensive work. For secondary work, yield in bounded chunks when using the main thread. Awaiting alone does not reduce CPU work. Use a local worker only when measurement justifies it. Future remote execution would need explicit product approval, consent, data minimization and synchronization design. Core workflows remain usable locally, including direct file opening.
+
+An expensive job should carry the project ID, active generation and input revision. Coalesce work for identical current inputs when needed, expose pending/progress/error states where relevant, and distinguish an unknown result from zero. On a project switch or dependency change, cancel work or discard obsolete results. Check the generation and dependency token before publication. Results are disposable. The current foundation runs synchronously and introduces no general job executor.
+
 ### People and Profile
 
 The People directory presents project people with search/filter/sort and bulk operations. A person's role relative to the project's default person is derived from relationships, not maintained as a separate manually edited label. Profile brings identity, life facts, relations, photos, notes, places, and research connections together. Add/Edit Person uses the shared person model; changes can be reflected in other views of that record.
 
 Names include given, middle, surname, and where recorded a maiden surname. Living status and life dates affect display and privacy-oriented copy. Portraits resolve a primary project photo where available and otherwise use initials. Photo selection and association are prototype interactions over the current in-memory data; they do not upload to a production media service.
 
-The directory keeps one project-scoped query context keyed by edit revision, reference person, language and source links. Search and filters still evaluate the full population before pagination. Only the visible page is prepared for display. Profile resolves the selected canonical person directly and shares connected records and timeline events between the hero and its panels.
+The directory keeps one project-scoped query context keyed by input revisions, reference person, language and source links. Search and filters still evaluate the full population before pagination. Only the visible page is prepared for display. Profile resolves the selected canonical person directly and shares connected records and timeline events between the hero and its panels.
 
 **Performance check (#452).** Headless Edge on Windows, with 25 rows per page. These are synchronous entry and render measurements, excluding later paints and image decoding. The stress baseline used the issue's default revision for the changed files on the same local static server. Cold stress entry includes first activation of the fixture.
 

@@ -3342,9 +3342,9 @@ function unlinkSetFamilyChildren(family, childIds = [])
     return ids;
 }
 
-function unlinkFindCentralFamilyForParentChild(parentId, childId, preferredFamilyId = '')
+function unlinkFindCentralFamilyForParentChild(parentId, childId, preferredFamilyId = '', families = centralFamilyRecords())
 {
-    const matches = centralFamilyRecords().filter(family =>
+    const matches = families.filter(family =>
         (!preferredFamilyId || family.id === preferredFamilyId)
         && unlinkFamilyIncludesPerson(family, parentId) && unlinkFamilyChildrenIds(family).includes(childId)
     );
@@ -3523,7 +3523,7 @@ function unlinkParentChildRelationship({ parentId, childId, familyId = '' } = {}
     }
 
     unlinkRemoveFamilyIfEmptyAndOrphaned(family);
-    markPrototypeSessionEdited();
+    markPrototypeSessionEdited(family.projectId, ['families', 'events', 'sources', 'archive', 'notes']);
 
     return {
         ok: true,

@@ -39,6 +39,7 @@ const context = vm.createContext({
     treeDefaultPersonId: id => projects.find(project => project.id === id)?.defaultPersonId,
     getPeople: id => sampleData.people.filter(person => person.projectId === id),
     getPerson: id => sampleData.people.find(person => person.id === id),
+    centralFamilyRecords: () => [], buildPersonRelationshipGraph: () => new Map(),
     buildPersonRelationshipLabelMap(projectId, reference)
     {
         counts.graph++;
@@ -62,7 +63,7 @@ const context = vm.createContext({
 });
 for (const file of [
     'shared/genealogy-dates', 'shared/person-name-helpers', 'shared/filter-fields', 'shared/inspector-sort',
-    'shared/tree-seed-model', 'modules/people/directory'
+    'core/project-read-model', 'shared/project-read-providers', 'shared/tree-seed-model', 'modules/people/directory'
 ])
 {
     const filename = path.join(__dirname, '../../src', file + '.js');
@@ -77,6 +78,7 @@ for (const name of ['renderPeopleSidebar', 'renderPeopleDirectoryControls', 'ren
 }
 
 const { peopleDirectoryContext, peopleRecordsMatchingFilters, sortPeopleRecords, renderPeople } = context;
+context.setProjectReadModelActive('p1');
 const first = peopleDirectoryContext();
 const legacy = sampleData.people.filter(person => person.projectId === 'p1').map(person => ({
     id: person.id,
@@ -154,13 +156,13 @@ assert.equal(state.selectedPeopleId, 'silver');
 sampleData.people[1].names.first = 'Edited';
 sampleData.people[1].deleted = true;
 sampleData.sourceLinks.find(link => link.projectId === 'p1').targetId = 'silver';
-context.prototypeSessionEditRevision += 1;
+context.invalidateProjectReadModel();
 const edited = peopleDirectoryContext();
 assert.notEqual(edited, first);
 assert.equal(edited.peopleById.has('p1'), false);
 assert.equal(edited.records.find(row => row.id === 'silver').sourceCount, 1);
 sampleData.people[1].deleted = false;
-context.prototypeSessionEditRevision += 1;
+context.invalidateProjectReadModel();
 assert.equal(peopleDirectoryContext().records.find(row => row.id === 'p1').first, 'Edited');
 projects[0].defaultPersonId = 'p130';
 assert.equal(peopleDirectoryContext().records.find(row => row.id === 'p130').relation, 'Self');
@@ -168,10 +170,13 @@ state.language = 'ru';
 const russian = peopleDirectoryContext();
 assert.equal(russian.language, 'ru');
 activeProject = 'p2';
+context.setProjectReadModelActive('p2');
 assert.deepEqual(Array.from(peopleDirectoryContext().peopleById.keys()), ['foreign']);
 activeProject = 'p1';
+context.setProjectReadModelActive('p1');
 assert.notEqual(peopleDirectoryContext(), russian);
 activeProject = 'empty';
+context.setProjectReadModelActive('empty');
 state.peopleView = 'profile';
 renderPeople();
 assert.equal(state.peopleView, 'directory');

@@ -73,6 +73,10 @@ When creating or refining a GitHub issue, add a short **Implementation entry poi
 - JavaScript uses Allman braces, single quotes and semicolons; reuse `src/core/icons.js`. Follow `.editorconfig` and `.gitattributes` for UTF-8, line endings, final newline and indentation; leave binary assets unchanged. `src/index.html` has existing 2-space indentation despite the 4-space configured default.
 - Avoid new runtime dependencies, permanent tooling, test frameworks or fixtures without demonstrated ongoing need and authorization. Keep reusable regression tests under tracked `tests/<domain>/`, disposable investigation scripts and logs under ignored `tests/temp/`, and pipeline-critical tools under `scripts/`. Generate minimal synthetic test records in code; do not commit private genealogy, portraits, traces or temporary datasets. See [test layout and execution](tests/README.md).
 
+### Performance requirements
+
+For new and affected workflows, use project-scoped read boundaries. Declare cache inputs and disposal, keep list queries separate from visible detail, and use targeted lookups for existence, counts and single-record views. Avoid whole-collection scans per row. Verify build/scan/display counts and compare cold and warm browser measurements before agreeing a numeric budget. Migrate legacy paths in their scoped work. Exceptions require documented justification and founder approval. Preserve direct file opening unless the founder explicitly approves a specific compatibility loss and its rationale, impact and alternatives. See the [runtime design](doc/design-document.md#project-read-model-and-performance), [canonical data contract](doc/project-data-contract.md#project-scoped-derived-data), and [test protocol](tests/README.md#performance-verification).
+
 ## 5. Product, design and accessibility
 
 - **GeneoGraph** is the product; **Geneograph** is the visual board. Do not describe prototype-only, disabled or simulated features as shipped. Project persistence, GEDCOM import and Publish are not complete production workflows.

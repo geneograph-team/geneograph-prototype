@@ -574,6 +574,7 @@ function render()
 
 function renderApplicationShell()
 {
+    setProjectReadModelActive(state.projectOpen ? currentProjectId() : null);
     invalidateLinkedPlaceDismissals();
     if (state.activeModule !== 'Family Tree')
     {
