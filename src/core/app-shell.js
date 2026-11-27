@@ -1071,24 +1071,33 @@ function diagnosticsSettingsMarkup()
     const option = (value, label, selected) =>
         '<option value="' + value + '"' + (selected ? ' selected' : '') + '>' + escapeHtml(t(label)) + '</option>';
     const disabled = status.active ? 'disabled' : '';
+    const select = (id, options) =>
+        '<span class="common-select-shell global-settings-select-shell">'
+        + '<select class="common-select" id="' + id + '" ' + disabled + '>' + options + '</select>'
+        + '<span class="common-select-chevron" aria-hidden="true">' + icon.chevron + '</span></span>';
     return '<h3>' + escapeHtml(t('Diagnostics')) + '</h3>'
         + '<p>' + escapeHtml(t('Record anonymous application timings locally. Export manually; no genealogy data is included.')) + '</p>'
         + '<div class="global-settings-section diagnostics-settings" data-diagnostics-settings>'
         + '<div class="global-settings-row"><label for="diagnosticsScope">' + escapeHtml(t('Recording scope')) + '</label>'
-        + '<select class="common-select" id="diagnosticsScope" ' + disabled + '>'
-        + option('all', 'Entire application', config.scope === 'all')
-        + option('selected', 'Selected modules', config.scope === 'selected') + '</select></div>'
+        + select('diagnosticsScope', option('all', 'Entire application', config.scope === 'all')
+            + option('selected', 'Selected modules', config.scope === 'selected')) + '</div>'
         + '<fieldset class="diagnostics-modules" data-diagnostics-modules ' + (config.scope === 'all' ? 'hidden' : '') + ' ' + disabled + '>'
         + '<legend>' + escapeHtml(t('Selected modules')) + '</legend>'
         + appPerf.modules.map(module => '<label><input type="checkbox" data-diagnostics-module value="' + escapeHtml(module)
             + '" ' + (config.modules.includes(module) ? 'checked' : '') + '>' + escapeHtml(t(module)) + '</label>').join('')
         + '</fieldset>'
         + '<div class="global-settings-row"><label for="diagnosticsMode">' + escapeHtml(t('Recording mode')) + '</label>'
-        + '<select class="common-select" id="diagnosticsMode" ' + disabled + '>'
-        + option('basic', 'Basic', config.mode === 'basic')
-        + option('detailed', 'Detailed', config.mode === 'detailed') + '</select></div>'
-        + '<p class="field-help diagnostics-explanation">' + escapeHtml(t('Basic records operation durations; Detailed adds available stage timings and counters.')) + '</p>'
-        + '<p role="status" class="diagnostics-explanation" data-performance-status></p>'
+        + select('diagnosticsMode', option('basic', 'Basic', config.mode === 'basic')
+            + option('detailed', 'Detailed', config.mode === 'detailed')) + '</div>'
+        + '<div class="diagnostics-explanation field-help">'
+        + '<p><strong>' + escapeHtml(t('Basic')) + ':</strong> ' + escapeHtml(t('Operation durations and outcomes.')) + '</p>'
+        + '<p><strong>' + escapeHtml(t('Detailed')) + ':</strong> ' + escapeHtml(t('Also includes available stage timings and counters.')) + '</p></div>'
+        + '<div class="diagnostics-status" role="status">'
+        + '<strong data-performance-status></strong>'
+        + '<div class="diagnostics-metrics">'
+        + '<span>' + escapeHtml(t('Recorded operations')) + ': <strong data-performance-count></strong></span>'
+        + '<span>' + escapeHtml(t('Dropped operations')) + ': <strong data-performance-dropped></strong></span>'
+        + '</div></div>'
         + '<div class="diagnostics-actions">'
         + '<button class="button primary" type="button" data-performance-toggle></button>'
         + '<button class="button secondary" type="button" data-performance-clear>' + escapeHtml(t('Clear recording')) + '</button>'
@@ -1107,11 +1116,14 @@ function bindDiagnosticsSettings(root)
     const toggle = panel.querySelector('[data-performance-toggle]');
     const clear = panel.querySelector('[data-performance-clear]');
     const exportButton = panel.querySelector('[data-performance-export]');
-    const statusLabel = () =>
+    const statusText = panel.querySelector('[data-performance-status]');
+    const countText = panel.querySelector('[data-performance-count]');
+    const droppedText = panel.querySelector('[data-performance-dropped]');
+    const statusLabel = status => t(status.active ? 'Recording active' : 'Recording stopped');
+    const updateText = (element, value) =>
     {
-        const status = appPerf.status();
-        return t(status.active ? 'Recording active' : 'Recording stopped') + ' · '
-            + t('Recorded operations') + ': ' + status.count + ' · ' + t('Dropped operations') + ': ' + status.dropped;
+        const text = String(value);
+        if (element.textContent !== text) element.textContent = text;
     };
     const update = () =>
     {
@@ -1121,7 +1133,9 @@ function bindDiagnosticsSettings(root)
         moduleFields.hidden = config.scope === 'all';
         toggle.disabled = !status.active && config.scope === 'selected' && !config.modules.length;
         toggle.textContent = t(status.active ? 'Stop recording' : 'Start recording');
-        panel.querySelector('[data-performance-status]').textContent = statusLabel();
+        updateText(statusText, statusLabel(status));
+        updateText(countText, status.count);
+        updateText(droppedText, status.dropped);
         clear.disabled = !status.active && !status.count;
         exportButton.disabled = !status.count;
         syncDiagnosticsTopbar();
@@ -1151,7 +1165,10 @@ function bindDiagnosticsSettings(root)
             clearInterval(timer);
             return;
         }
-        if (panel.querySelector('[data-performance-status]').textContent !== statusLabel()) update();
+        const status = appPerf.status();
+        if (statusText.textContent !== statusLabel(status)
+            || countText.textContent !== String(status.count)
+            || droppedText.textContent !== String(status.dropped)) update();
     }, 500);
     update();
 }

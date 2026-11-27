@@ -5474,8 +5474,57 @@ body.mobile-details-open .geneo-inspector [data-geneo-inspector-toggle] {
     gap: var(--space-2);
 }
 
+.diagnostics-settings .global-settings-row {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 220px);
+}
+
 .diagnostics-explanation {
-    margin: var(--space-3) var(--space-4);
+    display: grid;
+    gap: var(--space-1);
+    padding: var(--space-3) var(--space-4);
+    color: var(--text-secondary);
+    line-height: 1.45;
+}
+
+.diagnostics-explanation p {
+    margin: 0;
+}
+
+.diagnostics-explanation strong,
+.diagnostics-status > strong,
+.diagnostics-metrics strong {
+    color: var(--text-primary);
+}
+
+.diagnostics-status {
+    display: grid;
+    gap: var(--space-2);
+    border-top: 1px solid var(--surface-row-divider);
+    padding: var(--space-3) var(--space-4) 0;
+}
+
+.diagnostics-metrics {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2) var(--space-5);
+    color: var(--text-secondary);
+    font-size: 13px;
+    line-height: 1.45;
+}
+
+.diagnostics-metrics strong {
+    font-variant-numeric: tabular-nums;
+}
+
+@media (max-width: 540px) {
+    .diagnostics-settings .global-settings-row {
+        grid-template-columns: minmax(0, 1fr);
+        gap: var(--space-2);
+    }
+
+    .diagnostics-settings .global-settings-select-shell {
+        width: 100%;
+    }
 }
 
 .diagnostics-actions {
