@@ -63,6 +63,27 @@ context.setPhotoPersonIds(selected.id, ['tagged'], { rerender: false });
 assert.equal(people[1].primaryPhotoId, '');
 assert.equal(context.photoPersonRegion(selected, 'a'), null);
 
+for (let i = 0; i < 52; i++)
+{
+    const id = 'bulk-' + String(i).padStart(2, '0');
+    people.push({ ...people[3], id, name: 'Bulk ' + (i < 50 ? 'Exact ' : 'Overflow ') + id });
+}
+context.invalidateProjectReadModel('p1', ['people']);
+for (const archive of [false, true])
+{
+    for (const [query, cap, expectedTotal] of [
+        [' ', 20, ranks('', archive).length],
+        ['bulk', 50, 52], ['bulk exact', 50, 50], ['bulk overflow', 50, 2],
+        ['bulk-51', 50, 1], ['deleted', 50, 0], ['foreign', 50, 0], ['tagged', 50, 0]
+    ])
+    {
+        const { shown, total } = context.albumTagCandidateResults(selected, new Set(selected.personIds), archive, query);
+        assert.equal(total, expectedTotal, query);
+        assert.equal(shown.length, Math.min(cap, total), query);
+        assert.deepEqual(Array.from(shown, person => person.id), ranks(query, archive).slice(0, cap));
+    }
+}
+
 const index = context.albumPhotoSearchIndex('p1');
 assert.equal(context.photoMatchesSearch(media[1], 'stone ada', ['stone', 'ada'], index), true);
 assert.equal(context.photoMatchesSearch(media[1], 'album', ['album'], index), true);

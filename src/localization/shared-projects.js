@@ -278,6 +278,8 @@ const RU_UI_SHARED = Object.freeze({
     'Tag a person': 'Отметить человека',
     'Back to photo': 'Назад к фото',
     'Matching people': 'Найденные люди',
+    'Showing {shown} of {total} matches. Refine your search.': 'Показано {shown} из {total}. Уточните запрос.',
+    'Full preview': 'Полный просмотр',
     'No people available to tag': 'Нет людей, которых можно отметить',
     'Face area for': 'Область лица для',
     'Face area. Arrow keys move; Shift and arrow keys resize.': 'Область лица. Стрелки перемещают; Shift и стрелки изменяют размер.',

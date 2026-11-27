@@ -78,6 +78,12 @@ function rankAlbumTagCandidates(photo, selectedIds, archiveMode, query)
     ranked.sort((a, b) => b.score - a.score || a.name.localeCompare(b.name));
     return ranked.map(item => item.person);
 }
+function albumTagCandidateResults(photo, selectedIds, archiveMode, query)
+{
+    const ranked = rankAlbumTagCandidates(photo, selectedIds, archiveMode, query);
+    return { shown: ranked.slice(0, query.trim() ? 50 : 20), total: ranked.length };
+}
+
 function openUnifiedImagePeopleModal(photoId, { mode = 'tag', activePersonId = null, archiveFile = null, imageSrc = null, onClose = null } = {})
 {
     const entryFocus = document.activeElement;
@@ -222,6 +228,7 @@ function openUnifiedImagePeopleModal(photoId, { mode = 'tag', activePersonId = n
                 <strong
                   data-photo-people-results-title>
                 </strong>
+                <span data-photo-people-results-status role="status"></span>
 
               </div>
 
@@ -247,6 +254,7 @@ function openUnifiedImagePeopleModal(photoId, { mode = 'tag', activePersonId = n
               photo-people-footer
             ">
 
+            <button type="button" class="button secondary albums-full-preview" data-albums-full-preview>${escapeHtml(t('Full preview'))}</button>
             <div class="albums-preview-footer-tools">
               <button type="button" class="button primary albums-lightbox-tag" data-lightbox-tag>${icon.plus}<span>${escapeHtml(t(archiveMode ? 'Tag person' : 'Tag people'))}</span></button>
               <label class="albums-marked-toggle"><input type="checkbox" data-albums-show-marked ${markedAreasVisible() ? 'checked' : ''}><span>${escapeHtml(t('Show marked areas'))}</span></label>
@@ -542,7 +550,7 @@ function openUnifiedImagePeopleModal(photoId, { mode = 'tag', activePersonId = n
             const name = escapeHtml(localizedDataFieldValue(personName(getPerson(id))));
             if (active && id === activeRegionPersonId) return `<div class="face-region-box" data-face-region-box data-image-region="${escapeHtml(id)}" tabindex="0" role="group" aria-label="${escapeHtml(viewLabel('Area. Arrows move; Shift resizes; Alt adjusts one image pixel.', 'Область. Стрелки перемещают; Shift изменяет размер; Alt изменяет на один пиксель изображения.'))}"><span class="face-region-name">${name}</span><span class="face-region-handle" data-face-region-resize aria-hidden="true"></span></div>`;
             if (active) return `<span class="face-region-other${!markedAreasVisible() && highlightedPersonId !== id ? ' is-concealed' : ''}" data-face-region-other data-image-region="${escapeHtml(id)}" data-person-id="${escapeHtml(id)}" tabindex="0" role="button" aria-label="${name}"><span class="face-region-name">${name}</span></span>`;
-            return `<span class="albums-lightbox-face${highlightedPersonId === id ? ' is-active' : ''}${!markedAreasVisible() && highlightedPersonId !== id ? ' is-concealed' : ''}" data-lightbox-face="${escapeHtml(id)}" data-image-region="${escapeHtml(id)}" role="img" tabindex="0" aria-label="${name}"><span class="albums-lightbox-face-name" data-lightbox-face-name>${name}</span></span>`;
+            return `<span class="albums-lightbox-face${highlightedPersonId === id ? ' is-active' : ''}${!markedAreasVisible() && highlightedPersonId !== id ? ' is-concealed' : ''}" data-lightbox-face="${escapeHtml(id)}" data-image-region="${escapeHtml(id)}" role="button" tabindex="0" aria-label="${name}"><span class="albums-lightbox-face-name" data-lightbox-face-name>${name}</span></span>`;
         }).join('');
         stage.innerHTML = photo.src && !imageLoadError
             ? `<div class="photo-image-viewport" data-image-viewport tabindex="-1"><div class="photo-image-surface" data-image-surface>${imageContent}</div><div class="photo-image-regions" data-image-regions>${regionBoxes}</div>${viewTools}</div>`
@@ -575,82 +583,35 @@ function openUnifiedImagePeopleModal(photoId, { mode = 'tag', activePersonId = n
     };
 
     const choices = modal.querySelector('[data-photo-people-choices]');
-    let candidates = [];
-    let mountedRange = '';
-    const rowHeight = 58;
-    const renderCandidateWindow = () =>
-    {
-        if (modalMode !== 'tag') return;
-        if (!candidates.length)
-        {
-            choices.innerHTML = `<div class="photo-people-empty">${escapeHtml(t(query.trim() ? 'No matching people.' : 'No people available to tag'))}</div>`;
-            return;
-        }
-        const bounds = choices.getBoundingClientRect();
-        const desktop = getComputedStyle(choices).overflowY === 'auto';
-        const top = desktop ? choices.scrollTop : Math.max(0, -bounds.top);
-        const height = desktop ? choices.clientHeight : window.innerHeight;
-        const start = Math.min(candidates.length - 1, Math.max(0, Math.floor(top / rowHeight) - 6));
-        const end = Math.min(candidates.length, start + Math.max(16, Math.ceil(height / rowHeight) + 12));
-        const key = start + ':' + end;
-        if (key === mountedRange) return;
-        mountedRange = key;
-        const focused = choices.contains(document.activeElement) ? document.activeElement : null;
-        const focusedId = focused?.dataset.photoPeopleChoice;
-        const focusedAction = focused?.classList.contains('albums-unified-person-action');
-        choices.innerHTML = `<div aria-hidden="true" style="height:${start * rowHeight}px"></div>`
-            + candidates.slice(start, end).map(person => renderPersonRow(person, false)).join('')
-            + `<div aria-hidden="true" style="height:${(candidates.length - end) * rowHeight}px"></div>`;
-        localizeUI(choices);
-        if (focusedId)
-        {
-            const buttons = choices.querySelectorAll(`[data-photo-people-choice="${CSS.escape(focusedId)}"]`);
-            (focusedAction ? buttons[1] : buttons[0])?.focus({ preventScroll: true });
-        }
-    };
     const refreshCandidates = () =>
     {
         if (modalMode !== 'tag') return;
-        const update = () => { candidates = rankAlbumTagCandidates(photo, selectedIds, archiveMode, query); };
-        if (typeof appPerf !== 'undefined' && appPerf.enabled('Albums')) appPerf.run('Albums', 'picker', () =>
+        const searching = Boolean(query.trim());
+        const prepare = () => albumTagCandidateResults(photo, selectedIds, archiveMode, query);
+        const render = trace =>
         {
-            const trace = appPerf.currentDetailed('Albums');
-            if (trace) appPerf.measure(trace, 'query', update);
-            else update();
-            if (trace) appPerf.count(trace, 'recordsMatched', candidates.length);
-            mountedRange = '';
+            const { shown, total } = trace ? appPerf.measure(trace, 'query', prepare) : prepare();
+            const status = modal.querySelector('[data-photo-people-results-status]');
+            modal.querySelector('[data-photo-people-results-title]').textContent = t(searching ? 'Matching people' : 'Suggested people');
+            status.textContent = searching && total > shown.length
+                ? t('Showing {shown} of {total} matches. Refine your search.')
+                    .replace('{shown}', shown.length).replace('{total}', total)
+                : '';
+            choices.innerHTML = shown.length
+                ? shown.map(person => renderPersonRow(person, false)).join('')
+                : `<div class="photo-people-empty">${escapeHtml(t(searching ? 'No matching people.' : 'No people available to tag'))}</div>`;
             choices.scrollTop = 0;
-            renderCandidateWindow();
-            if (trace) appPerf.count(trace, 'recordsRendered', choices.querySelectorAll('.albums-unified-person-row').length);
-        });
-        else
-        {
-            update();
-            mountedRange = '';
-            choices.scrollTop = 0;
-            renderCandidateWindow();
-        }
-        modal.querySelector('[data-photo-people-results-title]').textContent = t(query.trim() ? 'Matching people' : 'All people');
+            localizeUI(choices);
+            if (trace)
+            {
+                appPerf.count(trace, 'recordsMatched', total);
+                appPerf.count(trace, 'recordsRendered', shown.length);
+            }
+        };
+        if (typeof appPerf !== 'undefined' && appPerf.enabled('Albums'))
+            appPerf.run('Albums', 'picker', () => render(appPerf.currentDetailed('Albums')));
+        else render();
     };
-    modal.addEventListener('scroll', renderCandidateWindow, true);
-    choices.addEventListener('keydown', event =>
-    {
-        const control = event.target.closest('[data-photo-people-choice]');
-        if (event.key !== 'Tab' || !control) return;
-        const row = control.closest('.albums-unified-person-row');
-        const index = candidates.findIndex(person => person.id === control.dataset.photoPeopleChoice);
-        const next = index + (event.shiftKey ? -1 : 1);
-        if (next < 0 || next >= candidates.length) return;
-        const action = control.classList.contains('albums-unified-person-action');
-        if (event.shiftKey ? action || row.previousElementSibling?.matches('.albums-unified-person-row')
-            : !action || row.nextElementSibling?.matches('.albums-unified-person-row')) return;
-        event.preventDefault();
-        if (getComputedStyle(choices).overflowY === 'auto') choices.scrollTop = next * rowHeight;
-        else row.scrollIntoView({ block: event.shiftKey ? 'end' : 'start' });
-        renderCandidateWindow();
-        const buttons = choices.querySelectorAll(`[data-photo-people-choice="${CSS.escape(candidates[next].id)}"]`);
-        (event.shiftKey ? buttons[1] : buttons[0])?.focus();
-    });
 
     const refresh = () =>
     {
@@ -715,6 +676,12 @@ function openUnifiedImagePeopleModal(photoId, { mode = 'tag', activePersonId = n
         overlay.querySelector('[data-keep]')?.focus();
     };
 
+    const openFullPreview = () =>
+    {
+        query = '';
+        modal.querySelector('[data-photo-people-search]').value = '';
+        modalMode = 'preview';
+    };
     const returnFromSearch = () => {
         if (taggingReturn === 'close')
         {
@@ -832,6 +799,14 @@ function openUnifiedImagePeopleModal(photoId, { mode = 'tag', activePersonId = n
                 modal.querySelector('[data-photo-people-search]')?.focus({ preventScroll: true });
                 return;
             }
+            if (event.target.closest('[data-albums-full-preview]'))
+            {
+                openFullPreview();
+                refresh();
+                modal.querySelector('.photo-people-body').scrollTop = 0;
+                modal.querySelector('[data-lightbox-tag]')?.focus({ preventScroll: true });
+                return;
+            }
             if (event.target.closest('[data-albums-search-back]')) {
                 returnFromSearch();
                 return;
@@ -878,6 +853,7 @@ function openUnifiedImagePeopleModal(photoId, { mode = 'tag', activePersonId = n
             const otherRegion = event.target.closest('[data-face-region-other][data-person-id]');
             const previewRegion = event.target.closest('[data-lightbox-face]');
             if (otherRegion || previewRegion) {
+                if (modalMode === 'tag') openFullPreview();
                 activeRegionPersonId = otherRegion?.dataset.personId || previewRegion.dataset.lightboxFace;
                 highlightedPersonId = null;
                 refresh();
