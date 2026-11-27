@@ -977,6 +977,17 @@ function geneoPersonSecondaryInk(appearance, diagram)
         ? preferred : actual;
 }
 
+function geneoPersonActionInks(appearance, diagram)
+{
+    const background = geneoPersonEffectiveBackground(appearance.fill, diagram);
+    const fallback = treePaletteLabelInk(background);
+    const readable = ink => treePaletteContrast(ink, background) >= 4.5 ? ink : fallback;
+    return {
+        normal: readable(geneoThemeColor('#26352D', '#515E63')),
+        hover: readable(geneoThemeColor('#14221C', '#202729'))
+    };
+}
+
 function geneoPersonAvatarPaint(appearance, diagram)
 {
     const background = geneoPersonEffectiveBackground(appearance.fill, diagram);
@@ -1171,7 +1182,9 @@ function geneoUpdatePersonPaintVariables(element, visible, diagram)
     element.style.setProperty('--geneo-person-avatar-bg', avatar.fill);
     element.style.setProperty('--geneo-person-avatar-ink', avatar.ink);
     element.style.setProperty('--geneo-person-secondary-ink', geneoPersonSecondaryInk(visible, diagram));
-    element.style.setProperty('--geneo-person-action-bg', geneoPersonEffectiveBackground(visible.fill, diagram));
+    const actionInks = geneoPersonActionInks(visible, diagram);
+    element.style.setProperty('--geneo-person-action-ink', actionInks.normal);
+    element.style.setProperty('--geneo-person-action-hover-ink', actionInks.hover);
 }
 
 function applyGeneoPaintTargetToDom(reference)

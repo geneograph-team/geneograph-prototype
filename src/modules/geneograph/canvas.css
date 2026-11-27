@@ -1115,20 +1115,8 @@
     height: 44px;
     right: 10px;
     bottom: 9px;
-    background: transparent;
 }
 .geneo-node-person[data-geneo-person-card-style="portrait"] .geneo-person-edit-action { right: 54px; }
-.geneo-node-person[data-geneo-person-card-style="portrait"] :is(.geneo-person-add-relative, .geneo-person-edit-action)::before {
-    content: '';
-    position: absolute;
-    inset: 6px;
-    border-radius: 6px;
-    background: var(--geneo-person-action-bg, var(--gg-topbar));
-}
-.geneo-node-person[data-geneo-person-card-style="portrait"] :is(.geneo-person-add-relative, .geneo-person-edit-action):hover::before {
-    background: color-mix(in srgb, var(--geneo-person-action-bg), var(--geneo-node-text) 8%);
-}
-.geneo-node-person[data-geneo-person-card-style="portrait"] :is(.geneo-person-add-relative, .geneo-person-edit-action) svg { position: relative; }
 
 .geneo-person-action-gap {
     position: absolute;
@@ -1205,9 +1193,10 @@
     border: 0;
     border-radius: 6px;
 
-    background: var(--geneo-person-action-bg, var(--gg-topbar));
+    background: transparent;
 
-    color: var(--geneo-node-text);
+    color: var(--geneo-person-action-ink, var(--text-secondary));
+    --geneo-action-hover-opacity: 6%;
 
     display: grid;
     place-items: center;
@@ -1223,8 +1212,25 @@
         color var(--ease);
 }
 
+:root[data-theme="dark"] :is(.geneo-person-add-relative, .geneo-person-edit-action) {
+    --geneo-action-hover-opacity: 8%;
+}
+
+/* Keep the hit target while using a small, transparent resting surface,
+   matching the Family Tree action treatment across all card layouts. */
+:is(.geneo-person-add-relative, .geneo-person-edit-action)::before {
+    content: '';
+    position: absolute;
+    inset: 6px;
+    border-radius: 6px;
+    pointer-events: none;
+    background: transparent;
+    transition: background var(--ease);
+}
+
 .geneo-person-add-relative svg,
 .geneo-person-edit-action svg {
+    position: relative;
     width: 16px;
     height: 16px;
     display: block;
@@ -1241,9 +1247,12 @@
     pointer-events: auto;
 }
 
-.geneo-person-add-relative:hover,
-.geneo-person-edit-action:hover {
-    background: color-mix(in srgb, var(--geneo-person-action-bg), var(--geneo-node-text) 8%);
+:is(.geneo-person-add-relative, .geneo-person-edit-action):hover {
+    color: var(--geneo-person-action-hover-ink, var(--text-primary));
+}
+
+:is(.geneo-person-add-relative, .geneo-person-edit-action):hover::before {
+    background: color-mix(in srgb, var(--geneo-person-action-hover-ink, var(--text-primary)) var(--geneo-action-hover-opacity), transparent);
 }
 
 .geneo-person-add-relative:focus-visible,
@@ -1272,7 +1281,6 @@
     bottom: 9px;
     width: 44px;
     height: 44px;
-    background: transparent;
 }
 
 .geneo-node-person[data-geneo-person-card-style="compact"] :is(.geneo-person-add-relative, .geneo-person-edit-action) {
@@ -1280,23 +1288,10 @@
     height: 44px;
     right: 9px;
     bottom: 7px;
-    background: transparent;
 }
 
 .geneo-node-person[data-geneo-person-card-style="compact"] .geneo-person-edit-action {
     right: 53px;
-}
-
-.geneo-node-person[data-geneo-person-card-style="compact"] :is(.geneo-person-add-relative, .geneo-person-edit-action)::before {
-    content: '';
-    position: absolute;
-    inset: 6px;
-    border-radius: 6px;
-    background: var(--gg-topbar);
-}
-
-.geneo-node-person[data-geneo-person-card-style="compact"] :is(.geneo-person-add-relative, .geneo-person-edit-action) svg {
-    position: relative;
 }
 
 .geneo-node-person[data-geneo-person-card-style="chart"] :is(.geneo-person-add-relative, .geneo-person-edit-action) {
@@ -1304,7 +1299,6 @@
     height: 44px;
     right: 10px;
     bottom: 9px;
-    background: transparent;
 }
 
 .geneo-node-person[data-geneo-person-card-style="chart"] .geneo-person-edit-action { right: 54px; }
@@ -1326,42 +1320,12 @@
     .geneo-node-person[data-geneo-person-card-style="chart"][data-geneo-person-card-photo-align="right"]:has(.geneo-person-avatar) .geneo-person-edit-action { right: calc(66px + var(--geneo-card-photo)); }
 }
 
-.geneo-node-person[data-geneo-person-card-style="chart"] :is(.geneo-person-add-relative, .geneo-person-edit-action)::before {
-    content: '';
-    position: absolute;
-    inset: 6px;
-    border-radius: 6px;
-    background: var(--gg-topbar);
-}
-
-.geneo-node-person[data-geneo-person-card-style="chart"] :is(.geneo-person-add-relative, .geneo-person-edit-action):is(:hover, :focus-visible)::before {
-    background: var(--gg-topbar);
-}
-
-.geneo-node-person[data-geneo-person-card-style="chart"] :is(.geneo-person-add-relative, .geneo-person-edit-action) svg { position: relative; }
-
 .geneo-node-person[data-geneo-person-card-style="standard"] .geneo-person-add-relative {
     right: 10px;
 }
 
 .geneo-node-person[data-geneo-person-card-style="standard"] .geneo-person-edit-action {
     right: 54px;
-}
-
-.geneo-node-person[data-geneo-person-card-style="standard"] :is(.geneo-person-add-relative, .geneo-person-edit-action)::before {
-    content: '';
-    position: absolute;
-    inset: 6px;
-    border-radius: 6px;
-    background: var(--gg-topbar);
-}
-
-.geneo-node-person[data-geneo-person-card-style="standard"] :is(.geneo-person-add-relative, .geneo-person-edit-action):is(:hover, :focus-visible)::before {
-    background: var(--gg-topbar);
-}
-
-.geneo-node-person[data-geneo-person-card-style="standard"] :is(.geneo-person-add-relative, .geneo-person-edit-action) svg {
-    position: relative;
 }
 
 .geneo-node-image .geneo-node-content {
