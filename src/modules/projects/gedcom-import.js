@@ -2016,19 +2016,14 @@ function gedcomStrongPlaceMatch(plan, result)
     return { ...selected.coordinates };
 }
 
-async function matchGedcomPlaceCoordinates(draft, { enabled = true, signal, onProgress = () => {},
+async function matchGedcomPlaceCoordinates(draft, { signal, onProgress = () => {},
     lookup = (query, abortSignal, language) => geneographGeocoder.searchImport(query, abortSignal, language) } = {})
 {
     const plan = gedcomPlaceLookupPlan(draft);
     const selected = plan.candidates.slice(0, GEDCOM_PLACE_LOOKUP_LIMIT);
     const stats = { existing: plan.existing, ineligible: plan.ineligible, eligible: plan.candidates.length,
-        assigned: 0, uncertain: 0, unavailable: 0, budget: 0, offline: 0, stopped: 0, quota: 0, checked: 0, lookups: 0 };
+        assigned: 0, uncertain: 0, unavailable: 0, budget: 0, stopped: 0, quota: 0, checked: 0, lookups: 0 };
     const coordinates = new Map();
-    if (!enabled)
-    {
-        stats.offline = plan.candidates.length;
-        return { stats, coordinates };
-    }
     stats.budget = plan.candidates.length - selected.length;
     const cache = new Map();
     let halt = '';
@@ -2087,7 +2082,7 @@ function gedcomPlaceMatchingSummary(report)
     if (!stats || !stats.existing && !stats.ineligible && !stats.eligible) return '';
     const rows = [['Coordinates already recorded', stats.existing], ['Coordinates assigned automatically', stats.assigned],
         ['Places without a strong match', stats.uncertain], ['Places excluded from automatic matching', stats.ineligible],
-        ['Places skipped: lookup limit', stats.budget], ['Places skipped: offline import', stats.offline],
+        ['Places skipped: lookup limit', stats.budget],
         ['Places skipped: lookup stopped', stats.stopped], ['Places skipped: provider quota', stats.quota],
         ['Places skipped: provider unavailable', stats.unavailable]];
     return '<h3>' + escapeHtml(t('Place coordinate matching')) + '</h3><dl class="gedcom-counts">'
@@ -2214,18 +2209,12 @@ function openImportModal()
             </div>
             <div data-gedcom-attachment-status aria-live="polite"></div>
         </section>
-        <section class="gedcom-attachments" data-gedcom-geocode hidden aria-labelledby="gedcomGeocodeTitle">
-            <h3 id="gedcomGeocodeTitle">${escapeHtml(t('Place coordinate matching'))}</h3>
-            <label><input type="checkbox" data-gedcom-geocode-enabled checked> ${escapeHtml(t('Automatically find missing place coordinates'))}</label>
-            <p>${escapeHtml(t('On import, up to 150 unique place names will be sent to Geoapify or LocationIQ. No person or event records are sent. Uncheck to import offline without coordinate lookup.'))}</p>
-            <p data-gedcom-geocode-progress aria-live="polite"></p>
-            <button class="button secondary" type="button" data-gedcom-geocode-stop hidden>${escapeHtml(t('Stop lookup and continue import'))}</button>
-            ${geneographGeocoder.attributionHtml()}
-        </section>
         <div class="gedcom-preview" data-gedcom-warnings></div>
         </div><div class="modal-footer gedcom-import-footer">
-        <p class="gedcom-session-note">${escapeHtml(t('Imported projects stay in this session. Reloading discards them and any edits.'))}</p>
+        <p class="gedcom-session-note">${escapeHtml(t('Imported projects stay in this session. Reloading discards them and any edits.'))} <span data-gedcom-geocode-notice hidden>${escapeHtml(t('Import may send place names to Geoapify or LocationIQ to find coordinates.'))}</span></p>
+        <p class="gedcom-session-note" data-gedcom-geocode-progress aria-live="polite" hidden></p>
         <div class="gedcom-import-footer-actions">
+            <button class="button secondary" type="button" data-gedcom-geocode-stop hidden>${escapeHtml(t('Stop lookup and continue import'))}</button>
             <button class="button secondary" type="button" data-close>${escapeHtml(t('Cancel'))}</button>
             <button class="button primary" type="submit" hidden disabled>${escapeHtml(t('Import to new project'))}</button>
         </div></div></form></div>`);
@@ -2256,8 +2245,7 @@ function openImportModal()
     let onlineMatches = new Map();
     let downloadController;
     let geocodeController, geocodeResult;
-    const geocodeSection = find('[data-gedcom-geocode]');
-    const geocodeEnabled = find('[data-gedcom-geocode-enabled]');
+    const geocodeNotice = find('[data-gedcom-geocode-notice]');
     const geocodeProgress = find('[data-gedcom-geocode-progress]');
     const geocodeStop = find('[data-gedcom-geocode-stop]');
     geocodeStop.addEventListener('click', () => geocodeController?.abort());
@@ -2310,8 +2298,8 @@ function openImportModal()
         downloadController?.abort();
         geocodeController?.abort();
         geocodeResult = null;
-        geocodeSection.hidden = true;
-        geocodeEnabled.checked = true;
+        geocodeNotice.hidden = true;
+        geocodeProgress.hidden = true;
         geocodeProgress.textContent = '';
         onlineMatches = new Map();
         downloadStatus.textContent = '';
@@ -2345,7 +2333,7 @@ function openImportModal()
             version.textContent = 'GEDCOM ' + parsed.version;
             version.hidden = false;
             renderPreview(draft);
-            geocodeSection.hidden = !draft.records.places.some(place => !placeHasCoordinates(place));
+            geocodeNotice.hidden = !gedcomPlaceLookupPlan(draft).candidates.length;
             name.closest('[data-gedcom-name]').hidden = false;
             submit.hidden = submit.disabled = name.disabled = false;
             attachments.hidden = !references.size && !onlineReferences.size;
@@ -2468,7 +2456,7 @@ function openImportModal()
             if (!form.isConnected) controller.abort();
         });
         closeObserver.observe(modalBackdrop, { childList: true, subtree: true });
-        const controls = [submit, choose, name, folderChoose, folderRemove, download, geocodeEnabled, input, folderInput];
+        const controls = [submit, choose, name, folderChoose, folderRemove, download, input, folderInput];
         const previousDisabled = controls.map(control => control.disabled);
         controls.forEach(control => { control.disabled = true; });
         error.hidden = true;
@@ -2478,11 +2466,13 @@ function openImportModal()
             const draft = buildDraft();
             if (!geocodeResult)
             {
-                geocodeStop.hidden = !geocodeEnabled.checked || geocodeSection.hidden;
-                geocodeResult = await matchGedcomPlaceCoordinates(draft, { enabled: geocodeEnabled.checked,
+                geocodeResult = await matchGedcomPlaceCoordinates(draft, {
                     signal: controller.signal, onProgress: (done, total) =>
                     {
-                        if (isCurrent(request)) geocodeProgress.textContent = t('Matching places: {done} of {total}')
+                        if (!isCurrent(request) || !total) return;
+                        geocodeStop.hidden = false;
+                        geocodeProgress.hidden = false;
+                        geocodeProgress.textContent = t('Matching places: {done} of {total}')
                             .replace('{done}', done).replace('{total}', total);
                     } });
             }
@@ -2505,9 +2495,8 @@ function openImportModal()
             {
                 controls.forEach((control, index) => { control.disabled = previousDisabled[index]; });
                 geocodeStop.hidden = true;
+                geocodeProgress.hidden = true;
                 geocodeProgress.textContent = '';
-                // A failed commit can be retried without spending more credits.
-                if (geocodeResult) geocodeEnabled.disabled = true;
             }
         }
         if (!isCurrent(request)) return;

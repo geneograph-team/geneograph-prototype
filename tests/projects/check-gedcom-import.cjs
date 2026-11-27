@@ -889,6 +889,16 @@ async function verifyMyHeritageCutouts()
 }
 
 
+// The import dialog has no pre-import matching settings. The progress and
+// stop action are hidden until an automatic lookup actually runs.
+const automaticImportDialogSource = context.openImportModal.toString();
+assert.ok(!automaticImportDialogSource.includes('data-gedcom-geocode-enabled'));
+assert.ok(!automaticImportDialogSource.includes('gedcomGeocodeTitle'));
+assert.ok(automaticImportDialogSource.includes('data-gedcom-geocode-notice hidden'));
+assert.ok(automaticImportDialogSource.includes('data-gedcom-geocode-progress aria-live="polite" hidden'));
+assert.ok(automaticImportDialogSource.includes('data-gedcom-geocode-stop hidden'));
+assert.ok(automaticImportDialogSource.includes('await matchGedcomPlaceCoordinates(draft, {'));
+
 async function verifyAutomaticPlaceMatching()
 {
     const draft = map(file([
@@ -937,9 +947,10 @@ async function verifyAutomaticPlaceMatching()
     assert.equal(calls[0],'Town 159, Poland');
     assert.equal(capped.stats.budget,10);
     assert.equal(capped.stats.uncertain,150);
-    const offline = await context.matchGedcomPlaceCoordinates(many,{enabled:false,lookup:emptyLookup});
-    assert.equal(calls.length,150);
-    assert.equal(offline.stats.offline,160);
+    const unavailable = await context.matchGedcomPlaceCoordinates(many,{lookup:async()=>({status:'unavailable',candidates:[]})});
+    assert.equal(unavailable.stats.unavailable,150);
+    assert.equal(unavailable.coordinates.size,0);
+    assert.equal(unavailable.stats.budget,10);
     let quotaCalls=0;
     const quota=await context.matchGedcomPlaceCoordinates(many,{lookup:async()=>{quotaCalls++;return {status:'quota',candidates:[]};}});
     assert.equal(quotaCalls,1);
