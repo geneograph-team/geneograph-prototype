@@ -1882,6 +1882,220 @@ function commitGedcomImportWithDiagnosticsBody(draft, report = gedcomImportRepor
 
 const gedcomImportReports = new Map();
 
+// Automatic import matching has its own conservative evidence gate. Manual
+// autocomplete and saved names retain their existing behavior.
+const GEDCOM_PLACE_LOOKUP_LIMIT = 150;
+function gedcomMatchKey(value)
+{
+    // Remove Latin diacritics for matching without transliterating scripts or
+    // collapsing distinct Cyrillic letters (e.g. й and и).
+    return placeContextKey(value).replace(/\p{Script=Latin}\p{Mark}*/gu, letter =>
+        letter.normalize('NFD').replace(/\p{Mark}/gu, ''))
+        .replace(/ł/g, 'l').replace(/ё/g, 'е');
+}
+
+function gedcomSettlementName(value)
+{
+    return String(value || '').trim().replace(/^(?:г\.|гор\.|с\.|сел\.|дер\.|д\.|пос\.|пгт\.?|хут\.|станица|город|село|деревня|місто|селище)\s+/iu, '').trim();
+}
+
+function gedcomPlaceLookupPlan(draft)
+{
+    const review = new Set(draft.placeCoordinateReviewIds || []);
+    const usage = new Map();
+    const count = id => { if (id) usage.set(id, (usage.get(id) || 0) + 1); };
+    for (const event of draft.records.events || []) count(event.placeId);
+    for (const person of draft.records.people || [])
+    {
+        // Some attributes have no derived timeline event.
+        count(person.birth?.placeId); count(person.death?.placeId);
+        for (const fact of person.attributes || []) count(fact.placeId);
+    }
+    const candidates = [], stats = { existing: 0, ineligible: 0 };
+    for (const place of draft.records.places)
+    {
+        if (placeHasCoordinates(place)) { stats.existing++; continue; }
+        const context = placeContext(place);
+        const primary = gedcomSettlementName(context.primary);
+        const country = context.countryId;
+        // No guessing from historical administrations or nonsettlement
+        // labels. Require a clearly identified modern country and name.
+        const historical = /(?:\b(?:empire|governorate|uezd|guberniya|prussia)\b|губерн|уезд|импери|воеводство\s+истор)/iu;
+        if (review.has(place.id) || context.ambiguousCountry || !PLACE_COUNTRY_CODES.has(country)
+            || context.countryOnly || context.administrative || context.nonSettlement
+            || !primary || !/\p{L}/u.test(primary) || historical.test(place.name)
+            || /[()[\]"]/u.test(primary))
+        {
+            stats.ineligible++;
+            continue;
+        }
+        const admin = [];
+        let ambiguous = false;
+        for (const part of context.parts.slice(1))
+        {
+            if (placeCountryToken(part) === country) continue;
+            const alias = /^(.*?)\s*\(([^()]*)\)\s*\.?$/.exec(part);
+            if (alias && placeCountryToken(alias[1]) === country)
+            {
+                // A bilingual country suffix can carry additional context.
+                const translated = placeNameParts({ name: alias[2] });
+                if (translated.length === 1 && placeCountryToken(translated[0]) === country) continue;
+                // Do not silently discard a translated hierarchy.
+                ambiguous = true;
+                break;
+            }
+            if (alias || placeCountryToken(part) || !/\p{L}/u.test(part)) { ambiguous = true; break; }
+            admin.push(part);
+        }
+        const language = /\p{Script=Cyrillic}/u.test(primary) ? 'ru' : 'en';
+        const query = [primary, ...admin, placeCountryLabel(country, language)].join(', ');
+        if (ambiguous || query.length > 200)
+        {
+            stats.ineligible++;
+            continue;
+        }
+        candidates.push({ id: place.id, query, language, primary, country, admin, weight: usage.get(place.id) || 0 });
+    }
+    candidates.sort((a, b) => b.weight - a.weight || a.id.localeCompare(b.id, 'en', { numeric: true }));
+    return { candidates, ...stats };
+}
+
+function gedcomStrongPlaceMatch(plan, result)
+{
+    if (result.status !== 'results' || result.truncated) return null;
+    const name = gedcomMatchKey(plan.primary);
+    const admin = plan.admin.map(gedcomMatchKey);
+    const eligible = [];
+    let unresolved = false;
+    const competitors = [];
+    for (const candidate of result.candidates)
+    {
+        if (!candidate.names.some(value => gedcomMatchKey(value) === name)) continue;
+        if (!candidate.countryCode) { unresolved = true; continue; }
+        if (candidate.countryCode !== plan.country) continue;
+        const context = candidate.admin.map(gedcomMatchKey);
+        if (!admin.every(value => context.includes(value)))
+        {
+            competitors.push(candidate);
+            continue;
+        }
+        if (!['city','town','village','hamlet','isolated_dwelling','farm'].includes(candidate.type)
+            || !candidate.coordinates || typeof candidate.coordinates.lat !== 'number'
+            || typeof candidate.coordinates.lng !== 'number'
+            || !validLatitude(candidate.coordinates.lat) || !validLongitude(candidate.coordinates.lng)
+            || (candidate.confidence !== null && candidate.confidence !== undefined && candidate.confidence <= 0))
+        { unresolved = true; continue; }
+        const identical = eligible.find(other => candidate.identities.some(id => other.identities.includes(id)));
+        if (identical)
+        {
+            if (identical.coordinates.lat !== candidate.coordinates.lat || identical.coordinates.lng !== candidate.coordinates.lng)
+                unresolved = true;
+        }
+        else eligible.push(candidate);
+    }
+    if (unresolved || eligible.length !== 1) return null;
+    const selected = eligible[0];
+    for (const competitor of competitors)
+    {
+        // A namesake is ruled out only by a different full name at a
+        // comparable administrative level identified in the source.
+        // Unknown levels, abbreviations and cross-language differences
+        // alone are not proof that the settlements are distinct.
+        const fullKey = value => String(value || '').trim().length > 3 ? gedcomMatchKey(value) : '';
+        const contradicts = ['regionNames', 'countyNames'].some(field =>
+        {
+            const expected = (selected[field] || []).map(fullKey).filter(Boolean);
+            const other = (competitor[field] || []).map(fullKey).filter(Boolean);
+            return expected.some(value => admin.includes(value)) && other.length
+                && !expected.some(value => other.includes(value))
+                && expected.some(value => /\p{Script=Latin}/u.test(value) && other.some(item => /\p{Script=Latin}/u.test(item))
+                    || /\p{Script=Cyrillic}/u.test(value) && other.some(item => /\p{Script=Cyrillic}/u.test(item)));
+        });
+        if (!contradicts) return null;
+    }
+    return { ...selected.coordinates };
+}
+
+async function matchGedcomPlaceCoordinates(draft, { enabled = true, signal, onProgress = () => {},
+    lookup = (query, abortSignal, language) => geneographGeocoder.searchImport(query, abortSignal, language) } = {})
+{
+    const plan = gedcomPlaceLookupPlan(draft);
+    const selected = plan.candidates.slice(0, GEDCOM_PLACE_LOOKUP_LIMIT);
+    const stats = { existing: plan.existing, ineligible: plan.ineligible, eligible: plan.candidates.length,
+        assigned: 0, uncertain: 0, unavailable: 0, budget: 0, offline: 0, stopped: 0, quota: 0, checked: 0, lookups: 0 };
+    const coordinates = new Map();
+    if (!enabled)
+    {
+        stats.offline = plan.candidates.length;
+        return { stats, coordinates };
+    }
+    stats.budget = plan.candidates.length - selected.length;
+    const cache = new Map();
+    let halt = '';
+    onProgress(0, selected.length);
+    for (const item of selected)
+    {
+        if (signal?.aborted) halt = 'stopped';
+        if (halt) { stats[halt]++; continue; }
+        const key = JSON.stringify([item.query, item.language]);
+        let result = cache.get(key);
+        if (!result)
+        {
+            stats.lookups++;
+            try { result = await lookup(item.query, signal, item.language); }
+            catch { result = { status: signal?.aborted ? 'stopped' : 'unavailable', candidates: [] }; }
+            if (signal?.aborted) result = { status: 'stopped', candidates: [] };
+            cache.set(key, result);
+        }
+        if (result.status === 'quota' || result.status === 'stopped')
+        {
+            halt = result.status;
+            stats[halt]++;
+            continue;
+        }
+        stats.checked++;
+        if (result.status === 'unavailable') stats.unavailable++;
+        else
+        {
+            const point = gedcomStrongPlaceMatch(item, result);
+            if (point) { coordinates.set(item.id, point); stats.assigned++; }
+            else stats.uncertain++;
+        }
+        onProgress(stats.checked, selected.length);
+    }
+    return { stats, coordinates };
+}
+
+function applyGedcomPlaceMatching(draft, result)
+{
+    for (const place of draft.records.places)
+        if (!placeHasCoordinates(place) && result.coordinates.has(place.id))
+            place.coordinates = { ...result.coordinates.get(place.id) };
+    const errors = validateProjectDraft(draft.project, draft.records);
+    if (errors.length)
+    {
+        const failure = new GedcomImportError('The GEDCOM records could not be validated.');
+        failure.diagnostic = errors[0];
+        throw failure;
+    }
+    draft.placeMatching = result.stats;
+}
+
+function gedcomPlaceMatchingSummary(report)
+{
+    const stats = report.placeMatching;
+    if (!stats || !stats.existing && !stats.ineligible && !stats.eligible) return '';
+    const rows = [['Coordinates already recorded', stats.existing], ['Coordinates assigned automatically', stats.assigned],
+        ['Places without a strong match', stats.uncertain], ['Places excluded from automatic matching', stats.ineligible],
+        ['Places skipped: lookup limit', stats.budget], ['Places skipped: offline import', stats.offline],
+        ['Places skipped: lookup stopped', stats.stopped], ['Places skipped: provider quota', stats.quota],
+        ['Places skipped: provider unavailable', stats.unavailable]];
+    return '<h3>' + escapeHtml(t('Place coordinate matching')) + '</h3><dl class="gedcom-counts">'
+        + rows.filter(([, count]) => count > 0).map(([label, count]) =>
+            '<div><dt>' + escapeHtml(t(label)) + '</dt><dd>' + count + '</dd></div>').join('')
+        + '</dl>' + geneographGeocoder.attributionHtml();
+}
+
 function gedcomImportReport(draft)
 {
     const { people, families, places } = draft.records;
@@ -1905,6 +2119,7 @@ function gedcomImportReport(draft)
     }, (key, value) => ['src', 'previewUrl'].includes(key) && typeof value === 'string' && value.startsWith('data:')
         ? '' : value)).byteLength;
     return { rows: rows.filter(([, count]) => count > 0), warnings: draft.warnings, attachments: draft.attachmentReport,
+        placeMatching: draft.placeMatching || null,
         attachmentCount: draft.records.media.length + draft.records.archiveFiles.length, distinctFilesFound: draft.distinctFilesFound, onlinePhotoCount: draft.onlinePhotoCount, overBackupRecordLimit: authoredCount > 50000,
         overBackupManifestLimit: manifestBytes > 32 * 1024 * 1024 };
 }
@@ -1999,6 +2214,14 @@ function openImportModal()
             </div>
             <div data-gedcom-attachment-status aria-live="polite"></div>
         </section>
+        <section class="gedcom-attachments" data-gedcom-geocode hidden aria-labelledby="gedcomGeocodeTitle">
+            <h3 id="gedcomGeocodeTitle">${escapeHtml(t('Place coordinate matching'))}</h3>
+            <label><input type="checkbox" data-gedcom-geocode-enabled checked> ${escapeHtml(t('Automatically find missing place coordinates'))}</label>
+            <p>${escapeHtml(t('On import, up to 150 unique place names will be sent to Geoapify or LocationIQ. No person or event records are sent. Uncheck to import offline without coordinate lookup.'))}</p>
+            <p data-gedcom-geocode-progress aria-live="polite"></p>
+            <button class="button secondary" type="button" data-gedcom-geocode-stop hidden>${escapeHtml(t('Stop lookup and continue import'))}</button>
+            ${geneographGeocoder.attributionHtml()}
+        </section>
         <div class="gedcom-preview" data-gedcom-warnings></div>
         </div><div class="modal-footer gedcom-import-footer">
         <p class="gedcom-session-note">${escapeHtml(t('Imported projects stay in this session. Reloading discards them and any edits.'))}</p>
@@ -2032,6 +2255,12 @@ function openImportModal()
     let matches = new Map();
     let onlineMatches = new Map();
     let downloadController;
+    let geocodeController, geocodeResult;
+    const geocodeSection = find('[data-gedcom-geocode]');
+    const geocodeEnabled = find('[data-gedcom-geocode-enabled]');
+    const geocodeProgress = find('[data-gedcom-geocode-progress]');
+    const geocodeStop = find('[data-gedcom-geocode-stop]');
+    geocodeStop.addEventListener('click', () => geocodeController?.abort());
     let revision = 0;
     const isCurrent = request => form.isConnected && request === revision;
     function showError(failure)
@@ -2079,6 +2308,11 @@ function openImportModal()
         const request = ++revision;
         parsed = null;
         downloadController?.abort();
+        geocodeController?.abort();
+        geocodeResult = null;
+        geocodeSection.hidden = true;
+        geocodeEnabled.checked = true;
+        geocodeProgress.textContent = '';
         onlineMatches = new Map();
         downloadStatus.textContent = '';
         download.disabled = false;
@@ -2111,6 +2345,7 @@ function openImportModal()
             version.textContent = 'GEDCOM ' + parsed.version;
             version.hidden = false;
             renderPreview(draft);
+            geocodeSection.hidden = !draft.records.places.some(place => !placeHasCoordinates(place));
             name.closest('[data-gedcom-name]').hidden = false;
             submit.hidden = submit.disabled = name.disabled = false;
             attachments.hidden = !references.size && !onlineReferences.size;
@@ -2221,27 +2456,62 @@ function openImportModal()
             if (isCurrent(request)) download.disabled = folderChoose.disabled = folderRemove.disabled = submit.disabled = false;
         }
     });
-    form.addEventListener('submit', event =>
+    form.addEventListener('submit', async event =>
     {
         event.preventDefault();
         if (!parsed || !name.value.trim() || submit.disabled) return;
-        submit.disabled = true;
+        const request = ++revision;
+        const controller = new AbortController();
+        geocodeController = controller;
+        const closeObserver = new MutationObserver(() =>
+        {
+            if (!form.isConnected) controller.abort();
+        });
+        closeObserver.observe(modalBackdrop, { childList: true, subtree: true });
+        const controls = [submit, choose, name, folderChoose, folderRemove, download, geocodeEnabled, input, folderInput];
+        const previousDisabled = controls.map(control => control.disabled);
+        controls.forEach(control => { control.disabled = true; });
         error.hidden = true;
-        let draft, report;
+        let report;
         try
         {
-            draft = buildDraft();
+            const draft = buildDraft();
+            if (!geocodeResult)
+            {
+                geocodeStop.hidden = !geocodeEnabled.checked || geocodeSection.hidden;
+                geocodeResult = await matchGedcomPlaceCoordinates(draft, { enabled: geocodeEnabled.checked,
+                    signal: controller.signal, onProgress: (done, total) =>
+                    {
+                        if (isCurrent(request)) geocodeProgress.textContent = t('Matching places: {done} of {total}')
+                            .replace('{done}', done).replace('{total}', total);
+                    } });
+            }
+            // Stop means continue with completed results. Closing the modal
+            // instead discards the entire detached draft, even on late reply.
+            if (!isCurrent(request)) return;
+            applyGedcomPlaceMatching(draft, geocodeResult);
             report = gedcomImportReport(draft);
             commitGedcomImport(draft, report);
         }
         catch (failure)
         {
-            showError(failure);
-            submit.disabled = false;
+            if (isCurrent(request)) showError(failure);
             return;
         }
+        finally
+        {
+            closeObserver.disconnect();
+            if (isCurrent(request))
+            {
+                controls.forEach((control, index) => { control.disabled = previousDisabled[index]; });
+                geocodeStop.hidden = true;
+                geocodeProgress.textContent = '';
+                // A failed commit can be retried without spending more credits.
+                if (geocodeResult) geocodeEnabled.disabled = true;
+            }
+        }
+        if (!isCurrent(request)) return;
         closeModal();
-
         showGedcomImportResult(report);
     });
 }
@@ -2250,7 +2520,7 @@ function showGedcomImportResult(report)
 {
     openModal('<div class="modal" role="dialog" aria-modal="true" aria-labelledby="gedcomResultTitle">'
         + '<div class="modal-header"><h2 id="gedcomResultTitle">' + escapeHtml(t('GEDCOM imported')) + '</h2></div>'
-        + '<div class="modal-body">' + gedcomImportSummary(report) + gedcomAttachmentSummary(report, true)
+        + '<div class="modal-body">' + gedcomImportSummary(report) + gedcomAttachmentSummary(report, true) + gedcomPlaceMatchingSummary(report)
         + '<p>' + escapeHtml(t('Imported projects stay in this session. Reloading discards them and any edits.')) + '</p>' + gedcomImportWarnings(report) + '</div>'
         + '<div class="modal-footer"><button class="button primary" type="button" data-close>'
         + escapeHtml(t('Done')) + '</button></div></div>');

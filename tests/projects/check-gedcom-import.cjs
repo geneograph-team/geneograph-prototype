@@ -888,7 +888,74 @@ async function verifyMyHeritageCutouts()
     assertImportedCollections(localDraft);
 }
 
-verifyAttachments().then(verifyOnlinePhotos).then(verifyMyHeritageCutouts).then(() =>
+
+async function verifyAutomaticPlaceMatching()
+{
+    const draft = map(file([
+        '0 @I1@ INDI', '1 BIRT', '2 PLAC Rzeszow, Podkarpackie, Poland',
+        '1 DEAT', '2 PLAC Rzeszów, Poland',
+        '0 @I2@ INDI', '1 BIRT', '2 PLAC Rzeszów',
+        '1 DEAT', '2 PLAC Москва, СССР',
+        '0 @I3@ INDI', '1 BIRT', '2 PLAC Cemetery, Poland',
+        '1 DEAT', '2 PLAC Poland',
+        '0 @I4@ INDI', '1 BIRT', '2 PLAC Other, Poland', '3 MAP', '4 LATI N50', '4 LONG E22',
+        '1 DEAT', '2 PLAC Invalid, Poland', '3 MAP', '4 LATI N95', '4 LONG E22'
+    ]));
+    assert.deepEqual(Array.from(draft.errors), []);
+    const before = JSON.stringify(draft.records.places);
+    const calls = [];
+    const candidate = { names: ['Rzeszów'], countryCode: 'PL', admin: ['Podkarpackie'],
+        type: 'city', identities: ['one'], regionNames: ['Podkarpackie'], countyNames: [],
+        confidence: .9, coordinates: { lat: 50.04, lng: 22 } };
+    const lookup = async query => { calls.push(query); return {status:'results', candidates:[candidate]}; };
+    const result = await context.matchGedcomPlaceCoordinates(draft, { lookup });
+    assert.equal(calls.length, 2);
+    assert.equal(result.stats.assigned, 2);
+    assert.equal(result.stats.existing, 1);
+    assert.equal(result.stats.ineligible, 5);
+    assert.equal(JSON.stringify(draft.records.places), before);
+    context.applyGedcomPlaceMatching(draft, result);
+    assert.equal(draft.records.places[0].name, 'Rzeszow, Podkarpackie, Poland');
+    assert.equal(draft.records.places[0].coordinates.lat, 50.04);
+    assert.equal(draft.records.places.find(place => place.name === 'Other, Poland').coordinates.lat, 50);
+    assert.equal(context.gedcomImportReport(draft).placeMatching.assigned, 2);
+    const plan = { primary:'Rzeszów', country:'PL', admin:[] };
+    assert.equal(context.gedcomStrongPlaceMatch(plan, {status:'results',candidates:[candidate,{...candidate, identities:['two'],coordinates:{lat:51,lng:22}}]}), null);
+    assert.equal(context.gedcomStrongPlaceMatch(plan, {status:'results',candidates:[candidate],truncated:true}), null);
+    assert.equal(context.gedcomStrongPlaceMatch({...plan,admin:['Different County']}, {status:'results',candidates:[candidate]}), null);
+    const namesake = {...candidate, identities:['two'], admin:['Mazowieckie'], regionNames:['Mazowieckie'], coordinates:{lat:52,lng:21}};
+    assert.equal(context.gedcomStrongPlaceMatch({...plan,admin:['Podkarpackie']},{status:'results',candidates:[candidate,namesake]}).lat,50.04);
+    assert.equal(context.gedcomStrongPlaceMatch({...plan,admin:['Podkarpackie']},{status:'results',candidates:[candidate,{...namesake,regionNames:[]}]}),null);
+    assert.equal(context.gedcomStrongPlaceMatch(plan,{status:'results',candidates:[candidate,{...candidate,coordinates:{lat:51,lng:22}}]}),null);
+    assert.equal(context.gedcomStrongPlaceMatch(plan, {status:'results',candidates:[{...candidate,countryCode:'DE'}]}), null);
+    const many = { records: { places: Array.from({length:160}, (_,i)=>({id:'p'+i,name:'Town '+i+', Poland',coordinates:null})), events:[],people:[] } };
+    many.records.events.push({placeId:'p159'});
+    calls.length = 0;
+    const emptyLookup = async query => { calls.push(query); return {status:'empty',candidates:[]}; };
+    const capped = await context.matchGedcomPlaceCoordinates(many, {lookup:emptyLookup});
+    assert.equal(calls.length,150);
+    assert.equal(calls[0],'Town 159, Poland');
+    assert.equal(capped.stats.budget,10);
+    assert.equal(capped.stats.uncertain,150);
+    const offline = await context.matchGedcomPlaceCoordinates(many,{enabled:false,lookup:emptyLookup});
+    assert.equal(calls.length,150);
+    assert.equal(offline.stats.offline,160);
+    let quotaCalls=0;
+    const quota=await context.matchGedcomPlaceCoordinates(many,{lookup:async()=>{quotaCalls++;return {status:'quota',candidates:[]};}});
+    assert.equal(quotaCalls,1);
+    assert.equal(quota.stats.quota,150);
+    const controller=new AbortController();
+    let stoppedCalls=0;
+    const stopped=await context.matchGedcomPlaceCoordinates(many,{signal:controller.signal,lookup:async()=>{stoppedCalls++;controller.abort();return {status:'empty',candidates:[]};}});
+    assert.equal(stoppedCalls,1);
+    assert.equal(stopped.stats.stopped,150);
+    const duplicate={records:{places:[{id:'a',name:'Example, Poland',coordinates:null},{id:'b',name:'Example, Polska',coordinates:null}],events:[],people:[]}};
+    const duplicateResult=await context.matchGedcomPlaceCoordinates(duplicate,{lookup:emptyLookup});
+    assert.equal(duplicateResult.stats.lookups,1);
+    assert.equal(duplicateResult.stats.checked,2);
+}
+
+verifyAttachments().then(verifyOnlinePhotos).then(verifyMyHeritageCutouts).then(verifyAutomaticPlaceMatching).then(() =>
 {
     console.log('GEDCOM decoding, canonical mapping, warnings, attachment matching, and invalid inputs passed.');
 }).catch(error =>

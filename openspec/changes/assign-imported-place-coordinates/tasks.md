@@ -1,0 +1,8 @@
+# Tasks
+
+- [x] Implement detached automatic coordinate matching and default-enabled disclosure/opt-out, progress, stop, final validation, report and bounded provider fallback.
+- [x] Add synthetic matching, budget and provider request fixtures for structured evidence, ambiguous primary results, fallback, quota, abort, missing credentials and manual-search compatibility.
+- [ ] Run native GEDCOM/geocoder/localization suites and hosted/direct-file EN/RU browser QA, including close/cancel, retry, provider errors, attribution and actual private sample with informed consent. Verify account-specific provider limits/terms before deployment.
+- [ ] Reconcile baseline specs and archive after material acceptance.
+
+Published Geoapify and LocationIQ documentation describes controlled bulk requests (https://www.geoapify.com/tutorial/batch-geocoding-js-and-rate-limits/ and https://help.locationiq.com/support/solutions/articles/36000216034-is-batch-geocoding-supported-). Actual account entitlement/remaining quotas and live match accuracy are unverified. No private queries sent.

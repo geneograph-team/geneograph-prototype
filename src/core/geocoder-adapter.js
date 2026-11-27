@@ -218,6 +218,44 @@ const geneographGeocoder = (function ()
         return results;
     }
 
+    // Keep matching evidence independent of the presentation strings.
+    // Only used by the import path; no raw provider payload is persisted.
+    function importCandidate(item, source, index, language)
+    {
+        const result = normalizeResult(item, index, source, language);
+        if (!result) return null;
+        const address = source === 'geoapify' ? item : item.address || {};
+        const raw = source === 'geoapify' ? item.datasource?.raw || {} : item.namedetails || {};
+        const names = [source === 'geoapify' ? item.name || item.city : item.display_place,
+            raw.name, ...['en','ru','uk','pl'].map(lang => raw['name:' + lang])].map(cleanText).filter(Boolean);
+        const countryCode = cleanText(address.country_code).toUpperCase();
+        const region = cleanText(address.state || address.region);
+        const county = cleanText(address.county || address.district);
+        const regionNames = [region, address.state_code, address['ISO3166-2-lvl4']].map(cleanText).filter(Boolean);
+        const countyNames = [county].filter(Boolean);
+        // Include known expanded region names from the structured formatter,
+        // but never use arbitrary fallback display_address text as evidence.
+        if (countryCode === 'PL' && /^(?:pk|pl-18|рк|podkarpackie(?: voivodeship)?|województwo podkarpackie|subcarpathian(?: voivodeship)?|подкарпатское воеводство)$/i
+            .test(region || cleanText(address.state_code)))
+            regionNames.push('Podkarpackie', 'Subcarpathian Voivodeship', 'Подкарпатское воеводство');
+        const admin = [...regionNames, ...countyNames, cleanText(address.state_district), cleanText(address.municipality)].filter(Boolean);
+        const confidence = source === 'geoapify' && typeof item.rank?.confidence === 'number'
+            && Number.isFinite(item.rank.confidence) ? item.rank.confidence : null;
+        return { names, countryCode, admin, regionNames, countyNames, type: settlementType(item, source),
+            identities: settlementIdentities(item, source), confidence, coordinates: result.coordinates };
+    }
+
+    function normalizeImportCandidates(json, source, limit, language)
+    {
+        const items = source === 'geoapify' ? json?.results : json;
+        if (!Array.isArray(items)) throw new Error('Invalid geocoding response');
+        // Inspect all returned candidates, without proximity-based collapse.
+        // A full candidate pool is not evidence of uniqueness beyond the cap.
+        return { candidates: items.slice(0, limit).map((item, index) =>
+            importCandidate(item, source, index, language)).filter(Boolean),
+            truncated: items.length >= limit };
+    }
+
     function providerKey(source)
     {
         const field = source === 'geoapify' ? 'geoapifyKey' : 'locationiqKey';
@@ -268,7 +306,7 @@ const geneographGeocoder = (function ()
         return url;
     }
 
-    async function request(source, query, signal, limit, language)
+    async function request(source, query, signal, limit, language, importMode = false)
     {
         if (signal?.aborted) throw abortError();
         const key = providerKey(source);
@@ -331,9 +369,13 @@ const geneographGeocoder = (function ()
                 {
                     cooldownUntil[source] = Date.now() + 30 * 1000;
                 }
-                throw new Error('Geocoder service error');
+                const failure = new Error('Geocoder service error');
+                failure.providerStatus = response.status;
+                throw failure;
             }
-            return normalizeResponse(await response.json(), source, limit, language);
+            const json = await response.json();
+            return importMode ? normalizeImportCandidates(json, source, candidateLimit, language)
+                : normalizeResponse(json, source, limit, language);
         }
         catch (error)
         {
@@ -386,6 +428,37 @@ const geneographGeocoder = (function ()
         }
     }
 
+    async function searchImport(query, signal, language = 'en')
+    {
+        const text = cleanText(query);
+        if (signal?.aborted) throw abortError();
+        // Do not truncate identifying context in an automatic match.
+        if (!text || text.length > maxQueryLength || String(query).trim().length > maxQueryLength)
+            return { status: 'empty', candidates: [] };
+        let successful = false;
+        for (const source of ['geoapify', 'locationiq'])
+        {
+            if (signal?.aborted) throw abortError();
+            try
+            {
+                const result = await request(source, text, signal, 10, language, true);
+                successful = true;
+                if (result.candidates.length)
+                    return { status: 'results', ...result };
+            }
+            catch (error)
+            {
+                if (signal?.aborted) throw abortError();
+                // A quota response stops this import's whole queue. Do not
+                // shift the remaining batch onto another provider.
+                if (error.providerStatus === 429) return { status: 'quota', candidates: [] };
+                // LocationIQ uses 404 for a completed search with no match.
+                if (error.providerStatus === 404) successful = true;
+            }
+        }
+        return { status: successful ? 'empty' : 'unavailable', candidates: [] };
+    }
+
     function attributionHtml()
     {
         return '<span class="place-search-attribution">'
@@ -396,5 +469,5 @@ const geneographGeocoder = (function ()
             + '</span>';
     }
 
-    return Object.freeze({ search, attributionHtml, normalizeResult, normalizeResponse });
+    return Object.freeze({ search, searchImport, attributionHtml, normalizeResult, normalizeResponse, normalizeImportCandidates });
 })();
