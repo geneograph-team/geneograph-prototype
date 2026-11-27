@@ -2396,7 +2396,15 @@ function gedcomMatchingPlaceCurrent(job, item)
 function invalidateGedcomPlaceMatch(place)
 {
     const job = place && gedcomPlaceMatchingJobs.get(place.projectId);
-    if (job) job.invalidated.add(place.id);
+    if (job)
+    {
+        job.invalidated.add(place.id);
+        job.verified?.delete(place.id);
+    }
+    const report = place && gedcomImportReports.get(place.projectId);
+    report?.matchingVerified?.delete(place.id);
+    const diagnostic = report?.matchingDiagnostics?.find(item => item.id === place.id);
+    if (diagnostic) diagnostic.reason = 'stale-place';
 }
 
 function cancelGedcomPlaceMatching(projectId, { discard = false } = {})
@@ -2471,17 +2479,32 @@ function gedcomVerifiedMergePair(left, right, first, second)
         && issue.status === 'dismissed' && [left.id, right.id].some(id => issue.placeId === id || issue.otherPlaceId === id));
 }
 
+function gedcomMatchingCanReconcile(job)
+{
+    if (!gedcomMatchingCanApply(job)) return false;
+    if (typeof document === 'undefined' || state.currentProjectId !== job.project.id) return true;
+    // Avoid retargeting live references under an inline draft or an active
+    // board canvas. Keep verified candidates available for ordinary review
+    // instead of holding the lookup status open indefinitely.
+    if (state.activeModule === 'Geneograph') return false;
+    const active = document.activeElement;
+    return !active?.matches?.('input, textarea, select, [contenteditable="true"]')
+        && !document.querySelector?.('.is-editing-reason, .menu-popover, #placesFilterPopover');
+}
+
 function reconcileGedcomMatchingPlaces(job)
 {
     if (!job.verified?.size || typeof mergeSavedPlaces !== 'function'
-        || typeof matchDuplicatePlaces !== 'function' || !gedcomMatchingJobCurrent(job)) return [];
+        || typeof matchDuplicatePlaces !== 'function' || !gedcomMatchingJobCurrent(job)
+        || !gedcomMatchingCanReconcile(job)) return [];
     const changed = [];
     const entries = [...job.verified].sort(([a], [b]) => a.localeCompare(b, 'en', { numeric: true }));
     for (let i = 0; i < entries.length; i++)
         for (let j = i + 1; j < entries.length; j++)
         {
             const [a, first] = entries[i], [b, second] = entries[j];
-            if (job.invalidated.has(a) || job.invalidated.has(b)) continue;
+            if (job.invalidated.has(a) || job.invalidated.has(b)
+                || (!job.newlyVerified.has(a) && !job.newlyVerified.has(b))) continue;
             const left = getPlace(a), right = getPlace(b);
             if (!gedcomVerifiedMergePair(left, right, first, second) || !matchDuplicatePlaces(left, right)) continue;
             const specificity = place => {
@@ -2493,9 +2516,17 @@ function reconcileGedcomMatchingPlaces(job)
                 projectId: job.project.id, preserveSelection: true }))
             {
                 changed.push(keep.id, removed.id);
-                // The canonical merge invalidates both records. Do not use
-                // the old snapshots for further unattended merges.
-                job.invalidated.add(keep.id);
+                // The canonical merge invalidates both old snapshots. The
+                // unchanged survivor can take part in another verified merge
+                // only with a fresh snapshot and shared identity evidence.
+                const survivor = keep === left ? first : second;
+                survivor.identity = { ...survivor.identity,
+                    ids: [...new Set([...first.identity.ids, ...second.identity.ids])],
+                    names: [...new Set([...first.identity.names, ...second.identity.names])] };
+                survivor.saved = JSON.stringify(keep);
+                job.verified.set(keep.id, survivor);
+                job.newlyVerified.add(keep.id);
+                job.invalidated.delete(keep.id);
                 job.invalidated.add(removed.id);
                 job.mergedCount = (job.mergedCount || 0) + 1;
             }
@@ -2525,7 +2556,11 @@ function flushGedcomMatchingJob(job)
         if (applyGedcomMatchingPoint(job, item, point))
         {
             changed.push(id);
-            if (identity?.ids?.length) job.verified?.set(id, { identity, saved: JSON.stringify(job.snapshots.get(id).place) });
+            if (identity?.ids?.length)
+            {
+                job.verified.set(id, { identity, saved: JSON.stringify(job.snapshots.get(id).place) });
+                job.newlyVerified.add(id);
+            }
         }
         else job.rejected.add(id);
     }
@@ -2539,12 +2574,15 @@ function flushGedcomMatchingJob(job)
         if (typeof schedulePlacesMatchingRefresh === 'function') schedulePlacesMatchingRefresh(job.project.id, changed);
     }
     if (!job.result) return;
-    if (job.verified?.size > 1 && !gedcomMatchingCanApply(job))
-    {
-        scheduleGedcomMatchingFlush(job);
-        return;
-    }
     const mergedIds = reconcileGedcomMatchingPlaces(job);
+    // Preserve session-only evidence for a later explicit retry of a second
+    // name. Never re-use edited/deleted records or an old project incarnation.
+    job.report.matchingVerified = new Map([...job.verified].filter(([id, entry]) =>
+    {
+        const place = getPlace(id);
+        return !job.invalidated.has(id) && place?.projectId === job.project.id
+            && JSON.stringify(place) === entry.saved;
+    }));
     clearTimeout(job.timer);
     job.timer = null;
     const { stats, diagnostics } = job.result;
@@ -2576,7 +2614,7 @@ function startGedcomPlaceMatchingJob(draft, report, {
     const plan = gedcomPlaceLookupPlan(draft);
     if (!plan.candidates.length)
     {
-        report.matchingDiagnostics = plan.diagnostics;
+        if (!retry) report.matchingDiagnostics = plan.diagnostics;
         return null;
     }
     const places = new Map(draft.records.places.map(place => [place.id, place]));
@@ -2587,7 +2625,7 @@ function startGedcomPlaceMatchingJob(draft, report, {
     }));
     const job = { project: draft.project, report, snapshots, invalidated: new Set(), rejected: new Set(),
         controller: new AbortController(), pending: new Map(), timer: null, result: null, appliedCount: 0,
-        verified: new Map(), retry };
+        verified: retry ? new Map(report.matchingVerified || []) : new Map(), newlyVerified: new Set(), retry };
     gedcomPlaceMatchingJobs.set(projectId, job);
     report.matchingState = 'running';
     updateGedcomMatchingStatus(projectId);
