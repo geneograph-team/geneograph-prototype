@@ -105,6 +105,7 @@ const RU_EXACT_EMBEDDED_RULES =
             - left.length
         )
         .map(key => ({
+            source: key,
             translation:
             RU_EXACT[key],
 
@@ -116,6 +117,57 @@ const RU_EXACT_EMBEDDED_RULES =
                 'gu'
             )
         }));
+
+
+// All embedded keys have at least three code units. The literal prefix
+// only selects candidates; the original regex still checks boundaries.
+const RU_EMBEDDED_PREFIX_LENGTH = 3;
+let ruEmbeddedRulesByPrefix;
+
+function replaceEmbeddedLocalization(value)
+{
+    if (!ruEmbeddedRulesByPrefix)
+    {
+        ruEmbeddedRulesByPrefix = new Map();
+        for (const [index, rule] of RU_EXACT_EMBEDDED_RULES.entries())
+        {
+            const prefix = rule.source.slice(0, RU_EMBEDDED_PREFIX_LENGTH);
+            if (!ruEmbeddedRulesByPrefix.has(prefix)) ruEmbeddedRulesByPrefix.set(prefix, []);
+            ruEmbeddedRulesByPrefix.get(prefix).push(index);
+        }
+    }
+
+    let nextRule = 0;
+    while (nextRule < RU_EXACT_EMBEDDED_RULES.length)
+    {
+        let candidates;
+        for (let start = 0; start <= value.length - RU_EMBEDDED_PREFIX_LENGTH; start++)
+        {
+            const bucket = ruEmbeddedRulesByPrefix.get(value.slice(start, start + RU_EMBEDDED_PREFIX_LENGTH));
+            if (!bucket) continue;
+            for (const index of bucket)
+            {
+                if (index >= nextRule && value.includes(RU_EXACT_EMBEDDED_RULES[index].source))
+                    (candidates ||= new Set()).add(index);
+            }
+        }
+        if (!candidates) break;
+
+        const previous = value;
+        for (const index of [...candidates].sort((left, right) => left - right))
+        {
+            const rule = RU_EXACT_EMBEDDED_RULES[index];
+            rule.pattern.lastIndex = 0;
+            value = value.replace(rule.pattern, (_match, prefix) => prefix + rule.translation);
+            nextRule = index + 1;
+            // A translation may introduce a different literal for a later rule.
+            // Re-select candidates from the changed text without revisiting earlier rules.
+            if (value !== previous) break;
+        }
+        if (value === previous) break;
+    }
+    return value;
+}
 
 
 function isTechnicalLocalizationValue(
@@ -1720,16 +1772,7 @@ function translateDynamicPhrase(core)
         out = translateDateValue(out);
     }
 
-    RU_EXACT_EMBEDDED_RULES
-        .forEach(rule =>
-        {
-            rule.pattern.lastIndex = 0;
-            out = out.replace(
-                rule.pattern,
-                (match, prefix) =>
-                    `${prefix}${rule.translation}`
-            );
-        });
+    out = replaceEmbeddedLocalization(out);
 
     const directTranslation =
         translateValue(out);
