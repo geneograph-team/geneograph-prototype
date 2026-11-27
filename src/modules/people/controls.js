@@ -32,6 +32,12 @@ function openDeletePeopleConfirm(personIds)
 
 function deletePeopleRecords(personIds)
 {
+    if (typeof appPerf === 'undefined' || !appPerf.enabled('People')) return deletePeopleRecordsWithDiagnosticsBody(personIds);
+    return appPerf.run('People', 'mutation', () => deletePeopleRecordsWithDiagnosticsBody(personIds));
+}
+
+function deletePeopleRecordsWithDiagnosticsBody(personIds)
+{
     const requestedIds = [...new Set(Array.isArray(personIds) ? personIds.filter(Boolean) : [])];
     const validIds = requestedIds.filter(personId => Boolean(getPerson(personId)));
     if (!validIds.length) return;
@@ -204,7 +210,7 @@ function bindPeopleToolbarControls(root = main)
     bindSearchInput(root, '#peopleSearch', 'peopleSearch', () =>
     {
         clearPeopleSelection();
-        renderPeople();
+        renderPeople('search');
     });
     bindAppSortControl(root, {
         id: 'peopleSort',
@@ -222,7 +228,7 @@ function bindPeopleToolbarControls(root = main)
             state.peopleSortDirection =
                 direction;
 
-            renderPeople();
+            renderPeople('sort');
         }
     });
     root.querySelector('#peopleColumnsButton')?.addEventListener('click', openPeopleColumnsModal);
@@ -350,7 +356,13 @@ function updatePeoplePreviewRows(
         });
 }
 
-function previewPeoplePerson(
+function previewPeoplePerson(personId)
+{
+    if (typeof appPerf === 'undefined' || !appPerf.enabled('People')) return previewPeoplePersonWithDiagnosticsBody(personId);
+    return appPerf.run('People', 'selection', () => previewPeoplePersonWithDiagnosticsBody(personId));
+}
+
+function previewPeoplePersonWithDiagnosticsBody(
     personId
 )
 {
@@ -507,7 +519,7 @@ function bindPeoplePaginationControls()
                     state.peoplePage =
                         nextPage;
 
-                    renderPeople();
+                    renderPeople('page');
                 }
             );
         });
@@ -534,7 +546,7 @@ function bindPeoplePaginationControls()
             */
                 state.peoplePage = 1;
 
-                renderPeople();
+                renderPeople('page');
             }
         );
 }

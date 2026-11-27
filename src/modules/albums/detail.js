@@ -1235,6 +1235,16 @@ function renderAlbumsDetailCollapsed()
 
 function renderAlbumsDetailPane()
 {
+    if (typeof appPerf === 'undefined' || !appPerf.enabled('Albums')) return renderAlbumsDetailPaneWithDiagnosticsBody();
+    const trace = appPerf.currentDetailed('Albums');
+    if (!trace) return appPerf.run('Albums', 'selection', () =>
+        appPerf.measure(appPerf.currentDetailed('Albums'), 'evidence', () => renderAlbumsDetailPaneWithDiagnosticsBody()));
+    const result = appPerf.measure(trace, 'evidence', () => renderAlbumsDetailPaneWithDiagnosticsBody());
+    return result;
+}
+
+function renderAlbumsDetailPaneWithDiagnosticsBody()
+{
     const photo =
         getPhoto(
             state.selectedPhotoId,

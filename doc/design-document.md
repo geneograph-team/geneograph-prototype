@@ -102,6 +102,12 @@ Keep UI-critical reads lightweight and synchronous. Render available primary con
 
 An expensive job should carry the project ID, active generation and input revision. Coalesce work for identical current inputs when needed, expose pending/progress/error states where relevant, and distinguish an unknown result from zero. On a project switch or dependency change, cancel work or discard obsolete results. Check the generation and dependency token before publication. Results are disposable. The current foundation runs synchronously and introduces no general job executor.
 
+### Interpreting performance diagnostics
+
+The local diagnostics recorder distinguishes synchronous operation duration, asynchronous completion, and a browser frame opportunity. The latter is the time to an animation-frame callback. It does not establish paint, presentation, image decoding or input latency. Browser long-task observation is optional and only runs in Detailed all-module recordings because native entries cannot reliably identify the app module. Its aggregates are page-wide. Unsupported and excluded metrics are explicitly labeled. Use browser DevTools when the recorded operation leaves browser rendering, decoding or individual network steps unresolved.
+
+Provider, stage and child-operation timings are inclusive and may overlap. Inspect the cold provider build and warm reuse first. Compare filter/sort, visible detail, markup/DOM insertion and evidence or analysis individually. A missing stage or count means it was unmeasured. A recorded zero is a measured value. See the [coverage inventory](source-map.md#application-diagnostics-instrumentation) and [recording protocol](../tests/README.md#performance-diagnostics-recording-checklist).
+
 ### People and Profile
 
 The People directory presents project people with search/filter/sort and bulk operations. A person's role relative to the project's default person is derived from relationships, not maintained as a separate manually edited label. Profile brings identity, life facts, relations, photos, notes, places, and research connections together. Add/Edit Person uses the shared person model; changes can be reflected in other views of that record.

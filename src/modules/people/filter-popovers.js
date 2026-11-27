@@ -451,7 +451,7 @@ function openPeopleFilterPopover(
 
                 closePeopleFilterPopover();
 
-                renderPeople();
+                renderPeople('filter');
             }
         );
 

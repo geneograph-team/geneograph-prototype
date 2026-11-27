@@ -80,6 +80,16 @@ function noteSearchText(
 
 function filteredNotes()
 {
+    if (typeof appPerf === 'undefined' || !appPerf.enabled('Notes')) return filteredNotesWithDiagnosticsBody();
+    const trace = appPerf.currentDetailed('Notes');
+    if (!trace) return filteredNotesWithDiagnosticsBody();
+    const result = appPerf.measure(trace, 'query', () => filteredNotesWithDiagnosticsBody());
+    appPerf.count(trace, 'recordsMatched', result.length, true);
+    return result;
+}
+
+function filteredNotesWithDiagnosticsBody()
+{
     const projectId =
         currentProjectId();
 

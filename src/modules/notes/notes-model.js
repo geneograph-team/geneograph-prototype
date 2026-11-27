@@ -2448,7 +2448,17 @@ function bindNotesBodyFallback(
     }
 }
 
-function initializeNotesRichTextEditor(
+function initializeNotesRichTextEditor(note)
+{
+    if (typeof appPerf === 'undefined' || !appPerf.enabled('Notes')) return initializeNotesRichTextEditorWithDiagnosticsBody(note);
+    const trace = appPerf.currentDetailed('Notes');
+    if (!trace) return appPerf.run('Notes', 'editor', () =>
+        appPerf.measure(appPerf.currentDetailed('Notes'), 'editor', () => initializeNotesRichTextEditorWithDiagnosticsBody(note)));
+    const result = appPerf.measure(trace, 'editor', () => initializeNotesRichTextEditorWithDiagnosticsBody(note));
+    return result;
+}
+
+function initializeNotesRichTextEditorWithDiagnosticsBody(
     note
 )
 {

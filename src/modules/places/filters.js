@@ -1029,7 +1029,16 @@ function matchDuplicatePlaces(left, right, a = left && preparePlaceDuplicateComp
     return best;
 }
 
-function getPlaceDuplicatePairs(projectId = currentProjectId())
+function getPlaceDuplicatePairs(projectId)
+{
+    if (typeof appPerf === 'undefined' || !appPerf.enabled('Places')) return getPlaceDuplicatePairsWithDiagnosticsBody(projectId);
+    const trace = appPerf.currentDetailed('Places');
+    if (!trace) return getPlaceDuplicatePairsWithDiagnosticsBody(projectId);
+    const result = appPerf.measure(trace, 'analysis', () => getPlaceDuplicatePairsWithDiagnosticsBody(projectId));
+    return result;
+}
+
+function getPlaceDuplicatePairsWithDiagnosticsBody(projectId = currentProjectId())
 {
     const places = projectPlaces(projectId);
     const prepared = places.map(preparePlaceDuplicateComparison);
@@ -1272,7 +1281,13 @@ function clearPlaceReviewDismissals(placeId, issueTypes = [])
     );
 }
 
-function selectPlace(
+function selectPlace(placeId, options)
+{
+    if (typeof appPerf === 'undefined' || !appPerf.enabled('Places')) return selectPlaceWithDiagnosticsBody(placeId, options);
+    return appPerf.run('Places', 'selection', () => selectPlaceWithDiagnosticsBody(placeId, options));
+}
+
+function selectPlaceWithDiagnosticsBody(
     placeId,
     {
         source = 'list',

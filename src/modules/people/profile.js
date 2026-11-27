@@ -73,14 +73,22 @@ function renderPeopleProfile(person, centralPerson, context)
     const hasDeathLifeRow =
         peopleHeroLifeSummaryItems(person).length > 1;
 
+    const trace = typeof appPerf === 'undefined' ? null : appPerf.currentDetailed('People');
+    const evidenceStarted = trace ? appPerf.now() : 0;
     const events = getEventsForPerson(person.id);
     const eventPlaces = getProfileConnectedPlaces(centralPerson, events);
     const connected = profileConnectedRecords(centralPerson, eventPlaces);
     const placeCount = eventPlaces.length;
     const eventCount = events.length;
     const sourceCount = connected.sources.length;
+    if (trace)
+    {
+        appPerf.span(trace, 'evidence', appPerf.now() - evidenceStarted);
+        appPerf.count(trace, 'recordsPrepared', 1);
+    }
+    const markupStarted = trace ? appPerf.now() : 0;
 
-    main.innerHTML = `
+    const markup = `
         <div class="person-profile">
           <header class="profile-hero profile-command-hero">
             <div class="profile-hero-content${hasDeathLifeRow ? ' profile-hero-content--with-death' : ''}">
@@ -225,6 +233,10 @@ function renderPeopleProfile(person, centralPerson, context)
         </div>
       `;
 
+    if (trace) appPerf.span(trace, 'markup', appPerf.now() - markupStarted);
+    const domStarted = trace ? appPerf.now() : 0;
+    main.innerHTML = markup;
+    if (trace) appPerf.span(trace, 'dom', appPerf.now() - domStarted);
     bindPeopleProfileControls(person);
 }
 

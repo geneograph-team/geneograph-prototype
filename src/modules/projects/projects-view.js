@@ -1319,6 +1319,15 @@ function openStartupProjectModule(projectId, moduleName)
 
 function renderOpenProjectInsightsCard(project)
 {
+    if (typeof appPerf === 'undefined' || !appPerf.enabled('Projects')) return renderOpenProjectInsightsCardWithDiagnosticsBody(project);
+    const trace = appPerf.currentDetailed('Projects');
+    if (!trace) return renderOpenProjectInsightsCardWithDiagnosticsBody(project);
+    const result = appPerf.measure(trace, 'analysis', () => renderOpenProjectInsightsCardWithDiagnosticsBody(project));
+    return result;
+}
+
+function renderOpenProjectInsightsCardWithDiagnosticsBody(project)
+{
     const projectPeople = getPeople(project.id);
     const projectFiles = (sampleData.archiveFiles || []).filter(file => file.projectId === project.id);
     const projectPhotos = getProjectPhotos(project.id);

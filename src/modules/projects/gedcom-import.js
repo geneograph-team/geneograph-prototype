@@ -1125,6 +1125,12 @@ function commitGedcomImport(...args)
 function commitGedcomImportWithDiagnosticsBody(draft, report = gedcomImportReport(draft))
 {
     const projectId = draft.project.id;
+    const trace = typeof appPerf === 'undefined' ? null : appPerf.currentDetailed('Projects');
+    if (trace)
+    {
+        appPerf.count(trace, 'projectPeople', draft.records.people.length);
+        appPerf.count(trace, 'projectFamilies', draft.records.families.length);
+    }
     const previous = { projects: sampleData.projects, activity: sampleData.activity };
     const next = {
         projects: [...sampleData.projects, draft.project],

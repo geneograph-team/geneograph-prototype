@@ -552,6 +552,16 @@ function archiveSortFilteredFiles(
 
 function archiveMatchingFiles()
 {
+    if (typeof appPerf === 'undefined' || !appPerf.enabled('Archive')) return archiveMatchingFilesWithDiagnosticsBody();
+    const trace = appPerf.currentDetailed('Archive');
+    if (!trace) return archiveMatchingFilesWithDiagnosticsBody();
+    const result = appPerf.measure(trace, 'query', () => archiveMatchingFilesWithDiagnosticsBody());
+    appPerf.count(trace, 'recordsMatched', result.length, true);
+    return result;
+}
+
+function archiveMatchingFilesWithDiagnosticsBody()
+{
     const filters =
         archiveEffectiveFileFilters();
 
@@ -863,6 +873,16 @@ function archiveSourceSearchText(
 }
 
 function archiveFilteredSources()
+{
+    if (typeof appPerf === 'undefined' || !appPerf.enabled('Archive')) return archiveFilteredSourcesWithDiagnosticsBody();
+    const trace = appPerf.currentDetailed('Archive');
+    if (!trace) return archiveFilteredSourcesWithDiagnosticsBody();
+    const result = appPerf.measure(trace, 'query', () => archiveFilteredSourcesWithDiagnosticsBody());
+    appPerf.count(trace, 'recordsMatched', result.length, true);
+    return result;
+}
+
+function archiveFilteredSourcesWithDiagnosticsBody()
 {
     const query =
         String(

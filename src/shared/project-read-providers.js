@@ -6,7 +6,10 @@ function projectPeopleIndex(context)
     {
         const raw = new Map();
         const eligible = new Map();
-        for (const person of getPeople(projectId))
+        const people = getPeople(projectId);
+        const trace = typeof appPerf === 'undefined' ? null : appPerf.currentDetailed();
+        if (trace) appPerf.count(trace, 'projectPeople', people.length);
+        for (const person of people)
         {
             if (!person?.id || raw.has(person.id)) continue;
             raw.set(person.id, person);
@@ -35,9 +38,13 @@ function projectFamilyIndex(context)
             if (!index.has(id)) index.set(id, []);
             index.get(id).push(family);
         };
+        const trace = typeof appPerf === 'undefined' ? null : appPerf.currentDetailed();
+        let membershipVisits = 0;
         if (projectId)
         {
-            for (const family of centralFamilyRecords())
+            const records = centralFamilyRecords();
+            if (trace) appPerf.count(trace, 'familyRecordsScanned', records.length, true);
+            for (const family of records)
             {
                 if (!family || (family.projectId && family.projectId !== projectId)) continue;
                 const parents = new Set([familyPartnerAId(family), familyPartnerBId(family)]);
@@ -47,10 +54,16 @@ function projectFamilyIndex(context)
                 if (family.id && !byId.has(family.id)) byId.set(family.id, family);
                 for (const id of parents) add(byParent, id, family);
                 for (const id of children) add(byChild, id, family);
+                if (trace) membershipVisits += parents.size + children.size;
             }
         }
         for (const bucket of [...byParent.values(), ...byChild.values()]) Object.freeze(bucket);
         const empty = Object.freeze([]);
+        if (trace)
+        {
+            appPerf.count(trace, 'projectFamilies', families.length);
+            appPerf.count(trace, 'membershipEdgesVisited', membershipVisits, true);
+        }
         return Object.freeze({
             families: Object.freeze(families),
             byId: readOnlyProjectMap(byId),

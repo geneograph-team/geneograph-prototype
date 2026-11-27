@@ -409,6 +409,15 @@ function renderArchiveRootInspector()
 
 function renderArchiveInspector()
 {
+    if (typeof appPerf === 'undefined' || !appPerf.enabled('Archive')) return renderArchiveInspectorWithDiagnosticsBody();
+    const trace = appPerf.currentDetailed('Archive');
+    if (!trace) return renderArchiveInspectorWithDiagnosticsBody();
+    const result = appPerf.measure(trace, 'evidence', () => renderArchiveInspectorWithDiagnosticsBody());
+    return result;
+}
+
+function renderArchiveInspectorWithDiagnosticsBody()
+{
     if (
         state.archiveView
           === 'sources'
@@ -1903,6 +1912,8 @@ function renderArchiveSourceConnectionSection(
             source,
             entityType
         );
+    const trace = typeof appPerf === 'undefined' ? null : appPerf.currentDetailed('Archive');
+    if (trace) appPerf.count(trace, 'linkedRecords', records.length, true);
     const countLabel =
         state.language === 'ru'
         && entityType === 'photo'
@@ -2206,6 +2217,8 @@ function renderArchiveFileInspector(
         ).length;
 
     const placeCount = archiveFilePlaceIds(file).length;
+    const trace = typeof appPerf === 'undefined' ? null : appPerf.currentDetailed('Archive');
+    if (trace) appPerf.count(trace, 'linkedRecords', peopleCount + eventCount + noteCount + sourceCount + placeCount, true);
 
     const content = `
         ${renderArchiveFileHero(

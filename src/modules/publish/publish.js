@@ -436,6 +436,16 @@ function renderPublishPrivacyStep()
 
 function renderPublishPreview()
 {
+    if (typeof appPerf === 'undefined' || !appPerf.enabled('Publish')) return renderPublishPreviewWithDiagnosticsBody();
+    const trace = appPerf.currentDetailed('Publish');
+    if (!trace) return appPerf.run('Publish', 'preview', () =>
+        appPerf.measure(appPerf.currentDetailed('Publish'), 'markup', () => renderPublishPreviewWithDiagnosticsBody()));
+    const result = appPerf.measure(trace, 'markup', () => renderPublishPreviewWithDiagnosticsBody());
+    return result;
+}
+
+function renderPublishPreviewWithDiagnosticsBody()
+{
     const type = publishTypes.find(t => t.id === state.publishOutputType) || publishTypes[0];
     return `<div class="publish-preview-head"><div><h3>${escapeHtml(type.title)} preview</h3><span>${escapeHtml(publishScopeLabel())}</span></div><span class="publish-chip ${state.publishOutputType === 'export' ? 'purple' : 'good'}">${escapeHtml(state.publishFormat)}</span></div>${state.publishOutputType === 'chart' ? renderPublishChartPreview() : state.publishOutputType === 'export' ? renderPublishPackagePreview() : renderPublishReportPreview()}`;
 }

@@ -571,7 +571,10 @@ function peopleDirectoryContext(projectId = currentProjectId())
         };
 
         const sourceIdsByPerson = new Map();
-        for (const link of id ? sourceLinksForProject(id) : [])
+        const sourceLinks = id ? sourceLinksForProject(id) : [];
+        const trace = typeof appPerf === 'undefined' ? null : appPerf.currentDetailed();
+        if (trace) appPerf.count(trace, 'sourceLinksScanned', sourceLinks.length, true);
+        for (const link of sourceLinks)
         {
             if (link.targetType !== 'person' || !link.sourceId || !peopleById.has(link.targetId)) continue;
             if (!sourceIdsByPerson.has(link.targetId)) sourceIdsByPerson.set(link.targetId, new Set());
@@ -1203,14 +1206,24 @@ function peopleFilterApplyLabel(
     }`;
 }
 
-function filteredPeople(records = peopleDirectoryContext().records)
+function filteredPeople(records)
 {
-    return sortPeopleRecords(
-        peopleRecordsMatchingFilters(
-            records,
-            peopleFiltersWithDefaults()
-        )
-    );
+    if (typeof appPerf === 'undefined' || !appPerf.enabled('People')) return filteredPeopleWithDiagnosticsBody(records);
+    const trace = appPerf.currentDetailed('People');
+    if (!trace) return filteredPeopleWithDiagnosticsBody(records);
+    const result = appPerf.measure(trace, 'query', () => filteredPeopleWithDiagnosticsBody(records));
+    appPerf.count(trace, 'recordsMatched', result.length, true);
+    return result;
+}
+
+function filteredPeopleWithDiagnosticsBody(records = peopleDirectoryContext().records)
+{
+    const filters = peopleFiltersWithDefaults();
+    const trace = typeof appPerf === 'undefined' ? null : appPerf.currentDetailed('People');
+    if (!trace) return sortPeopleRecords(peopleRecordsMatchingFilters(records, filters));
+    appPerf.count(trace, 'recordsScanned', records.length, true);
+    const matched = appPerf.measure(trace, 'filter', () => peopleRecordsMatchingFilters(records, filters));
+    return appPerf.measure(trace, 'sort', () => sortPeopleRecords(matched));
 }
 
 const PEOPLE_ROWS_PER_PAGE_OPTIONS =
@@ -1898,10 +1911,12 @@ function renderPeopleDirectoryControls()
       </div>`;
 }
 
-function renderPeople(...args)
+function renderPeople(interaction)
 {
-    if (typeof appPerf === 'undefined' || !appPerf.enabled('People')) return renderPeopleWithDiagnosticsBody(...args);
-    return appPerf.run('People', 'render', () => renderPeopleWithDiagnosticsBody(...args));
+    if (typeof appPerf === 'undefined' || !appPerf.enabled('People')) return renderPeopleWithDiagnosticsBody();
+    const kind = state.peopleView === 'profile' ? 'profile'
+        : ['search', 'filter', 'page', 'sort'].includes(interaction) ? interaction : 'render';
+    return appPerf.run('People', kind, renderPeopleWithDiagnosticsBody);
 }
 
 function renderPeopleWithDiagnosticsBody()
@@ -1930,6 +1945,8 @@ function renderPeopleWithDiagnosticsBody()
     }
 
     const { peopleById, records } = peopleDirectoryContext(projectId);
+    const perfTrace = typeof appPerf === 'undefined' ? null : appPerf.currentDetailed('People');
+    if (perfTrace) appPerf.count(perfTrace, 'projectPeople', records.length);
     const selected = selectedPeoplePerson(peopleById);
     prunePeopleSelection(peopleById);
 
@@ -1954,11 +1971,19 @@ function renderPeopleWithDiagnosticsBody()
             filteredRows.length
         );
 
+    const detailStarted = perfTrace ? appPerf.now() : 0;
     const visibleRows = filteredRows
         .slice(pagination.startIndex, pagination.endIndex)
         .map(record => toPeopleDisplayRecord(peopleById.get(record.id), record));
+    if (perfTrace)
+    {
+        appPerf.span(perfTrace, 'detail', appPerf.now() - detailStarted);
+        appPerf.count(perfTrace, 'recordsPrepared', visibleRows.length);
+        appPerf.count(perfTrace, 'recordsRendered', visibleRows.length);
+    }
+    const markupStarted = perfTrace ? appPerf.now() : 0;
 
-    main.innerHTML = `
+    const markup = `
         <div
           class="
             people-layout
@@ -1998,6 +2023,10 @@ function renderPeopleWithDiagnosticsBody()
         </div>
       `;
 
+    if (perfTrace) appPerf.span(perfTrace, 'markup', appPerf.now() - markupStarted);
+    const domStarted = perfTrace ? appPerf.now() : 0;
+    main.innerHTML = markup;
+    if (perfTrace) appPerf.span(perfTrace, 'dom', appPerf.now() - domStarted);
     bindPeopleControls(
         visibleRows
     );

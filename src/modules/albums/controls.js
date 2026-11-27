@@ -1,5 +1,11 @@
 
-function navigateAlbumsView(view, albumId = null)
+function navigateAlbumsView(view, albumId)
+{
+    if (typeof appPerf === 'undefined' || !appPerf.enabled('Albums')) return navigateAlbumsViewWithDiagnosticsBody(view, albumId);
+    return appPerf.run('Albums', 'navigation', () => navigateAlbumsViewWithDiagnosticsBody(view, albumId));
+}
+
+function navigateAlbumsViewWithDiagnosticsBody(view, albumId = null)
 {
     if (!['all', 'favorites', 'unassigned', 'albums', 'album'].includes(view)) return;
 

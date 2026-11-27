@@ -5,7 +5,17 @@ function renderPeoplePickerIdentity(person, name, dates, notice = '')
         ${notice ? `<span>${escapeHtml(t(notice))}</span>` : ''}</span>`;
 }
 
-function openSinglePersonPicker({ parent, anchor, subtitle, candidates, onSelect })
+function openSinglePersonPicker(options)
+{
+    if (typeof appPerf === 'undefined' || !appPerf.enabled(state.activeModule)) return openSinglePersonPickerWithDiagnosticsBody(options);
+    const trace = appPerf.currentDetailed(state.activeModule);
+    if (!trace) return appPerf.run(state.activeModule, 'picker', () =>
+        appPerf.measure(appPerf.currentDetailed(state.activeModule), 'markup', () => openSinglePersonPickerWithDiagnosticsBody(options)));
+    const result = appPerf.measure(trace, 'markup', () => openSinglePersonPickerWithDiagnosticsBody(options));
+    return result;
+}
+
+function openSinglePersonPickerWithDiagnosticsBody({ parent, anchor, subtitle, candidates, onSelect })
 {
     const dialog = document.createElement('dialog');
     dialog.className = 'modal photo-people-modal notes-people-modal single-person-picker';
@@ -24,6 +34,8 @@ function openSinglePersonPicker({ parent, anchor, subtitle, candidates, onSelect
     const results = dialog.querySelector('[data-single-person-results]');
     const select = dialog.querySelector('[data-single-person-select]');
     let selected = '';
+    const trace = typeof appPerf === 'undefined' ? null : appPerf.currentDetailed();
+    if (trace) appPerf.count(trace, 'recordsPrepared', candidates.length, true);
     const searchable = new Map(candidates.map(item => [item, personSearchHaystack(item.avatar, [item.name, item.dates, item.searchText])]));
     const render = () =>
     {
@@ -54,7 +66,10 @@ function openSinglePersonPicker({ parent, anchor, subtitle, candidates, onSelect
         dialog.remove();
         if (!parent.isConnected) return;
         anchor?.focus({ preventScroll: true });
-        if (dialog.returnValue === 'select' && selected) onSelect(selected);
+        if (dialog.returnValue !== 'select' || !selected) return;
+        if (typeof appPerf !== 'undefined' && appPerf.enabled(state.activeModule))
+            appPerf.run(state.activeModule, 'selection', () => onSelect(selected));
+        else onSelect(selected);
     }, { once: true });
     render();
     parent.append(dialog);

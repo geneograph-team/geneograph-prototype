@@ -1,4 +1,10 @@
-function openCentralNoteInEditor(
+function openCentralNoteInEditor(noteId)
+{
+    if (typeof appPerf === 'undefined' || !appPerf.enabled('Notes')) return openCentralNoteInEditorWithDiagnosticsBody(noteId);
+    return appPerf.run('Notes', 'selection', () => openCentralNoteInEditorWithDiagnosticsBody(noteId));
+}
+
+function openCentralNoteInEditorWithDiagnosticsBody(
     noteId
 )
 {

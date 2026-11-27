@@ -1206,6 +1206,16 @@ function openDeletePlaceSavedFilterConfirm(
 
 function filteredPlaces()
 {
+    if (typeof appPerf === 'undefined' || !appPerf.enabled('Places')) return filteredPlacesWithDiagnosticsBody();
+    const trace = appPerf.currentDetailed('Places');
+    if (!trace) return filteredPlacesWithDiagnosticsBody();
+    const result = appPerf.measure(trace, 'query', () => filteredPlacesWithDiagnosticsBody());
+    appPerf.count(trace, 'recordsMatched', result.length, true);
+    return result;
+}
+
+function filteredPlacesWithDiagnosticsBody()
+{
     let list =
         projectPlaces();
 
@@ -1341,7 +1351,13 @@ function placesPageSubtitle()
     return 'Map and organize the places connected to your family history.';
 }
 
-function openPlacesNeedsReview(placeId = '')
+function openPlacesNeedsReview(placeId)
+{
+    if (typeof appPerf === 'undefined' || !appPerf.enabled('Places')) return openPlacesNeedsReviewWithDiagnosticsBody(placeId);
+    return appPerf.run('Places', 'review', () => openPlacesNeedsReviewWithDiagnosticsBody(placeId));
+}
+
+function openPlacesNeedsReviewWithDiagnosticsBody(placeId = '')
 {
     state.placesView = 'review';
     state.selectedPlaceReviewPairKey = '';
@@ -1367,7 +1383,16 @@ function placesInspectorShellClasses()
     ].filter(Boolean).join(' ');
 }
 
-function renderPlacesInspectorAside(place, pair = null)
+function renderPlacesInspectorAside(place, pair)
+{
+    if (typeof appPerf === 'undefined' || !appPerf.enabled('Places')) return renderPlacesInspectorAsideWithDiagnosticsBody(place, pair);
+    const trace = appPerf.currentDetailed('Places');
+    if (!trace) return renderPlacesInspectorAsideWithDiagnosticsBody(place, pair);
+    const result = appPerf.measure(trace, 'evidence', () => renderPlacesInspectorAsideWithDiagnosticsBody(place, pair));
+    return result;
+}
+
+function renderPlacesInspectorAsideWithDiagnosticsBody(place, pair = null)
 {
     return `<aside class="places-inspector ${state.placesInspectorCollapsed ? 'collapsed' : ''}" data-places-inspector
         aria-label="${escapeHtml(t(pair ? 'Possible duplicate' : 'Selected place inspector'))}">${pair
@@ -1845,6 +1870,16 @@ function bindPlacesNeedsReviewControls()
 }
 
 function renderPlacesMain()
+{
+    if (typeof appPerf === 'undefined' || !appPerf.enabled('Places')) return renderPlacesMainWithDiagnosticsBody();
+    const trace = appPerf.currentDetailed('Places');
+    if (!trace) return appPerf.run('Places', 'query', () =>
+        appPerf.measure(appPerf.currentDetailed('Places'), 'markup', () => renderPlacesMainWithDiagnosticsBody()));
+    const result = appPerf.measure(trace, 'markup', () => renderPlacesMainWithDiagnosticsBody());
+    return result;
+}
+
+function renderPlacesMainWithDiagnosticsBody()
 {
     if (state.placesView === 'review')
     {

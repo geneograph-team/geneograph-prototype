@@ -86,6 +86,16 @@ function photoMatchesSearch(photo, query, tokens)
 
 function filteredAlbumPhotos()
 {
+    if (typeof appPerf === 'undefined' || !appPerf.enabled('Albums')) return filteredAlbumPhotosWithDiagnosticsBody();
+    const trace = appPerf.currentDetailed('Albums');
+    if (!trace) return filteredAlbumPhotosWithDiagnosticsBody();
+    const result = appPerf.measure(trace, 'query', () => filteredAlbumPhotosWithDiagnosticsBody());
+    appPerf.count(trace, 'recordsMatched', result.length, true);
+    return result;
+}
+
+function filteredAlbumPhotosWithDiagnosticsBody()
+{
     let photos =
         getProjectPhotos(
             currentProjectId()
@@ -751,6 +761,12 @@ function disconnectAlbumsGridResizeObserver()
 }
 
 function updateAlbumsGridLayout()
+{
+    if (typeof appPerf === 'undefined' || !appPerf.enabled('Albums')) return updateAlbumsGridLayoutWithDiagnosticsBody();
+    return appPerf.run('Albums', 'resize', () => updateAlbumsGridLayoutWithDiagnosticsBody());
+}
+
+function updateAlbumsGridLayoutWithDiagnosticsBody()
 {
     if (state.activeModule !== 'Albums' || state.albumsViewMode !== 'grid') return;
     const content = main.querySelector('.albums-content');
@@ -1652,6 +1668,16 @@ function renderAlbumsPhotoCard(photo, selectedIds, width = 0)
 }
 
 function renderAlbumsGrid(photos)
+{
+    if (typeof appPerf === 'undefined' || !appPerf.enabled('Albums')) return renderAlbumsGridWithDiagnosticsBody(photos);
+    const trace = appPerf.currentDetailed('Albums');
+    if (!trace) return renderAlbumsGridWithDiagnosticsBody(photos);
+    const result = appPerf.measure(trace, 'imageMarkup', () => renderAlbumsGridWithDiagnosticsBody(photos));
+    appPerf.count(trace, 'recordsRendered', photos.length, true);
+    return result;
+}
+
+function renderAlbumsGridWithDiagnosticsBody(photos)
 {
     const selectedIds = new Set(state.selectedPhotoIds || []);
     const selectionClass = selectedIds.size ? ' is-selecting' : '';

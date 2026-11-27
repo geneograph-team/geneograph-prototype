@@ -201,7 +201,7 @@ function mountPlacesMap(places)
     placesMapRuntime.host = host;
     placesMapRuntime.currentPlaces = [...(places || [])];
     placesMapRuntime.status = 'loading';
-    placesMapRuntime.diagnosticTrace = typeof appPerf !== 'undefined' ? appPerf.begin('Places', 'mapInitialize') : null;
+    placesMapRuntime.diagnosticTrace = typeof appPerf !== 'undefined' ? appPerf.begin('Places', 'mapInitialize', null, 'asynchronous') : null;
     const requestId = placesMapRuntime.requestId;
     setPlacesMapStatus('Loading vector map', 'Connecting to OpenFreeMap…', { list: true });
     placesMapAdapter.load()
@@ -215,7 +215,9 @@ function mountPlacesMap(places)
             }
             const theme = document.documentElement.dataset.theme === 'dark'
                 ? 'dark' : 'light';
-            const map = placesMapAdapter.createMap(host, theme);
+            const trace = placesMapRuntime.diagnosticTrace;
+            const map = trace ? appPerf.measure(trace, 'mapSetup', () => placesMapAdapter.createMap(host, theme))
+                : placesMapAdapter.createMap(host, theme);
             placesMapRuntime.map = map;
             placesMapRuntime.mapTheme = theme;
             map.on('click', event => handlePlacesMapClick({ latlng: event.lngLat }));

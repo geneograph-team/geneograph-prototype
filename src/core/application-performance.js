@@ -5,25 +5,46 @@ const appPerf = (() =>
     const modules = Object.freeze(['Projects', 'Family Tree', 'People', 'Geneograph',
         'Albums', 'Archive', 'Notes', 'Places', 'Publish']);
     const treeKinds = new Set(['focus', 'selection', 'orientation', 'depth', 'render', 'zoom', 'pan']);
-    const operations = new Map(modules.map(module => [module, new Set(['navigation', 'shellRender', 'render'])]));
+    const operations = new Map(modules.map(module => [module, new Set(['navigation', 'shellRender', 'render', 'query', 'selection', 'picker'])]));
     for (const kind of treeKinds) operations.get('Family Tree').add(kind);
     for (const kind of ['activation', 'gedcomParse', 'gedcomMap', 'gedcomCommit']) operations.get('Projects').add(kind);
     operations.get('Geneograph').add('boardOpen');
     operations.get('Geneograph').add('boardRender');
     operations.get('Places').add('mapInitialize');
+    operations.get('Places').add('review');
+    operations.get('People').add('profile');
+    operations.get('People').add('mutation');
+    for (const kind of ['search', 'filter', 'page', 'sort']) operations.get('People').add(kind);
+    operations.get('Notes').add('editor');
+    operations.get('Albums').add('resize');
+    operations.get('Publish').add('preview');
+    const frameKinds = new Set(['selection', 'review', 'editor', 'profile', 'picker', 'preview']);
+    const providerKeys = new Set(['people:index', 'families:index', 'families:graph', 'families:labels', 'people:directory']);
+    const domainKeys = new Set(['projects', 'people', 'families', 'places', 'media', 'sources', 'notes',
+        'boards', 'events', 'archive', 'albums', 'activity']);
     const stages = new Set(['navigation', 'people', 'families', 'projection', 'input', 'occurrences',
         'graph', 'flatten', 'spacing', 'routing', 'centering', 'centeringReroute', 'adapter',
         'diagnostics', 'inspector', 'scene', 'colors', 'viewport', 'cards', 'connectors',
-        'portraitDemand', 'portraitWait', 'portraitDecode', 'renderSync']);
+        'portraitDemand', 'portraitWait', 'portraitDecode', 'renderSync',
+        'lookup', 'index', 'query', 'filter', 'sort', 'detail', 'markup', 'dom', 'analysis',
+        'evidence', 'editor', 'imageMarkup', 'mapSetup']);
     const metrics = new Set(['projectPeople', 'projectFamilies', 'visiblePeople', 'visibleFamilies',
         'cards', 'placeholders', 'families', 'edges', 'paths', 'diagnostics', 'mountedCards',
         'mountedPlaceholders', 'mountedControls', 'mountedPaths', 'passes', 'secondPass',
         'portraitHits', 'portraitMisses', 'portraitJobs', 'portraitFailures', 'portraitReady',
-        'portraitDecodeFailures']);
+        'portraitDecodeFailures', 'recordsScanned', 'recordsMatched', 'recordsPrepared',
+        'recordsRendered', 'linkedRecords', 'familyRecordsScanned', 'membershipEdgesVisited', 'sourceLinksScanned']);
     const statuses = new Set(['completed', 'canceled', 'failed', 'stopped', 'unchanged', 'empty']);
     const passFields = ['startupMs', 'bundleMs', 'constructorMs', 'postMs', 'waitMs', 'solverMs', 'roundTripMs'];
     let active = false, epoch = 0, next = 0, dropped = 0, startTime = 0;
     let samples = [];
+    let current = null, frame = null, observer = null, observationStart = 0;
+    let longTasks = { status: 'inactive' };
+    let lifecycle = {};
+    const lifecycleKeys = new Set(['invalidations', 'legacyInvalidations', 'evictedEntries',
+        'disposals', 'disposedEntries', 'projectActivations', 'unaffectedInvalidations']);
+    const providerEvents = new Set(['hits', 'misses', 'uncached', 'builds']);
+    const frameSupported = () => typeof requestAnimationFrame === 'function' && typeof cancelAnimationFrame === 'function';
     let config = { scope: 'all', modules: [...modules], mode: 'detailed' };
     const now = () => performance.now();
     const round = n => Math.round(n * 1000) / 1000;
@@ -42,12 +63,53 @@ const appPerf = (() =>
         };
         return true;
     }
+    function receiveLongTasks(entries)
+    {
+        for (const entry of entries)
+        {
+            if (entry.entryType !== 'longtask' || !Number.isFinite(entry.startTime)
+                || entry.startTime < observationStart || !Number.isFinite(entry.duration) || entry.duration < 0) continue;
+            longTasks.count++;
+            longTasks.totalMs = round(longTasks.totalMs + entry.duration);
+            longTasks.maxMs = round(Math.max(longTasks.maxMs, entry.duration));
+        }
+    }
+
+    function observeLongTasks()
+    {
+        longTasks = { status: config.mode !== 'detailed' ? 'basic'
+            : config.scope !== 'all' ? 'outOfScope' : 'unsupported' };
+        if (longTasks.status !== 'unsupported' || typeof PerformanceObserver === 'undefined'
+            || !PerformanceObserver.supportedEntryTypes?.includes('longtask')) return;
+        observationStart = now();
+        try
+        {
+            const instance = new PerformanceObserver(list =>
+            {
+                if (active && observer === instance) receiveLongTasks(list.getEntries());
+            });
+            instance.observe({ entryTypes: ['longtask'] });
+            observer = instance;
+            longTasks = { status: 'observed', count: 0, totalMs: 0, maxMs: 0 };
+        }
+        catch (_error) {}
+    }
+
+    function cancelFrame()
+    {
+        if (frame === null) return;
+        cancelAnimationFrame(frame);
+        frame = null;
+    }
+
     function start()
     {
         if (active || (config.scope === 'selected' && !config.modules.length)) return false;
         if (!next) startTime = now();
         ++epoch;
         active = true;
+        lifecycle = {};
+        observeLongTasks();
         return true;
     }
     function finish(trace, status)
@@ -59,6 +121,13 @@ const appPerf = (() =>
     function stop()
     {
         if (!active) return false;
+        cancelFrame();
+        if (observer)
+        {
+            receiveLongTasks(observer.takeRecords());
+            observer.disconnect();
+            observer = null;
+        }
         for (const trace of samples) finish(trace, 'stopped');
         active = false;
         return true;
@@ -67,14 +136,18 @@ const appPerf = (() =>
     {
         stop();
         samples = [];
+        lifecycle = {};
+        longTasks = { status: 'inactive' };
         dropped = next = 0;
         ++epoch;
     }
-    function begin(module, kind, view)
+    function begin(module, kind, view, timing)
     {
         if (!enabled(module) || !operations.get(module).has(kind)) return null;
         const trace = { epoch, retained: true, seq: ++next, module, mode: config.mode, kind,
             atMs: round(now() - startTime), status: 'pending' };
+        if (timing === 'synchronous' || timing === 'asynchronous') trace.timing = timing;
+        if (valid(current) && current.status === 'pending') trace.parentSeq = current.seq;
         if (trace.mode === 'detailed')
         {
             Object.assign(trace, { stages: {}, counts: {}, passTimings: [], milestones: {} });
@@ -97,11 +170,22 @@ const appPerf = (() =>
     function run(module, kind, fn)
     {
         if (!enabled(module)) return fn();
-        const trace = begin(module, kind);
+        const trace = begin(module, kind, null, 'synchronous');
+        if (!trace) return fn();
+        const previous = current;
+        current = trace;
         try
         {
             const result = fn();
             finish(trace, result === false ? 'failed' : 'completed');
+            if (trace.status === 'completed' && detailed(trace) && frameKinds.has(kind) && frameSupported() && frame === null)
+            {
+                frame = requestAnimationFrame(() =>
+                {
+                    frame = null;
+                    mark(trace, 'frameOpportunity');
+                });
+            }
             return result;
         }
         catch (error)
@@ -109,7 +193,50 @@ const appPerf = (() =>
             finish(trace, 'failed');
             throw error;
         }
+        finally { current = previous; }
     }
+
+    function currentDetailed(module)
+    {
+        return detailed(current) && (!module || current.module === module) ? current : null;
+    }
+
+    function recordProvider(trace, key, event, ms)
+    {
+        if (!detailed(trace) || !providerKeys.has(key) || !providerEvents.has(event)) return;
+        const providers = trace.providers ||= {};
+        const provider = providers[key] ||= {};
+        provider[event] = (provider[event] || 0) + 1;
+        if (event === 'builds' && Number.isFinite(ms) && ms >= 0)
+            provider.buildMs = round((provider.buildMs || 0) + ms);
+    }
+
+    function recordLifecycle(module, event, value = 1)
+    {
+        const trace = currentDetailed();
+        if (!lifecycleKeys.has(event) || !Number.isFinite(value) || value < 0
+            || !(trace || (enabled(module) && config.mode === 'detailed'))) return;
+        lifecycle[event] = (lifecycle[event] || 0) + Math.floor(value);
+        if (trace)
+        {
+            const counts = trace.lifecycle ||= {};
+            counts[event] = (counts[event] || 0) + Math.floor(value);
+        }
+    }
+
+    function recordDomain(module, domain)
+    {
+        const trace = currentDetailed();
+        if (!domainKeys.has(domain) || !(trace || (enabled(module) && config.mode === 'detailed'))) return;
+        const domains = lifecycle.revisedDomains ||= {};
+        domains[domain] = (domains[domain] || 0) + 1;
+        if (trace)
+        {
+            const revised = trace.revisedDomains ||= {};
+            revised[domain] = (revised[domain] || 0) + 1;
+        }
+    }
+
     function span(trace, stage, ms)
     {
         if (!detailed(trace) || !stages.has(stage) || !Number.isFinite(ms) || ms < 0) return;
@@ -146,17 +273,37 @@ const appPerf = (() =>
     {
         return { scope: config.scope, modules: [...config.modules], mode: config.mode };
     }
+    function numericFields(values, keys)
+    {
+        return Object.fromEntries([...keys].filter(key => Number.isFinite(values[key])).map(key => [key, values[key]]));
+    }
+
+    function structuredLifecycle(values)
+    {
+        return { ...numericFields(values, lifecycleKeys),
+            revisedDomains: values.revisedDomains && numericFields(values.revisedDomains, domainKeys) };
+    }
+
     function snapshot()
     {
-        return { schemaVersion: 2, recorder: 'geneograph-application-performance', elkVersion: '0.12.1',
+        return { schemaVersion: 3, recorder: 'geneograph-application-performance', elkVersion: '0.12.1',
             active, configuration: settings(), capacity: limit, dropped, totalOperations: next,
+            browser: { frameOpportunitySupported: frameSupported(), longTasks: { ...longTasks } },
+            readModelLifecycle: structuredLifecycle(lifecycle),
             samples: samples.map(trace =>
             ({
                 seq: trace.seq, recording: trace.epoch, module: trace.module, mode: trace.mode,
                 kind: trace.kind, atMs: trace.atMs, status: trace.status, totalMs: trace.totalMs,
+                timing: trace.timing, parentSeq: trace.parentSeq,
                 ...(trace.mode === 'detailed' ? {
                     orientation: trace.orientation, ancestorDepth: trace.ancestorDepth,
                     descendantDepth: trace.descendantDepth, cousins: trace.cousins, cache: trace.cache,
+                    providers: trace.providers && Object.fromEntries([...providerKeys].filter(key => trace.providers[key])
+                        .map(key => [key, Object.fromEntries([...providerEvents, 'buildMs']
+                            .filter(event => Number.isFinite(trace.providers[key][event]))
+                            .map(event => [event, trace.providers[key][event]]))])),
+                    lifecycle: trace.lifecycle && structuredLifecycle(trace.lifecycle),
+                    revisedDomains: trace.revisedDomains && numericFields(trace.revisedDomains, domainKeys),
                     stages: Object.fromEntries([...stages].filter(key => trace.stages[key]).map(key =>
                         [key, { ms: trace.stages[key].ms, calls: trace.stages[key].calls }])),
                     counts: Object.fromEntries([...metrics].filter(key => Object.hasOwn(trace.counts, key)).map(key => [key, trace.counts[key]])),
@@ -179,6 +326,7 @@ const appPerf = (() =>
     }
     return { modules, enabled, configure, settings, start, stop, clear, begin, run,
         measure, span, count, mark, pass, finish, snapshot, download, valid, now,
+        currentDetailed, recordProvider, recordLifecycle, recordDomain,
         kind(trace, kind) { if (valid(trace) && trace.module === 'Family Tree' && treeKinds.has(kind)) trace.kind = kind; },
         cache(trace, value) { if (detailed(trace) && ['hit', 'miss', 'pending'].includes(value)) trace.cache = value; },
         status() { return { active, count: samples.length, dropped, totalOperations: next }; } };

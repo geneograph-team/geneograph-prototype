@@ -435,6 +435,16 @@ function renderGeneographCollectionSidebarRows()
 
 function filteredGeneographBoards()
 {
+    if (typeof appPerf === 'undefined' || !appPerf.enabled('Geneograph')) return filteredGeneographBoardsWithDiagnosticsBody();
+    const trace = appPerf.currentDetailed('Geneograph');
+    if (!trace) return filteredGeneographBoardsWithDiagnosticsBody();
+    const result = appPerf.measure(trace, 'query', () => filteredGeneographBoardsWithDiagnosticsBody());
+    appPerf.count(trace, 'recordsMatched', result.length, true);
+    return result;
+}
+
+function filteredGeneographBoardsWithDiagnosticsBody()
+{
     const projectId =
         currentProjectId();
 

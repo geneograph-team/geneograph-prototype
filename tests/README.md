@@ -28,6 +28,14 @@ Assert structural counts in Node fixtures: builds per compatible revision, colle
 
 Use the existing Diagnostics recorder where available and disposable instrumentation for focused investigations. Record allowlisted aggregate metrics only. Keep private genealogy, record identifiers and unredacted traces out of the repository and shared diagnostics.
 
+### Performance Diagnostics recording checklist
+
+1. Use the same build, browser/version, device, viewport, locale, theme, protocol and dataset for compared runs. Record these separately using synthetic workload labels and counts.
+2. Use Whiskerfield, the internal 6,481-person / 1,950-family workload when available, and synthetic evidence/place/media-heavy projects for relevant modules. Keep private projects local. Never commit project data or exported traces.
+3. Clear before each recording. Use Basic for short operation sequences and Detailed to break down selected modules or capture the all-module browser aggregates. Run a clean entry followed by warm repeats. Repeat several times with the same sequence. Export after each run.
+4. Check capacity and dropped count. Shorten the sequence or narrow scope if samples roll out of the 256-entry buffer. Compare the same operation and workload counts before using timings from #452 or a newer baseline.
+5. Read synchronous, asynchronous and Tree durations according to their boundaries. Compare cache builds/hits and matched/prepared/rendered counts. Parent and child timings, and inclusive stages, can overlap. Investigate unexplained time in DevTools. Avoid inferring exact paint, decode or wait time from a timing difference.
+
 ## Test data and temporary work
 
 Build small deterministic synthetic cases within the relevant test or a domain-local helper. Do not commit exported genealogy projects, private photos, ad hoc logs, generated screenshots or large standalone fixture datasets. Put all disposable investigations and their outputs under `tests/temp/`; only that directory's ignore file is tracked. Use disposable browser sessions for interactive QA, then report the actual checks and limitations.

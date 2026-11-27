@@ -735,6 +735,12 @@ function archiveVisibleMainItemKeys(root)
 
 function archiveSelectDesktopItem(root, type, id, event)
 {
+    if (typeof appPerf === 'undefined' || !appPerf.enabled('Archive')) return archiveSelectDesktopItemWithDiagnosticsBody(root, type, id, event);
+    return appPerf.run('Archive', 'selection', () => archiveSelectDesktopItemWithDiagnosticsBody(root, type, id, event));
+}
+
+function archiveSelectDesktopItemWithDiagnosticsBody(root, type, id, event)
+{
     const key = `${type}:${id}`;
     const visible = archiveVisibleMainItemKeys(main.querySelector('.archive-shell') || root);
     const targetIndex = visible.indexOf(key);
@@ -780,6 +786,16 @@ function archiveSelectDesktopItem(root, type, id, event)
 let archiveRenderedLocationKey = null;
 
 function renderArchiveMain()
+{
+    if (typeof appPerf === 'undefined' || !appPerf.enabled('Archive')) return renderArchiveMainWithDiagnosticsBody();
+    const trace = appPerf.currentDetailed('Archive');
+    if (!trace) return appPerf.run('Archive', 'query', () =>
+        appPerf.measure(appPerf.currentDetailed('Archive'), 'markup', () => renderArchiveMainWithDiagnosticsBody()));
+    const result = appPerf.measure(trace, 'markup', () => renderArchiveMainWithDiagnosticsBody());
+    return result;
+}
+
+function renderArchiveMainWithDiagnosticsBody()
 {
     archiveImageUnmount();
     const locationKey = `${currentProjectId() || ''}:${state.archiveView}:${state.archiveSelectedFolderId || ''}`;
@@ -2172,6 +2188,15 @@ function renderArchiveFileDropzone(
 
 function renderArchiveFilesView()
 {
+    if (typeof appPerf === 'undefined' || !appPerf.enabled('Archive')) return renderArchiveFilesViewWithDiagnosticsBody();
+    const trace = appPerf.currentDetailed('Archive');
+    if (!trace) return renderArchiveFilesViewWithDiagnosticsBody();
+    const result = appPerf.measure(trace, 'detail', () => renderArchiveFilesViewWithDiagnosticsBody());
+    return result;
+}
+
+function renderArchiveFilesViewWithDiagnosticsBody()
+{
     const matchingFiles =
         archiveMatchingFiles();
 
@@ -3500,6 +3525,15 @@ function renderArchiveSourceGroups(sources)
 }
 
 function renderArchiveSourcesView()
+{
+    if (typeof appPerf === 'undefined' || !appPerf.enabled('Archive')) return renderArchiveSourcesViewWithDiagnosticsBody();
+    const trace = appPerf.currentDetailed('Archive');
+    if (!trace) return renderArchiveSourcesViewWithDiagnosticsBody();
+    const result = appPerf.measure(trace, 'detail', () => renderArchiveSourcesViewWithDiagnosticsBody());
+    return result;
+}
+
+function renderArchiveSourcesViewWithDiagnosticsBody()
 {
     const sources =
         archiveFilteredSources();
