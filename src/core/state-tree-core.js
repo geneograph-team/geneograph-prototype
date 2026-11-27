@@ -1703,6 +1703,7 @@ function bindIntentionalBackdropDismiss(
 let modalBackdropDismissBinding = null;
 
 const notesRichTextRuntime = {
+    content: null,
     instance:
         null,
 

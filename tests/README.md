@@ -8,6 +8,7 @@ Reusable regression checks are tracked in this directory, grouped by the domain 
 | `projects/` | GEDCOM import and canonical project-data contract |
 | `people/` | Person identity matching |
 | `places/` | Unlinked Places and safe canonical reference handling |
+| `notes/` | Search projection freshness and compatible rich-text editor retention |
 | `temp/` | Ignored disposable test scripts, experiments and logs |
 
 Run an individual reusable check from the repository root with a current Node.js version (Node 22 was used for the integrated Tree verification):

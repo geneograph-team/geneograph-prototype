@@ -1,15 +1,63 @@
+function notesSearchResources(projectId)
+{
+    const context = acquireProjectReadModel(projectId);
+    return context.read('notes:search-resources', ['people', 'families', 'places', 'events', 'media', 'archive', 'sources'], id =>
+    {
+        const records = new Map(), descriptions = new Map();
+        return (type, ids) =>
+        {
+            if (!ids.length) return [];
+            if (!records.has(type))
+            {
+                const indexed = new Map();
+                const source = type === 'person' ? projectPeopleIndex(context).eligible : getNoteEntityConfig(type).records(id);
+                for (const record of source) if (!indexed.has(record.id)) indexed.set(record.id, record);
+                records.set(type, indexed);
+                descriptions.set(type, new Map());
+            }
+            const index = records.get(type);
+            const text = descriptions.get(type);
+            return ids.flatMap(recordId =>
+            {
+                const record = index.get(recordId);
+                if (!record) return [];
+                if (!text.has(recordId)) text.set(recordId, {
+                    label: noteEntityLabel(type, record), meta: noteEntityMeta(type, record),
+                    person: type === 'person' ? personSearchHaystack(record) : null
+                });
+                return [text.get(recordId)];
+            });
+        };
+    }, [state.language]);
+}
+
+function notesSearchContext(projectId)
+{
+    const describe = notesSearchResources(projectId);
+    const sourcesByNote = new Map();
+    for (const link of sourceLinksForProject(projectId))
+    {
+        if (link.targetType !== 'note') continue;
+        if (!sourcesByNote.has(link.targetId)) sourcesByNote.set(link.targetId, []);
+        sourcesByNote.get(link.targetId).push(link.sourceId);
+    }
+    const collections = new Map(getProjectNoteCollections(projectId).map(record => [record.id, record]));
+    const notes = new Map(getProjectNotes(projectId, { includeArchived: true }).map((record, order) => [record.id, { record, order }]));
+    return {
+        resources: (note, type) => describe(type, type === 'source'
+            ? archiveUniqueIds(sourcesByNote.get(note.id)) : noteEntityLinkedIds(note, type)),
+        collections: note => (note.collectionIds || []).flatMap(id => collections.has(id) ? [collections.get(id)] : []),
+        related: note => [...new Set(note.relatedNoteIds || [])].flatMap(id => notes.has(id) ? [notes.get(id)] : [])
+            .sort((a, b) => a.order - b.order).map(({ record }) => record)
+    };
+}
+
 function noteSearchText(
-    note
+    note, projection
 )
 {
     const collectionText =
-        getCollectionsForNote(
-            note.id,
-            {
-                projectId:
-              note.projectId
-            }
-        )
+        (projection ? projection.collections(note) : getCollectionsForNote(note.id, { projectId: note.projectId }))
             .map(
                 collection =>
                     collection.name
@@ -30,35 +78,14 @@ function noteSearchText(
             NOTE_ENTITY_TYPES
         )
             .flatMap(type =>
-                noteEntityRecordsForNote(
-                    note,
-                    type
-                ).flatMap(record => [
-                    noteEntityLabel(
-                        type,
-                        record
-                    ),
-
-                    noteEntityMeta(
-                        type,
-                        record
-                    )
-                ])
+                projection ? projection.resources(note, type).flatMap(record => [record.label, record.meta])
+                    : noteEntityRecordsForNote(note, type).flatMap(record => [noteEntityLabel(type, record), noteEntityMeta(type, record)])
             )
             .filter(Boolean)
             .join(' ');
 
     const relatedText =
-        getRelatedNotes(
-            note.id,
-            {
-                projectId:
-              note.projectId,
-
-                includeArchived:
-              true
-            }
-        )
+        (projection ? projection.related(note) : getRelatedNotes(note.id, { projectId: note.projectId, includeArchived: true }))
             .map(related =>
                 related.title
             )
@@ -183,9 +210,9 @@ function filteredNotesWithDiagnosticsBody()
     if (query)
     {
         const tokens = personSearchTokens(query);
-        list = list.filter(note => noteSearchText(note).includes(query)
-            || noteEntityRecordsForNote(note, 'person').some(person =>
-                personSearchMatches(tokens, personSearchHaystack(person))));
+        const projection = notesSearchContext(projectId);
+        list = list.filter(note => noteSearchText(note, projection).includes(query)
+            || projection.resources(note, 'person').some(({ person }) => personSearchMatches(tokens, person)));
     }
     list =
         appSortRecords(list, {

@@ -1,5 +1,7 @@
 # Person search
 
+Notes search includes current note text, linked resource and person labels, related notes and collection names. Linked-resource preparation follows the active project and language.
+
 ## Requirements
 
 ### Requirement: Consistent interactive person search

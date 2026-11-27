@@ -159,7 +159,7 @@ function bindNotesSidebarControls(
 function touchNote(
     note,
     {
-        refreshPreview = true
+        refreshPreview = true, bodyOnly = false
     } = {}
 )
 {
@@ -170,7 +170,7 @@ function touchNote(
 
     note.updatedAt =
         new Date().toISOString();
-    markPrototypeSessionEdited();
+    markPrototypeSessionEdited(note.projectId, ['notes']);
 
     setNotesSaveStatus(
         'Saving'
@@ -178,9 +178,7 @@ function touchNote(
 
     if (refreshPreview)
     {
-        refreshNoteBrowserRow(
-            note
-        );
+        refreshNoteBrowserRow(note, { bodyOnly });
     }
 
     clearTimeout(
@@ -190,9 +188,10 @@ function touchNote(
     touchNote.savedTimer =
         setTimeout(
             () =>
-                setNotesSaveStatus(
-                    'Saved'
-                ),
+            {
+                if (state.activeModule === 'Notes' && currentProjectId() === note.projectId && state.selectedNoteId === note.id)
+                    setNotesSaveStatus('Saved');
+            },
             450
         );
 
@@ -258,7 +257,7 @@ function autoSizeNoteBody(
 }
 
 function refreshNoteBrowserRow(
-    note
+    note, { bodyOnly = false } = {}
 )
 {
     const row =
@@ -321,6 +320,8 @@ function refreshNoteBrowserRow(
             )
           || 'No note content';
     }
+
+    if (bodyOnly) return;
 
     if (collections)
     {
@@ -727,13 +728,12 @@ function renderNotesPreservingInteraction(
 
     renderNotes();
 
-    requestAnimationFrame(
-        () =>
-            restoreNotesInteractionState(
-                snapshot,
-                options
-            )
-    );
+    const renderedPane = main.querySelector('.notes-browser-pane');
+    requestAnimationFrame(() =>
+    {
+        if (state.activeModule === 'Notes' && main.querySelector('.notes-browser-pane') === renderedPane)
+            restoreNotesInteractionState(snapshot, options);
+    });
 }
 
 function updateRelatedNoteLinks(

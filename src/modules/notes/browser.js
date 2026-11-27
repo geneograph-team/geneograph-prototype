@@ -11,7 +11,6 @@ function renderNotes(...args)
 function renderNotesWithDiagnosticsBody()
 {
     appNavigationObserve();
-    destroyNotesRichTextEditor();
     disconnectNotesCollectionRowsObserver();
 
     const validNotesViews =
@@ -102,7 +101,7 @@ function renderNotesWithDiagnosticsBody()
             )
         );
 
-    main.innerHTML = `
+    const markup = `
         <div
           class="${shellClasses}"
           style="
@@ -120,15 +119,42 @@ function renderNotesWithDiagnosticsBody()
         </div>
       `;
 
+    const reused = replaceNotesMarkup(markup, editorOpen ? selected : null);
     bindNotesControls();
     observeNotesCollectionRows();
 
-    if (editorOpen)
+    if (editorOpen && !reused)
     {
         initializeNotesRichTextEditor(
             selected
         );
     }
+}
+
+function replaceNotesMarkup(markup, note)
+{
+    const runtime = notesRichTextRuntime;
+    const editor = runtime.editorElement || runtime.fallbackElement;
+    if (note && editor && main.contains(editor) && notesEditorContentMatches(note))
+    {
+        const template = document.createElement('template');
+        template.innerHTML = markup;
+        const selectors = ['.notes-browser-pane', '#notesResizer', '.notes-editor-header', '.notes-editor-sections'];
+        const sections = selectors.map(selector => [main.querySelector(selector), template.content.querySelector(selector)]);
+        const shell = main.querySelector('.notes-shell');
+        const nextShell = template.content.querySelector('.notes-shell');
+        if (shell && nextShell && sections.every(([current, next]) => current && next))
+        {
+            shell.className = nextShell.className;
+            shell.style.cssText = nextShell.style.cssText;
+            for (const [current, next] of sections) current.replaceWith(next);
+            return true;
+        }
+    }
+
+    destroyNotesRichTextEditor();
+    main.innerHTML = markup;
+    return false;
 }
 
 function renderNotesSidebar()

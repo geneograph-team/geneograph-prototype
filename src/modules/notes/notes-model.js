@@ -1091,7 +1091,7 @@ function setNoteEntityLinks(
 
     if (touchUpdatedAt)
     {
-        markPrototypeSessionEdited();
+        if (type === 'source') markPrototypeSessionEdited(note.projectId, ['sources']);
         if (
             state.activeModule === 'Notes'
           && state.selectedNoteId
@@ -1109,6 +1109,7 @@ function setNoteEntityLinks(
         {
             note.updatedAt =
                 new Date().toISOString();
+            markPrototypeSessionEdited(note.projectId, ['notes']);
         }
     }
 
@@ -1707,8 +1708,21 @@ function removeNoteFromCollection(
     );
 }
 
+function rememberNotesEditorContent(note)
+{
+    notesRichTextRuntime.content = { note, body: note.body, delta: note.bodyDelta, format: note.bodyFormat, language: state.language };
+}
+
+function notesEditorContentMatches(note)
+{
+    const content = notesRichTextRuntime.content;
+    return content?.note === note && content.body === note.body && content.delta === note.bodyDelta
+        && content.format === note.bodyFormat && content.language === state.language;
+}
+
 function destroyNotesRichTextEditor()
 {
+    notesRichTextRuntime.content = null;
     const instance =
         notesRichTextRuntime
             .instance;
@@ -2388,11 +2402,13 @@ function bindNotesBodyFallback(
 
     notesRichTextRuntime.fallbackElement =
         textarea;
+    rememberNotesEditorContent(note);
 
     textarea.addEventListener(
         'input',
         event =>
         {
+            if (notesRichTextRuntime.fallbackElement !== textarea) return;
             const currentNote =
                 getNote(
                     note.id,
@@ -2419,13 +2435,9 @@ function bindNotesBodyFallback(
             currentNote.bodyFormat =
                 '';
 
-            autoSizeNoteBody(
-                event.currentTarget
-            );
-
-            touchNote(
-                currentNote
-            );
+            autoSizeNoteBody(event.currentTarget);
+            rememberNotesEditorContent(currentNote);
+            touchNote(currentNote, { bodyOnly: true });
         }
     );
 
@@ -2598,6 +2610,7 @@ function initializeNotesRichTextEditorWithDiagnosticsBody(
 
         notesRichTextRuntime.fallbackActive =
             false;
+        rememberNotesEditorContent(note);
 
         const textChangeHandler = (
             delta,
@@ -2644,13 +2657,9 @@ function initializeNotesRichTextEditorWithDiagnosticsBody(
                     : '';
 
             currentNote.body =
-                plainTextFromQuill(
-                    instance
-                );
-
-            touchNote(
-                currentNote
-            );
+                plainTextFromQuill(instance);
+            rememberNotesEditorContent(currentNote);
+            touchNote(currentNote, { bodyOnly: true });
         };
 
         const selectionChangeHandler =
