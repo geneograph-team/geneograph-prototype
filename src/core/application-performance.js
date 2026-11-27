@@ -20,7 +20,7 @@ const appPerf = (() =>
     operations.get('Publish').add('preview');
     const frameKinds = new Set(['selection', 'review', 'editor', 'profile', 'picker', 'preview']);
     const providerKeys = new Set(['people:index', 'families:index', 'families:graph', 'families:labels', 'people:directory',
-        'people:link-search', 'places:associations', 'places:duplicate-pairs', 'people:photo-filter-search', 'people:geneo-match-names']);
+        'people:link-search', 'places:associations', 'places:duplicate-pairs', 'places:inspector-events', 'people:photo-filter-search', 'people:geneo-match-names']);
     const domainKeys = new Set(['projects', 'people', 'families', 'places', 'media', 'sources', 'notes',
         'boards', 'events', 'archive', 'albums', 'activity']);
     const stages = new Set(['navigation', 'people', 'families', 'projection', 'input', 'occurrences',
@@ -34,7 +34,8 @@ const appPerf = (() =>
         'mountedPlaceholders', 'mountedControls', 'mountedPaths', 'passes', 'secondPass',
         'portraitHits', 'portraitMisses', 'portraitJobs', 'portraitFailures', 'portraitReady',
         'portraitDecodeFailures', 'recordsScanned', 'recordsMatched', 'recordsPrepared',
-        'recordsRendered', 'linkedRecords', 'familyRecordsScanned', 'membershipEdgesVisited', 'sourceLinksScanned']);
+        'recordsRendered', 'linkedRecords', 'familyRecordsScanned', 'membershipEdgesVisited', 'sourceLinksScanned', 'placeConnectedEvents', 'placeEventOwnerVisits',
+        'placeEventGroupsPrepared', 'placeEventGroupsRendered', 'placeEventRowsRendered']);
     const statuses = new Set(['completed', 'canceled', 'failed', 'stopped', 'unchanged', 'empty']);
     const passFields = ['startupMs', 'bundleMs', 'constructorMs', 'postMs', 'waitMs', 'solverMs', 'roundTripMs'];
     let active = false, epoch = 0, next = 0, dropped = 0, startTime = 0;

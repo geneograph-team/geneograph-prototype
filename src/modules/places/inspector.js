@@ -161,10 +161,7 @@ function placeInspectorEventOwnerIds(
     ];
 }
 
-function placeInspectorEventRelatedPeople(
-    event,
-    personId
-)
+function placeInspectorEventRelatedPeople(event, personId, resolvePerson = getPerson)
 {
     const relatedIds = [
         ...new Set([
@@ -192,7 +189,7 @@ function placeInspectorEventRelatedPeople(
 
     return relatedIds
         .map(id =>
-            getPerson(id)
+            resolvePerson(id)
         )
         .filter(Boolean);
 }
@@ -218,10 +215,7 @@ function placeInspectorChildRoleLabel(
     return 'Child';
 }
 
-function placeInspectorEventPresentation(
-    event,
-    personId
-)
+function placeInspectorEventPresentation(event, personId, resolvePerson = getPerson)
 {
     const date =
         placeInspectorEventDateLabel(
@@ -238,7 +232,7 @@ function placeInspectorEventPresentation(
             || []
             )
                 .map(id =>
-                    getPerson(id)
+                    resolvePerson(id)
                 )
                 .find(Boolean);
 
@@ -275,7 +269,7 @@ function placeInspectorEventPresentation(
         const spouses =
             placeInspectorEventRelatedPeople(
                 event,
-                personId
+                personId, resolvePerson
             );
 
         return {
@@ -304,7 +298,7 @@ function placeInspectorEventPresentation(
     const relatedPeople =
         placeInspectorEventRelatedPeople(
             event,
-            personId
+            personId, resolvePerson
         );
 
     return {
@@ -328,152 +322,84 @@ function placeInspectorEventPresentation(
     };
 }
 
-function placeInspectorEventGroups(
-    events
-)
+function placeInspectorEventGroups(events, resolvePerson = getPerson, trace = null)
 {
-    const groups =
-        new Map();
-
-    const otherEvents =
-        [];
-
-    (
-        Array.isArray(events)
-            ? events
-            : []
-    ).forEach(event =>
+    const groups = new Map();
+    const otherEvents = [];
+    const dates = new Map();
+    let ownerVisits = 0;
+    for (const event of Array.isArray(events) ? events : [])
     {
-        const ownerIds =
-            placeInspectorEventOwnerIds(
-                event
-            );
-
-        let addedToPerson =
-            false;
-
-        ownerIds.forEach(personId =>
+        if (!dates.has(event)) dates.set(event, placeInspectorEventSortValue(event));
+        let added = false;
+        for (const id of placeInspectorEventOwnerIds(event))
         {
-            const person =
-                getPerson(personId);
-
-            if (!person)
-            {
-                return;
-            }
-
-            let group =
-                groups.get(person.id);
-
-            if (!group)
-            {
-                group = {
-                    person,
-                    events: []
-                };
-
-                groups.set(
-                    person.id,
-                    group
-                );
-            }
-
-            group.events.push(
-                event
-            );
-
-            addedToPerson =
-                true;
-        });
-
-        if (!addedToPerson)
-        {
-            otherEvents.push(
-                event
-            );
+            ownerVisits++;
+            const person = resolvePerson(id);
+            if (!person) continue;
+            if (!groups.has(person.id)) groups.set(person.id, { person, events: [] });
+            groups.get(person.id).events.push(event);
+            added = true;
         }
-    });
+        if (!added) otherEvents.push(event);
+    }
+    const compareDates = (a, b) => dates.get(a) - dates.get(b);
+    const sortedGroups = [...groups.values()];
+    for (const group of sortedGroups)
+    {
+        group.events.sort(compareDates);
+        group.name = placeInspectorPersonName(group.person);
+    }
+    sortedGroups.sort((a, b) => compareDates(a.events[0], b.events[0]) || a.name.localeCompare(b.name));
+    otherEvents.sort(compareDates);
+    if (trace)
+    {
+        appPerf.count(trace, 'placeEventOwnerVisits', ownerVisits);
+        appPerf.count(trace, 'placeEventGroupsPrepared', sortedGroups.length);
+    }
+    return { groups: sortedGroups, otherEvents };
+}
 
-    const sortedGroups =
-        [...groups.values()]
-            .map(group => ({
-                ...group,
-
-                events:
-              group.events
-                  .slice()
-                  .sort(
-                      (
-                          first,
-                          second
-                      ) =>
-                          placeInspectorEventSortValue(
-                              first
-                          )
-                    - placeInspectorEventSortValue(
-                        second
-                    )
-                  )
-            }))
-            .sort(
-                (
-                    first,
-                    second
-                ) =>
-                {
-                    const firstDate =
-                        first.events.length
-                            ? placeInspectorEventSortValue(
-                                first.events[0]
-                            )
-                            : Number.MAX_SAFE_INTEGER;
-
-                    const secondDate =
-                        second.events.length
-                            ? placeInspectorEventSortValue(
-                                second.events[0]
-                            )
-                            : Number.MAX_SAFE_INTEGER;
-
-                    return (
-                        firstDate
-                - secondDate
-                || placeInspectorPersonName(
-                    first.person
-                ).localeCompare(
-                    placeInspectorPersonName(
-                        second.person
-                    )
-                )
-                    );
-                }
-            );
-
-    otherEvents.sort(
-        (
-            first,
-            second
-        ) =>
-            placeInspectorEventSortValue(
-                first
-            )
-          - placeInspectorEventSortValue(
-              second
-          )
-    );
-
-    return {
-        groups:
-          sortedGroups,
-
-        otherEvents
+function placeInspectorPersonResolver(people)
+{
+    const fallback = new Map();
+    return id =>
+    {
+        const person = people.rawById.get(id);
+        if (person) return person;
+        // Preserve the legacy lookup for missing and cross-project references.
+        if (!fallback.has(id)) fallback.set(id, getPerson(id));
+        return fallback.get(id);
     };
+}
+
+function placeInspectorPreparedEvents(place, events, context, people, resolvePerson, trace)
+{
+    const build = () =>
+    {
+        let external = false;
+        const result = placeInspectorEventGroups(events, id =>
+        {
+            if (!people.rawById.has(id)) external = true;
+            return resolvePerson(id);
+        }, trace);
+        return { ...result, external };
+    };
+    const prepare = () => trace ? appPerf.measure(trace, 'projection', build) : build();
+    let built = false;
+    const result = context.read('places:inspector-events', ['places', 'people', 'events'], () =>
+    {
+        built = true;
+        return prepare();
+    }, [place.id, state.language]);
+    // A foreign or missing owner can change outside the active project's revisions.
+    return result.external && !built ? prepare() : result;
 }
 
 function renderPlaceInspectorEventRows(
     events,
     personId = '',
-    showAll = false
+    showAll = false, resolvePerson, trace
 )
 {
     const source =
@@ -502,6 +428,7 @@ function renderPlaceInspectorEventRows(
                     .eventsPerPerson
             );
 
+    if (trace) appPerf.count(trace, 'placeEventRowsRendered', visibleEvents.length, true);
     return `
         <span
           class="
@@ -514,7 +441,7 @@ function renderPlaceInspectorEventRows(
                     const presentation =
                         placeInspectorEventPresentation(
                             event,
-                            personId
+                            personId, resolvePerson
                         );
 
                     return `
@@ -595,9 +522,7 @@ function renderPlaceInspectorEventRows(
       `;
 }
 
-function renderPlaceInspectorEvents(
-    events
-)
+function renderPlaceInspectorEvents(events, place, trace)
 {
     if (!events.length)
     {
@@ -611,13 +536,10 @@ function renderPlaceInspectorEvents(
         `;
     }
 
-    const {
-        groups,
-        otherEvents
-    } =
-        placeInspectorEventGroups(
-            events
-        );
+    const context = acquireProjectReadModel(place.projectId);
+    const people = projectPeopleIndex(context);
+    const resolvePerson = placeInspectorPersonResolver(people);
+    const { groups, otherEvents } = placeInspectorPreparedEvents(place, events, context, people, resolvePerson, trace);
 
     const showAll =
         Boolean(
@@ -643,6 +565,11 @@ function renderPlaceInspectorEvents(
                     .eventsPerPerson
             );
 
+    if (trace)
+    {
+        appPerf.count(trace, 'placeConnectedEvents', events.length);
+        appPerf.count(trace, 'placeEventGroupsRendered', visibleGroups.length);
+    }
     const canToggle =
         groups.length
           > PLACE_INSPECTOR_LIMITS
@@ -706,9 +633,7 @@ function renderPlaceInspectorEvents(
                     }"
                   aria-label="Open ${
                         escapeHtml(
-                            placeInspectorPersonName(
-                                group.person
-                            )
+                            group.name
                         )
                     } profile">
 
@@ -738,9 +663,7 @@ function renderPlaceInspectorEvents(
 
                         <strong>
                           ${escapeHtml(
-                                placeInspectorPersonName(
-                                    group.person
-                                )
+                                group.name
                             )}
                         </strong>
 
@@ -763,7 +686,7 @@ function renderPlaceInspectorEvents(
                     ${renderPlaceInspectorEventRows(
                         group.events,
                         group.person.id,
-                        showAll
+                        showAll, resolvePerson, trace
                     )}
                   </span>
                 </button>
@@ -786,7 +709,7 @@ function renderPlaceInspectorEvents(
                   ${renderPlaceInspectorEventRows(
                         visibleOtherEvents,
                         '',
-                        true
+                        true, resolvePerson, trace
                     )}
                 </div>
               `
@@ -1102,8 +1025,12 @@ function rerenderPlacesInspector({
 
     const pair = state.placesView === 'review' && state.selectedPlaceReviewPairKey
         ? getPlaceDuplicatePairs().find(item => item.key === state.selectedPlaceReviewPairKey) : null;
-    inspector.innerHTML = pair ? renderPlacesDuplicateInspector(pair)
-        : renderPlacesInspector(getPlace(state.selectedPlaceId));
+    const trace = typeof appPerf === 'undefined' ? null : appPerf.currentDetailed('Places');
+    const render = () => pair ? renderPlacesDuplicateInspector(pair) : renderPlacesInspector(getPlace(state.selectedPlaceId));
+    const markup = trace ? appPerf.measure(trace, 'evidence', render) : render();
+    const mount = () => { inspector.innerHTML = markup; };
+    if (trace) appPerf.measure(trace, 'dom', mount);
+    else mount();
 
     bindPlacesInspectorControls(
         inspector
@@ -1628,7 +1555,7 @@ function renderPlacesInspector(
               ),
                 content:
               renderPlaceInspectorEvents(
-                  events
+                  events, place, typeof appPerf === 'undefined' ? null : appPerf.currentDetailed('Places')
               )
             })}
 

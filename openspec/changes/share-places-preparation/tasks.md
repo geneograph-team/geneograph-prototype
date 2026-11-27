@@ -37,3 +37,22 @@ The replacement controls now read the existing edit mode, pending point and radi
 
 The table reports milliseconds from three runs per protocol on the same synthetic workload. All six runs recorded one query per render, zero per-place people lookups, and one duplicate comparison build across the five renders. The private GEDCOM and pointer-based dragging on touch devices remain unverified in the browser.
 
+## Founder follow-up — selected inspector
+
+A hosted Edge fixture with 6,481 people, 1,950 families and 19,453 project events placed 9,600 events at one saved place and one event at a sparse control. Before the correction, a heavy inspector render repeated 158,124 date sort-key calculations, about 27,085 name-format calls and 12,346 global person lookups. Grouping and sorting took 543–587 ms across the matched operations. The collapsed preview formatted only 14 rows, and Archive and Notes collection lookups were below 1 ms in this fixture.
+
+The inspector computes dates once per connected event and names once per group. It uses the project people index for scoped records, preserves legacy missing and foreign resolution, and retains one prepared grouping per active project, place and language. Plans with unresolved or foreign owners rebuild on repeat reads so those owners cannot go stale. Only rows within the existing preview or expanded view are formatted. Diagnostics reports event counts, owner visits, group preparation and visible rows, with evidence and DOM timing on selection.
+
+| Heavy inspector operation | Prior hosted, ms | Corrected hosted, ms | Corrected direct file, ms |
+| --- | --- | --- | --- |
+| Selection, cold then warm | 583.5 / 569.1 / 556.7 | 46.5 / 5.3 / 5.4 | 47.3 / 4.8 / 5.3 |
+| Full refresh | 545.9 / 556.6 / 572.3 | 2.9 / 2.7 / 2.6 | 3.0 / 2.7 / 2.7 |
+| Partial refresh | 562.8 / 571.0 / 590.3 | 2.4 / 2.2 / 2.2 | 2.6 / 2.3 / 2.2 |
+
+Sparse selection measured 19.9 ms before and 19.9/22.1 ms after, hosted/direct file. The heavy cold preparation computed 9,600 date keys, visited 12,327 owner memberships, and prepared 6,481 groups. Warm renders skipped grouping and sorting. The normal inspector still showed five groups and 14 rows. Hosted search and clear took 2.9 and 4.1 ms, each with one query. A separate open-and-save rename exercise took 1,026.5 ms before and 99.4 ms after hosted, and 77.9 ms from file. It includes the save handler and refresh.
+
+View all and Show less retained their original contents and controls. Hosted expansion measured 1,138 / 1,155 / 2,044 ms before and 511 / 474 / 417 ms after. Collapse measured 1,722 / 2,304 / 2,722 ms before and 1,059 / 1,013 / 1,175 ms after. Direct-file after samples were 510 / 489 / 452 ms to expand and 1,119 / 1,005 / 1,114 ms to collapse. These are separate browser measurements on the intentionally large expanded view. Expanded DOM work remains substantial.
+
+Hosted English and direct-file Russian checks passed for heavy and sparse selection, search and clear, View all and Show less, save refresh, and person evidence navigation. Hosted map editing continuity with routes, theme, language, project switch and exact and approximate saves passed again. Deterministic inspector, map editing, map mount, association, duplicate, unlinked Places, project-data-contract and Diagnostics checks passed. The founder's private GEDCOM and live source/media/note link edits were outside this follow-up capture. Founder acceptance remains pending.
+
+

@@ -52,6 +52,7 @@ The classic-script order is coordinator, relationship rules, then providers. The
 | `people:link-search` | Shared People linker reads people, places and media to prepare searchable fields and photo counts | Language |
 | `people:photo-filter-search` | Shared resource picker reads people for photo filter ordering and search | Language |
 | `places:associations` | Place directory, inspector and selector read places, people and events to index ordered associations and distinct people counts | None |
+| `places:inspector-events` | Places inspector groups connected events and precomputes date and person sort keys from places, people and events | Place ID and language |
 | `places:duplicate-pairs` | Places review and Project Overview share exact duplicate comparisons derived from canonical place records | None |
 
 All keys retain one value for the active generation. A domain edit evicts matching entries. Unknown edits evict all entries. Non-active reads are uncached. For a new provider, use a distinct key, declare inputs and return read-only derived data. For example, a single-person consumer can call `projectPeopleIndex(acquireProjectReadModel(projectId)).eligibleById.get(personId)`. A mutation owner that has completed a project metadata change can call `markPrototypeSessionEdited(projectId, ['projects'])`. Default-reference changes already use that path. Reads that require families can pass the scoped index to the existing relationship helpers. Tree layout retains its separate request-local preparation.
