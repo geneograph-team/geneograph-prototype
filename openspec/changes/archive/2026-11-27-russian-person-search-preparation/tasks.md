@@ -3,7 +3,7 @@
 - [x] Isolate the cold Russian directory cost in the actual browser implementation.
 - [x] Bound obsolete embedded-rule work and verify real-catalog parity and structural work.
 - [x] Compare fresh hosted EN/RU runs and verify shared browser navigation and search.
-- [ ] Founder acceptance and archival.
+- [x] Founder acceptance and archival.
 
 ## Root cause and measured work
 
@@ -27,3 +27,11 @@ Each run built the directory once, reused it on return and prepared 25 rows on t
 Node compared the ordered embedded rules and dynamic phrases with the previous algorithm using the real catalogs. It also checked localized and raw search parity, language toggling, substitution ordering, unchanged canonical values, the existing cache limit, and zero embedded regex attempts for 6,481 distinct names without matching literals.
 
 Hosted and direct-file Edge verified English and Russian directory and Tree picker results, Russian single-person picker search and selection, filtering, sorting, paging, Profile entry/return, project isolation and name-edit refresh. This used the sample and built-in stress projects. Published production, other browser engines and a complete picker interaction matrix were outside the run. Private traces were not checked in.
+
+## Founder acceptance — 27 November 2026
+
+The founder explicitly accepted #471 and requested a separate archival PR. Implementation is on default in commit `30faee779e7dd2854405b887ce1c0a52e954a922`.
+
+A subsequent founder-supplied schema-3 Detailed recording of the 6,481-person / 1,950-family stress project contains 48 completed operations and no drops. The cold People navigation is 236.3 ms and directory build is 198.6 ms, versus 5,767.2 ms and 5,716.8 ms in the earlier targeted Russian recording (approximately 96.5% reduction in provider build time, assuming the new recording uses Russian; locale is not exported). Warm navigation is 49.1–57.7 ms, paging 37.1–50.5 ms, sorting 34.1–64.7 ms, and Profile rendering 8.5–22.4 ms. The directory builds once, subsequent reads reuse it, and Profile prepares one record. Longest observed page-wide task is 417 ms; this is not an attribution to People or paint latency. This separate user recording corroborates the matched EN/RU implementation evidence above; do not pool unmatched runs or infer universal budgets.
+
+Founder accepts the implementation and the documented verification limitations. Remaining unperformed coverage (published production in the implementation harness, other browsers and complete picker matrix) is not marked as executed. No new runtime tests were run during administrative archival. The latest uploaded export contains no locale marker or search-result correctness evidence; the matched implementation benchmarks and reported functional checks remain the basis for those conclusions.
