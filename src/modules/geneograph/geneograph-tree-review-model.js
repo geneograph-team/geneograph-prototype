@@ -181,44 +181,56 @@ function geneoReviewParents(families, childId)
         .flatMap(family => [familyPartnerAId(family), familyPartnerBId(family)]).filter(Boolean));
 }
 
-function geneoTreeImportMatches(person, projectId, draft = geneoTreeImportDraft)
+function geneoTreeImportMatches(person, projectId, draft = geneoTreeImportDraft, { evaluateEligibility = true } = {})
 {
     const names = normalizeGeneographPersonNames(person);
     const name = geneoPersonDisplayName(person).toLocaleLowerCase();
     const graph = draft ? geneoReviewGraph(draft.diagram) : new Map();
-    const families = sampleData.families.filter(family => family.projectId === projectId);
-    return getPeople(projectId).filter(candidate => !candidate.deleted).map(candidate =>
+    const read = acquireProjectReadModel(projectId);
+    const people = projectPeopleIndex(read);
+    let familyIndex;
+    const familyMemberships = () => familyIndex ||= projectFamilyIndex(read);
+    const parentIds = id => geneoReviewParents(
+        familyMemberships().parentFamilies(id).filter(family => family.projectId === projectId), id);
+    const relatives = (graph.get(person.id) || []).flatMap(edge =>
     {
-        const compatibleName = Boolean(names.first || names.last) && (connectPersonName(candidate).toLocaleLowerCase() === name
+        const id = draft?.choices.get(edge.id);
+        if (!id || ['skip', 'create', 'unlink'].includes(id)) return [];
+        return [{ id, role: edge.role, name: connectPersonName(people.rawById.get(id)),
+            parents: edge.role === 'Parents' || edge.role === 'Partners' ? null : parentIds(id) }];
+    });
+    const birth = geneoReviewFact(person, 'birth.date');
+    return people.eligible.map(candidate =>
+    {
+        const displayName = connectPersonName(candidate);
+        const compatibleName = Boolean(names.first || names.last) && (displayName.toLocaleLowerCase() === name
             || Boolean(names.first && names.last && candidate.names?.first?.toLocaleLowerCase() === names.first.toLocaleLowerCase()
                 && candidate.names?.last?.toLocaleLowerCase() === names.last.toLocaleLowerCase()));
-        const birth = geneoReviewFact(person, 'birth.date');
         const otherBirth = geneoReviewFact(candidate, 'birth.date');
         const recordedBirth = !geneoReviewFactEmpty(birth) && !geneoReviewFactEmpty(otherBirth);
         const birthAgrees = recordedBirth && Boolean(birth.first?.year && otherBirth.first?.year) && genealogyDatesCompatible(birth, otherBirth);
         const givenNameAgrees = Boolean(names.first) && names.first.trim().toLocaleLowerCase() === candidate.names?.first?.trim().toLocaleLowerCase();
-        const vitalConflict = person.gender !== 'unknown' && candidate.gender !== 'unknown' && person.gender !== candidate.gender
+        const vitalConflict = evaluateEligibility && (person.gender !== 'unknown' && candidate.gender !== 'unknown' && person.gender !== candidate.gender
             || person.livingStatus !== 'Unknown' && candidate.livingStatus !== 'Unknown' && person.livingStatus !== candidate.livingStatus
             || ['birth.date', 'death.date'].some(key =>
             !geneoReviewFactEmpty(geneoReviewFact(person, key)) && !geneoReviewFactEmpty(geneoReviewFact(candidate, key))
-            && !genealogyDatesCompatible(geneoReviewFact(person, key), geneoReviewFact(candidate, key)));
+            && !genealogyDatesCompatible(geneoReviewFact(person, key), geneoReviewFact(candidate, key))));
         const context = [];
-        for (const edge of graph.get(person.id) || [])
+        let candidateParents;
+        for (const relative of relatives)
         {
-            const relativeId = draft?.choices.get(edge.id);
-            if (!relativeId || ['skip', 'create', 'unlink'].includes(relativeId)) continue;
-            const related = edge.role === 'Parents' ? geneoReviewParents(families, candidate.id).has(relativeId)
-                : edge.role === 'Children' ? geneoReviewParents(families, relativeId).has(candidate.id)
-                    : edge.role === 'Partners' ? families.some(family => [familyPartnerAId(family), familyPartnerBId(family)].includes(candidate.id)
-                        && [familyPartnerAId(family), familyPartnerBId(family)].includes(relativeId))
-                        : [...geneoReviewParents(families, candidate.id)].some(id => geneoReviewParents(families, relativeId).has(id));
-            if (related) context.push(connectPersonName(getPerson(relativeId)));
+            const related = relative.role === 'Parents' ? (candidateParents ||= parentIds(candidate.id)).has(relative.id)
+                : relative.role === 'Children' ? relative.parents.has(candidate.id)
+                    : relative.role === 'Partners' ? familyMemberships().partnerFamilies(candidate.id).some(family =>
+                        family.projectId === projectId && familyIncludesPerson(family, relative.id))
+                        : [...(candidateParents ||= parentIds(candidate.id))].some(id => relative.parents.has(id));
+            if (related) context.push(relative.name);
         }
         const score = context.length * 200 + (compatibleName ? 100 : 0) + (birthAgrees ? 40 : 0)
             + (names.last && candidate.names?.last === names.last ? 10 : 0);
-        const eligible = !vitalConflict && (compatibleName || givenNameAgrees && birthAgrees);
-        return { person: candidate, score, context, eligible, strong: eligible && context.length > 0 && compatibleName && birthAgrees };
-    }).sort((a, b) => b.score - a.score || connectPersonName(a.person).localeCompare(connectPersonName(b.person)));
+        const eligible = evaluateEligibility && !vitalConflict && (compatibleName || givenNameAgrees && birthAgrees);
+        return { person: candidate, displayName, score, context, eligible, strong: eligible && context.length > 0 && compatibleName && birthAgrees };
+    }).sort((a, b) => b.score - a.score || a.displayName.localeCompare(b.displayName));
 }
 
 function geneoReviewFamilyParents(family)

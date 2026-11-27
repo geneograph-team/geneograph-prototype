@@ -48,6 +48,9 @@ The classic-script order is coordinator, relationship rules, then providers. The
 | `families:graph` | Relationship provider builds adjacency from the scoped people and families | None |
 | `families:labels` | `projectRelationshipLabels(context, referenceId)` applies genealogy rules to people and adjacency | Reference person ID |
 | `people:directory` | `peopleDirectoryContext(projectId)` reads people, families, places, sources, archive and events | Language, reference person ID and source-link collection replacement |
+| `people:link-search` | Shared People linker reads people, places and media to prepare searchable fields and photo counts | Language |
+| `people:photo-filter-search` | Shared resource picker reads people for photo filter ordering and search | Language |
+| `places:selector-people-counts` | Place selector reads people, places and events to count distinct people per place | None |
 
 All keys retain one value for the active generation. A domain edit evicts matching entries. Unknown edits evict all entries. Non-active reads are uncached. For a new provider, use a distinct key, declare inputs and return read-only derived data. For example, a single-person consumer can call `projectPeopleIndex(acquireProjectReadModel(projectId)).eligibleById.get(personId)`. A mutation owner that has completed a project metadata change can call `markPrototypeSessionEdited(projectId, ['projects'])`. Default-reference changes already use that path. Reads that require families can pass the scoped index to the existing relationship helpers. Tree layout retains its separate request-local preparation.
 
@@ -67,7 +70,7 @@ All keys retain one value for the active generation. A domain edit evicts matchi
 | Notes | Render, result query, central-note selection and rich editor mount | Autosave and typing costs need a focused capture |
 | Geneograph | Library query, board open/render | Board editor gestures and serialization are unspecified |
 | Publish | Preview markup and existing render boundary | Publish remains disabled in regular navigation |
-| Shared pickers | Single-person picker opening, candidate preparation count and committed selection | Subsequent search work inside the dialog and other picker types are unspecified |
+| Shared pickers | Single-person open/query/selection, People link search and commit, photo person filter, and place suggestions. Candidate counts and query/markup or DOM stages track the work performed | Geneograph selection includes the existing board review continuation tracked in #473. Live geocoding is outside this picker capture |
 | Family Tree | Existing focus, layout passes, viewport, portraits and Tree stages | Existing Tree lifecycle and timing fields retain their meaning |
 
 The top-level `summaryCoverage` binds the browser and read-model summaries to the current/last recording epoch and its Start configuration. It is independent of the latest editable settings. The Tree viewport owns gesture traces using their source events. A fresh mouse or touch gesture can replace a wheel burst before D3 emits its delayed end. Replaced traces cancel at replacement. Native release attribution keeps delayed events from ending a different trace.

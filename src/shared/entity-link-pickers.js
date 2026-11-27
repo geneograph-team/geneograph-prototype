@@ -15,6 +15,8 @@ function openSinglePersonPicker(options)
     return result;
 }
 
+const SINGLE_PERSON_PICKER_PAGE_SIZE = 50;
+
 function openSinglePersonPickerWithDiagnosticsBody({ parent, anchor, subtitle, candidates, onSelect })
 {
     const dialog = document.createElement('dialog');
@@ -25,7 +27,12 @@ function openSinglePersonPickerWithDiagnosticsBody({ parent, anchor, subtitle, c
         <div class="photo-people-body"><div class="notes-person-search-column">
             <label class="field photo-people-search-field"><span class="search-input">${icon.search}
                 <input type="search" aria-label="${escapeHtml(t('Search by name, date, or place'))}" autocomplete="off" placeholder="${escapeHtml(t('Search by name, date, or place'))}" autofocus></span></label>
-            <section class="photo-people-results-panel"><div class="photo-people-results" data-single-person-results></div></section>
+            <section class="photo-people-results-panel"><div class="photo-people-results" data-single-person-results></div>
+            <div class="single-person-pages" data-single-person-pages hidden>
+              <button type="button" class="button secondary" data-single-person-page="-1">${escapeHtml(t('Previous page'))}</button>
+              <span data-single-person-count role="status"></span>
+              <button type="button" class="button secondary" data-single-person-page="1">${escapeHtml(t('Next page'))}</button>
+            </div></section>
         </div></div>
         <footer class="modal-footer"><button type="button" class="button secondary" data-single-person-close>${escapeHtml(t('Cancel'))}</button>
             <button type="button" class="button primary" data-single-person-select disabled>${escapeHtml(t('Select person'))}</button></footer>`;
@@ -33,24 +40,80 @@ function openSinglePersonPickerWithDiagnosticsBody({ parent, anchor, subtitle, c
     const search = dialog.querySelector('input[type="search"]');
     const results = dialog.querySelector('[data-single-person-results]');
     const select = dialog.querySelector('[data-single-person-select]');
-    let selected = '';
-    const trace = typeof appPerf === 'undefined' ? null : appPerf.currentDetailed();
-    if (trace) appPerf.count(trace, 'recordsPrepared', candidates.length, true);
-    const searchable = new Map(candidates.map(item => [item, personSearchHaystack(item.avatar, [item.name, item.dates, item.searchText])]));
+    let selected = '', page = 0;
+    const ordered = candidates.filter(item => !item.unavailable).concat(candidates.filter(item => item.unavailable));
+    let matches = ordered;
+    const searchable = new Map();
+    let language = state.language;
+    const describe = item => item.describe ? { ...item, ...item.describe() } : item;
+    const updateMatches = trace =>
+    {
+        if (language !== state.language)
+        {
+            language = state.language;
+            searchable.clear();
+        }
+        const tokens = personSearchTokens(search.value);
+        if (trace && tokens.length) appPerf.count(trace, 'recordsScanned', ordered.length);
+        matches = tokens.length ? ordered.filter(item =>
+        {
+            if (!searchable.has(item))
+            {
+                const detail = item.searchFields ? item.searchFields() : describe(item);
+                searchable.set(item, personSearchHaystack(detail.avatar, [detail.name, detail.dates, detail.searchText]));
+            }
+            return personSearchMatches(tokens, searchable.get(item));
+        }) : ordered;
+        if (trace) appPerf.count(trace, 'recordsMatched', matches.length);
+        if (!matches.some(item => item.id === selected)) selected = '';
+        page = 0;
+    };
+    const pages = dialog.querySelector('[data-single-person-pages]');
+    const [previous, next] = pages.querySelectorAll('[data-single-person-page]');
     const render = () =>
     {
-        const tokens = personSearchTokens(search.value);
-        const matches = candidates.filter(item => personSearchMatches(tokens, searchable.get(item)));
-        matches.sort((a, b) => Number(Boolean(a.unavailable)) - Number(Boolean(b.unavailable)));
-        if (!matches.some(item => item.id === selected)) selected = '';
+        const trace = typeof appPerf === 'undefined' ? null : appPerf.currentDetailed();
+        const start = page * SINGLE_PERSON_PICKER_PAGE_SIZE;
+        const visible = matches.slice(start, start + SINGLE_PERSON_PICKER_PAGE_SIZE).map(describe);
+        if (trace)
+        {
+            appPerf.count(trace, 'recordsPrepared', visible.length);
+            appPerf.count(trace, 'recordsRendered', visible.length);
+        }
         select.disabled = !selected;
-        results.innerHTML = matches.map(item => `<label class="photo-people-result" ${item.unavailable ? 'aria-disabled="true"' : ''}>
+        previous.disabled = page === 0;
+        next.disabled = start + visible.length >= matches.length;
+        pages.hidden = matches.length <= SINGLE_PERSON_PICKER_PAGE_SIZE;
+        pages.querySelector('[data-single-person-count]').textContent =
+            `${start + 1}–${start + visible.length} / ${matches.length}`;
+        results.innerHTML = visible.map(item => `<label class="photo-people-result" ${item.unavailable ? 'aria-disabled="true"' : ''}>
             ${renderPeoplePickerIdentity(item.avatar, item.name, item.dates, item.unavailable)}
             <input type="radio" name="single-person-choice" value="${escapeHtml(item.id)}" ${item.unavailable ? 'disabled' : ''} ${selected === item.id ? 'checked' : ''}
                 aria-label="${escapeHtml(item.name)}">
         </label>`).join('') || `<p class="single-person-empty" role="status">${escapeHtml(t('No people match these filters.'))}</p>`;
     };
-    search.addEventListener('input', event => { event.stopPropagation(); render(); });
+    search.addEventListener('input', event =>
+    {
+        event.stopPropagation();
+        const update = () =>
+        {
+            const trace = appPerf.currentDetailed(state.activeModule);
+            appPerf.measure(trace, 'query', () => updateMatches(trace));
+            appPerf.measure(trace, 'markup', render);
+        };
+        if (typeof appPerf !== 'undefined' && appPerf.enabled(state.activeModule))
+            appPerf.run(state.activeModule, 'query', update);
+        else { updateMatches(null); render(); }
+    });
+    for (const button of [previous, next])
+    {
+        button.addEventListener('click', () =>
+        {
+            page += Number(button.dataset.singlePersonPage);
+            render();
+            (button.disabled ? search : button).focus({ preventScroll: true });
+        });
+    }
     results.addEventListener('change', event =>
     {
         event.stopPropagation();
@@ -76,7 +139,14 @@ function openSinglePersonPickerWithDiagnosticsBody({ parent, anchor, subtitle, c
     dialog.showModal();
 }
 
-function openPeopleLinkModal({
+function openPeopleLinkModal(options)
+{
+    if (typeof appPerf !== 'undefined' && appPerf.enabled(state.activeModule))
+        return appPerf.run(state.activeModule, 'picker', () => openPeopleLinkModalWithDiagnosticsBody(options));
+    return openPeopleLinkModalWithDiagnosticsBody(options);
+}
+
+function openPeopleLinkModalWithDiagnosticsBody({
     projectId,
     title =
         'Add people',
@@ -213,17 +283,28 @@ function openPeopleLinkModal({
 
     const getCandidates = () =>
     {
+        const context = acquireProjectReadModel(projectId);
+        const prepared = context.read('people:link-search', ['people', 'places', 'media'], id =>
+        {
+            const photos = new Map();
+            for (const photo of getProjectPhotos(id))
+            {
+                for (const personId of new Set(photo.personIds || []))
+                    photos.set(personId, (photos.get(personId) || 0) + 1);
+            }
+            return { photos, names: new Map(), search: new Map() };
+        }, [state.language]);
+        const people = projectPeopleIndex(context).eligible;
+        const nameFor = person =>
+        {
+            if (!prepared.names.has(person.id)) prepared.names.set(person.id, personName(person));
+            return prepared.names.get(person.id);
+        };
         const tokens = personSearchTokens(query);
         const normalizedQuery = tokens.join(' ');
 
         const ranked =
-            getPeople(
-                projectId
-            )
-                .filter(person =>
-                    person?.id
-              && !person.deleted
-                )
+            people
                 .filter(person =>
                     !selectedIds.has(
                         person.id
@@ -244,26 +325,19 @@ function openPeopleLinkModal({
                 )
 
                 .filter(person =>
-                    !tokens.length || personSearchMatches(tokens, personSearchText(person))
-                )
+                {
+                    if (!tokens.length) return true;
+                    if (!prepared.search.has(person.id)) prepared.search.set(person.id, personSearchText(person));
+                    return personSearchMatches(tokens, prepared.search.get(person.id));
+                })
                 .map(person =>
                 {
-                    const displayName =
-                        normalizePersonSearch(personName(person));
-
-                    const nameParts = [
-                        person?.names?.first,
-                        person?.names?.middle,
-                        person?.names?.last,
-                        person?.names?.maiden
-                    ]
-                        .filter(Boolean)
-                        .map(normalizePersonSearch);
-
                     let score = 0;
-
                     if (normalizedQuery)
                     {
+                        const displayName = normalizePersonSearch(nameFor(person));
+                        const nameParts = [person.names?.first, person.names?.middle, person.names?.last, person.names?.maiden]
+                            .filter(Boolean).map(normalizePersonSearch);
                         if (
                             displayName
                     === normalizedQuery
@@ -312,9 +386,7 @@ function openPeopleLinkModal({
                     }
 
                     score += Math.min(
-                        getPersonPhotoCount(
-                            person.id
-                        ),
+                        prepared.photos.get(person.id) || 0,
                         50
                     );
 
@@ -330,13 +402,7 @@ function openPeopleLinkModal({
                     ) =>
                         second.score
                   - first.score
-                || personName(
-                    first.person
-                ).localeCompare(
-                    personName(
-                        second.person
-                    )
-                )
+                || nameFor(first.person).localeCompare(nameFor(second.person))
                 );
 
         return {
@@ -705,8 +771,13 @@ function openPeopleLinkModal({
                 '[data-notes-people-selected-panel]'
             );
 
-        const candidates =
-            getCandidates();
+        const trace = typeof appPerf === 'undefined' ? null : appPerf.currentDetailed();
+        const candidates = trace ? appPerf.measure(trace, 'query', getCandidates) : getCandidates();
+        if (trace)
+        {
+            appPerf.count(trace, 'recordsMatched', candidates.total);
+            appPerf.count(trace, 'recordsRendered', candidates.people.length);
+        }
 
         selectedPanel.hidden =
             imageArea && !selectedHtml;
@@ -854,22 +925,22 @@ function openPeopleLinkModal({
                         ...selectedIds
                     ];
 
-                const saved =
-                    onSave(
-                        nextIds,
-                        imageArea ? Object.fromEntries(nextIds.map(id => [id, normalizeFaceRegion(regions[id])]).filter(([, region]) => region)) : null
-                    );
-
-                if (
-                    saved === false
-                )
+                const apply = () =>
                 {
-                    return;
-                }
-
-                closeModal();
-
-                afterSave();
+                    const trace = typeof appPerf === 'undefined' ? null : appPerf.currentDetailed();
+                    const save = () => onSave(nextIds, imageArea
+                        ? Object.fromEntries(nextIds.map(id => [id, normalizeFaceRegion(regions[id])]).filter(([, region]) => region))
+                        : null);
+                    const saved = trace ? appPerf.measure(trace, 'evidence', save) : save();
+                    if (saved === false) return false;
+                    closeModal();
+                    if (trace) appPerf.measure(trace, 'dom', afterSave);
+                    else afterSave();
+                    return true;
+                };
+                const applied = typeof appPerf !== 'undefined' && appPerf.enabled(state.activeModule)
+                    ? appPerf.run(state.activeModule, 'selection', apply) : apply();
+                if (!applied) return;
 
                 const added = [...selectedIds].filter(id =>
                     !initialSelectedIds.has(id) && !existingPersonIdSet.has(id)).length;

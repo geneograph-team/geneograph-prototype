@@ -419,15 +419,43 @@ function geneoStageReviewRelation(draft, id, direction)
 function geneoOpenReviewPersonPicker(modal, draft, person, mode, anchor, relationId = '')
 {
     if (!person) return;
+    if (typeof appPerf !== 'undefined' && appPerf.enabled('Geneograph'))
+        return appPerf.run('Geneograph', 'picker', () => geneoRenderReviewPersonPicker(modal, draft, person, mode, anchor, relationId));
+    return geneoRenderReviewPersonPicker(modal, draft, person, mode, anchor, relationId);
+}
+
+function geneoRenderReviewPersonPicker(modal, draft, person, mode, anchor, relationId)
+{
     const board = mode === 'board';
+    const trace = typeof appPerf === 'undefined' ? null : appPerf.currentDetailed('Geneograph');
+    const started = trace ? appPerf.now() : 0;
+    const unavailableTreeIds = new Set();
+    if (!board)
+    {
+        const others = draft.diagram.people.filter(item => item.id !== person.id);
+        for (const item of others)
+            unavailableTreeIds.add(draft.choices.has(item.id) ? draft.choices.get(item.id) : item.treePersonId);
+        for (const [key, target] of draft.relativeTargets || [])
+            if (others.some(item => key.endsWith('|' + item.id))) unavailableTreeIds.add(target);
+    }
     const candidates = board ? draft.people.filter(item => item.id !== person.id).map(item => ({
-        id: item.id, name: geneoPersonDisplayName(item), dates: geneoPersonLifeDates(item), avatar: geneoPersonAvatarModel(item),
+        id: item.id,
+        describe: () => ({ name: geneoPersonDisplayName(item), dates: geneoPersonLifeDates(item), avatar: geneoPersonAvatarModel(item) }),
+        searchFields: () => ({ name: geneoPersonDisplayName(item), dates: geneoPersonLifeDates(item),
+            avatar: { names: { ...normalizeGeneographPersonNames(item), display: geneoPersonDisplayName(item) } } }),
         unavailable: item.treePersonId || draft.choices.get(item.id) !== 'skip' ? 'Already linked' : ''
-    })) : geneoTreeImportMatches(person, draft.projectId, draft).map(({ person: item, context }) => ({
-        id: item.id, name: connectPersonName(item), dates: connectPersonLifeLine(item), avatar: item,
-        searchText: [getPlaceEventDisplay(item.birth), ...context].filter(Boolean).join(' '),
-        unavailable: geneoReviewDuplicate(draft, person.id, item.id) ? 'Already linked' : ''
+    })) : geneoTreeImportMatches(person, draft.projectId, draft, { evaluateEligibility: false }).map(({ person: item, context, displayName }) => ({
+        id: item.id,
+        describe: () => ({ name: displayName, dates: connectPersonLifeLine(item), avatar: item }),
+        searchFields: () => ({ name: displayName, dates: connectPersonLifeLine(item), avatar: item,
+            searchText: [getPlaceEventDisplay(item.birth), ...context].filter(Boolean).join(' ') }),
+        unavailable: unavailableTreeIds.has(item.id) ? 'Already linked' : ''
     }));
+    if (trace)
+    {
+        appPerf.span(trace, 'query', appPerf.now() - started);
+        appPerf.count(trace, 'recordsMatched', candidates.length);
+    }
     openSinglePersonPicker({ parent: modal, anchor, candidates,
         subtitle: t(board ? 'Choose a board person to link to {name} in Family Tree.' : 'Choose a Family Tree person to link to {name}.')
             .replace('{name}', () => board ? connectPersonName(getPerson(draft.choices.get(person.id))) : geneoPersonDisplayName(person)),
@@ -438,7 +466,9 @@ function geneoOpenReviewPersonPicker(modal, draft, person, mode, anchor, relatio
             if (board) geneoStageReviewBoardLink(draft, person, id);
             else if (mode === 'relative') geneoStageReviewRelativeTarget(draft, relationId, person.id, id);
             else geneoStageReviewTreeLink(draft, person, id);
-            geneoTreeImportRender();
+            const selectionTrace = typeof appPerf === 'undefined' ? null : appPerf.currentDetailed('Geneograph');
+            if (selectionTrace) appPerf.measure(selectionTrace, 'dom', geneoTreeImportRender);
+            else geneoTreeImportRender();
             if (mode === 'relative')
             {
                 const row = [...modal.querySelectorAll('[data-gr-record-row]')].find(item => item.dataset.grRecordRow === relationId);

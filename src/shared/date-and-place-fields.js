@@ -440,6 +440,48 @@ async function searchSharedPlaceMapResults(query, signal)
     }
 }
 
+function placeSuggestionPeopleCounts(projectId)
+{
+    const context = acquireProjectReadModel(projectId);
+    return context.read('places:selector-people-counts', ['places', 'people', 'events'], id =>
+    {
+        const placeIds = new Set((sampleData.places || []).filter(place => place.projectId === id).map(place => place.id));
+        const collect = (record, ids) =>
+        {
+            if (!record) return;
+            for (const key of ['placeId', 'birthPlaceId', 'deathPlaceId', 'burialPlaceId'])
+                if (placeIds.has(record[key])) ids.add(record[key]);
+            if (Array.isArray(record.placeIds))
+                for (const placeId of record.placeIds)
+                    if (placeIds.has(placeId)) ids.add(placeId);
+        };
+        const eventPlaces = new Map();
+        for (const event of sampleData.events || [])
+        {
+            if (event.projectId !== id) continue;
+            const ids = new Set();
+            collect(event, ids);
+            if (!ids.size) continue;
+            for (const personId of event.personIds || [])
+            {
+                if (!eventPlaces.has(personId)) eventPlaces.set(personId, new Set());
+                for (const placeId of ids) eventPlaces.get(personId).add(placeId);
+            }
+        }
+        const counts = new Map();
+        for (const person of projectPeopleIndex(context).rawById.values())
+        {
+            const ids = new Set(eventPlaces.get(person.id));
+            collect(person.birth, ids);
+            collect(person.death, ids);
+            for (const attribute of person.attributes || []) collect(attribute, ids);
+            for (const event of person.events || []) collect(event, ids);
+            for (const placeId of ids) counts.set(placeId, (counts.get(placeId) || 0) + 1);
+        }
+        return readOnlyProjectMap(counts);
+    });
+}
+
 function bindPlaceComboboxes(root = document)
 {
     if (!root || typeof root.querySelectorAll !== 'function') return;
@@ -538,10 +580,12 @@ function bindPlaceComboboxes(root = document)
                 ? (sampleData.places || []).filter(p => p.projectId === projectId)
                 : [];
             const trimmed = (query || '').trim();
-            const scored = pool
-                .map(p => ({ place: p, score: placeMatchScore(p, trimmed) }))
-                .filter(x => x.score > 0)
-                .sort((a, b) => (b.score - a.score) || (getPeopleForPlace(b.place.id, { projectId: b.place.projectId }).length - getPeopleForPlace(a.place.id, { projectId: a.place.projectId }).length) || a.place.name.localeCompare(b.place.name))
+            const matches = pool.map(p => ({ place: p, score: placeMatchScore(p, trimmed) }))
+                .filter(x => x.score > 0);
+            const counts = matches.length > 1 ? placeSuggestionPeopleCounts(projectId) : null;
+            const scored = matches
+                .sort((a, b) => (b.score - a.score) || ((counts.get(b.place.id) || 0) - (counts.get(a.place.id) || 0))
+                    || a.place.name.localeCompare(b.place.name))
                 .slice(0, 8)
                 .map(x => ({ type: 'place', place: x.place }));
             const opts = scored;
@@ -605,9 +649,21 @@ function bindPlaceComboboxes(root = document)
 
         function refresh()
         {
-            currentOptions = buildOptions(input.value);
-            activeIndex = currentOptions.length ? 0 : -1;
-            renderList();
+            const update = () =>
+            {
+                const trace = typeof appPerf === 'undefined' ? null : appPerf.currentDetailed();
+                currentOptions = trace ? appPerf.measure(trace, 'query', () => buildOptions(input.value)) : buildOptions(input.value);
+                activeIndex = currentOptions.length ? 0 : -1;
+                if (trace)
+                {
+                    appPerf.count(trace, 'recordsRendered', currentOptions.length);
+                    appPerf.measure(trace, 'dom', renderList);
+                }
+                else renderList();
+            };
+            if (typeof appPerf !== 'undefined' && appPerf.enabled(state.activeModule) && !appPerf.currentDetailed())
+                appPerf.run(state.activeModule, 'query', update);
+            else update();
         }
 
         function scheduleMapSearch(query, immediate = false)

@@ -19,7 +19,8 @@ const appPerf = (() =>
     operations.get('Albums').add('resize');
     operations.get('Publish').add('preview');
     const frameKinds = new Set(['selection', 'review', 'editor', 'profile', 'picker', 'preview']);
-    const providerKeys = new Set(['people:index', 'families:index', 'families:graph', 'families:labels', 'people:directory']);
+    const providerKeys = new Set(['people:index', 'families:index', 'families:graph', 'families:labels', 'people:directory',
+        'people:link-search', 'places:selector-people-counts', 'people:photo-filter-search']);
     const domainKeys = new Set(['projects', 'people', 'families', 'places', 'media', 'sources', 'notes',
         'boards', 'events', 'archive', 'albums', 'activity']);
     const stages = new Set(['navigation', 'people', 'families', 'projection', 'input', 'occurrences',

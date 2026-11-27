@@ -244,7 +244,8 @@
 
 .single-person-picker .notes-person-search-column { padding-bottom: 0; }
 .single-person-picker .photo-people-search-field { margin: 0; }
-.single-person-picker .photo-people-results-panel { min-height: 0; }
+.notes-people-modal.single-person-picker .photo-people-results-panel { min-height: 0; grid-template-rows: minmax(0, 1fr) auto; }
+.single-person-pages:not([hidden]) { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; padding-top: 8px; }
 .single-person-picker .photo-people-results { height: 100%; max-height: none; overflow: auto; }
 .single-person-picker .photo-people-result[aria-disabled="true"] { background: var(--surface-app); }
 .single-person-picker .photo-people-result[aria-disabled="true"] .photo-people-result-avatar { opacity: .45; }

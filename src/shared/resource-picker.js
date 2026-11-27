@@ -252,21 +252,17 @@ function rpEnhanceSortControl(root, selector)
 
 function rpPhotoFilterFieldsMarkup(projectId, filters = {}, { tagged = false } = {})
 {
-    const people = (sampleData.people || []).filter(person => person.projectId === projectId && !person.deleted)
-        .map(person => ({ id: person.id, name: personResourceDisplayName(person),
-            searchText: personSearchHaystack(person, [personResourceDisplayName(person)]) }))
-        .sort((a, b) => a.name.localeCompare(b.name, state.language === 'ru' ? 'ru' : 'en', { numeric: true }));
-    const selected = people.find(person => person.id === filters.person);
+    const selected = projectPeopleIndex(acquireProjectReadModel(projectId)).eligibleById.get(filters.person);
     return `<div class="rp-photo-filters">
         <label class="rp-filter-checkbox"><input type="checkbox" data-photo-filter-favorite ${filters.favorite ? 'checked' : ''}>${escapeHtml(rpText('Favorites only', 'Только избранное'))}</label>
         ${tagged ? `<label class="rp-filter-checkbox"><input type="checkbox" data-photo-filter-tagged ${filters.tagged ? 'checked' : ''}>${escapeHtml(rpText('Tagged with this person', 'Связанные с этим человеком'))}</label>` : ''}
         <div class="field rp-photo-person-field"><label for="rpPhotoPersonFilter">${escapeHtml(rpText('Person', 'Человек'))}</label>
-          <div class="rp-photo-person-combobox" data-photo-person-combobox>
+          <div class="rp-photo-person-combobox" data-photo-person-combobox data-project-id="${escapeHtml(projectId)}">
             <input id="rpPhotoPersonFilter" class="input" type="text" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="rpPhotoPersonOptions" autocomplete="off" data-photo-person-search
-              placeholder="${escapeHtml(rpText('Search people', 'Поиск людей'))}" value="${escapeHtml(selected?.name || '')}">
-            <div id="rpPhotoPersonOptions" class="rp-photo-person-options" role="listbox" hidden>
-              <div role="option" data-photo-person-option="" tabindex="-1">${escapeHtml(rpText('All people', 'Все люди'))}</div>
-              ${people.map(person => `<div role="option" data-photo-person-option="${escapeHtml(person.id)}" data-person-search-text="${escapeHtml(person.searchText)}" tabindex="-1">${escapeHtml(person.name)}</div>`).join('')}
+              placeholder="${escapeHtml(rpText('Search people', 'Поиск людей'))}" value="${escapeHtml(selected ? personResourceDisplayName(selected) : '')}">
+            <div class="rp-photo-person-options" data-photo-person-popup hidden>
+              <div id="rpPhotoPersonOptions" role="listbox"></div>
+              <div data-photo-person-pages></div>
             </div>
           </div>
         </div>
@@ -278,18 +274,47 @@ function rpBindPhotoFilterFields(root, filters, onChange)
     if (!root) return;
     const input = root.querySelector('[data-photo-person-search]');
     const list = root.querySelector('[data-photo-person-combobox] [role=listbox]');
-    const options = [...(list?.querySelectorAll('[data-photo-person-option]') || [])];
-    let active = -1;
-    const visible = () => options.filter(option => !option.hidden);
-    const close = () => { if (list) list.hidden = true; input?.setAttribute('aria-expanded', 'false'); input?.removeAttribute('aria-activedescendant'); active = -1; };
+    const popup = root.querySelector('[data-photo-person-popup]');
+    const controls = root.querySelector('[data-photo-person-pages]');
+    if (!input || !list || !popup || !controls) return;
+    const projectId = root.querySelector('[data-photo-person-combobox]')?.dataset.projectId;
+    let matches = [], page = 0, active = -1;
+    const pageSize = 50;
+    const visible = () => [...list.querySelectorAll('[data-photo-person-option]')];
+    const close = () => { popup.hidden = true; input.setAttribute('aria-expanded', 'false'); input?.removeAttribute('aria-activedescendant'); active = -1; };
+    const mount = () =>
+    {
+        const start = page * pageSize;
+        const items = matches.slice(start, start + pageSize);
+        list.innerHTML = items.map((item, index) => `<div role="option" id="rpPhotoPersonOption${index}"
+            data-photo-person-option="${escapeHtml(item.id)}" tabindex="-1">${escapeHtml(item.name)}</div>`).join('');
+        controls.innerHTML = (page ? `<button type="button" data-photo-person-page="-1">${escapeHtml(t('Previous page'))}</button>` : '')
+            + (start + items.length < matches.length ? `<button type="button" data-photo-person-page="1">${escapeHtml(t('Next page'))}</button>` : '');
+        input.removeAttribute('aria-activedescendant');
+        active = -1;
+    };
     const show = (query = '') =>
     {
+        const context = acquireProjectReadModel(projectId);
+        const prepared = context.read('people:photo-filter-search', ['people'], () =>
+        {
+            const collator = new Intl.Collator(state.language === 'ru' ? 'ru' : 'en', { numeric: true });
+            const entries = projectPeopleIndex(context).eligible.map(person => ({
+                id: person.id, name: personResourceDisplayName(person), person
+            })).sort((a, b) => collator.compare(a.name, b.name));
+            return { entries, search: new Map() };
+        }, [state.language]);
         const tokens = personSearchTokens(query);
-        options.forEach(option => { option.hidden = Boolean(option.dataset.photoPersonOption)
-            && !personSearchMatches(tokens, option.dataset.personSearchText || ''); });
-        list.hidden = false;
+        const people = !tokens.length ? prepared.entries : prepared.entries.filter(item =>
+        {
+            if (!prepared.search.has(item.id)) prepared.search.set(item.id, personSearchHaystack(item.person, [item.name]));
+            return personSearchMatches(tokens, prepared.search.get(item.id));
+        });
+        matches = [{ id: '', name: rpText('All people', 'Все люди') }, ...people];
+        page = 0;
+        mount();
+        popup.hidden = false;
         input.setAttribute('aria-expanded', 'true');
-        active = -1;
     };
     const choose = option =>
     {
@@ -302,7 +327,15 @@ function rpBindPhotoFilterFields(root, filters, onChange)
         onChange({ ...filters });
         input.focus();
     };
-    input?.addEventListener('focus', () => show(filters.person ? '' : input.value));
+    let pagingFocus = false;
+    input.addEventListener('focus', () =>
+    {
+        if (!pagingFocus) show(filters.person ? '' : input.value);
+    });
+    input.addEventListener('click', () =>
+    {
+        if (popup.hidden) show(filters.person ? '' : input.value);
+    });
     input?.addEventListener('input', () =>
     {
         if (filters.person) { filters.person = ''; onChange({ ...filters }); }
@@ -310,23 +343,48 @@ function rpBindPhotoFilterFields(root, filters, onChange)
     });
     input?.addEventListener('keydown', event =>
     {
-        if (event.key === 'Escape' && !list.hidden) { event.stopPropagation(); close(); return; }
+        if (event.key === 'Escape' && !popup.hidden) { event.stopPropagation(); close(); return; }
         if (event.key === 'ArrowDown' || event.key === 'ArrowUp')
         {
             event.preventDefault();
-            if (list.hidden) show(input.value);
-            const shown = visible();
+            if (popup.hidden) show(input.value);
+            let shown = visible();
             if (!shown.length) return;
-            active = (active + (event.key === 'ArrowDown' ? 1 : -1) + shown.length) % shown.length;
+            const direction = event.key === 'ArrowDown' ? 1 : -1;
+            const index = active + direction;
+            if (index < 0 || index >= shown.length)
+            {
+                const lastPage = Math.ceil(matches.length / pageSize) - 1;
+                page = (page + direction + lastPage + 1) % (lastPage + 1);
+                mount();
+                shown = visible();
+                active = direction > 0 ? 0 : shown.length - 1;
+            }
+            else active = (index + shown.length) % shown.length;
             shown.forEach(option => option.setAttribute('aria-selected', String(option === shown[active])));
-            shown[active].id ||= `rpPhotoPersonOption${options.indexOf(shown[active])}`;
             input.setAttribute('aria-activedescendant', shown[active].id);
             shown[active].scrollIntoView({ block: 'nearest' });
         }
-        if (event.key === 'Enter' && !list.hidden && active >= 0) { event.preventDefault(); choose(visible()[active]); }
+        if (event.key === 'Enter' && !popup.hidden && active >= 0) { event.preventDefault(); choose(visible()[active]); }
     });
-    list?.addEventListener('pointerdown', event => { if (event.target.closest('[data-photo-person-option]')) event.preventDefault(); });
-    list?.addEventListener('click', event => { const option = event.target.closest('[data-photo-person-option]'); if (option) choose(option); });
+    popup.addEventListener('pointerdown', event =>
+    {
+        if (event.target.closest('[data-photo-person-option], [data-photo-person-page]')) event.preventDefault();
+    });
+    popup.addEventListener('click', event =>
+    {
+        const option = event.target.closest('[data-photo-person-option]');
+        const button = event.target.closest('[data-photo-person-page]');
+        if (option) choose(option);
+        else if (button)
+        {
+            page += Number(button.dataset.photoPersonPage);
+            pagingFocus = true;
+            input.focus();
+            pagingFocus = false;
+            mount();
+        }
+    });
     root.addEventListener('focusout', event => { if (!root.contains(event.relatedTarget)) close(); });
     root.querySelector('[data-photo-filter-favorite]')?.addEventListener('change', event => { filters.favorite = event.target.checked; onChange({ ...filters }); });
     root.querySelector('[data-photo-filter-tagged]')?.addEventListener('change', event =>
