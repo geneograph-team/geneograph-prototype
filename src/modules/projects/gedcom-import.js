@@ -521,7 +521,7 @@ async function downloadGedcomPhotos(references, localMatches, signal, onProgress
 // are emitted. Decode entities after tokenization, never as executable markup.
 function gedcomPlainContent(body)
 {
-    return { body, ops: null, simplified: false };
+    return { body, ops: null, simplified: false, unsafe: false };
 }
 
 function gedcomDecodeHtmlEntities(value, onUnknown)
@@ -607,8 +607,9 @@ function gedcomRichContent(value, checkDeadline = () => {})
         'video', 'audio', 'head', 'noscript']);
     const voidTags = new Set(['br', 'hr', 'img', 'embed', 'link', 'meta', 'input', 'source', 'wbr', 'area', 'base', 'col', 'param']);
     const stack = [], lines = [];
-    let current = [], pendingSpace = false, simplified = false, ignored = null;
+    let current = [], pendingSpace = false, simplified = false, unsafe = false, ignored = null;
     const mark = () => { simplified = true; };
+    const markUnsafe = () => { unsafe = true; };
     const attrsEqual = (a, b) => JSON.stringify(a || {}) === JSON.stringify(b || {});
     const append = (insert, attributes = {}) =>
     {
@@ -683,10 +684,18 @@ function gedcomRichContent(value, checkDeadline = () => {})
         text(value.slice(offset, match.index));
         offset = match.index + match[0].length;
         const raw = match[0];
-        if (raw.startsWith('<!')) { mark(); continue; }
+        if (raw.startsWith('<!')) continue;
         const tagMatch = /^<(\/?)([a-z][\w:-]*)/i.exec(raw);
         const closing = Boolean(tagMatch[1]);
         const tag = tagMatch[2].toLowerCase();
+        const rawAttributes = closing ? new Map() : readAttributes(raw.slice(tagMatch[0].length, -1));
+        // Presentation metadata is routine; active attributes and external
+        // resources are distinct from unsupported document formatting.
+        if (!closing && (['script', 'iframe', 'object', 'embed', 'svg', 'math', 'template', 'video', 'audio', 'img', 'link', 'input', 'form', 'source', 'base'].includes(tag)
+            || [...rawAttributes].some(([name, value]) =>
+                /^on/i.test(name) || ['src', 'srcset', 'srcdoc', 'action', 'formaction', 'background', 'xlink:href'].includes(name)
+                || name === 'style' && /(?:url\s*\(|expression\s*\(|@import|behavior\s*:|-moz-binding)/i.test(value))))
+            markUnsafe();
         if (ignored)
         {
             if (tag === ignored.tag)
@@ -698,7 +707,7 @@ function gedcomRichContent(value, checkDeadline = () => {})
         }
         if (suppressed.has(tag))
         {
-            mark();
+            if (!['style', 'head'].includes(tag) && !unsafe) mark();
             if (!closing && !/\/>$/.test(raw)) ignored = { tag, depth: 1 };
             continue;
         }
@@ -708,7 +717,7 @@ function gedcomRichContent(value, checkDeadline = () => {})
             if (!closing) flush(true);
             continue;
         }
-        if (voidTags.has(tag)) { mark(); continue; }
+        if (voidTags.has(tag)) continue;
         if (closing)
         {
             const index = stack.findLastIndex(frame => frame.tag === tag);
@@ -721,16 +730,17 @@ function gedcomRichContent(value, checkDeadline = () => {})
         if (blocks.has(tag)) flush();
         if (stack.length >= 64) { mark(); continue; }
         if (!blocks.has(tag) && !wrappers.has(tag) && !Object.hasOwn(inline, tag)) mark();
-        if (['table', 'tr', 'td', 'th', 'pre', 'font', 'h1', 'h4', 'h5', 'h6'].includes(tag)) mark();
+        if (['table', 'tr', 'td', 'th', 'pre', 'h1', 'h4', 'h5', 'h6'].includes(tag)) mark();
         const attributes = {};
         if (Object.hasOwn(inline, tag)) attributes[inline[tag]] = true;
-        const rawAttributes = readAttributes(raw.slice(tagMatch[0].length, -1));
         for (const [name, attr] of rawAttributes)
         {
             if (name === 'href' && tag === 'a')
             {
                 const link = gedcomSafeHtmlLink(attr.trim());
                 if (link) attributes.link = link;
+                else if (/^(?:javascript|vbscript|data|file|blob):/i.test(attr.replace(/[\s\u0000-\u001f\u007f]/g, '')))
+                    markUnsafe();
                 else mark();
             }
             else if (name === 'style')
@@ -738,7 +748,7 @@ function gedcomRichContent(value, checkDeadline = () => {})
                 for (const declaration of attr.split(';'))
                 {
                     const colon = declaration.indexOf(':');
-                    if (colon < 0) { if (declaration.trim()) mark(); continue; }
+                    if (colon < 0) continue;
                     const key = declaration.slice(0, colon).trim().toLowerCase();
                     const val = declaration.slice(colon + 1).trim().toLowerCase();
                     if (key === 'font-weight' && /^(?:bold|[6-9]00)$/.test(val)) attributes.bold = true;
@@ -747,25 +757,24 @@ function gedcomRichContent(value, checkDeadline = () => {})
                     {
                         if (/\bunderline\b/.test(val)) attributes.underline = true;
                         if (/\bline-through\b/.test(val)) attributes.strike = true;
-                        if (!/^(?:underline|line-through)(?:\s+(?:underline|line-through))*$/.test(val)) mark();
                     }
-                    else mark();
                 }
             }
-            else if (name !== 'dir' && name !== 'lang') mark();
+            // Fonts, alignment, colors, classes, IDs and website metadata
+            // are discarded routinely, not reported as research-data loss.
         }
         if (tag === 'a' && !rawAttributes.has('href')) mark();
         if (!/\/>$/.test(raw)) stack.push({ tag, attributes });
     }
     text(value.slice(offset));
-    if (stack.length || ignored) mark();
+    if (stack.length || ignored && !unsafe) mark();
     flush();
     const first = lines.findIndex(line => line.ops.length);
     while (lines.length && !lines.at(-1).ops.length) lines.pop();
     const ops = (first < 0 ? [] : lines.slice(first)).flatMap(line => [...line.ops, Object.keys(line.attributes).length
         ? { insert: '\n', attributes: line.attributes } : { insert: '\n' }]);
     const body = ops.map(op => op.insert).join('').slice(0, -1);
-    return { body, ops: ops.some(op => op.attributes) ? ops : null, simplified };
+    return { body, ops: ops.some(op => op.attributes) ? ops : null, simplified, unsafe };
 }
 
 // Plain-only evidence fields cannot store link attributes. Preserve a
@@ -802,7 +811,7 @@ function gedcomJoinContent(parts)
         ...(part.ops || [{ insert: part.body + '\n' }]),
         ...(index < values.length - 1 ? [{ insert: '\n' }] : [])
     ]) : null;
-    return { body, ops, simplified: values.some(part => part.simplified) };
+    return { body, ops, simplified: values.some(part => part.simplified), unsafe: values.some(part => part.unsafe) };
 }
 
 // A citation URL is optional. Accept only one unambiguous, explicit HTTP(S)
@@ -955,12 +964,14 @@ function mapGedcomImportWithDiagnosticsBody(parsed, project, matches = new Map()
     const onlinePhotos = new Set();
     const textCache = new WeakMap();
     const evidenceTextCache = new WeakMap();
-    const simplifiedText = new WeakSet();
-    const reportSimplifiedText = node =>
+    const reportedTextIssues = new WeakMap();
+    const reportTextIssue = (node, kind) =>
     {
-        if (simplifiedText.has(node)) return;
-        simplifiedText.add(node);
-        warn(node.tag, node.line, 'text-format');
+        const kinds = reportedTextIssues.get(node) || new Set();
+        if (kinds.has(kind)) return;
+        kinds.add(kind);
+        reportedTextIssues.set(node, kinds);
+        warn(node.tag, node.line, kind);
     };
     const readRichText = (node, escapedEvidence = false) =>
     {
@@ -977,20 +988,19 @@ function mapGedcomImportWithDiagnosticsBody(parsed, project, matches = new Map()
         }
         const value = parts.join('');
         const content = gedcomRichContent(escapedEvidence === true ? gedcomUnwrapEvidenceMarkup(value) : value, checkDeadline);
-        if (content.simplified) reportSimplifiedText(node);
+        if (content.simplified) reportTextIssue(node, 'text-format');
+        if (content.unsafe) reportTextIssue(node, 'text-unsafe');
         cache.set(node, content);
         return content;
     };
     const readText = node =>
     {
         const content = readRichText(node);
-        if (content.ops) reportSimplifiedText(node);
         return gedcomPlainEvidence(content);
     };
     const readSourceText = node =>
     {
         const content = readRichText(node, true);
-        if (content.ops) reportSimplifiedText(node);
         return gedcomPlainEvidence(content);
     };
     const addNote = (key, content, title) =>
@@ -1527,7 +1537,6 @@ function mapGedcomImportWithDiagnosticsBody(parsed, project, matches = new Map()
             {
                 if (!field) return;
                 const content = readRichText(field, true);
-                if (content.ops) reportSimplifiedText(field);
                 const value = gedcomPlainEvidence(content).trim();
                 if (value) details.push(label ? sourceDetail(label, value) : value);
                 if (locator) urlContents.push(content);
@@ -2076,21 +2085,6 @@ function applyGedcomPlaceMatching(draft, result)
     draft.placeMatching = result.stats;
 }
 
-function gedcomPlaceMatchingSummary(report)
-{
-    const stats = report.placeMatching;
-    if (!stats || !stats.existing && !stats.ineligible && !stats.eligible) return '';
-    const rows = [['Coordinates already recorded', stats.existing], ['Coordinates assigned automatically', stats.assigned],
-        ['Places without a strong match', stats.uncertain], ['Places excluded from automatic matching', stats.ineligible],
-        ['Places skipped: lookup limit', stats.budget],
-        ['Places skipped: lookup stopped', stats.stopped], ['Places skipped: provider quota', stats.quota],
-        ['Places skipped: provider unavailable', stats.unavailable]];
-    return '<h3>' + escapeHtml(t('Place coordinate matching')) + '</h3><dl class="gedcom-counts">'
-        + rows.filter(([, count]) => count > 0).map(([label, count]) =>
-            '<div><dt>' + escapeHtml(t(label)) + '</dt><dd>' + count + '</dd></div>').join('')
-        + '</dl>' + geneographGeocoder.attributionHtml();
-}
-
 function gedcomImportReport(draft)
 {
     const { people, families, places } = draft.records;
@@ -2104,8 +2098,6 @@ function gedcomImportReport(draft)
     if (draft.records.archiveFiles.length) rows.push(['Imported Archive files', draft.records.archiveFiles.length]);
     if (draft.records.notes.length) rows.push(['Notes', draft.records.notes.length]);
     if (draft.records.sources.length) rows.push(['Sources', draft.records.sources.length]);
-    if (draft.records.albums.length) rows.push(['Albums', draft.records.albums.length]);
-    if (draft.records.noteCollections.length) rows.push(['Note collections', draft.records.noteCollections.length]);
     const authored = Object.fromEntries(PROJECT_DRAFT_COLLECTIONS.filter(key => draft.records[key])
         .map(key => [key, draft.records[key]]));
     const authoredCount = Object.values(authored).reduce((count, records) => count + records.length, 0);
@@ -2137,6 +2129,13 @@ function gedcomImportWarnings(report)
         return '<details><summary>' + escapeHtml(t(title)) + ' (' + total + ')</summary><ul>' + examples + '</ul>'
             + (entries.length > 25 ? '<p>' + escapeHtml(t('Showing the first 25 tag types.')) + '</p>' : '') + '</details>';
     };
+    const matching = report.placeMatching;
+    const lookupWarnings = [
+        ['Place coordinate lookup interrupted by provider quota', matching?.quota],
+        ['Place coordinate lookup unavailable', matching?.unavailable]
+    ].filter(([, count]) => count > 0).map(([label, count]) =>
+        '<details><summary>' + escapeHtml(t(label)) + ' (' + count + ')</summary><p>'
+        + escapeHtml(t('Affected places remain without coordinates.')) + '</p></details>').join('');
     return (report.onlinePhotoCount ? '<p>' + escapeHtml(t('Online photo files not imported: {count}')
         .replace('{count}', report.onlinePhotoCount)) + '</p>' : '')
         + warningGroup('name-conflict', 'Conflicting maiden names')
@@ -2144,8 +2143,10 @@ function gedcomImportWarnings(report)
         + warningGroup('place-coordinates-conflict', 'Conflicting place coordinates skipped')
         + warningGroup('skipped', 'Skipped or unsupported GEDCOM data')
         + warningGroup('date-text', 'Dates preserved as text')
-        + warningGroup('text-format', 'Imported text formatting simplified or unsafe content omitted')
+        + warningGroup('text-format', 'Unsupported or incomplete text formatting simplified')
+        + warningGroup('text-unsafe', 'Unsafe or active imported content omitted')
         + warningGroup('citation-target', 'Source citations without a supported person or event link')
+        + lookupWarnings
         + (report.overBackupRecordLimit ? '<p>' + escapeHtml(t('This project exceeds the 50,000-record limit for project backups.')) + '</p>' : '')
         + (report.overBackupManifestLimit ? '<p>' + escapeHtml(t('This project exceeds the 32 MiB metadata limit for project backups.')) + '</p>' : '');
 }
@@ -2154,17 +2155,13 @@ function gedcomAttachmentSummary(report, committed = false)
 {
     const { attachments: entries, attachmentCount, distinctFilesFound } = report;
     if (!entries.length) return '';
-    const found = entries.filter(item => item.found).length;
-    const consolidatedCount = entries.filter(item => item.status === 'Consolidated portrait crop').length;
-    const fallbackCount = entries.filter(item => item.status === 'Imported fallback portrait').length;
+    const found = entries.filter(item => item.found || item.status === 'Consolidated portrait crop').length;
     const incomplete = entries.filter(item => !['Imported', 'Consolidated portrait crop', 'Imported fallback portrait'].includes(item.status));
     const progressLabel = found === distinctFilesFound ? '{found} of {total} files found'
         : '{found} of {total} file references matched';
     const progress = t(progressLabel).replace('{found}', found).replace('{total}', entries.length);
     const countLabel = committed ? '{count} attachments imported' : '{count} attachments ready to import';
     return '<p>' + escapeHtml(progress) + ' · ' + escapeHtml(t(countLabel).replace('{count}', attachmentCount)) + '</p>'
-        + (consolidatedCount ? '<p>' + escapeHtml(t('Portrait crops consolidated: {count}').replace('{count}', consolidatedCount)) + '</p>' : '')
-        + (fallbackCount ? '<p>' + escapeHtml(t('Fallback portraits retained: {count}').replace('{count}', fallbackCount)) + '</p>' : '')
         + (incomplete.length ? '<details class="gedcom-attachment-warnings"><summary>'
             + escapeHtml(t('Attachments that need attention')) + ' (' + incomplete.length + ')</summary><ul>'
             + incomplete.map(item => '<li><bdi data-user-content>' + escapeHtml(item.name) + '</bdi> · '
@@ -2509,8 +2506,9 @@ function showGedcomImportResult(report)
 {
     openModal('<div class="modal" role="dialog" aria-modal="true" aria-labelledby="gedcomResultTitle">'
         + '<div class="modal-header"><h2 id="gedcomResultTitle">' + escapeHtml(t('GEDCOM imported')) + '</h2></div>'
-        + '<div class="modal-body">' + gedcomImportSummary(report) + gedcomAttachmentSummary(report, true) + gedcomPlaceMatchingSummary(report)
-        + '<p>' + escapeHtml(t('Imported projects stay in this session. Reloading discards them and any edits.')) + '</p>' + gedcomImportWarnings(report) + '</div>'
+        + '<div class="modal-body">' + gedcomImportSummary(report) + gedcomAttachmentSummary(report, true)
+        + '<p>' + escapeHtml(t('Imported projects stay in this session. Reloading discards them and any edits.')) + '</p>' + gedcomImportWarnings(report)
+        + (report.placeMatching?.lookups ? geneographGeocoder.attributionHtml() : '') + '</div>'
         + '<div class="modal-footer"><button class="button primary" type="button" data-close>'
         + escapeHtml(t('Done')) + '</button></div></div>');
 }

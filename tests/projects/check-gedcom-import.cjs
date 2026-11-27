@@ -10,7 +10,9 @@ const context = vm.createContext({
     state: { language: 'en' },
     document: { documentElement: { lang: 'en' } },
     t: value => value,
-    translateText: value => value
+    translateText: value => value,
+    escapeHtml: value => String(value).replace(/&/g, '&amp;').replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;')
 });
 for (const file of [
     'shared/genealogy-dates', 'shared/person-name-helpers', 'modules/places/place-record-helpers',
@@ -120,7 +122,7 @@ assert.ok(citationRich.notes.includes('Evidence link (https://example.test/recor
 assert.equal(citationRich.url, 'https://example.test/record?a=1&b=2');
 assert.equal(richNotes.records.notes.length, 2);
 assert.ok(!richNotes.records.notes.some(note => note.body.includes('Evidence')));
-assert.ok(richNotes.warnings.some(warning => warning.kind === 'text-format'));
+assert.ok(!richNotes.warnings.some(warning => ['text-format','text-unsafe'].includes(warning.kind)));
 
 // MyHeritage evidence can contain HTML delimiters escaped twice. Reconstruct
 // continuations before unwrapping and preserve literal unknown placeholders.
@@ -148,7 +150,7 @@ const unsafeEscapedEvidence = map(file([
 assert.deepEqual(Array.from(unsafeEscapedEvidence.errors), []);
 assert.equal(unsafeEscapedEvidence.records.sources[0].notes, 'First\nSafe label');
 assert.equal(unsafeEscapedEvidence.records.sources[0].url, '');
-assert.ok(unsafeEscapedEvidence.warnings.some(warning => warning.kind === 'text-format'));
+assert.ok(unsafeEscapedEvidence.warnings.some(warning => warning.kind === 'text-unsafe'));
 const literalEvidence = map(file([
     '0 @I1@ INDI', '1 SOUR @S1@', '2 TEXT A &amp; B &amp;lt;private&amp;gt; and 2 &lt; 3',
     '0 @S1@ SOUR', '1 TITL Register'
@@ -195,6 +197,46 @@ assert.equal(normalizedPlaces.placeCoordinateReviewIds.length, 2);
 assert.equal(context.placeContext({name:'Харьковская обл.'}).administrative, true);
 assert.deepEqual(Array.from(context.placeNameParts({name:'Village (old, new), County, Poland'})), ['Village (old, new)', 'County', 'Poland']);
 
+
+const classifiedFormatting = map(file([
+    '0 @I1@ INDI', '1 NOTE <p class="MsoNormal" style="font-family:Calibri;color:red;text-align:left"><b>Routine</b></p>',
+    '1 NOTE <table><tr><td>Address</td></tr></table>',
+    '1 NOTE <p><a id="anchor">Missing destination</a></p>',
+    '1 NOTE <p onclick="run()">Safe text<img src="https://example.test/photo.jpg"></p>',
+    '1 SOUR @S1@', '2 TEXT <b>Evidence</b> <a href="https://example.test/record">Record</a>',
+    '0 @S1@ SOUR', '1 TITL Register'
+]));
+assert.deepEqual(Array.from(classifiedFormatting.errors), []);
+assert.equal(classifiedFormatting.warnings.find(w => w.kind === 'text-format').count, 2);
+assert.equal(classifiedFormatting.warnings.find(w => w.kind === 'text-unsafe').count, 1);
+assert.ok(!classifiedFormatting.warnings.some(w => w.tag === 'TEXT' && w.kind.startsWith('text-')));
+assert.ok(classifiedFormatting.records.notes.some(note => note.body === 'Address'));
+assert.ok(classifiedFormatting.records.notes.some(note => note.body === 'Safe text'));
+assert.equal(classifiedFormatting.records.sources[0].notes, 'Evidence Record (https://example.test/record)');
+const classifiedReport = context.gedcomImportReport(classifiedFormatting);
+const classifiedHtml = context.gedcomImportWarnings(classifiedReport);
+assert.ok(classifiedHtml.includes('Unsupported or incomplete text formatting simplified (2)'));
+assert.ok(classifiedHtml.includes('Unsafe or active imported content omitted (1)'));
+assert.ok(!classifiedHtml.includes('Imported text formatting simplified or unsafe content omitted'));
+const attachmentReview = {attachments:[
+    { name:'original.jpg', found:true, status:'Imported' },
+    { name:'crop.jpg', found:false, status:'Consolidated portrait crop' },
+    { name:'fallback.jpg', found:true, status:'Imported fallback portrait' },
+    { name:'missing.jpg', found:false, status:'File not found' }
+], attachmentCount:2, distinctFilesFound:2};
+const attachmentHtml = context.gedcomAttachmentSummary(attachmentReview, true);
+assert.ok(attachmentHtml.includes('3 of 4 file references matched'));
+assert.ok(attachmentHtml.includes('Attachments that need attention (1)'));
+assert.ok(attachmentHtml.includes('missing.jpg'));
+assert.ok(!attachmentHtml.includes('Portrait crops consolidated'));
+assert.ok(!attachmentHtml.includes('Fallback portraits retained'));
+assert.ok(!attachmentHtml.includes('fallback.jpg'));
+const resultSource = context.showGedcomImportResult.toString();
+assert.ok(!resultSource.includes('gedcomPlaceMatchingSummary'));
+assert.ok(resultSource.includes('attributionHtml'));
+assert.ok(!context.gedcomImportWarnings({...classifiedReport,placeMatching:{assigned:23,uncertain:33,ineligible:93}}).includes('Place coordinate lookup'));
+assert.ok(context.gedcomImportWarnings({...classifiedReport,placeMatching:{quota:5,unavailable:2}}).includes('Place coordinate lookup interrupted by provider quota (5)'));
+
 const literalNotes = map(file(['0 @I1@ INDI', '1 NOTE 2 < 3; <placeholder>; A & B &amp; C']));
 assert.equal(literalNotes.records.notes[0].body, '2 < 3; <placeholder>; A & B &amp; C');
 assert.equal(literalNotes.records.notes[0].bodyDelta, null);
@@ -207,7 +249,7 @@ assert.deepEqual(Array.from(unsafeNotes.errors), []);
 assert.equal(unsafeNotes.records.notes.length, 1);
 assert.equal(unsafeNotes.records.notes[0].body, 'Safe click bold');
 assert.ok(!unsafeNotes.records.notes[0].bodyDelta.ops.some(op => op.attributes?.link));
-assert.ok(unsafeNotes.warnings.some(warning => warning.kind === 'text-format'));
+assert.ok(unsafeNotes.warnings.some(warning => warning.kind === 'text-unsafe'));
 const familyRich = map(file([
     '0 @I1@ INDI', '0 @I2@ INDI', '0 @F1@ FAM', '1 HUSB @I1@', '1 WIFE @I2@',
     '1 ENGA', '2 DATE 1890', '2 NOTE <p><b>First</b></p>', '2 NOTE @N1@',
@@ -658,8 +700,7 @@ const collectionsReport = context.gedcomImportReport(collectionDraft);
 assert.equal(collectionsReport.attachmentCount, 1);
 assert.equal(collectionsReport.rows.find(row => row[0] === 'Photos')[1], 1);
 assert.equal(collectionsReport.rows.find(row => row[0] === 'Notes')[1], 2);
-assert.equal(collectionsReport.rows.find(row => row[0] === 'Albums')[1], 1);
-assert.equal(collectionsReport.rows.find(row => row[0] === 'Note collections')[1], 1);
+assert.ok(!collectionsReport.rows.some(row => ['Albums', 'Note collections'].includes(row[0])));
 const missingCollectionDraft = context.mapGedcomImport(collectionInput, project, new Map(), collectionRefs);
 assertImportedCollections(missingCollectionDraft);
 assert.equal(missingCollectionDraft.records.albums.length, 0);
@@ -689,7 +730,7 @@ function verifyImportedCollectionLocalization()
         context.t = key => dictionary[key] || key;
         const draft = context.mapGedcomImport(collectionInput, project, collectionMatches, collectionRefs);
         assertImportedCollections(draft, 'Импортированные');
-        assert.equal(dictionary['Note collections'], 'Коллекции заметок');
+        assert.equal(dictionary['Imported'], 'Импортированные');
     }
     finally { context.t = previous; }
 }
@@ -793,7 +834,7 @@ async function verifyAttachments()
     assert.equal(report.attachmentCount, 2);
     assertImportedCollections(draft);
     assert.deepEqual(JSON.parse(JSON.stringify(report.rows)), [
-        ['People', 2], ['Facts', 1], ['Photos', 1], ['Imported Archive files', 1], ['Albums', 1]
+        ['People', 2], ['Facts', 1], ['Photos', 1], ['Imported Archive files', 1]
     ]);
     const emptyCounts = context.gedcomImportReport(map(file(['0 @I1@ INDI'])));
     assert.deepEqual(JSON.parse(JSON.stringify(emptyCounts.rows)), [['People', 1]]);
