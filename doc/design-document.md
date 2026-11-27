@@ -86,6 +86,10 @@ When removing or replacing a record, inspect all references to its ID and the ef
 
 **Modals and feedback.** Creation/editing dialogs stage input, expose a clear primary action and cancel path, and return actionable errors. Long lists scroll inside the modal while footer actions remain reachable. Tooltips and toasts support feedback but should not be the sole carrier of essential state.
 
+### Shared search input continuity
+
+Compatible main-view search refreshes retain the connected native input and its caret while updating result regions. The shared lifecycle accepts the current query immediately, coalesces result work and discards superseded view updates. Module-specific filters, selection and detail lifecycles remain authoritative. See [shared search input](../openspec/specs/shared-search-input/spec.md).
+
 ### Right-sidebar record previews
 
 Across Family Tree, People, Places, Albums, Archive and Notes, right-side inspectors display **all** Timeline, Relationships, People, Events, Places, Collections/Albums, Checklist items and historical/alternative names. The Places inspector keeps its existing grouped People/Events preview (five person groups, three events per person and three other events, with a Show all control).

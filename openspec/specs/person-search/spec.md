@@ -1,7 +1,5 @@
 # Person search
 
-Notes search includes current note text, linked resource and person labels, related notes and collection names. Linked-resource preparation follows the active project and language.
-
 ## Requirements
 
 ### Requirement: Consistent interactive person search
@@ -24,3 +22,11 @@ Shared person pickers SHALL search the full eligible population using the existi
 #### Scenario: Search past the first page
 - **WHEN** the user searches for an eligible person outside the current page
 - **THEN** the search includes that person and prepares details only for the visible results.
+
+### Requirement: Notes search freshness
+
+Notes search SHALL preserve full-result matching across current note text, linked resource and person labels, related notes and collection names. A retained linked-resource projection SHALL remain scoped to the active project and current language.
+
+### Requirement: Compatible Notes editor continuity
+
+Compatible refreshes of the same open note SHALL retain the connected editor and its editing state when project, record, content and language are compatible. Incompatible selection/content or leaving Notes SHALL release the previous editor. Body edits SHALL update the row excerpt and date, and save feedback SHALL belong to the selected canonical note without stale callbacks affecting another editor. Person-link validation SHALL use project-scoped eligible IDs while preserving canonical link semantics. See the shared search input capability for native input continuity.
