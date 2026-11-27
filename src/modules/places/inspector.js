@@ -1149,6 +1149,7 @@ function renderPlacesDuplicateInspector(pair)
         <div class="places-pair-inspector">
             <header><h2>${escapeHtml(t('Possible duplicate'))}</h2>
                 <span>${escapeHtml(dismissed ? placeReviewT('Dismissed') : t('Needs review'))}</span></header>
+            <p>${escapeHtml(pair.reasons.map(reason => t(reason)).join(' '))}</p>
             ${member(pair.left)}${member(pair.right)}
         </div>`;
 }

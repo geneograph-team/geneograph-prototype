@@ -495,10 +495,11 @@ function findPlaceEditorDuplicate(draft = placeEditorDraft)
     const proposed = { id: draft.placeId || '__new_place__', projectId: currentProjectId(),
         name: draft.name, alternativeNames: draft.alternativeNames, coordinates: draft.coordinates,
         approximateRadiusMeters: draft.approximateRadiusMeters };
+    const prepared = preparePlaceDuplicateComparison(proposed);
     let best = null;
     projectPlaces().filter(place => place.id !== draft.placeId).forEach(place =>
     {
-        const match = matchDuplicatePlaces(proposed, place);
+        const match = matchDuplicatePlaces(proposed, place, prepared);
         if (match && (!best || match.score > best.score))
             best = { place, ...match, alternativeConflict: match.alias };
     });

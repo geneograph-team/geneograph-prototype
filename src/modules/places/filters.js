@@ -832,36 +832,103 @@ function placeReviewConnectionCount(placeId)
     return placeLiveReferenceCount(getPlace(placeId));
 }
 
-function placeDuplicateContextsConflict(left, right)
+// Comparison-only keys; never use them as stored names or lookup IDs.
+function placeDuplicateNormalizedText(value)
 {
-    const context = value => String(value || '').split(',').slice(1)
-        .map(normalizePlaceLookupText).filter(Boolean);
-    const a = context(left);
-    const b = context(right);
-    const sharedDepth = Math.min(a.length, b.length);
-    for (let depth = 1; depth <= sharedDepth; depth += 1)
-    {
-        if (a[a.length - depth] !== b[b.length - depth]) return true;
-    }
-    return false;
+    return normalizePlaceLookupText(value).normalize('NFC')
+        .replace(/\p{Script=Latin}\p{Mark}*/gu, letter =>
+            letter.normalize('NFD').replace(/\p{Mark}/gu, ''))
+        .replace(/\s*,\s*/g, ',')
+        .normalize('NFC');
 }
 
-function placeDuplicateNameSimilarity(left, right)
+// Bounded Cyrillic-to-Latin comparison rules (Russian, Ukrainian, Belarusian).
+// These are not translations; unsupported scripts retain literal matching.
+const PLACE_DUPLICATE_CYRILLIC = {
+    а: 'a', б: 'b', в: 'v', г: 'g', ґ: 'g', д: 'd', е: 'e', ё: 'yo',
+    є: 'ye', ж: 'zh', з: 'z', и: 'i', і: 'i', ї: 'i', й: 'y', к: 'k',
+    л: 'l', м: 'm', н: 'n', о: 'o', п: 'p', р: 'r', с: 's', т: 't',
+    у: 'u', ў: 'u', ф: 'f', х: 'kh', ц: 'ts', ч: 'ch', ш: 'sh',
+    щ: 'shch', ъ: '', ы: 'y', ь: '', э: 'e', ю: 'yu', я: 'ya'
+};
+
+function placeDuplicateNamePart(text)
 {
-    if (placeDuplicateContextsConflict(left, right)) return 0;
-    const a = normalizePlaceLookupText(String(left || '').split(',')[0]);
-    const b = normalizePlaceLookupText(String(right || '').split(',')[0]);
+    const cyrillic = /\p{Script=Cyrillic}/u.test(text);
+    const latin = /\p{Script=Latin}/u.test(text);
+    const unsupported = Array.from(text).some(letter =>
+        /\p{Letter}/u.test(letter)
+        && !/\p{Script=Latin}/u.test(letter)
+        && !Object.hasOwn(PLACE_DUPLICATE_CYRILLIC, letter));
+    return {
+        text,
+        script: cyrillic && !latin ? 'cyrillic' : latin && !cyrillic ? 'latin' : '',
+        transliterated: unsupported || (latin && cyrillic) ? ''
+            : Array.from(text, letter => PLACE_DUPLICATE_CYRILLIC[letter] ?? letter).join('')
+    };
+}
+
+function placeDuplicateNameParts(value)
+{
+    const full = placeDuplicateNormalizedText(value);
+    const parts = full.split(',').filter(Boolean).map(placeDuplicateNamePart);
+    return { full, locality: parts[0] || placeDuplicateNamePart(''), context: parts.slice(1) };
+}
+
+function placeDuplicateStringSimilarity(a, b, threshold)
+{
     if (!a || !b) return 0;
     if (a === b) return 1;
-    const previous = Array.from({ length: b.length + 1 }, (_, index) => index);
+    const length = Math.max(a.length, b.length);
+    // Reject impossible matches early. Bound approximate comparison of unusually long input.
+    if (length > 256 || 1 - Math.abs(a.length - b.length) / length < threshold) return 0;
+    let previous = Array.from({ length: b.length + 1 }, (_, index) => index);
     for (let i = 1; i <= a.length; i += 1)
     {
         const current = [i];
         for (let j = 1; j <= b.length; j += 1)
             current[j] = Math.min(current[j - 1] + 1, previous[j] + 1, previous[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
-        previous.splice(0, previous.length, ...current);
+        previous = current;
     }
-    return 1 - previous[b.length] / Math.max(a.length, b.length);
+    return 1 - previous[b.length] / length;
+}
+
+function placeDuplicateContextComparison(left, right)
+{
+    let equivalent = false;
+    let unknown = false;
+    const depthCount = Math.min(left.length, right.length);
+    for (let depth = 1; depth <= depthCount; depth += 1)
+    {
+        const a = left[left.length - depth];
+        const b = right[right.length - depth];
+        if (a.text === b.text || (a.transliterated && a.transliterated === b.transliterated))
+        {
+            equivalent = true;
+            continue;
+        }
+        // A close cross-script spelling can support context; an unfamiliar translation
+        // is not evidence of equivalence or, by itself, a proven contradiction.
+        if (a.script && b.script && a.script !== b.script)
+        {
+            if (Math.min(a.transliterated.length, b.transliterated.length) >= 6
+                && placeDuplicateStringSimilarity(a.transliterated, b.transliterated, 0.85) >= 0.85)
+                equivalent = true;
+            else unknown = true;
+            continue;
+        }
+        if (a.script && a.script === b.script) return 'conflict';
+        unknown = true;
+    }
+    return unknown ? 'unknown' : equivalent ? 'equivalent' : 'missing';
+}
+
+function preparePlaceDuplicateComparison(place)
+{
+    const names = [place.name, ...placeAlternativeNames(place)].map(placeDuplicateNameParts);
+    const coordinates = placeHasCoordinates(place) ? normalizePlaceCoordinates(place) : null;
+    const radiusKm = placeHasApproximateArea(place) ? Number(place.approximateRadiusMeters) / 1000 : 0;
+    return { names, coordinates, radiusKm };
 }
 
 function placeDuplicatePairKey(leftId, rightId)
@@ -869,57 +936,108 @@ function placeDuplicatePairKey(leftId, rightId)
     return [leftId, rightId].sort().join('|');
 }
 
+function placeDuplicateFingerprintNames(name, aliases)
+{
+    const canonical = placeDuplicateNormalizedText(name);
+    return [canonical, [...new Set(aliases.map(placeDuplicateNormalizedText)
+        .filter(alias => alias && alias !== canonical))].sort()];
+}
+
 function placeDuplicateFingerprint(place)
 {
     const coordinates = normalizePlaceCoordinates(place);
     return JSON.stringify([
-        normalizePlaceLookupText(place.name),
-        normalizePlaceAlternativeNames(place.alternativeNames, place.name)
-            .map(normalizePlaceLookupText).sort(),
+        ...placeDuplicateFingerprintNames(place.name, placeAlternativeNames(place)),
         coordinates?.lat ?? null,
         coordinates?.lng ?? null,
         placeHasRadiusValue(place) ? Number(place.approximateRadiusMeters) : null
     ]);
 }
 
-function matchDuplicatePlaces(left, right)
+function placeDuplicateFingerprintMatches(fingerprint, place)
+{
+    const current = placeDuplicateFingerprint(place);
+    if (fingerprint === current) return true;
+    // Existing saved decisions use the same tuple with the older lookup normalization.
+    try
+    {
+        const old = JSON.parse(fingerprint);
+        if (!Array.isArray(old) || old.length !== 5 || typeof old[0] !== 'string'
+            || !Array.isArray(old[1]) || !old[1].every(name => typeof name === 'string')) return false;
+        return JSON.stringify([...placeDuplicateFingerprintNames(old[0], old[1]), ...old.slice(2)]) === current;
+    }
+    catch { return false; }
+}
+
+function matchDuplicatePlaces(left, right, a = left && preparePlaceDuplicateComparison(left),
+    b = right && preparePlaceDuplicateComparison(right))
 {
     if (!left || !right || left.id === right.id || left.projectId !== right.projectId) return null;
-    // A shared locality name does not imply the same Place across regions.
-    if (placeDuplicateContextsConflict(left.name, right.name)) return null;
-    const leftNames = [left.name, ...placeAlternativeNames(left)];
-    const rightNames = [right.name, ...placeAlternativeNames(right)];
-    const leftName = normalizePlaceLookupText(left.name);
-    const rightName = normalizePlaceLookupText(right.name);
-    const exact = Boolean(leftName && leftName === rightName);
-    const alias = leftNames.some(name => rightNames.some(other =>
-        normalizePlaceLookupText(name) && normalizePlaceLookupText(name) === normalizePlaceLookupText(other))) && !exact;
-    const similarity = Math.max(0, ...leftNames.flatMap(name => rightNames.map(other => placeDuplicateNameSimilarity(name, other))));
-    const leftCoordinates = normalizePlaceCoordinates(left);
-    const rightCoordinates = normalizePlaceCoordinates(right);
-    const distanceKm = leftCoordinates && rightCoordinates
-        ? placeDistanceMeters(leftCoordinates, rightCoordinates) / 1000 : Infinity;
-    const close = distanceKm <= PLACE_EDITOR_CLOSE_COORDINATE_KM;
-    if (!(exact || alias || similarity >= 0.88 || (similarity >= 0.72 && distanceKm <= 2))) return null;
-    const reasons = [
-        exact ? 'The names match.' : '',
-        alias ? 'An alternative name matches.' : '',
-        similarity >= 0.88 && !exact && !alias ? 'The names are very similar.' : '',
-        similarity >= 0.72 && similarity < 0.88 ? 'The names are similar and the map positions are close.' : '',
-        close ? 'The map positions are very close.' : ''
-    ].filter(Boolean);
-    return { exact, alias, similar: similarity >= 0.88, close, similarity, distanceKm, reasons,
-        score: (exact ? 100 : 0) + (alias ? 80 : 0) + similarity * 20 + (close ? 30 : 0) };
+    const canonicalContext = placeDuplicateContextComparison(a.names[0].context, b.names[0].context);
+    if (canonicalContext === 'conflict') return null;
+
+    const distanceKm = a.coordinates && b.coordinates
+        ? placeDistanceMeters(a.coordinates, b.coordinates) / 1000 : Infinity;
+    // Allow limited uncertainty for a distance veto, not as positive match evidence.
+    if (Number.isFinite(distanceKm)
+        && distanceKm > 25 + Math.min(a.radiusKm, 5) + Math.min(b.radiusKm, 5)) return null;
+    const precise = a.radiusKm <= 2 && b.radiusKm <= 2;
+    const nearby = precise && distanceKm <= 2;
+    const close = precise && distanceKm <= PLACE_EDITOR_CLOSE_COORDINATE_KM;
+    let best = null;
+
+    for (const [i, name] of a.names.entries())
+        for (const [j, other] of b.names.entries())
+        {
+            if (!name.locality.text || !other.locality.text) continue;
+            const context = placeDuplicateContextComparison(name.context, other.context);
+            if (context === 'conflict') continue;
+            const corroborated = context === 'equivalent'
+                || (context === 'missing' && canonicalContext === 'equivalent');
+            const fullMatch = name.full === other.full;
+            const exact = fullMatch && i === 0 && j === 0;
+            const alias = fullMatch && !exact;
+            const literal = placeDuplicateStringSimilarity(name.locality.text, other.locality.text, 0.72);
+            const transliteration = (name.locality.script === 'cyrillic' || other.locality.script === 'cyrillic')
+                && Math.min(name.locality.transliterated.length, other.locality.transliterated.length) >= 4
+                ? placeDuplicateStringSimilarity(name.locality.transliterated, other.locality.transliterated, 0.72) : 0;
+            const acrossScripts = transliteration > literal;
+            const similarity = Math.max(literal, transliteration);
+            const strong = similarity >= (acrossScripts ? 0.85 : 0.88);
+            // A full exact/alias match remains valid without coordinates unless
+            // canonical context is unresolved; weaker matches need independent evidence.
+            const direct = fullMatch && (canonicalContext !== 'unknown'
+                || context === 'equivalent' || nearby);
+            if (!direct && !((strong && corroborated && canonicalContext !== 'unknown')
+                || (nearby && similarity >= 0.72))) continue;
+
+            const reasons = [
+                exact ? 'The names match.' : '',
+                alias ? 'An alternative name matches.' : '',
+                !fullMatch && acrossScripts ? 'The names are similar after transliteration.' : '',
+                !fullMatch && !acrossScripts && strong ? 'The names are very similar.' : '',
+                !fullMatch && !acrossScripts && !strong ? 'The names are similar and the map positions are close.' : '',
+                corroborated && !fullMatch ? 'The geographic context is consistent.' : '',
+                close ? 'The map positions are very close.' : '',
+                nearby && !close && acrossScripts ? 'The map positions are close.' : ''
+            ].filter(Boolean);
+            const score = (exact ? 100 : 0) + (alias ? 80 : 0) + similarity * 20
+                + (close ? 30 : 0) + (corroborated ? 5 : 0);
+            if (!best || score > best.score)
+                best = { exact, alias, similar: strong, close, similarity, distanceKm, reasons, score };
+        }
+    return best;
 }
 
 function getPlaceDuplicatePairs(projectId = currentProjectId())
 {
     const places = projectPlaces(projectId);
+    const prepared = places.map(preparePlaceDuplicateComparison);
     const pairs = [];
     for (let i = 0; i < places.length; i += 1)
         for (let j = i + 1; j < places.length; j += 1)
         {
-            const match = matchDuplicatePlaces(places[i], places[j]);
+            const match = matchDuplicatePlaces(places[i], places[j], prepared[i], prepared[j]);
             if (match) pairs.push({ left: places[i], right: places[j], key: placeDuplicatePairKey(places[i].id, places[j].id), ...match });
         }
     return pairs.sort((a, b) => b.score - a.score || a.key.localeCompare(b.key));
@@ -930,8 +1048,8 @@ function placeDuplicateDismissal(pair)
     return (sampleData.placeIssues || []).find(issue => issue.projectId === pair.left.projectId
         && issue.type === 'possible_duplicate' && issue.pairKey === pair.key
         && issue.status === 'dismissed'
-        && issue.fingerprints?.[pair.left.id] === placeDuplicateFingerprint(pair.left)
-        && issue.fingerprints?.[pair.right.id] === placeDuplicateFingerprint(pair.right)) || null;
+        && placeDuplicateFingerprintMatches(issue.fingerprints?.[pair.left.id], pair.left)
+        && placeDuplicateFingerprintMatches(issue.fingerprints?.[pair.right.id], pair.right)) || null;
 }
 
 function dismissPlaceDuplicatePair(pair)
