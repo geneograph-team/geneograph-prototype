@@ -549,7 +549,7 @@ function bindSharedFilterFields(
                     class="
                       shared-filter-token-label
                     ">
-                    ${escapeHtml(label)}
+                    ${definition.renderSelectedIdentity ? definition.renderSelectedIdentity(value, label) : escapeHtml(label)}
                   </span>
 
                   <button

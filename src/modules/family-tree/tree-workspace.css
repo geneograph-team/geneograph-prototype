@@ -584,15 +584,144 @@
     font-size: 12px;
 }
 
-.tree-palette-color {
-    box-sizing: border-box;
+.tree-palette-color.geneo-paint-swatch {
     width: 48px;
-    height: 34px;
-    padding: 3px;
+    height: 36px;
+}
+
+.tree-palette-branch-heading {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+}
+
+.tree-palette-info-wrap {
+    position: relative;
+    display: inline-flex;
+}
+
+.tree-palette-tooltip {
+    display: none;
+    position: absolute;
+    z-index: 3;
+    top: 100%;
+    left: 0;
+    width: min(260px, 48vw);
+    box-sizing: border-box;
+    padding: var(--space-2) var(--space-3);
+    background: var(--surface-card);
     border: 1px solid var(--border-default);
     border-radius: var(--radius-sm);
+    box-shadow: var(--shadow-soft);
+    font-weight: 400;
+    font-size: 12px;
+    line-height: 1.4;
+    color: var(--text-secondary);
+}
+
+.tree-palette-info-wrap:hover .tree-palette-tooltip,
+.tree-palette-info-wrap:focus-within .tree-palette-tooltip {
+    display: block;
+}
+
+.tree-palette-info {
+    display: inline-grid;
+    place-items: center;
+    width: 24px;
+    height: 24px;
+    border: 0;
+    background: transparent;
+    color: var(--text-secondary);
+    padding: 2px;
+    cursor: help;
+}
+
+.tree-palette-info svg {
+    width: 16px;
+    height: 16px;
+}
+
+.tree-settings-default {
+    display: grid;
+    gap: var(--space-2);
+}
+
+.tree-settings-person-preview {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    min-width: 0;
+    color: var(--text-primary);
+}
+
+.tree-settings-default > .tree-settings-person-preview {
+    padding: var(--space-2) var(--space-3);
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-sm);
+    background: var(--surface-panel-soft);
+}
+
+.tree-settings-person-avatar {
+    display: grid;
+    place-items: center;
     background: var(--surface-input);
-    cursor: pointer;
+    flex: 0 0 34px;
+    width: 34px;
+    height: 34px;
+    border-radius: var(--radius-sm);
+    overflow: hidden;
+}
+
+.tree-settings-person-preview strong {
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+
+.tree-branch-reference .shared-filter-selected {
+    display: block;
+}
+
+.tree-branch-reference .shared-filter-selected[hidden] {
+    display: none;
+}
+
+.tree-branch-reference .shared-filter-token {
+    width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+    justify-content: space-between;
+    padding: var(--space-2) var(--space-3);
+    border-color: var(--border-default);
+    background: var(--surface-panel-soft);
+    border-radius: var(--radius-sm);
+}
+
+.tree-branch-reference .shared-filter-token-label {
+    flex: 1;
+    min-width: 0;
+    white-space: normal;
+}
+
+.tree-branch-options {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 2fr);
+    align-items: end;
+    gap: var(--space-3);
+}
+
+.tree-branch-options .tree-settings-check {
+    min-height: var(--control-height);
+    align-items: center;
+}
+
+@media (max-width: 640px) {
+    .tree-branch-options {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}
+
+.geneo-paint-popover[data-geneo-paint-scope="draft-color"] .geneo-paint-popover-fields.is-color-only {
+    grid-template-columns: minmax(0, 1fr);
 }
 
 .tree-palette-reset.button {

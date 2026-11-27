@@ -808,6 +808,12 @@ function setTreeFocusPerson(personId, { center = true } = {})
     );
 }
 
+function treeSettingsPersonPreview(person, fallback = '')
+{
+    if (!person) return escapeHtml(fallback || t('Unknown'));
+    return `<span class="tree-settings-person-preview">${renderPersonAvatar(person, 'tree-settings-person-avatar', { element: 'span' })}<strong data-i18n-skip>${escapeHtml(localizedDataFieldValue(formatPersonFullName(person)) || t('Unnamed person'))}</strong></span>`;
+}
+
 function treePaletteRowsMarkup(palette, theme, preset, origins, originIds, peopleById)
 {
     const row = (key, label, path = '', originId = '') =>
@@ -826,33 +832,35 @@ function treePaletteRowsMarkup(palette, theme, preset, origins, originIds, peopl
                 <strong>${escapeHtml(label)}</strong>
                 ${isBranch ? `<small>${escapeHtml(roles)} · <span data-i18n-skip>${escapeHtml(originName)}</span></small>` : ''}
             </label>
-            <input class="tree-palette-color" id="tree-palette-${key}" type="color" data-tree-palette-color="${key}" value="${palette[theme][key]}" aria-label="${colorLabel}">
+            <button class="geneo-paint-swatch tree-palette-color" id="tree-palette-${key}" type="button" data-tree-palette-color="${key}" data-tree-palette-label="${colorLabel}" data-color-value="${palette[theme][key]}" style="--geneo-paint-rendered:${palette[theme][key]}" aria-label="${colorLabel}" aria-haspopup="dialog" aria-expanded="false"><span aria-hidden="true"></span></button>
             <button class="button secondary tree-palette-reset" type="button" data-tree-palette-reset="${key}" title="${escapeHtml(t('Reset color') + ' · ' + label)}" aria-label="${escapeHtml(t('Reset color') + ' · ' + label)}">${icon.undo}</button>
         </div>`;
     };
-    return `<h4>${escapeHtml(t('Branch colors'))}</h4>`
-        + origins.map((path, index) => row(String(index + 1), t('Branch') + ' ' + (index + 1), path, originIds[index])).join('')
-        + `<h4>${escapeHtml(t('Gender and neutral colors'))}</h4>`
+    const hint = t('The eye indicates inclusion in the selected branch count, not visibility on the tree. All slots remain editable.');
+    return `<h4>${escapeHtml(t('Gender and neutral colors'))}</h4>`
         + [['male', 'Male'], ['female', 'Female'], ['unknown', 'Unknown gender'], ['neutral', 'Neutral']]
-            .map(([key, label]) => row(key, t(label))).join('');
+            .map(([key, label]) => row(key, t(label))).join('')
+        + `<h4 class="tree-palette-branch-heading">${escapeHtml(t('Branch colors'))}<span class="tree-palette-info-wrap"><span class="tree-palette-info" tabindex="0" aria-describedby="treePaletteEyeHint" aria-label="${escapeHtml(t('Branch colors'))}">${icon.info}</span><span class="tree-palette-tooltip" id="treePaletteEyeHint" role="tooltip">${escapeHtml(hint)}</span></span></h4>`
+        + origins.map((path, index) => row(String(index + 1), t('Branch') + ' ' + (index + 1), path, originIds[index])).join('');
 }
 
 function openTreeSettingsModal()
 {
     const projectId = currentFamilyTreeProjectId();
     const view = treeProjectViewState(projectId);
-    const focusPerson = getPerson(view.focusPersonId);
+    const defaultPerson = getPerson(sampleData.projects.find(project => project.id === projectId)?.defaultPersonId);
     const draft = treeDisplaySettings(projectId, view);
     const colors = draft.colors;
     let reference = colors.reference;
     let paletteTheme = document.documentElement.dataset.theme === 'dark' ? 'dark' : 'light';
-    let paletteGraph = null, palettePeople = null;
+    let paletteGraph = null, palettePeople = null, referenceOptions = null;
     const referenceSchema = [{
         key: 'reference', label: 'Branch reference person', control: 'combobox', layout: 'full',
         placeholder: 'Search people', defaultValue: '',
-        getOptions: () => getPeople(projectId).map(person => ({
+        getOptions: () => referenceOptions ||= getPeople(projectId).map(person => ({
             value: person.id, label: formatPersonFullName(person) || t('Unnamed person')
-        }))
+        })),
+        renderSelectedIdentity: (id, label) => treeSettingsPersonPreview(getPerson(id), label)
     }];
     const referencePicker = { schema: referenceSchema, values: { reference }, prefix: 'tree-branch-person' };
     const option = (value, selected, label = value) =>
@@ -879,9 +887,9 @@ function openTreeSettingsModal()
             <div class="global-settings-panel tree-settings-panel">
               <section id="tree-settings-visibility" data-tree-settings-panel="visibility" aria-labelledby="tree-settings-visibility-title">
                 <h3 id="tree-settings-visibility-title">${escapeHtml(t('Visibility'))}</h3>
-                <div class="tree-settings-focus">
-                  <span>${escapeHtml(t('Focus person'))}</span>
-                  <strong data-i18n-skip>${escapeHtml(formatPersonFullName(focusPerson) || focusPerson?.name || t('Unknown'))}</strong>
+                <div class="tree-settings-default">
+                  <span class="field-help">${escapeHtml(t('Default person'))}</span>
+                  ${treeSettingsPersonPreview(defaultPerson?.projectId === projectId ? defaultPerson : null)}
                 </div>
                 <div class="two-col-form tree-settings-generation-grid">
                   <div class="field">
@@ -907,14 +915,16 @@ function openTreeSettingsModal()
                   ${channel('connectors', 'Connectors', false)}</div>
                 <fieldset class="tree-branch-settings">
                   <legend>${escapeHtml(t('Branch coloring'))}</legend>
-                  ${renderSharedFilterFields(referencePicker)}
-                  <div class="field">
-                    <label for="treeBranchPreset">${escapeHtml(t('Branch count'))}</label>
-                    ${select('treeBranchPreset', TREE_BRANCH_PRESETS.map(value => option(value, colors.preset, String(value))).join(''))}
+                  <div class="tree-branch-reference">${renderSharedFilterFields(referencePicker)}</div>
+                  <div class="tree-branch-options">
+                    <div class="field">
+                      <label for="treeBranchPreset">${escapeHtml(t('Branch count'))}</label>
+                      ${select('treeBranchPreset', TREE_BRANCH_PRESETS.map(value => option(value, colors.preset, String(value))).join(''))}
+                    </div>
+                    <label class="tree-settings-check"><input id="treeBranchCollateral" type="checkbox" ${colors.collateral ? 'checked' : ''}>
+                      <strong>${escapeHtml(t('Include collateral relatives'))}</strong>
+                    </label>
                   </div>
-                  <label class="tree-settings-check"><input id="treeBranchCollateral" type="checkbox" ${colors.collateral ? 'checked' : ''}>
-                    <strong>${escapeHtml(t('Include collateral relatives'))}</strong>
-                  </label>
                 </fieldset>
               </section>
               <section id="tree-settings-palette" data-tree-settings-panel="palette" aria-labelledby="tree-settings-palette-title" hidden>
@@ -927,8 +937,6 @@ function openTreeSettingsModal()
                   <button class="button secondary" type="button" data-tree-palette-reset-theme>${escapeHtml(t('Reset theme palette'))}</button>
                   <button class="button secondary" type="button" data-tree-palette-reset-all>${escapeHtml(t('Reset entire palette'))}</button>
                 </div>
-                <p class="field-help">${escapeHtml(t('The eye indicates inclusion in the selected branch count, not visibility on the tree. All slots remain editable.'))}</p>
-                <p class="field-help" data-tree-palette-reference></p>
                 <div data-tree-palette-rows></div>
               </section>
             </div>
@@ -955,10 +963,6 @@ function openTreeSettingsModal()
         }
         const { origins } = treeBranchPaths(16);
         const originIds = treeBranchOriginIds(paletteGraph, reference, origins);
-        const referencePerson = palettePeople.get(reference);
-        form.querySelector('[data-tree-palette-reference]').textContent = referencePerson
-            ? t('Branch reference person') + ': ' + (localizedDataFieldValue(formatPersonFullName(referencePerson)) || t('Unnamed person'))
-            : t('Choose a branch reference in Tree Settings.');
         rows.innerHTML = treePaletteRowsMarkup(colors.palette, paletteTheme, Number(presetInput.value), origins, originIds, palettePeople);
     };
     bindSharedFilterFields(form, { ...referencePicker, onChange: next => { reference = next.reference; } });
@@ -969,6 +973,7 @@ function openTreeSettingsModal()
     {
         const button = navButtons.find(candidate => candidate.dataset.treeSettingsSection === section);
         if (!button) return;
+        closeGeneoDraftColorPicker({ restoreFocus: false });
         if (section === 'palette') renderPalette();
         for (const candidate of navButtons)
         {
@@ -990,44 +995,59 @@ function openTreeSettingsModal()
     }, true);
     form.querySelector('#treePaletteTheme').addEventListener('change', event =>
     {
+        closeGeneoDraftColorPicker({ restoreFocus: false });
         paletteTheme = event.target.value === 'dark' ? 'dark' : 'light';
         renderPalette();
     });
     const updateColorInputs = () =>
     {
-        rows.querySelectorAll('[data-tree-palette-color]').forEach(input =>
+        rows.querySelectorAll('[data-tree-palette-color]').forEach(button =>
         {
-            input.value = colors.palette[paletteTheme][input.dataset.treePaletteColor];
+            const color = colors.palette[paletteTheme][button.dataset.treePaletteColor];
+            button.dataset.colorValue = color;
+            button.style.setProperty('--geneo-paint-rendered', color);
         });
     };
-    const editColor = event =>
-    {
-        const key = event.target.dataset.treePaletteColor;
-        if (key && Object.hasOwn(colors.palette[paletteTheme], key) && /^#[0-9a-f]{6}$/i.test(event.target.value))
-            colors.palette[paletteTheme][key] = event.target.value.toLowerCase();
-    };
-    rows.addEventListener('input', editColor);
-    rows.addEventListener('change', editColor);
     rows.addEventListener('click', event =>
     {
         const reset = event.target.closest('[data-tree-palette-reset]');
-        if (!reset) return;
-        resetTreePaletteColor(colors.palette, paletteTheme, reset.dataset.treePaletteReset);
-        updateColorInputs();
+        if (reset)
+        {
+            closeGeneoDraftColorPicker({ restoreFocus: false });
+            resetTreePaletteColor(colors.palette, paletteTheme, reset.dataset.treePaletteReset);
+            updateColorInputs();
+            return;
+        }
+        const button = event.target.closest('[data-tree-palette-color]');
+        if (!button) return;
+        const key = button.dataset.treePaletteColor;
+        const theme = paletteTheme;
+        openGeneoDraftColorPicker({
+            id: theme + '-' + key, label: button.dataset.treePaletteLabel,
+            color: colors.palette[theme][key], defaultColor: TREE_PALETTE_DEFAULTS[theme][key],
+            onChange: color =>
+            {
+                colors.palette[theme][key] = color.toLowerCase();
+                updateColorInputs();
+            }
+        }, button);
     });
     form.querySelector('[data-tree-palette-reset-theme]').addEventListener('click', () =>
     {
+        closeGeneoDraftColorPicker({ restoreFocus: false });
         resetTreePaletteTheme(colors.palette, paletteTheme);
         updateColorInputs();
     });
     form.querySelector('[data-tree-palette-reset-all]').addEventListener('click', () =>
     {
+        closeGeneoDraftColorPicker({ restoreFocus: false });
         colors.palette = normalizeTreePalette();
         updateColorInputs();
     });
     form.addEventListener('submit', event =>
     {
         event.preventDefault();
+        closeGeneoDraftColorPicker({ restoreFocus: false });
         if (currentFamilyTreeProjectId() !== projectId) { closeModal(); return; }
         const previousStructure = [view.ancestorGenerations, view.descendantGenerations, view.showCousins];
         const ancestorValue = form.querySelector('#treeAncestorGenerations').valueAsNumber;

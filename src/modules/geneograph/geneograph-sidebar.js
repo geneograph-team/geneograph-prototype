@@ -677,6 +677,11 @@ function resolveGeneoPaintTarget(reference)
 {
     if (!reference) return null;
     const { scope, id = '', property } = reference;
+    if (scope === 'draft-color')
+    {
+        const target = geneoPaintRuntime.draftTarget;
+        return target?.id === id && property === 'color' ? target : null;
+    }
     if (geneoBulkPaintScope(scope)) return geneoBulkPaintTarget(scope, property);
     if (scope === 'creation-tool' && ['drawing', 'shape'].includes(id) && ['fill', 'stroke'].includes(property))
     {
@@ -1249,6 +1254,12 @@ function syncGeneoPaintUi(reference, sourceInput = null)
 {
     const target = resolveGeneoPaintTarget(reference);
     if (!target) return;
+    if (target.scope === 'draft-color')
+    {
+        target.onChange(target.paint.color);
+        syncGeneoPaintPopover(target, sourceInput);
+        return;
+    }
     if (geneoBulkPaintScope(target.scope))
     {
         main.querySelectorAll('[data-geneo-paint-scope]').forEach(row =>
@@ -1567,7 +1578,7 @@ function beginGeneoPaintInteraction(
         },
 
         beforeDiagram:
-          geneoSnapshot(),
+          target.scope === 'draft-color' ? null : geneoSnapshot(),
 
         beforePaint:
           structuredClone(
@@ -1749,7 +1760,7 @@ function commitGeneoPaintInteraction()
         return false;
     }
 
-    if (!['connection-tool', 'creation-tool'].includes(target.scope))
+    if (!['connection-tool', 'creation-tool', 'draft-color'].includes(target.scope))
     {
         geneoPushHistorySnapshot(interaction.beforeDiagram);
         touchGeneographBoard();
@@ -1866,7 +1877,7 @@ function commitGeneoPaintAction(
     }
 
     const beforeDiagram =
-        geneoSnapshot();
+        target.scope === 'draft-color' ? null : geneoSnapshot();
 
     const beforePaint =
         JSON.stringify(
@@ -1932,7 +1943,7 @@ function commitGeneoPaintAction(
         return false;
     }
 
-    if (!['connection-tool', 'creation-tool'].includes(target.scope))
+    if (!['connection-tool', 'creation-tool', 'draft-color'].includes(target.scope))
     {
         geneoPushHistorySnapshot(beforeDiagram);
         touchGeneographBoard();
@@ -1959,7 +1970,7 @@ function renderGeneoPaintPopover(reference)
           <div class="geneo-paint-sv" tabindex="0" role="slider" aria-label="${escapeHtml(target.label)} saturation and brightness" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${Math.round(hsv.v)}" aria-valuetext="Saturation ${Math.round(hsv.s)}%, brightness ${Math.round(hsv.v)}%" data-geneo-paint-sv style="--geneo-hue:${Math.round(hsv.h)}"><span style="left:${hsv.s}%;top:${100 - hsv.v}%" ${target.mixed?.color ? 'hidden' : ''} aria-hidden="true"></span></div>
           <label class="geneo-paint-slider-row"><span>Hue</span><input type="range" min="0" max="359" step="1" value="${Math.round(hsv.h)}" data-geneo-paint-hue ${disabled ? 'disabled' : ''}></label>
           ${target.supportsOpacity ? `<label class="geneo-paint-slider-row"><span>Opacity</span><input class="geneo-paint-alpha" type="range" min="0" max="100" step="1" value="${paint.opacity}" data-geneo-paint-opacity style="--geneo-paint-color:${paint.color};--geneo-paint-opacity:${paint.opacity}%" ${disabled ? 'disabled' : ''}></label>` : ''}
-          <div class="geneo-paint-popover-fields"><label><span>Hex</span><input type="text" maxlength="7" value="${target.mixed?.color ? '' : paint.color}" placeholder="${target.mixed?.color ? escapeHtml(t('Mixed')) : ''}" spellcheck="false" autocomplete="off" data-geneo-paint-hex ${disabled ? 'disabled' : ''}></label>${target.supportsOpacity ? `<label><span>Opacity</span><span class="geneo-paint-percent-input"><input type="number" min="0" max="100" step="1" value="${target.mixed?.opacity ? '' : paint.opacity}" placeholder="${target.mixed?.opacity ? escapeHtml(t('Mixed')) : ''}" data-geneo-paint-opacity-number ${disabled ? 'disabled' : ''}><span aria-hidden="true">%</span></span></label>` : ''}</div>
+          <div class="geneo-paint-popover-fields${target.supportsOpacity ? '' : ' is-color-only'}"><label><span>Hex</span><input type="text" maxlength="7" value="${target.mixed?.color ? '' : paint.color}" placeholder="${target.mixed?.color ? escapeHtml(t('Mixed')) : ''}" spellcheck="false" autocomplete="off" data-geneo-paint-hex ${disabled ? 'disabled' : ''}></label>${target.supportsOpacity ? `<label><span>Opacity</span><span class="geneo-paint-percent-input"><input type="number" min="0" max="100" step="1" value="${target.mixed?.opacity ? '' : paint.opacity}" placeholder="${target.mixed?.opacity ? escapeHtml(t('Mixed')) : ''}" data-geneo-paint-opacity-number ${disabled ? 'disabled' : ''}><span aria-hidden="true">%</span></span></label>` : ''}</div>
           <div
             class="geneo-paint-suggestions"
             role="group"
@@ -2023,7 +2034,7 @@ function positionGeneoPaintPopover()
     const { popover, opener } = geneoPaintRuntime;
     const inspector = main.querySelector('.geneo-inspector:not(.collapsed)');
     if (!popover || !opener?.isConnected) return;
-    if (['connection-tool', 'creation-tool'].includes(geneoPaintRuntime.target?.scope))
+    if (['connection-tool', 'creation-tool', 'draft-color'].includes(geneoPaintRuntime.target?.scope))
     {
         const rect = opener.getBoundingClientRect();
         const width = Math.min(360, window.innerWidth - 24);
@@ -2357,17 +2368,37 @@ function bindGeneoPaintTextInput(input, reference, type)
     });
 }
 
+// The same picker can edit a caller-owned, non-board color draft.
+function openGeneoDraftColorPicker({ id, label, color, defaultColor, onChange }, opener)
+{
+    if (geneoPaintRuntime.popover) closeGeneoPaintPopover({ restoreFocus: false });
+    geneoPaintRuntime.draftTarget = {
+        scope: 'draft-color', id, property: 'color', label, onChange,
+        paint: { color: normalizeGeneoHexColor(color), opacity: 100, enabled: true },
+        defaultPaint: { color: normalizeGeneoHexColor(defaultColor), opacity: 100, enabled: true },
+        supportsOpacity: false, supportsNone: false, resettable: true
+    };
+    openGeneoPaintPopover(geneoPaintRuntime.draftTarget, opener);
+}
+
+function closeGeneoDraftColorPicker(options = {})
+{
+    if (geneoPaintRuntime.target?.scope === 'draft-color')
+        closeGeneoPaintPopover(options);
+}
+
 function openGeneoPaintPopover(reference, opener)
 {
     if (geneoPaintRuntime.popover) closeGeneoPaintPopover({ restoreFocus: false });
     const target = resolveGeneoPaintTarget(reference);
     const inspector = main.querySelector('.geneo-inspector:not(.collapsed)');
-    if (!target || (!['connection-tool', 'creation-tool'].includes(target.scope) && !inspector) || !opener) return;
+    if (!target || (!['connection-tool', 'creation-tool', 'draft-color'].includes(target.scope) && !inspector) || !opener) return;
     const scrollTop = inspector?.scrollTop;
     const wrapper = document.createElement('div');
     wrapper.innerHTML = renderGeneoPaintPopover(target).trim();
     const popover = wrapper.firstElementChild;
-    document.body.appendChild(popover);
+    const draft = target.scope === 'draft-color';
+    (draft ? modalBackdrop : document.body).appendChild(popover);
     localizeUI(
         popover,
         {
@@ -2387,7 +2418,7 @@ function openGeneoPaintPopover(reference, opener)
     document.addEventListener('pointerdown', event =>
     {
         if (popover.contains(event.target) || opener.contains(event.target)) return;
-        closeGeneoPaintPopover();
+        closeGeneoPaintPopover({ restoreFocus: !draft });
     }, { capture: true, signal: controller.signal });
     document.addEventListener('keydown', event =>
     {
@@ -2395,7 +2426,7 @@ function openGeneoPaintPopover(reference, opener)
         event.preventDefault();
         closeGeneoPaintPopover({ commit: false });
     }, { signal: controller.signal });
-    inspector?.addEventListener('scroll', positionGeneoPaintPopover, { passive: true, signal: controller.signal });
+    (draft ? opener.closest('.tree-settings-panel') : inspector)?.addEventListener('scroll', positionGeneoPaintPopover, { passive: true, signal: controller.signal });
     window.addEventListener('resize', positionGeneoPaintPopover, { passive: true, signal: controller.signal });
 }
 

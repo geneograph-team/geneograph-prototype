@@ -2161,6 +2161,14 @@ function handleModalKeydown(
         return;
     }
 
+    if (event.key === 'Escape' && modalBackdrop.querySelector('.geneo-paint-popover[data-geneo-paint-scope="draft-color"]'))
+    {
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        closeGeneoDraftColorPicker({ commit: false });
+        return;
+    }
+
     if (genealogyDatePopover)
     {
         if (event.key === 'Escape')
@@ -2518,6 +2526,8 @@ function openModal(
         true
     );
 
+    if (modalBackdrop.querySelector('.geneo-paint-popover[data-geneo-paint-scope="draft-color"]'))
+        closeGeneoDraftColorPicker({ commit: false, restoreFocus: false });
     modalBackdrop.innerHTML =
         html;
     modalBackdrop.beforeClose = null;
@@ -2680,6 +2690,8 @@ function openPersonPhotoDiscardConfirm()
 function closeModal(options = {})
 {
     if (!options?.force && modalBackdrop.beforeClose?.() === false) return;
+    if (modalBackdrop.querySelector('.geneo-paint-popover[data-geneo-paint-scope="draft-color"]'))
+        closeGeneoDraftColorPicker({ commit: false, restoreFocus: false });
     if (genealogyDatePopover) closeGenealogyDateEditor();
     modalBackdrop.beforeClose = null;
     if (document.querySelector('[data-place-duplicate-menu]'))

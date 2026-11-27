@@ -31,6 +31,10 @@ for (const preset of [2, 4, 8, 16])
 }
 palette.dark['16'] = '#112233';
 const html = treePaletteRowsMarkup(palette, 'dark', 2, origins, ids, people);
-assert.ok(html.includes('data-tree-palette-color="16" value="#112233"'));
+assert.ok(html.includes('data-color-value="#112233"'));
+assert.ok(html.indexOf('Gender and neutral colors') < html.indexOf('Branch colors'));
+assert.ok(html.includes('role="tooltip"'));
+assert.equal((html.match(/geneo-paint-swatch/g) || []).length, 20);
+assert.equal(html.includes('type="color"'), false);
 `, context);
 console.log('Tree palette editor rows, preset indicators, origin paths and inactive theme values passed.');

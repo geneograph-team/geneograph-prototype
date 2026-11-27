@@ -1,0 +1,14 @@
+'use strict';
+const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const path = require('node:path');
+const vm = require('node:vm');
+const body = "\nlet geneoPaintRuntime = createGeneoPaintRuntime();\nconst boardAccess = () => { throw Error('A palette draft must never access board state or history'); };\nconst geneoSnapshot = boardAccess, geneoPushHistorySnapshot = boardAccess, touchGeneographBoard = boardAccess;\nconst selectedGeneographDiagram = boardAccess, getGeneographNode = boardAccess;\nlet draftColor = '#123456', updates = 0;\nconst target = { scope: 'draft-color', id: 'light-16', property: 'color', label: 'Branch 16',\n    paint: { color: '#123456', opacity: 100, enabled: true },\n    defaultPaint: { color: '#AABBCC', opacity: 100, enabled: true },\n    supportsOpacity: false, supportsNone: false, resettable: true,\n    onChange: color => { draftColor = color; updates++; } };\ngeneoPaintRuntime.draftTarget = target;\nconst reference = { scope: 'draft-color', id: target.id, property: 'color' };\nassert.equal(resolveGeneoPaintTarget(reference), target);\nassert.equal(resolveGeneoPaintTarget({ ...reference, id: 'wrong' }), null);\nassert.equal(resolveGeneoPaintTarget({ ...reference, property: 'fill' }), null);\nbeginGeneoPaintInteraction(reference);\nassert.equal(previewGeneoPaint(reference, { color: '#ABC' }), true);\nassert.equal(draftColor, '#AABBCC');\nassert.equal(cancelGeneoPaintInteraction(), true);\nassert.equal(draftColor, '#123456');\nbeginGeneoPaintInteraction(reference);\npreviewGeneoPaint(reference, { color: '#445566' });\nassert.equal(commitGeneoPaintInteraction(), true);\nassert.equal(draftColor, '#445566');\nassert.equal(commitGeneoPaintAction(reference, item => { item.paint.color = '#778899'; }), true);\nassert.equal(draftColor, '#778899');\nassert.equal(commitGeneoPaintAction(reference, item => { Object.assign(item.paint, item.defaultPaint); }), true);\nassert.equal(draftColor, '#AABBCC');\nassert.ok(updates >= 5);\ngeneoPaintRuntime = createGeneoPaintRuntime();\nassert.equal(resolveGeneoPaintTarget(reference), null);\nconsole.log('Shared Geneograph picker: isolated palette preview, commit, reset, cancellation and runtime disposal passed.');\n";
+const read = file => fs.readFileSync(path.join(__dirname, '../../src/modules/geneograph', file), 'utf8');
+const core = read('geneograph-editor-core.js');
+const helper = (start, end) => core.slice(core.indexOf('function ' + start), core.indexOf('function ' + end));
+const source = helper('geneoNumber(', 'geneoEffectiveCanvasTool(')
+    + helper('normalizeGeneoHexColor(', 'normalizeGeneoPaint(')
+    + read('geneograph-runtime.js') + read('geneograph-sidebar.js');
+const context = vm.createContext({ assert, structuredClone, console });
+vm.runInContext(source + '\n' + body, context);
