@@ -568,14 +568,18 @@ document.addEventListener('keydown', event =>
 
 function render()
 {
+    if (!appPerf.enabled(state.activeModule)) return renderApplicationShell();
+    return appPerf.run(state.activeModule, 'shellRender', renderApplicationShell);
+}
+
+function renderApplicationShell()
+{
     invalidateLinkedPlaceDismissals();
     if (state.activeModule !== 'Family Tree')
     {
         exitTreeFullscreen();
         disposeTreeElkLayout();
         disposeTreeRenderer();
-        treePerf.stop();
-        treePerf.project(currentProjectId());
     }
     if (typeof archiveImageSyncLifecycle === 'function') archiveImageSyncLifecycle();
     appNavigationObserve();
@@ -726,6 +730,7 @@ function renderTopbar()
           `).join('')}
           </nav>` : '<div style="flex:1"></div>'}
         <div class="top-actions">
+          <button class="top-icon topbar-recording" type="button" data-topbar-recording ${appPerf.status().active ? '' : 'hidden'} aria-label="${escapeHtml(t('Stop recording and open Diagnostics'))}" title="${escapeHtml(t('Stop recording and open Diagnostics'))}">${icon.recording}</button>
           <button class="top-icon" type="button" data-topbar-help aria-haspopup="dialog" aria-label="Help">${icon.help}</button>
           ${showModules ? `<button class="top-icon has-dot" type="button" data-topbar-notifications aria-haspopup="dialog" aria-label="Notifications">${icon.bell}${state.unreadNotifications ? '<span class="topbar-dot" aria-hidden="true"></span>' : ''}</button>` : ''}
           <button class="top-icon" type="button" data-topbar-settings aria-haspopup="dialog" aria-label="Settings">${icon.settings}</button>
@@ -752,6 +757,13 @@ function renderTopbar()
         if (state.projectOpen && state.activeModule === button.dataset.module) return;
         navigateToProjectModule(currentProjectId(), button.dataset.module);
     }));
+    topbar.querySelector('[data-topbar-recording]')?.addEventListener('click', () =>
+    {
+        appPerf.stop();
+        syncDiagnosticsTopbar();
+        topbar.querySelector('[data-topbar-settings]')?.focus();
+        openGlobalSettingsModal('diagnostics');
+    });
     topbar.querySelector('[data-topbar-help]')?.addEventListener('click', event =>
     {
         event.stopPropagation(); openTopbarPopover('help', event.currentTarget);
@@ -993,7 +1005,7 @@ function openGlobalSettingsModal(section = state.globalSettingsSection, preserve
     closeTopbarPopover();
     if (modalBackdrop.classList.contains('open')) closeModal();
     if (!preservePreview) globalSettingsStartupPreview = 'picker';
-    state.globalSettingsSection = ['general', 'storage', 'about'].includes(section) ? section : 'general';
+    state.globalSettingsSection = ['general', 'storage', 'diagnostics', 'about'].includes(section) ? section : 'general';
     openModal(`<div class="modal global-settings-modal" role="dialog" aria-modal="true" aria-labelledby="globalSettingsTitle"><div class="modal-header"><div><h2 id="globalSettingsTitle">Global settings</h2><p>App-wide preferences for GeneoGraph. Project-specific settings stay inside each project.</p></div><button class="close-button" type="button" data-close>${icon.close}</button></div><div class="modal-body" style="padding:0"><div class="global-settings-layout"><nav class="global-settings-nav" aria-label="Global settings sections">${renderGlobalSettingsNav()}</nav><section class="global-settings-panel">${renderGlobalSettingsPanel(state.globalSettingsSection)}</section></div></div><div class="modal-footer"><button class="button secondary" type="button" data-close>Close</button></div></div>`);
     modalBackdrop.querySelectorAll('[data-global-settings-section]').forEach(button => button.addEventListener('click', () => openGlobalSettingsModal(button.dataset.globalSettingsSection, true)));
     modalBackdrop.querySelector('#globalStartupPreview')?.addEventListener('change', event =>
@@ -1018,6 +1030,7 @@ function openGlobalSettingsModal(section = state.globalSettingsSection, preserve
         closeModal();
         startGeneoProductTour();
     });
+    bindDiagnosticsSettings(modalBackdrop);
     localizeUI(modalBackdrop);
 }
 
@@ -1026,6 +1039,7 @@ function renderGlobalSettingsNav()
     const sections = [
         ['general', 'General', icon.settings],
         ['storage', 'Storage & backup', icon.syncoffline],
+        ['diagnostics', 'Diagnostics', icon.recording],
         ['about', 'About', icon.info]
     ];
 
@@ -1037,8 +1051,107 @@ function renderGlobalSettingsNav()
 
 function renderGlobalSettingsPanel(section)
 {
+    if (section === 'diagnostics') return diagnosticsSettingsMarkup();
     if (section === 'storage') return `<h3>Storage & backup</h3><p>Backup and sync are not available in this demo.</p><div class='global-settings-section'><div class='global-settings-row'><div><strong>Local backups</strong><span>This demo cannot create backup files.</span></div></div><div class='global-settings-row'><div><strong>Cloud sync</strong><span>This demo does not connect to cloud storage.</span></div></div></div>`;
     if (section === 'about') return `<h3>About GeneoGraph</h3><p>Prototype information and useful links.</p><div class='global-settings-section'><div class='global-settings-row'><div><strong>GeneoGraph prototype</strong><span>Version 1.2.0 prototype</span></div></div><div class='global-settings-row'><div><strong>Product tour</strong><span>Explore the sample project across GeneoGraph.</span></div><button class='button secondary' type='button' data-global-settings-tour>Take the tour</button></div><div class='global-settings-row'><div><strong>Help center</strong><span>Coming soon</span></div><button class='button secondary global-settings-unavailable' type='button' disabled>Open</button></div><div class='global-settings-row'><div><strong>Privacy policy</strong><span>Read how GeneoGraph handles privacy.</span></div><a class='button secondary' href='${geneographLandingUrl('legal.html#privacy')}' target='_blank' rel='noopener noreferrer'>Read policy</a></div><div class='global-settings-row'><div><strong>${escapeHtml(t('Open-source licenses'))}</strong><span>${escapeHtml(t('Application license and third-party notices.'))}</span></div><a class='button secondary' href='${geneographLandingUrl('legal.html#licenses')}' target='_blank' rel='noopener noreferrer'>${escapeHtml(t('View licenses'))}</a></div><div class='global-settings-row'><div><strong>Contact us</strong><span>Get in touch with the GeneoGraph team.</span></div><a class='button secondary' href='${geneographLandingUrl('contact.html')}' target='_blank' rel='noopener noreferrer'>Contact us</a></div><div class='global-settings-row'><div><strong>${escapeHtml(t('Data providers'))}</strong><span>${escapeHtml(t('Place search providers'))}: <a href='https://www.geoapify.com/' target='_blank' rel='noopener noreferrer'>Powered by Geoapify</a> · <a href='https://locationiq.com' target='_blank' rel='noopener noreferrer'>Search by LocationIQ.com</a>. ${escapeHtml(t('Map data'))}: <a href='https://openfreemap.org/' target='_blank' rel='noopener noreferrer'>OpenFreeMap</a> · <a href='https://www.openstreetmap.org/copyright' target='_blank' rel='noopener noreferrer'>OpenStreetMap</a>.</span></div></div><div class='global-settings-row'><div><strong>GeneoGraph website</strong><span>Learn more about GeneoGraph.</span></div><a class='button secondary' href='${geneographLandingUrl()}' target='_blank' rel='noopener noreferrer'>Visit website</a></div></div>`;
     return `<h3>General</h3><p>Basic app-wide preferences.</p><div class='global-settings-section'><div class='global-settings-row'><div><strong>Interface theme</strong><span>Choose the app appearance.</span></div><span class='common-select-shell global-settings-select-shell'><select class='common-select' id='globalThemeSelect' aria-label='Interface theme'><option value='system' ${window.geneographTheme.getPreference() === 'system' ? 'selected' : ''}>System</option><option value='dark' ${window.geneographTheme.getPreference() === 'dark' ? 'selected' : ''}>Dark</option><option value='light' ${window.geneographTheme.getPreference() === 'light' ? 'selected' : ''}>Light</option></select><span class='common-select-chevron' aria-hidden='true'>${icon.chevron}</span></span></div><div class='global-settings-row'><div><strong>Startup behavior</strong><span>Preview only; this choice does not change what opens when the demo starts.</span></div><span class='common-select-shell global-settings-select-shell'><select class='common-select' id='globalStartupPreview' aria-label='Startup behavior'><option value='picker' ${globalSettingsStartupPreview === 'picker' ? 'selected' : ''}>Show project picker</option><option value='last' ${globalSettingsStartupPreview === 'last' ? 'selected' : ''}>Open last project</option></select><span class='common-select-chevron' aria-hidden='true'>${icon.chevron}</span></span></div><div class='global-settings-row'><div><strong>Language</strong><span>App interface language.</span></div><span class='common-select-shell global-settings-select-shell'><select class='common-select' id='globalLanguageSelect' aria-label='Language'><option value='en' ${state.language === 'en' ? 'selected' : ''}>English</option><option value='ru' ${state.language === 'ru' ? 'selected' : ''}>Русский</option></select><span class='common-select-chevron' aria-hidden='true'>${icon.chevron}</span></span></div><div class='global-settings-row'><div><strong>Time zone</strong><span>Used for activity timestamps.</span></div><span class='global-settings-value'>System default</span></div></div>`;
 }
 
+
+function syncDiagnosticsTopbar()
+{
+    const button = topbar.querySelector('[data-topbar-recording]');
+    if (button) button.hidden = !appPerf.status().active;
+}
+
+function diagnosticsSettingsMarkup()
+{
+    const config = appPerf.settings();
+    const status = appPerf.status();
+    const option = (value, label, selected) =>
+        '<option value="' + value + '"' + (selected ? ' selected' : '') + '>' + escapeHtml(t(label)) + '</option>';
+    const disabled = status.active ? 'disabled' : '';
+    return '<h3>' + escapeHtml(t('Diagnostics')) + '</h3>'
+        + '<p>' + escapeHtml(t('Record anonymous application timings locally. Export manually; no genealogy data is included.')) + '</p>'
+        + '<div class="global-settings-section diagnostics-settings" data-diagnostics-settings>'
+        + '<div class="global-settings-row"><label for="diagnosticsScope">' + escapeHtml(t('Recording scope')) + '</label>'
+        + '<select class="common-select" id="diagnosticsScope" ' + disabled + '>'
+        + option('all', 'Entire application', config.scope === 'all')
+        + option('selected', 'Selected modules', config.scope === 'selected') + '</select></div>'
+        + '<fieldset class="diagnostics-modules" data-diagnostics-modules ' + (config.scope === 'all' ? 'hidden' : '') + ' ' + disabled + '>'
+        + '<legend>' + escapeHtml(t('Selected modules')) + '</legend>'
+        + appPerf.modules.map(module => '<label><input type="checkbox" data-diagnostics-module value="' + escapeHtml(module)
+            + '" ' + (config.modules.includes(module) ? 'checked' : '') + '>' + escapeHtml(t(module)) + '</label>').join('')
+        + '</fieldset>'
+        + '<div class="global-settings-row"><label for="diagnosticsMode">' + escapeHtml(t('Recording mode')) + '</label>'
+        + '<select class="common-select" id="diagnosticsMode" ' + disabled + '>'
+        + option('basic', 'Basic', config.mode === 'basic')
+        + option('detailed', 'Detailed', config.mode === 'detailed') + '</select></div>'
+        + '<p class="field-help diagnostics-explanation">' + escapeHtml(t('Basic records operation durations; Detailed adds available stage timings and counters.')) + '</p>'
+        + '<p role="status" class="diagnostics-explanation" data-performance-status></p>'
+        + '<div class="diagnostics-actions">'
+        + '<button class="button primary" type="button" data-performance-toggle></button>'
+        + '<button class="button secondary" type="button" data-performance-clear>' + escapeHtml(t('Clear recording')) + '</button>'
+        + '<button class="button secondary" type="button" data-performance-export>' + escapeHtml(t('Export recording')) + '</button>'
+        + '</div></div>';
+}
+
+function bindDiagnosticsSettings(root)
+{
+    const panel = root.querySelector('[data-diagnostics-settings]');
+    if (!panel) return;
+    const scope = panel.querySelector('#diagnosticsScope');
+    const mode = panel.querySelector('#diagnosticsMode');
+    const moduleFields = panel.querySelector('[data-diagnostics-modules]');
+    const moduleInputs = [...panel.querySelectorAll('[data-diagnostics-module]')];
+    const toggle = panel.querySelector('[data-performance-toggle]');
+    const clear = panel.querySelector('[data-performance-clear]');
+    const exportButton = panel.querySelector('[data-performance-export]');
+    const statusLabel = () =>
+    {
+        const status = appPerf.status();
+        return t(status.active ? 'Recording active' : 'Recording stopped') + ' · '
+            + t('Recorded operations') + ': ' + status.count + ' · ' + t('Dropped operations') + ': ' + status.dropped;
+    };
+    const update = () =>
+    {
+        const status = appPerf.status();
+        const config = appPerf.settings();
+        scope.disabled = mode.disabled = moduleFields.disabled = status.active;
+        moduleFields.hidden = config.scope === 'all';
+        toggle.disabled = !status.active && config.scope === 'selected' && !config.modules.length;
+        toggle.textContent = t(status.active ? 'Stop recording' : 'Start recording');
+        panel.querySelector('[data-performance-status]').textContent = statusLabel();
+        clear.disabled = !status.active && !status.count;
+        exportButton.disabled = !status.count;
+        syncDiagnosticsTopbar();
+    };
+    const configure = () =>
+    {
+        appPerf.configure({ scope: scope.value, mode: mode.value,
+            modules: moduleInputs.filter(input => input.checked).map(input => input.value) });
+        update();
+    };
+    scope.addEventListener('change', configure);
+    mode.addEventListener('change', configure);
+    moduleInputs.forEach(input => input.addEventListener('change', configure));
+    toggle.addEventListener('click', () =>
+    {
+        if (appPerf.status().active) appPerf.stop();
+        else appPerf.start();
+        update();
+    });
+    clear.addEventListener('click', () => { appPerf.clear(); update(); });
+    exportButton.addEventListener('click', () => { appPerf.download(); update(); });
+    // Refresh only while this panel is mounted, so asynchronous operation counts stay current.
+    const timer = setInterval(() =>
+    {
+        if (!panel.isConnected || !root.classList.contains('open'))
+        {
+            clearInterval(timer);
+            return;
+        }
+        if (panel.querySelector('[data-performance-status]').textContent !== statusLabel()) update();
+    }, 500);
+    update();
+}

@@ -1,6 +1,12 @@
 let geneoMobileBoardSearchOpen = false;
 
-function renderGeneographHome()
+function renderGeneographHome(...args)
+{
+    if (typeof appPerf === 'undefined' || !appPerf.enabled('Geneograph')) return renderGeneographHomeWithDiagnosticsBody(...args);
+    return appPerf.run('Geneograph', 'render', () => renderGeneographHomeWithDiagnosticsBody(...args));
+}
+
+function renderGeneographHomeWithDiagnosticsBody()
 {
     cancelGeneographPencilStroke();
     const filtered =
@@ -2436,7 +2442,13 @@ function bindGeneographHome()
     );
 }
 
-function openGeneographBoard(id)
+function openGeneographBoard(...args)
+{
+    if (typeof appPerf === 'undefined' || !appPerf.enabled('Geneograph')) return openGeneographBoardWithDiagnosticsBody(...args);
+    return appPerf.run('Geneograph', 'boardOpen', () => openGeneographBoardWithDiagnosticsBody(...args));
+}
+
+function openGeneographBoardWithDiagnosticsBody(id)
 {
     appNavigationMarkIntent();
     cancelGeneographPencilStroke();

@@ -56,7 +56,13 @@ function syncGeneographPersonCardTextFit()
     });
 }
 
-function renderGeneographEditor()
+function renderGeneographEditor(...args)
+{
+    if (typeof appPerf === 'undefined' || !appPerf.enabled('Geneograph')) return renderGeneographEditorWithDiagnosticsBody(...args);
+    return appPerf.run('Geneograph', 'boardRender', () => renderGeneographEditorWithDiagnosticsBody(...args));
+}
+
+function renderGeneographEditorWithDiagnosticsBody()
 {
     geneoClearAlignmentGuides();
     if (geneoImageCropRuntime?.boardId !== selectedGeneographBoard()?.id) geneoImageCropRuntime = null;

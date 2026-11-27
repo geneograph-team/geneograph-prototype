@@ -1,4 +1,10 @@
-function renderArchive()
+function renderArchive(...args)
+{
+    if (typeof appPerf === 'undefined' || !appPerf.enabled('Archive')) return renderArchiveWithDiagnosticsBody(...args);
+    return appPerf.run('Archive', 'render', () => renderArchiveWithDiagnosticsBody(...args));
+}
+
+function renderArchiveWithDiagnosticsBody()
 {
     appNavigationObserve();
     workspace.classList.remove(

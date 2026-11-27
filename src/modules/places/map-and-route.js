@@ -131,6 +131,8 @@ function restorePlacesMapView(places)
 
 function destroyPlacesMap({ preserveWaiters = false } = {})
 {
+    if (typeof appPerf !== 'undefined') appPerf.finish(placesMapRuntime.diagnosticTrace, 'canceled');
+    placesMapRuntime.diagnosticTrace = null;
     ++placesMapRuntime.requestId;
     clearTimeout(placesSearchTimer);
     clearTimeout(placesMapRuntime.loadTimeout);
@@ -199,6 +201,7 @@ function mountPlacesMap(places)
     placesMapRuntime.host = host;
     placesMapRuntime.currentPlaces = [...(places || [])];
     placesMapRuntime.status = 'loading';
+    placesMapRuntime.diagnosticTrace = typeof appPerf !== 'undefined' ? appPerf.begin('Places', 'mapInitialize') : null;
     const requestId = placesMapRuntime.requestId;
     setPlacesMapStatus('Loading vector map', 'Connecting to OpenFreeMap…', { list: true });
     placesMapAdapter.load()
@@ -280,6 +283,8 @@ function mountPlacesMap(places)
                 if (!cameraFocused) restorePlacesMapView(placesMapRuntime.currentPlaces);
                 updatePlacesMapToolControls();
                 resolvePlacesMapWaiters(true);
+                if (typeof appPerf !== 'undefined') appPerf.finish(placesMapRuntime.diagnosticTrace, 'completed');
+                placesMapRuntime.diagnosticTrace = null;
                 const resolvedTheme = document.documentElement.dataset.theme === 'dark'
                     ? 'dark' : 'light';
                 if (placesMapRuntime.mapTheme !== resolvedTheme)

@@ -61,7 +61,13 @@ function decodeGedcomImport(bytes)
     }
 }
 
-function parseGedcomImport(text)
+function parseGedcomImport(...args)
+{
+    if (typeof appPerf === 'undefined' || !appPerf.enabled('Projects')) return parseGedcomImportWithDiagnosticsBody(...args);
+    return appPerf.run('Projects', 'gedcomParse', () => parseGedcomImportWithDiagnosticsBody(...args));
+}
+
+function parseGedcomImportWithDiagnosticsBody(text)
 {
     const limits = GEDCOM_IMPORT_LIMITS;
     const started = performance.now();
@@ -396,7 +402,13 @@ async function downloadGedcomPhotos(references, localMatches, signal, onProgress
     return matches;
 }
 
-function mapGedcomImport(parsed, project, matches = new Map(), references = gedcomAttachmentReferences(parsed))
+function mapGedcomImport(...args)
+{
+    if (typeof appPerf === 'undefined' || !appPerf.enabled('Projects')) return mapGedcomImportWithDiagnosticsBody(...args);
+    return appPerf.run('Projects', 'gedcomMap', () => mapGedcomImportWithDiagnosticsBody(...args));
+}
+
+function mapGedcomImportWithDiagnosticsBody(parsed, project, matches = new Map(), references = gedcomAttachmentReferences(parsed))
 {
     const { id: projectId } = project;
     const started = performance.now();
@@ -1104,7 +1116,13 @@ function gedcomDraftMetadata(name)
     return { id, name, desc: '', createdAt: now, modifiedAt: now, status: 'Local project', cover: 'paper' };
 }
 
-function commitGedcomImport(draft, report = gedcomImportReport(draft))
+function commitGedcomImport(...args)
+{
+    if (typeof appPerf === 'undefined' || !appPerf.enabled('Projects')) return commitGedcomImportWithDiagnosticsBody(...args);
+    return appPerf.run('Projects', 'gedcomCommit', () => commitGedcomImportWithDiagnosticsBody(...args));
+}
+
+function commitGedcomImportWithDiagnosticsBody(draft, report = gedcomImportReport(draft))
 {
     const projectId = draft.project.id;
     const previous = { projects: sampleData.projects, activity: sampleData.activity };

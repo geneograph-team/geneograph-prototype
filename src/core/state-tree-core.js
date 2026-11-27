@@ -831,7 +831,6 @@ function openTreeSettingsModal()
               <div class="tree-color-channels">${channel('fill', 'Fill', true)}${channel('outline', 'Outline', true)}
                 ${channel('connectors', 'Connectors', false)}</div>
             </fieldset>
-            ${treePerformanceSettingsMarkup()}
           </div>
           <div class="modal-footer">
             <button class="button secondary" type="button" data-close>Cancel</button>
@@ -840,7 +839,6 @@ function openTreeSettingsModal()
         </form>
       </div>`);
 
-    bindTreePerformanceSettings(modalBackdrop, projectId);
     bindSharedFilterFields(modalBackdrop, { ...referencePicker, onChange: next => { reference = next.reference; } });
     modalBackdrop.querySelector('#treeSettingsForm')?.addEventListener('submit', event =>
     {

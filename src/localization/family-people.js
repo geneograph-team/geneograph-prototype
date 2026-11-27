@@ -1,12 +1,4 @@
 const RU_UI_FAMILY_TREE = {
-    'Performance recording': 'Запись производительности',
-    'Record anonymous Tree timings locally. Export manually; no genealogy data is included.': 'Записывайте анонимные замеры древа локально. Экспорт выполняется вручную, генеалогические данные не включаются.',
-    'Start recording': 'Начать запись',
-    'Stop recording': 'Остановить запись',
-    'Clear recording': 'Очистить запись',
-    'Export recording': 'Экспортировать запись',
-    'Recording active': 'Запись активна',
-    'Recording stopped': 'Запись остановлена',
     'Vertical': 'Вертикальное',
     'Horizontal': 'Горизонтальное',
     'Vertical tree': 'Вертикальное древо',

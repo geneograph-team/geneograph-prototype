@@ -5,6 +5,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const vm = require('node:vm');
 const context = vm.createContext({});
+vm.runInContext(fs.readFileSync(path.join(__dirname, '../../src/core/application-performance.js'), 'utf8'), context);
 vm.runInContext(fs.readFileSync(path.join(__dirname, '../../src/modules/family-tree/tree-performance.js'), 'utf8'), context);
 vm.runInContext(fs.readFileSync(path.join(__dirname, '../../src/modules/family-tree/tree-geometry.js'), 'utf8'), context);
 vm.runInContext(fs.readFileSync(path.join(__dirname, '../../src/modules/family-tree/tree-renderer.js'), 'utf8'), context);

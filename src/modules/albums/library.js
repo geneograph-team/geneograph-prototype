@@ -1016,7 +1016,13 @@ function renderAlbumsBrowser()
       </div>`;
 }
 
-function renderAlbums()
+function renderAlbums(...args)
+{
+    if (typeof appPerf === 'undefined' || !appPerf.enabled('Albums')) return renderAlbumsWithDiagnosticsBody(...args);
+    return appPerf.run('Albums', 'render', () => renderAlbumsWithDiagnosticsBody(...args));
+}
+
+function renderAlbumsWithDiagnosticsBody()
 {
     appNavigationObserve();
     disconnectAlbumsGridResizeObserver();

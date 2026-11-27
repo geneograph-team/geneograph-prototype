@@ -1,4 +1,10 @@
-function renderStartup()
+function renderStartup(...args)
+{
+    if (typeof appPerf === 'undefined' || !appPerf.enabled('Projects')) return renderStartupWithDiagnosticsBody(...args);
+    return appPerf.run('Projects', 'render', () => renderStartupWithDiagnosticsBody(...args));
+}
+
+function renderStartupWithDiagnosticsBody()
 {
     const projects = filteredProjects();
     const totalProjects = sampleData.projects.length;
@@ -391,7 +397,13 @@ function closeProjectNameOverlay()
     document.removeEventListener('click', closeProjectNameOverlayOnOutside);
 }
 
-function renderOpenProject()
+function renderOpenProject(...args)
+{
+    if (typeof appPerf === 'undefined' || !appPerf.enabled('Projects')) return renderOpenProjectWithDiagnosticsBody(...args);
+    return appPerf.run('Projects', 'render', () => renderOpenProjectWithDiagnosticsBody(...args));
+}
+
+function renderOpenProjectWithDiagnosticsBody()
 {
     appNavigationObserve();
     const project = currentProject();

@@ -944,7 +944,19 @@ function resetProjectModuleState(projectId)
     state.unreadNotifications = projectNotifications(projectId).length;
 }
 
-function activateProject(projectId, {
+function activateProject(projectId, options)
+{
+    if (typeof appPerf === 'undefined') return activateProjectWithDiagnosticsBody(projectId, options);
+    const target = appPerf.modules.includes(options?.moduleName) ? options.moduleName : 'Projects';
+    if (!appPerf.enabled('Projects') && !appPerf.enabled(target))
+        return activateProjectWithDiagnosticsBody(projectId, options);
+    const invoke = () => appPerf.run(target, 'navigation', () => activateProjectWithDiagnosticsBody(projectId, options));
+    if (!state.projectOpen || state.currentProjectId !== projectId)
+        return appPerf.run('Projects', 'activation', invoke);
+    return invoke();
+}
+
+function activateProjectWithDiagnosticsBody(projectId, {
     moduleName = 'Projects',
     renderNow = true,
     reset = true

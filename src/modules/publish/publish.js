@@ -1,4 +1,10 @@
-function renderPublish()
+function renderPublish(...args)
+{
+    if (typeof appPerf === 'undefined' || !appPerf.enabled('Publish')) return renderPublishWithDiagnosticsBody(...args);
+    return appPerf.run('Publish', 'render', () => renderPublishWithDiagnosticsBody(...args));
+}
+
+function renderPublishWithDiagnosticsBody()
 {
     renderPublishSidebar();
     if (state.publishView === 'wizard') renderPublishWizard();

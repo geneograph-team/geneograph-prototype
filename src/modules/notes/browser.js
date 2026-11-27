@@ -2,7 +2,13 @@ let notesEditorScrollMemory = null;
 let notesBrowserScrollMemory = null;
 let notesCollectionRowsObserver = null;
 
-function renderNotes()
+function renderNotes(...args)
+{
+    if (typeof appPerf === 'undefined' || !appPerf.enabled('Notes')) return renderNotesWithDiagnosticsBody(...args);
+    return appPerf.run('Notes', 'render', () => renderNotesWithDiagnosticsBody(...args));
+}
+
+function renderNotesWithDiagnosticsBody()
 {
     appNavigationObserve();
     destroyNotesRichTextEditor();

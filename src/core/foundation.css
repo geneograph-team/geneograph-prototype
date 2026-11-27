@@ -404,6 +404,15 @@ button {
     color: var(--text-primary);
 }
 
+.topbar-recording, .topbar-recording:hover {
+    color: var(--gg-status-error-accent);
+    flex-shrink: 0;
+}
+
+.topbar-recording[hidden] {
+    display: none;
+}
+
 .avatar {
     width: 34px;
     height: 34px;
@@ -5442,6 +5451,38 @@ body.mobile-details-open .geneo-inspector [data-geneo-inspector-toggle] {
     padding: var(--space-3) var(--space-4);
     border-bottom: 1px solid var(--surface-row-divider);
     color: var(--text-secondary);
+}
+
+.diagnostics-modules {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: var(--space-2);
+    margin: var(--space-3) var(--space-4);
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-sm);
+    padding: var(--space-3);
+    min-width: 0;
+}
+
+.diagnostics-modules[hidden] {
+    display: none;
+}
+
+.diagnostics-modules label {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+}
+
+.diagnostics-explanation {
+    margin: var(--space-3) var(--space-4);
+}
+
+.diagnostics-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+    padding: var(--space-3) var(--space-4);
 }
 
 .global-settings-row:last-child {

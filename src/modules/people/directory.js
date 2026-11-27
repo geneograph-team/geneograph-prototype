@@ -1931,7 +1931,13 @@ function renderPeopleDirectoryControls()
       </div>`;
 }
 
-function renderPeople()
+function renderPeople(...args)
+{
+    if (typeof appPerf === 'undefined' || !appPerf.enabled('People')) return renderPeopleWithDiagnosticsBody(...args);
+    return appPerf.run('People', 'render', () => renderPeopleWithDiagnosticsBody(...args));
+}
+
+function renderPeopleWithDiagnosticsBody()
 {
     appNavigationObserve();
     const projectId = currentProjectId();

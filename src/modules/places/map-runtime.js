@@ -64,6 +64,8 @@ function waitForPlacesMapReady()
 
 function failPlacesMap(message)
 {
+    if (typeof appPerf !== 'undefined') appPerf.finish(placesMapRuntime.diagnosticTrace, 'failed');
+    placesMapRuntime.diagnosticTrace = null;
     const previousPlaces = [...(placesMapRuntime.currentPlaces || [])];
     if (placesMapRuntime.mode !== 'browse')
     {

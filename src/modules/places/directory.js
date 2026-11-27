@@ -1,4 +1,10 @@
-function renderPlaces()
+function renderPlaces(...args)
+{
+    if (typeof appPerf === 'undefined' || !appPerf.enabled('Places')) return renderPlacesWithDiagnosticsBody(...args);
+    return appPerf.run('Places', 'render', () => renderPlacesWithDiagnosticsBody(...args));
+}
+
+function renderPlacesWithDiagnosticsBody()
 {
     invalidateLinkedPlaceDismissals();
     appNavigationObserve();

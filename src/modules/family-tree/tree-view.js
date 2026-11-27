@@ -185,8 +185,7 @@ function openTreePersonPicker(anchor)
 function renderFamilyTree(readyProjection = null, trace = null, preparation = {})
 {
     const projectId = currentFamilyTreeProjectId();
-    treePerf.project(projectId);
-    if (!readyProjection && !trace && projectId && treePerf.status().active)
+    if (!readyProjection && !trace && projectId && appPerf.enabled('Family Tree'))
         trace = treePerf.begin(projectId, 'render', treeProjectViewState(projectId));
     const renderStarted = trace && treePerf.now();
     appNavigationObserve();
