@@ -317,16 +317,35 @@ function setPlacesMapRadius(text)
     updatePlacesMapToolControls();
 }
 
-function syncPlacesMapAccuracyControls()
+function syncPlacesMapEditingUi()
 {
+    const mode = placesMapRuntime.mode;
+    const picking = mode === 'add' || mode === 'move';
     const draft = placeEditorDraft;
-    if (!draft) return;
-    main.querySelectorAll('[name="placesMapLocationMode"]').forEach(input =>
+    setPlacesMapPickingState(picking);
+    showPlacesCoordinateBar(picking);
+
+    let instruction = '';
+    if (mode === 'add')
+        instruction = 'Click the map to place a new location, or use the map centre.';
+    else if (mode === 'move')
     {
-        input.checked = input.value === draft.locationMode;
-    });
-    const input = main.querySelector('#placesMapRadiusInput');
-    if (input) input.value = draft.radiusText || '';
+        const place = getPlace(placesMapRuntime.editingPlaceId);
+        if (place)
+            instruction = draft?.coordinates
+                ? `Drag the draft marker or click the map to reposition ${place.name}.`
+                : `Click the map to position ${place.name}, or use the map centre.`;
+    }
+    updatePlacesMapInstruction(instruction);
+
+    if (picking)
+    {
+        const point = placesMapRuntime.pendingLatLng;
+        const output = main.querySelector('[data-places-coordinate-output]');
+        if (output) output.textContent = point ? formatMapCoordinatePair(point) : t('No point selected');
+        const radius = main.querySelector('#placesMapRadiusInput');
+        if (radius) radius.value = draft?.radiusText || '';
+    }
     updatePlacesMapToolControls();
 }
 
@@ -432,6 +451,7 @@ function cancelPlacesMapEditing({ reopenEditor = true } = {})
             draft.radiusText = session.radiusText;
             draft.approximateRadiusMeters = session.approximateRadiusMeters;
         }
+        updatePlaceEditorDraftDirty(draft);
     }
     if (session?.returnToModal && reopenEditor)
     {
@@ -473,20 +493,8 @@ function enterPlacesMapAddMode()
     state.placesMapInfoExpanded =
         false;
 
-    setPlacesMapPickingState(true);
-    showPlacesCoordinateBar(true);
-    syncPlacesMapAccuracyControls();
-
-    updatePlacesMapInstruction(
-        'Click the map to place a new location, or use the map centre.'
-    );
-
-    if (placeEditorDraft.coordinates)
-    {
-        updatePlacesDraftCoordinates(placeEditorDraft.coordinates);
-    }
-
-    updatePlacesMapToolControls();
+    if (placeEditorDraft.coordinates) updatePlacesDraftCoordinates(placeEditorDraft.coordinates);
+    syncPlacesMapEditingUi();
 }
 
 function enterPlacesMapMoveMode(
@@ -533,24 +541,8 @@ function enterPlacesMapMoveMode(
     placesMapRuntime.editingPlaceId =
         place.id;
 
-    setPlacesMapPickingState(true);
-    showPlacesCoordinateBar(true);
-    syncPlacesMapAccuracyControls();
-
-    updatePlacesMapInstruction(
-        placeEditorDraft.coordinates
-            ? `Drag the draft marker or click the map to reposition ${place.name}.`
-            : `Click the map to position ${place.name}, or use the map centre.`
-    );
-
-    if (placeEditorDraft.coordinates)
-    {
-        updatePlacesDraftCoordinates(
-            placeEditorDraft.coordinates
-        );
-    }
-
-    updatePlacesMapToolControls();
+    if (placeEditorDraft.coordinates) updatePlacesDraftCoordinates(placeEditorDraft.coordinates);
+    syncPlacesMapEditingUi();
 }
 
 function completePlaceEditorMapSelection()

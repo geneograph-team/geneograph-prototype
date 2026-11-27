@@ -138,7 +138,12 @@ function destroyPlacesMap({ preserveWaiters = false } = {})
     clearTimeout(placesSearchTimer);
     clearTimeout(placesMapRuntime.loadTimeout);
     placesMapRuntime.loadTimeout = null;
-    removePlacesDraftMarker();
+    if (placesMapRuntime.mode === 'add' || placesMapRuntime.mode === 'move')
+    {
+        cancelPlacesMapEditing({ reopenEditor: false });
+        resetPlaceEditorDraft();
+    }
+    else removePlacesDraftMarker();
     if (placesMapRuntime.resizeObserver) placesMapRuntime.resizeObserver.disconnect();
     placesMapRuntime.resizeObserver = null;
     placesMapRuntime.markersById.forEach(marker => marker.remove());
@@ -994,6 +999,6 @@ function bindPlacesMapEditingControls()
             completePlaceEditorMapSelection
         );
 
-    updatePlacesMapToolControls();
+    syncPlacesMapEditingUi();
 }
 
