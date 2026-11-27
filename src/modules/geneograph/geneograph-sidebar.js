@@ -967,6 +967,16 @@ function geneoReadableInheritedText(text, fill, diagram)
     return { ...text, color: treePaletteLabelInk(background).toUpperCase() };
 }
 
+function geneoPersonSecondaryInk(appearance, diagram)
+{
+    const text = appearance.text;
+    const actual = geneoPaintCssColor(text);
+    if (!appearance.inheritedText || text?.opacity !== 100) return actual;
+    const preferred = geneoThemeColor('#26352D', '#515E63');
+    return treePaletteContrast(preferred, geneoPersonEffectiveBackground(appearance.fill, diagram)) >= 4.5
+        ? preferred : actual;
+}
+
 function geneoPersonAvatarPaint(appearance, diagram)
 {
     const background = geneoPersonEffectiveBackground(appearance.fill, diagram);
@@ -1071,6 +1081,7 @@ function geneoResolveVisibleNodeAppearance(
           resolvePaint('stroke'),
 
         text: inheritedText ? geneoReadableInheritedText(text, fill, diagram) : text,
+        inheritedText,
         strokeWidth: savedAppearance.styleOverrides?.strokeWidth
             ? savedAppearance.strokeWidth : genderAppearance.strokeWidth,
         strokePattern: savedAppearance.styleOverrides?.strokePattern
@@ -1159,6 +1170,7 @@ function geneoUpdatePersonPaintVariables(element, visible, diagram)
     const avatar = geneoPersonAvatarPaint(visible, diagram);
     element.style.setProperty('--geneo-person-avatar-bg', avatar.fill);
     element.style.setProperty('--geneo-person-avatar-ink', avatar.ink);
+    element.style.setProperty('--geneo-person-secondary-ink', geneoPersonSecondaryInk(visible, diagram));
     element.style.setProperty('--geneo-person-action-bg', geneoPersonEffectiveBackground(visible.fill, diagram));
 }
 
@@ -1317,7 +1329,22 @@ function updateGeneoContrastWarning()
     if (ratioCopy) ratioCopy.textContent = `(${Number.isFinite(ratio) ? ratio.toFixed(1) : '0.0'}:1).`;
 }
 
-function syncGeneoPaintUi(reference, sourceInput = null)
+function refreshGeneoResolvedTextRows()
+{
+    const seen = new Set();
+    for (const row of main.querySelectorAll('[data-geneo-paint-scope]'))
+    {
+        const reference = geneoPaintReferenceFromElement(row);
+        if (reference?.property !== 'text' || !['node', 'person-multi', 'node-multi'].includes(reference.scope)) continue;
+        if (reference.scope === 'node' && getGeneographNode(reference.id)?.type !== 'person') continue;
+        const key = geneoPaintTargetKey(reference);
+        if (seen.has(key)) continue;
+        seen.add(key);
+        syncGeneoPaintUi(reference, null, false);
+    }
+}
+
+function syncGeneoPaintUi(reference, sourceInput = null, applyToDom = true)
 {
     const target = resolveGeneoPaintTarget(reference);
     if (!target) return;
@@ -1359,10 +1386,14 @@ function syncGeneoPaintUi(reference, sourceInput = null)
             const action = row.querySelector('.geneo-paint-action');
             if (action) action.textContent = t(target.paint.enabled === false && !target.mixed.enabled ? 'Restore' : 'Remove');
         });
-        target.items.forEach(item => applyGeneoPaintTargetToDom({
-            scope: target.scope === 'connection-multi' ? 'connection' : 'node', id: item.id,
-            property: target.property
-        }));
+        if (applyToDom)
+        {
+            target.items.forEach(item => applyGeneoPaintTargetToDom({
+                scope: target.scope === 'connection-multi' ? 'connection' : 'node', id: item.id,
+                property: target.property
+            }));
+            if (target.property === 'fill') refreshGeneoResolvedTextRows();
+        }
         syncGeneoPaintPopover(target, sourceInput);
         return;
     }
@@ -1476,8 +1507,12 @@ function syncGeneoPaintUi(reference, sourceInput = null)
         const pattern = main.querySelector('[data-geneo-connection-inspector-pattern]');
         if (pattern) pattern.disabled = !target.paint.enabled;
     }
-    applyGeneoPaintTargetToDom(target);
-    updateGeneoContrastWarning();
+    if (applyToDom)
+    {
+        applyGeneoPaintTargetToDom(target);
+        if (target.property === 'fill' || target.scope === 'canvas') refreshGeneoResolvedTextRows();
+        updateGeneoContrastWarning();
+    }
     syncGeneoPaintPopover(target, sourceInput);
 }
 

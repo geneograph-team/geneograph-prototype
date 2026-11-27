@@ -965,6 +965,7 @@ function renderGeneographObject(node)
         ...(avatarPaint ? [
             `--geneo-person-avatar-bg:${avatarPaint.fill}`,
             `--geneo-person-avatar-ink:${avatarPaint.ink}`,
+            `--geneo-person-secondary-ink:${geneoPersonSecondaryInk(visibleAppearance, selectedGeneographDiagram())}`,
             `--geneo-person-action-bg:${geneoPersonEffectiveBackground(visibleFill, selectedGeneographDiagram())}`
         ] : []),
         `--geneo-node-radius:${
