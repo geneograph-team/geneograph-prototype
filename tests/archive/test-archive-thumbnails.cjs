@@ -13,7 +13,7 @@ let activeProject = { id: 'a' };
 let nextUrl = 0;
 let holdEncode = null;
 let blobBytes = 100;
-const state = { activeModule: 'Archive' };
+const state = { activeModule: 'Archive', archiveView: 'files', archiveSelectedFolderId: 'folder-a' };
 const sampleData = { archiveFiles: [] };
 class PreviewImage
 {
@@ -132,7 +132,7 @@ const queue = (file, layout = 'icons') =>
 };
 const bound = () =>
 {
-    assert.ok(run('archiveThumbnailCache.size') <= 100);
+    assert.ok(run('archiveThumbnailCache.size') <= 256);
     assert.ok(run('archiveThumbnailBytes') <= 4 * 1024 * 1024);
     assert.ok(run('archiveThumbnailMounted.size') <= 100);
 };
@@ -149,21 +149,23 @@ const runTests = (async () =>
     await run('archiveThumbnailRun()');
     assert.equal(strip.img.src, sharedUrl);
     assert.equal(opened.length, 1);
+    const originalTileImage = tile.img, originalStripImage = strip.img;
     intersect(tile, false);
     intersect(strip, false);
-    assert.equal(tile.img, null);
-    assert.equal(strip.img, null);
-    assert.ok(strip.querySelector('svg'), 'filmstrip placeholder must return');
-    assert.equal(run('archiveThumbnailMounted.size'), 0);
+    assert.equal(tile.img, originalTileImage);
+    assert.equal(strip.img, originalStripImage);
+    assert.equal(run('archiveThumbnailMounted.size'), 2);
     assert.equal(revoked.includes(sharedUrl), false);
     intersect(tile, true);
-    await run('archiveThumbnailRun()');
+    assert.equal(tile.img, originalTileImage);
     assert.equal(tile.img.src, sharedUrl);
     assert.equal(opened.length, 1);
     // Invalidation detaches any mounted user before revoking the derivative.
     context.testElement = tile;
     run("archiveThumbnailRelease(archiveThumbnailTargets.get(testElement).key, 'icons')");
     assert.equal(tile.img, null);
+    assert.equal(strip.img, null);
+    assert.ok(strip.querySelector('svg'), 'filmstrip placeholder must return on invalidation');
     assert.ok(revoked.includes(sharedUrl));
     intersect(tile, false);
     intersect(tile, true);
@@ -231,9 +233,9 @@ const runTests = (async () =>
     assert.equal(tile.img, null);
 
     holdEncode = null;
-    // Scroll beyond the entire cache budget; old shells remain, not old images.
+    // Scroll beyond both budgets; recently visited images stay warm until pressure.
     const tiles = [];
-    for (let index = 0; index < 125; index++)
+    for (let index = 0; index < 281; index++)
     {
         const item = add('bound-' + index);
         const element = queue(item);
@@ -243,16 +245,35 @@ const runTests = (async () =>
         bound();
         if (index >= 8) intersect(tiles[index - 8].element, false);
     }
-    assert.equal(run('archiveThumbnailMounted.size'), 8);
-    assert.equal(run('archiveThumbnailCache.size'), 100);
-    assert.equal(run('archiveThumbnailBytes'), 10000);
-    assert.equal(tiles.filter(item => item.element.img).length, 8);
+    assert.equal(run('archiveThumbnailMounted.size'), 100);
+    assert.equal(run('archiveThumbnailCache.size'), 256);
+    assert.equal(run('archiveThumbnailBytes'), 25600);
+    assert.equal(tiles.filter(item => item.element.img).length, 100);
     assert.ok(revoked.includes(tiles[0].url));
     assert.ok(!tiles[0].element.img);
     intersect(tiles[0].element, true);
     await run('archiveThumbnailRun()');
     assert.notEqual(tiles[0].element.img.src, tiles[0].url);
-    assert.equal(run('archiveThumbnailMounted.size'), 9);
+    assert.equal(run('archiveThumbnailMounted.size'), 100);
+    // A cached but unmounted item restores immediately, even while a cold
+    // generation job is held at encode. No extra original is opened.
+    const warm = tiles[100];
+    assert.equal(warm.element.img, null);
+    const enteredCold = new Promise(resolve => { encoding = resolve; });
+    holdEncode = callback => { finishEncode = callback; encoding(); };
+    const cold = queue(add('cold-buffer'));
+    const coldJob = run('archiveThumbnailRun()');
+    await enteredCold;
+    const beforeWarm = opened.length;
+    intersect(warm.element, true);
+    assert.equal(warm.element.img.src, warm.url);
+    assert.equal(opened.length, beforeWarm);
+    assert.equal(run('archiveThumbnailJob !== null'), true);
+    finishEncode({ size: 100 });
+    await coldJob;
+    holdEncode = null;
+    assert.ok(cold.img);
+    bound();
     // A stale callback from a disposed observer cannot hide the new element.
     oldObserver.callback([{ target: tiles[0].element, isIntersecting: false }]);
     assert.ok(tiles[0].element.img);
@@ -273,6 +294,46 @@ const runTests = (async () =>
     assert.ok(revoked.includes(failedUrl));
     bound();
 
+    // Same-folder layout switch retains encoded derivatives but replaces
+    // obsolete elements. A different folder clears both buffers and jobs.
+    const warmUrl = warm.element.img.src;
+    run('archiveThumbnailUnmount()');
+    run('archiveThumbnailLifecycle()');
+    const warmStrip = queue(warm.item, 'image');
+    assert.equal(warmStrip.img.src, warmUrl);
+    const folderObserver = run('archiveThumbnailObserver');
+    const folderViewportObserver = run('archiveThumbnailViewportObserver');
+    const folderEncode = new Promise(resolve => { encoding = resolve; });
+    holdEncode = callback => { finishEncode = callback; encoding(); };
+    const folderPending = queue(add('folder-pending'));
+    const folderJob = run('archiveThumbnailRun()');
+    await folderEncode;
+    state.archiveSelectedFolderId = 'folder-b';
+    run('archiveThumbnailLifecycle()');
+    assert.equal(warmStrip.img, null);
+    assert.equal(run('archiveThumbnailCache.size'), 0);
+    assert.equal(run('archiveThumbnailMounted.size'), 0);
+    assert.ok(revoked.includes(warmUrl));
+    finishEncode({ size: 100 });
+    await folderJob;
+    holdEncode = null;
+    assert.equal(folderPending.img, null);
+    assert.equal(run('archiveThumbnailCache.size'), 0);
+
+    // Foreground misses precede earlier near-viewport-only misses. Stale
+    // callbacks from the previous folder's observers cannot enqueue work.
+    const near = queue(add('near-only'));
+    const foreground = queue(add('foreground'));
+    folderObserver.callback([{ target: near, isIntersecting: true }]);
+    folderViewportObserver.callback([{ target: near, isIntersecting: true }]);
+    context.testElement = foreground;
+    run('archiveThumbnailViewportObserver.callback([{ target: testElement, isIntersecting: true }])');
+    await run('archiveThumbnailRun()');
+    assert.ok(foreground.img);
+    assert.equal(near.img, null);
+    await run('archiveThumbnailRun()');
+    assert.ok(near.img);
+
     // More intersecting targets than the hard cap: protect mounted URLs and
     // admit the next waiting target when a slot becomes available.
     run('archiveThumbnailUnmount()');
@@ -289,7 +350,9 @@ const runTests = (async () =>
     assert.ok(crowded[0].img);
     assert.equal(revoked.includes(crowded[0].img.src), false);
     intersect(crowded[0], false);
+    assert.ok(crowded[0].img, 'retain until pressure');
     await run('archiveThumbnailRun()');
+    assert.equal(crowded[0].img, null);
     assert.ok(crowded[100].img);
     assert.equal(run('archiveThumbnailMounted.size'), 100);
     bound();
@@ -310,7 +373,9 @@ const runTests = (async () =>
     assert.equal(largeB.img, null);
     bound();
     intersect(largeA, false);
+    assert.ok(largeA.img, 'retain until byte pressure');
     await run('archiveThumbnailRun()');
+    assert.equal(largeA.img, null);
     assert.ok(largeB.img);
     bound();
     state.activeModule = 'People';
@@ -322,7 +387,7 @@ const runTests = (async () =>
     assert.ok(revoked.every(url => url.startsWith('blob:derived-')));
     assert.equal(new Set(revoked).size, revoked.length, 'owned URLs revoked once');
     assert.ok(gauges.some(metric => metric.key === 'mountedPreviews' && metric.value === 100));
-    console.log('Archive thumbnails: viewport detach/re-entry, leased eviction, source budgets, cancellation, replacement, cache/element caps and URL ownership passed.');
+    console.log('Archive thumbnails: warm mounted buffer, immediate cache restore, visible-first jobs, folder/layout lifecycle, leased LRU, source budgets, cancellation and resource caps passed.');
 })().catch(error =>
 {
     console.error(error);

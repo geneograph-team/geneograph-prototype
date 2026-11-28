@@ -6,7 +6,7 @@ Archive SHALL hydrate Icons and Image filmstrip previews with display-sized deri
 
 #### Scenario: Switch between preview layouts
 
-- **WHEN** a supported image becomes visible in Icons and then in the Image filmstrip in the same project and size tier
+- **WHEN** a supported image becomes visible in Icons and then in the Image filmstrip in the same Archive folder/view, project and size tier
 - **THEN** the two layouts reuse a compatible derivative while the viewer can display the original resolution
 
 #### Scenario: Stale or failed preview
@@ -25,9 +25,23 @@ Archive SHALL retain rows and tile image nodes during compatible desktop single-
 
 #### Scenario: Scroll through a collection larger than the cache
 
-- **WHEN** a preview leaves the near-viewport window or its derivative is invalidated
-- **THEN** its image element is detached and its generic fallback remains; re-entry may reuse a compatible retained derivative or request another bounded job
-- **AND** cache eviction never revokes a URL still used by a mounted preview; admission waits if mounted leases occupy the available budget
+- **WHEN** a preview leaves the near-viewport window
+- **THEN** retain its mounted derivative until mount or cache capacity is needed; scrolling back within the retained buffer SHALL keep the same image node without generating a derivative again
+- **AND** on pressure detach least-recently-used offscreen elements, restoring their generic placeholders; retain encoded derivatives until their own cache budget requires eviction
+- **AND** never revoke a URL while its image remains mounted; protect near-viewport leases, waiting if no safe slot is available
+
+#### Scenario: Cached preview while generating another thumbnail
+
+- **WHEN** a compatible cached thumbnail becomes needed during another generation job
+- **THEN** restore it without waiting for that job, subject to the mounted-element limit; prioritize actual viewport misses over near-viewport prefetch
+
+#### Scenario: Leave an Archive folder
+
+- **WHEN** the active Archive folder/view, project or module changes
+- **THEN** cancel obsolete preview work, detach mounted previews and release owned cached derivatives; stale callbacks SHALL NOT populate the new scope
+- **AND** layout changes within the same folder retain compatible encoded derivatives
+
+The initial limits SHALL be 256 cached results, 4 MiB encoded derivatives, 100 mounted derivative images and one running generation job. No original-document URL is owned by this buffer.
 
 #### Scenario: Authored thumbnail of an oversized original
 

@@ -5,12 +5,14 @@ const archiveThumbnailTargets = new Map();
 const archiveThumbnailMounted = new Map();
 const archiveThumbnailLeases = new Map();
 let archiveThumbnailObserver = null;
+let archiveThumbnailViewportObserver = null;
 let archiveThumbnailJob = null;
 let archiveThumbnailFrame = 0;
 let archiveThumbnailProject = null;
+let archiveThumbnailLocation = null;
 let archiveThumbnailRevision = -1;
 let archiveThumbnailBytes = 0;
-const ARCHIVE_THUMBNAIL_ENTRIES = 100;
+const ARCHIVE_THUMBNAIL_ENTRIES = 256;
 const ARCHIVE_THUMBNAIL_MOUNTED = 100;
 const ARCHIVE_THUMBNAIL_BYTES = 4 * 1024 * 1024;
 const ARCHIVE_THUMBNAIL_SOURCE_PIXELS = 48 * 1024 * 1024;
@@ -107,24 +109,91 @@ function archiveThumbnailRelease(key, layout)
     appPerf.archiveMetric(layout, 'thumbnailCacheEvictions', 1);
 }
 
+function archiveThumbnailLocationKey()
+{
+    return JSON.stringify([state.archiveView || 'files', state.archiveSelectedFolderId || null]);
+}
+
+function archiveThumbnailTouch(target)
+{
+    const cached = archiveThumbnailCache.get(target.key);
+    if (cached)
+    {
+        archiveThumbnailCache.delete(target.key);
+        archiveThumbnailCache.set(target.key, cached);
+    }
+    const mounted = archiveThumbnailMounted.get(target.element);
+    if (mounted)
+    {
+        archiveThumbnailMounted.delete(target.element);
+        archiveThumbnailMounted.set(target.element, mounted);
+    }
+}
+
+function archiveThumbnailOffscreen(element)
+{
+    const target = archiveThumbnailTargets.get(element);
+    return !target || !element.isConnected || !target.visible;
+}
+
+function archiveThumbnailCanMount()
+{
+    return archiveThumbnailMounted.size < ARCHIVE_THUMBNAIL_MOUNTED
+        || [...archiveThumbnailMounted.keys()].some(archiveThumbnailOffscreen);
+}
+
+function archiveThumbnailMakeMountRoom()
+{
+    if (archiveThumbnailMounted.size < ARCHIVE_THUMBNAIL_MOUNTED) return true;
+    const victim = [...archiveThumbnailMounted.keys()].find(archiveThumbnailOffscreen);
+    return victim !== undefined && archiveThumbnailDetach(victim);
+}
+
 function archiveThumbnailMakeRoom(bytes, layout)
 {
     if (bytes > ARCHIVE_THUMBNAIL_BYTES) return false;
     while (archiveThumbnailCache.size >= ARCHIVE_THUMBNAIL_ENTRIES
         || archiveThumbnailBytes + bytes > ARCHIVE_THUMBNAIL_BYTES)
     {
-        // Never evict a currently mounted preview to admit another one.
-        const key = [...archiveThumbnailCache.keys()].find(key => !archiveThumbnailLeases.has(key));
+        // LRU across cached and buffered elements. Near-viewport leases stay protected.
+        const key = [...archiveThumbnailCache.keys()].find(key =>
+            [...(archiveThumbnailLeases.get(key) || [])].every(archiveThumbnailOffscreen));
         if (key === undefined) return false;
         archiveThumbnailRelease(key, layout);
     }
     return true;
 }
 
+// Warm derivatives never wait behind an original-image load/decode/encode.
+function archiveThumbnailRestoreCached(target)
+{
+    const cached = archiveThumbnailCache.get(target.key);
+    if (!cached) return false;
+    archiveThumbnailTouch(target);
+    target.blocked = false;
+    archiveThumbnailShow(target, cached.url);
+    if (!target.blocked)
+    {
+        appPerf.archiveMetric(target.layout, 'thumbnailCacheHits', 1);
+        archiveThumbnailMetrics(target.layout);
+    }
+    return true;
+}
+
 function archiveThumbnailEnqueue(target)
 {
-    if (!archiveThumbnailTargetCurrent(target) || archiveThumbnailMounted.has(target.element)
-        || archiveThumbnailQueue.has(target.element) || archiveThumbnailJob?.target === target) return;
+    if (!archiveThumbnailTargetCurrent(target)) return;
+    if (archiveThumbnailMounted.has(target.element))
+    {
+        archiveThumbnailTouch(target);
+        return;
+    }
+    if (archiveThumbnailRestoreCached(target))
+    {
+        archiveThumbnailQueue.delete(target.element);
+        return;
+    }
+    if (archiveThumbnailQueue.has(target.element) || archiveThumbnailJob?.target === target) return;
     target.blocked = false;
     target.queuedAt = appPerf.now();
     archiveThumbnailQueue.set(target.element, target);
@@ -133,8 +202,9 @@ function archiveThumbnailEnqueue(target)
 
 function archiveThumbnailWakeBlocked()
 {
-    for (const target of archiveThumbnailTargets.values())
-        if (target.blocked) archiveThumbnailEnqueue(target);
+    const waiting = [...archiveThumbnailTargets.values()].filter(target => target.blocked && target.visible);
+    waiting.sort((a, b) => Number(b.inViewport) - Number(a.inViewport));
+    for (const target of waiting) archiveThumbnailEnqueue(target);
 }
 
 function archiveThumbnailDequeue(target)
@@ -148,6 +218,7 @@ function archiveThumbnailForget(element)
     const target = archiveThumbnailTargets.get(element);
     if (!target) return;
     archiveThumbnailObserver?.unobserve(element);
+    archiveThumbnailViewportObserver?.unobserve(element);
     archiveThumbnailTargets.delete(element);
     archiveThumbnailDequeue(target);
     archiveThumbnailCancel(target);
@@ -168,7 +239,8 @@ function archiveThumbnailUnmount()
         archiveThumbnailDetach(target.element);
     }
     archiveThumbnailObserver?.disconnect();
-    archiveThumbnailObserver = null;
+    archiveThumbnailViewportObserver?.disconnect();
+    archiveThumbnailObserver = archiveThumbnailViewportObserver = null;
     if (archiveThumbnailFrame) cancelAnimationFrame(archiveThumbnailFrame);
     archiveThumbnailFrame = 0;
     if (targets.length) archiveThumbnailMetrics(targets[0].layout);
@@ -177,11 +249,13 @@ function archiveThumbnailUnmount()
 function archiveThumbnailLifecycle()
 {
     const project = state.activeModule === 'Archive' ? validProjectById(currentProjectId()) : null;
-    if (archiveThumbnailProject !== project)
+    const location = project ? archiveThumbnailLocationKey() : null;
+    if (archiveThumbnailProject !== project || archiveThumbnailLocation !== location)
     {
         archiveThumbnailUnmount();
         for (const key of archiveThumbnailCache.keys()) archiveThumbnailRelease(key, archiveDiagnosticLayout());
         archiveThumbnailProject = project;
+        archiveThumbnailLocation = location;
         archiveThumbnailRevision = -1;
         archiveThumbnailMetrics(archiveDiagnosticLayout());
     }
@@ -217,35 +291,55 @@ function archiveThumbnailTrack(element, file, layout)
     const tier = Math.min(288, 96 * Math.ceil(window.devicePixelRatio || 1));
     const key = JSON.stringify([file.projectId, file.id, source, file.sizeBytes, tier]);
     archiveThumbnailTargets.set(element, { element, file, layout, source, tier, key,
-        sizeBytes: file.sizeBytes, visible: false, blocked: false });
+        sizeBytes: file.sizeBytes, visible: false, inViewport: false, blocked: false });
     if (!archiveThumbnailObserver)
     {
         const observer = new IntersectionObserver(entries =>
         {
             if (archiveThumbnailObserver !== observer) return;
-            let released = false;
-            const layouts = new Set();
+            const entering = [], layouts = new Set();
+            let capacityChanged = false;
+            // Apply the entire observation batch first: don't evict an element
+            // that is about to become visible later in this same callback.
             for (const entry of entries)
             {
                 const target = archiveThumbnailTargets.get(entry.target);
                 if (!target) continue;
                 layouts.add(target.layout);
                 target.visible = entry.isIntersecting;
-                if (entry.isIntersecting) archiveThumbnailEnqueue(target);
+                if (entry.isIntersecting) entering.push(target);
                 else
                 {
+                    target.inViewport = false;
                     archiveThumbnailDequeue(target);
                     archiveThumbnailCancel(target);
-                    released = archiveThumbnailDetach(target.element) || released;
+                    // Keep the mounted derivative as a warm offscreen buffer.
+                    capacityChanged = true;
                 }
             }
-            if (released) archiveThumbnailWakeBlocked();
+            entering.sort((a, b) => Number(b.inViewport) - Number(a.inViewport));
+            for (const target of entering) archiveThumbnailEnqueue(target);
+            if (capacityChanged) archiveThumbnailWakeBlocked();
             for (const layout of layouts) archiveThumbnailMetrics(layout);
             archiveThumbnailSchedule();
         }, { rootMargin: '120px' });
         archiveThumbnailObserver = observer;
+        // Strict viewport observations prioritize visible misses over the
+        // near-viewport prefetch queue, without synchronous layout reads.
+        const viewportObserver = new IntersectionObserver(entries =>
+        {
+            if (archiveThumbnailViewportObserver !== viewportObserver) return;
+            for (const entry of entries)
+            {
+                const target = archiveThumbnailTargets.get(entry.target);
+                if (target) target.inViewport = entry.isIntersecting;
+            }
+            archiveThumbnailSchedule();
+        });
+        archiveThumbnailViewportObserver = viewportObserver;
     }
     archiveThumbnailObserver.observe(element);
+    archiveThumbnailViewportObserver.observe(element);
 }
 
 function archiveThumbnailTargetCurrent(target)
@@ -253,6 +347,7 @@ function archiveThumbnailTargetCurrent(target)
     return target.visible && target.element.isConnected && archiveThumbnailTargets.get(target.element) === target
         && state.activeModule === 'Archive' && currentProjectId() === target.file.projectId
         && archiveThumbnailProject === validProjectById(target.file.projectId)
+        && archiveThumbnailLocation === archiveThumbnailLocationKey()
         && (prototypeSessionEditRevision === archiveThumbnailRevision || (sampleData.archiveFiles || []).includes(target.file))
         && !target.file.deleted && target.file.sizeBytes === target.sizeBytes
         && archiveThumbnailSource(target.file) === target.source;
@@ -261,7 +356,7 @@ function archiveThumbnailTargetCurrent(target)
 function archiveThumbnailShow(target, url, observe = true)
 {
     if (!url || !archiveThumbnailTargetCurrent(target) || archiveThumbnailMounted.has(target.element)) return;
-    if (archiveThumbnailMounted.size >= ARCHIVE_THUMBNAIL_MOUNTED)
+    if (!archiveThumbnailMakeMountRoom())
     {
         target.blocked = true;
         return;
@@ -296,7 +391,7 @@ function archiveThumbnailShow(target, url, observe = true)
 function archiveThumbnailSchedule()
 {
     if (archiveThumbnailJob || archiveThumbnailFrame || !archiveThumbnailQueue.size
-        || archiveThumbnailMounted.size >= ARCHIVE_THUMBNAIL_MOUNTED) return;
+        || !archiveThumbnailCanMount()) return;
     archiveThumbnailFrame = requestAnimationFrame(() =>
     {
         archiveThumbnailFrame = 0;
@@ -306,20 +401,15 @@ function archiveThumbnailSchedule()
 
 async function archiveThumbnailRun()
 {
-    if (archiveThumbnailJob || archiveThumbnailMounted.size >= ARCHIVE_THUMBNAIL_MOUNTED) return;
-    const target = archiveThumbnailQueue.values().next().value;
+    if (archiveThumbnailJob || !archiveThumbnailCanMount()) return;
+    const target = [...archiveThumbnailQueue.values()].find(candidate => candidate.inViewport)
+        || archiveThumbnailQueue.values().next().value;
     if (!target) return;
     archiveThumbnailQueue.delete(target.element);
     if (!archiveThumbnailTargetCurrent(target)) { archiveThumbnailSchedule(); return; }
     const { key, layout, file, source, tier } = target;
-    const cached = archiveThumbnailCache.get(key);
-    if (cached)
+    if (archiveThumbnailRestoreCached(target))
     {
-        archiveThumbnailCache.delete(key);
-        archiveThumbnailCache.set(key, cached);
-        appPerf.archiveMetric(layout, 'thumbnailCacheHits', 1);
-        archiveThumbnailShow(target, cached.url);
-        archiveThumbnailMetrics(layout);
         archiveThumbnailSchedule();
         return;
     }
