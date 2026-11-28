@@ -54,15 +54,28 @@ A Tree gesture trace is finished only by its native input owner. A superseding g
 
 ## Artifact build identity
 
-The export optionally carries an additive schema-3 `buildInfo` object shared
-with About. About displays and copies a compact version/short-revision
-string; detailed revision and channel remain in Diagnostics. It describes
-the loaded artifact, not a remote branch head:
-version, full revision, short revision, tag, commit distance and channel.
-Unavailable values are null; an unprepared checkout has channel local.
-The immutable artifact identity applies to all epochs in the export.
-Older exports without this object remain valid. No network request is
-needed to determine build identity.
+The export SHALL carry an additive schema-3 `buildInfo` object when the shared
+artifact identity is available to the runtime. It describes the loaded
+artifact, not a remote branch head: version, full revision, short revision,
+tag, commit distance and channel. Unavailable values are null; an unprepared
+checkout has channel local. The immutable artifact identity applies to all
+epochs in the export. Older exports without this object remain valid.
+
+The Pages artifact build SHALL derive metadata from the actual checked-out
+commit using complete Git history. Among reachable strict numeric
+`vMAJOR.MINOR.PATCH` tags (no leading zeroes), choose the smallest
+`git rev-list --count refs/tags/<tag>..HEAD` distance, breaking ties by the
+highest numeric version. Exact tags identify releases; later commits use
+`<version>-dev.<distance>`. Without a valid reachable tag, report a
+development build with known revision and no release version. An unprepared
+checkout has unknown version and revision. Prepared static artifacts retain
+their embedded identity on HTTP(S) or direct file opening; subsequent local
+edits are not detected. Runtime display/export SHALL NOT fetch Git or remote
+state. Metadata generation SHALL modify only the copied artifact, preserve
+geocoder configuration and existing publishing triggers, and never create
+tags or releases. Tag-only pushes do not trigger deployment. See the
+[Global settings specification](../global-settings/spec.md) for About display
+and copy behavior.
 
 ## Archive Detailed evidence
 Detailed Archive operations SHALL expose available allowlisted layout, presentation, full/partial/observation path, result and mounted structure counts and separated render stages. The existing epoch-scoped recorder SHALL aggregate bounded asynchronous image observation, explicit decode and thumbnail generation outcomes, timings and available dimensions, cache counters and gauges without retaining image identity or initiating additional image work. Unsupported/unavailable measurements remain absent. Stop/clear/replacement SHALL exclude obsolete completions. Basic/inactive/excluded scopes SHALL not collect Archive details. Native load elapsed and frame opportunities SHALL NOT be represented as pure decode or paint; long tasks remain page-wide in Entire application Detailed only. Schema 3 remains backward compatible.
