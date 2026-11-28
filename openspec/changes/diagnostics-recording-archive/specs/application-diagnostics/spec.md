@@ -1,0 +1,9 @@
+## MODIFIED Requirements
+
+### Requirement: Global settings and recording shortcut
+Global Settings Diagnostics SHALL show Ready, Recording in progress and Recording ready to export states, with exported and empty-stop feedback. Ready hides empty counters and export/discard. Active displays label above operation count, a filled red Stop button, dropped warning when needed and locked settings. Stopped results show two label-above-value metrics and prioritize Export, with secondary New recording and quiet Discard. Successful local download initiation marks the retained epoch exported, not durable disk success. New recording validates scope before replacing data, confirms if unexported, and starts fresh; Discard always confirms. Cancellation preserves retained data. Generic recorder Start SHALL retain append semantics. Selected scope starts with no checked modules; all/none actions apply one configuration update and empty selection prevents start. Entire application remains default. Topbar stop uses the same retained/empty state.
+
+## ADDED Requirements
+
+### Requirement: Archive Detailed evidence
+Detailed Archive operations SHALL expose available allowlisted layout, presentation, full/partial/observation path, result and mounted structure counts and separated render stages. The existing epoch-scoped recorder SHALL aggregate bounded asynchronous image observation, explicit decode and thumbnail generation outcomes, timings and available dimensions, cache counters and gauges without retaining image identity or initiating additional image work. Unsupported/unavailable measurements remain absent. Stop/clear/replacement SHALL exclude obsolete completions. Basic/inactive/excluded scopes SHALL not collect Archive details. Native load elapsed and frame opportunities SHALL NOT be represented as pure decode or paint; long tasks remain page-wide in Entire application Detailed only. Schema 3 remains backward compatible.

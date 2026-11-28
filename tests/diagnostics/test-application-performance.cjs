@@ -172,3 +172,208 @@ assert.equal(appPerf.snapshot().samples.length, 0);
 `, providerContext);
 console.log('Diagnostics: mixed epochs, queued long tasks, stale callbacks and Clear passed.');
 
+
+// UI workflow and additive Archive schema-3 evidence.
+const workflowContext = vm.createContext({
+    assert, console, performance: { now: () => clock }, advance: ms => { clock += ms; },
+    Blob: class {}, URL: { createObjectURL: () => 'blob:test', revokeObjectURL() {} },
+    setTimeout: fn => fn(), document: { body: { append() {} }, createElement: () => ({ click() {}, remove() {} }) },
+    state: { activeModule: 'People', archiveView: 'files', archiveFileLayout: 'tiles' },
+    matchMedia: () => ({ matches: false }), cancelAnimationFrame() {},
+    t: text => text, escapeHtml: text => text, icon: { play: '', stopSquare: '', download: '', trash: '', check: '', chevron: '' }
+});
+for (const file of ['core/application-performance.js', 'modules/archive/archive-diagnostics.js'])
+    vm.runInContext(fs.readFileSync(path.join(__dirname, '../../src', file), 'utf8'), workflowContext);
+const shellSource = fs.readFileSync(path.join(__dirname, '../../src/core/app-shell.js'), 'utf8');
+vm.runInContext(shellSource.slice(shellSource.indexOf('function diagnosticsView(')), workflowContext);
+vm.runInContext(`
+assert.equal(appPerf.settings().modules.length, 0);
+assert.equal(diagnosticsView(appPerf.status(), appPerf.settings()).heading, 'Ready to record');
+assert.equal((diagnosticsSettingsMarkup().match(/data-diagnostics-module value=/g) || []).length, appPerf.modules.length);
+appPerf.configure({ scope: 'selected', modules: [] });
+assert.equal(diagnosticsStartFresh(appPerf.status().recording), false);
+appPerf.configure({ modules: ['Archive'] });
+assert.equal(diagnosticsStartFresh(appPerf.status().recording), true);
+assert.equal(appPerf.download(), false);
+appPerf.run('Archive', 'layoutSwitch', () =>
+{
+    const trace = appPerf.currentDetailed('Archive');
+    appPerf.archiveContext(trace, 'icons', 'desktop', 'full');
+    appPerf.count(trace, 'archiveResultFiles', 665);
+    appPerf.count(trace, 'archiveMountedTiles', 665);
+    appPerf.span(trace, 'domReplace', 7);
+});
+const load = appPerf.archiveTaskBegin('icons', 'tileLoad', 'preview');
+advance(9);
+appPerf.archiveTaskFinish(load, 'completed', 4000, 3000);
+appPerf.archiveTaskFinish(load, 'completed', 1, 1);
+assert.equal(appPerf.archiveTaskBegin('private-layout', 'tileLoad', 'preview'), null);
+assert.equal(appPerf.archiveTaskBegin('icons', 'private-task', 'preview'), null);
+appPerf.archiveMetric('icons', 'private-key', 100);
+appPerf.archiveMetric('icons', 'pendingJobs', 3);
+appPerf.archiveMetric('icons', 'pendingJobs', 1);
+const obsolete = appPerf.archiveTaskBegin('icons', 'tileLoad', 'thumbnail');
+const mockImage = () => ({
+    complete: false, isConnected: true, naturalWidth: 500, naturalHeight: 300,
+    getAttribute: () => 'private-url', listeners: {},
+    addEventListener(kind, fn) { this.listeners[kind] = fn; },
+    removeEventListener(kind) { delete this.listeners[kind]; }
+});
+const loaded = mockImage(), pendingImage = mockImage(), failed = mockImage();
+archiveDiagnosticObserveImage(loaded, 'icons', 'tileLoad', 'thumbnail');
+archiveDiagnosticObserveImage(pendingImage, 'icons', 'tileLoad', 'thumbnail');
+archiveDiagnosticObserveImage(failed, 'icons', 'tileLoad', 'thumbnail');
+loaded.listeners.load();
+failed.listeners.error();
+assert.equal(archiveDiagnosticImages.size, 1);
+state.activeModule = 'Archive';
+let executions = 0;
+archiveDiagnosticCoalesced('scroll', () => executions++);
+archiveDiagnosticCoalesced('scroll', () => executions++);
+advance(121);
+archiveDiagnosticCoalesced('scroll', () => executions++);
+assert.equal(executions, 3);
+state.activeModule = 'People';
+appPerf.stop();
+let data = appPerf.snapshot();
+assert.equal(archiveDiagnosticImages.size, 0);
+assert.equal(data.schemaVersion, 3);
+assert.equal(data.samples[0].archiveLayout, 'icons');
+assert.equal(data.samples[0].counts.archiveResultFiles, 665);
+assert.equal(data.samples.filter(sample => sample.kind === 'scroll').length, 2);
+assert.equal(data.archivePerformance.recording, data.summaryCoverage.recording);
+assert.equal(data.archivePerformance.layouts.icons.tasks.tileLoad.preview.completed, 1);
+assert.equal(data.archivePerformance.layouts.icons.tasks.tileLoad.preview.maxObservedPixels, 12000000);
+assert.equal(data.archivePerformance.layouts.icons.tasks.tileLoad.thumbnail.completed, 1);
+assert.equal(data.archivePerformance.layouts.icons.tasks.tileLoad.thumbnail.failed, 1);
+assert.equal(data.archivePerformance.layouts.icons.tasks.tileLoad.thumbnail.canceled, 1);
+assert.equal(data.archivePerformance.layouts.icons.tasks.tileLoad.thumbnail.pending, 1);
+assert.equal(data.archivePerformance.layouts.icons.gauges.pendingJobs.max, 3);
+assert.equal(data.archivePerformance.layouts.icons.gauges.pendingJobs.last, 1);
+assert.equal(data.browser.longTasks.status, 'outOfScope');
+assert.equal(JSON.stringify(data).includes('private'), false);
+assert.equal(diagnosticsView(appPerf.status(), appPerf.settings()).confirmNew, true);
+const recording = appPerf.status().recording;
+assert.equal(diagnosticsStartFresh(recording), false);
+assert.equal(appPerf.status().count, 3);
+assert.equal(appPerf.download(), true);
+assert.equal(appPerf.status().exported, true);
+assert.equal(diagnosticsView(appPerf.status(), appPerf.settings()).heading, 'Recording exported');
+appPerf.configure({ modules: [] });
+assert.equal(diagnosticsStartFresh(recording), false);
+assert.equal(appPerf.status().count, 3);
+appPerf.configure({ modules: ['Archive'] });
+assert.equal(diagnosticsStartFresh(recording), true);
+appPerf.archiveTaskFinish(obsolete, 'completed', 1, 1);
+assert.equal(Object.keys(appPerf.snapshot().archivePerformance.layouts).length, 0);
+assert.equal(appPerf.status().count, 0);
+appPerf.stop();
+assert.equal(appPerf.status().emptyStop, true);
+appPerf.configure({ mode: 'basic' });
+appPerf.start();
+assert.equal(appPerf.archiveTaskBegin('icons', 'tileLoad', 'preview'), null);
+assert.equal(appPerf.snapshot().archivePerformance, undefined);
+appPerf.stop();
+appPerf.clear();
+appPerf.configure({ scope: 'selected', mode: 'detailed', modules: ['People'] });
+appPerf.start();
+assert.equal(appPerf.archiveTaskBegin('icons', 'tileLoad', 'preview'), null);
+assert.equal(appPerf.snapshot().archivePerformance, undefined);
+appPerf.stop();
+appPerf.clear();
+appPerf.configure({ scope: 'all', mode: 'detailed', modules: [] });
+appPerf.start();
+assert.equal(appPerf.enabled('People'), true);
+appPerf.run('Archive', 'render', () => null);
+appPerf.stop();
+const oldDocument = document.createElement;
+document.createElement = () => ({ click() { throw Error('download failed'); }, remove() {} });
+assert.equal(appPerf.download(), false);
+assert.equal(appPerf.status().exported, false);
+document.createElement = oldDocument;
+assert.equal(diagnosticsStartFresh(appPerf.status().recording, true), true);
+assert.equal(appPerf.status().count, 0);
+appPerf.stop();
+appPerf.clear();
+console.log('Diagnostics workflow and Archive epoch/allowlist regression passed.');
+`, workflowContext);
+
+const panelContext = vm.createContext({
+    assert, performance: { now: () => clock }, t: text => text, escapeHtml: text => text,
+    icon: { play: '', stopSquare: '', download: '', trash: '', check: '', chevron: '' },
+    console, setInterval: () => 1, clearInterval() {}, requestAnimationFrame: () => 1, cancelAnimationFrame() {},
+    Blob: class {}, URL: { createObjectURL: () => 'blob:test', revokeObjectURL() {} },
+    setTimeout: fn => fn(), document: { body: { append() {} }, createElement: () => ({ click() {}, remove() {} }) },
+    syncDiagnosticsTopbar() {}, showToast() {}, openNestedModal() {}, closeModal() {}
+});
+vm.runInContext(fs.readFileSync(path.join(__dirname, '../../src/core/application-performance.js'), 'utf8'), panelContext);
+vm.runInContext(shellSource.slice(shellSource.indexOf('function diagnosticsView(')), panelContext);
+vm.runInContext(`
+function node(value = '')
+{
+    return {
+        value, textContent: '', innerHTML: '', dataset: {}, isConnected: true, listeners: {},
+        classList: { toggle() {}, contains: () => true },
+        addEventListener(kind, fn) { this.listeners[kind] = fn; },
+        focus() {}
+    };
+}
+const elements = new Map();
+const get = selector =>
+{
+    if (!elements.has(selector)) elements.set(selector, node());
+    return elements.get(selector);
+};
+const modules = appPerf.modules.map(node);
+const panel = { isConnected: true, querySelector: get, querySelectorAll: () => modules };
+const root = { classList: { contains: () => true }, querySelector: () => panel };
+const modalBackdrop = { querySelector: () => get('[data-diagnostics-confirm]') };
+const click = selector => get(selector).listeners.click();
+const change = selector => get(selector).listeners.change();
+const button = name => get('[data-performance-' + name + ']');
+bindDiagnosticsSettings(root);
+assert.equal(button('start').hidden, false);
+assert.equal(button('export').hidden, true);
+assert.equal(get('[data-performance-metrics]').hidden, true);
+get('#diagnosticsScope').value = 'selected';
+change('#diagnosticsScope');
+assert.equal(button('start').disabled, true);
+assert.equal(get('[data-diagnostics-hint]').hidden, false);
+click('[data-diagnostics-all]');
+assert.equal(appPerf.settings().modules.length, appPerf.modules.length);
+assert.equal(get('[data-diagnostics-hint]').hidden, true);
+click('[data-diagnostics-none]');
+assert.equal(appPerf.settings().modules.length, 0);
+assert.equal(button('start').disabled, true);
+get('#diagnosticsScope').value = 'all';
+change('#diagnosticsScope');
+click('[data-performance-start]');
+assert.equal(appPerf.status().active, true);
+assert.equal(button('stop').hidden, false);
+assert.equal(button('export').hidden, true);
+assert.equal(get('[data-diagnostics-modules]').disabled, true);
+appPerf.run('Archive', 'render', () => null);
+click('[data-performance-stop]');
+assert.equal(button('export').hidden, false);
+assert.equal(button('new').hidden, false);
+assert.equal(button('clear').hidden, false);
+assert.equal(get('[data-performance-drop-metric]').hidden, false);
+click('[data-performance-new]');
+assert.equal(appPerf.status().count, 1, 'Opening confirmation must not clear the recording');
+assert.equal(appPerf.status().active, false);
+click('[data-diagnostics-confirm]');
+assert.equal(appPerf.status().count, 0);
+assert.equal(appPerf.status().active, true);
+appPerf.run('Archive', 'render', () => null);
+click('[data-performance-stop]');
+click('[data-performance-export]');
+assert.equal(appPerf.status().exported, true);
+assert.equal(get('[data-performance-status]').textContent, 'Recording exported');
+click('[data-performance-clear]');
+assert.equal(appPerf.status().count, 1);
+click('[data-diagnostics-confirm]');
+assert.equal(appPerf.status().count, 0);
+assert.equal(button('start').hidden, false);
+assert.equal(button('export').hidden, true);
+console.log('Diagnostics panel bindings: ready/active/results, selection, confirmation and export passed with test doubles.');
+`, panelContext);

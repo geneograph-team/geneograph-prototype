@@ -1,6 +1,6 @@
 function renderArchive(...args)
 {
-    if (typeof appPerf === 'undefined' || !appPerf.enabled('Archive')) return renderArchiveWithDiagnosticsBody(...args);
+    if (typeof appPerf === 'undefined' || !appPerf.enabled('Archive') || appPerf.currentDetailed('Archive')) return renderArchiveWithDiagnosticsBody(...args);
     return appPerf.run('Archive', 'render', () => renderArchiveWithDiagnosticsBody(...args));
 }
 
@@ -797,6 +797,9 @@ function renderArchiveMain()
 
 function renderArchiveMainWithDiagnosticsBody()
 {
+    const trace = typeof appPerf === 'undefined' ? null : appPerf.currentDetailed('Archive');
+    if (trace) archiveDiagnosticContext(trace, 'full');
+    if (archiveDiagnosticRoot || archiveDiagnosticImages.size) archiveDiagnosticReset();
     archiveImageUnmount();
     const locationKey = `${currentProjectId() || ''}:${state.archiveView}:${state.archiveSelectedFolderId || ''}`;
     if (archiveRenderedLocationKey !== null && locationKey !== archiveRenderedLocationKey)
@@ -811,7 +814,7 @@ function renderArchiveMainWithDiagnosticsBody()
     const previousInspectorScroll = main.querySelector('.archive-inspector-scroll')?.scrollTop || 0;
     const previousPageScroll = document.scrollingElement?.scrollTop || 0;
 
-    main.innerHTML = `
+    const markup = archiveDiagnosticMeasure(trace, 'markupBuild', () => `
         <div
           class="
             archive-shell
@@ -845,14 +848,17 @@ function renderArchiveMainWithDiagnosticsBody()
           ${
                 state.archiveInspectorCollapsed
                     ? renderArchiveInspectorCollapsed()
-                    : renderArchiveInspector()
+                    : archiveDiagnosticMeasure(trace, 'inspector', () => renderArchiveInspector())
             }
         </div>
-      `;
+      `);
 
-    bindArchiveControls();
-    localizeUI(main);
-    mountArchiveImageView();
+    archiveDiagnosticMeasure(trace, 'domReplace', () => { main.innerHTML = markup; });
+    if (trace) archiveDiagnosticMeasure(trace, 'mount', () => archiveDiagnosticBindRoot(main.querySelector('.archive-shell')));
+    archiveDiagnosticMeasure(trace, 'binding', () => bindArchiveControls());
+    archiveDiagnosticMeasure(trace, 'localization', () => localizeUI(main));
+    archiveDiagnosticMeasure(trace, 'mount', () => mountArchiveImageView());
+    archiveDiagnosticMounted(trace, main);
     const nextInspectorScroll = main.querySelector('.archive-inspector-scroll');
     if (nextInspectorScroll) nextInspectorScroll.scrollTop = previousInspectorScroll;
     if (locationKey === archiveRenderedLocationKey)
@@ -2076,7 +2082,9 @@ function renderArchiveFileTiles(files, folders)
         const checked = bulkActive && (state.archiveSelectedFileIds || []).includes(file.id);
         const source = archiveFileKind(file) === 'img'
             ? file.previewUrl || file.thumbnailUrl || file.src : '';
-        const art = `${archiveFileIcon(file)}${source ? `<img src="${escapeHtml(source)}" alt="" loading="lazy">` : ''}`;
+        const previewKind = typeof appPerf !== 'undefined' && appPerf.archiveDetailed() && source
+            ? ` data-archive-preview-kind="${file.previewUrl ? 'preview' : file.thumbnailUrl ? 'thumbnail' : 'original'}"` : '';
+        const art = `${archiveFileIcon(file)}${source ? `<img src="${escapeHtml(source)}" alt="" loading="lazy"${previewKind}>` : ''}`;
         return `<div class="archive-tile ${checked ? 'is-checked' : ''} ${state.archiveSelectedFileId === file.id ? 'selected-detail' : ''}"
             data-archive-file-row="${escapeHtml(file.id)}" tabindex="0" aria-label="${escapeHtml(file.name)}">
             ${bulkActive ? `<input class="albums-select-checkbox archive-tile-select" type="checkbox" data-archive-file-checkbox="${escapeHtml(file.id)}" ${checked ? 'checked' : ''} aria-label="${escapeHtml(t('Select'))}: ${escapeHtml(file.name)}">` : ''}
@@ -2214,6 +2222,29 @@ function renderArchiveFilesViewWithDiagnosticsBody()
         archiveFolderMatchProjection(
             matchingFiles
         );
+    const trace = typeof appPerf === 'undefined' ? null : appPerf.currentDetailed('Archive');
+    if (trace)
+    {
+        appPerf.count(trace, 'archiveResultFiles', files.length);
+        appPerf.count(trace, 'archiveResultFolders', folders.length);
+        let images = 0, knownBytes = 0, bytes = 0;
+        for (const file of files)
+        {
+            if (archiveFileKind(file) !== 'img') continue;
+            images++;
+            if (Number.isFinite(file.sizeBytes) && file.sizeBytes >= 0)
+            {
+                knownBytes++;
+                bytes += file.sizeBytes;
+            }
+        }
+        appPerf.count(trace, 'archiveImageCandidates', images);
+        if (knownBytes)
+        {
+            appPerf.count(trace, 'archiveImageBytesKnown', knownBytes);
+            appPerf.count(trace, 'archiveImageSourceBytes', bytes);
+        }
+    }
 
     const filtering =
         archiveFileFilteringActive();

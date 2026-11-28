@@ -60,6 +60,16 @@
     background: color-mix(in srgb, var(--gg-status-error-accent) 8%, transparent);
 }
 
+.button.danger-filled {
+    color: var(--gg-status-error-on-accent);
+    background: var(--gg-status-error-accent);
+    border-color: var(--gg-status-error-accent);
+}
+
+.button.danger-filled:hover:not(:disabled) {
+    filter: brightness(1.06);
+}
+
 /* Text links navigate; panel actions open an editor or picker. */
 :is(.text-action, .panel-action) {
     display: inline-flex;

@@ -5552,9 +5552,6 @@ body.mobile-details-open .geneo-inspector [data-geneo-inspector-toggle] {
 }
 
 .diagnostics-modules {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-    gap: var(--space-2);
     margin: var(--space-3) var(--space-4);
     border: 1px solid var(--border-default);
     border-radius: var(--radius-sm);
@@ -5562,20 +5559,31 @@ body.mobile-details-open .geneo-inspector [data-geneo-inspector-toggle] {
     min-width: 0;
 }
 
-.diagnostics-modules[hidden] {
-    display: none;
+.diagnostics-settings [hidden] { display: none !important; }
+.diagnostics-module-actions {
+    display: flex;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+    gap: var(--space-3);
+    margin-bottom: var(--space-2);
 }
-
-.diagnostics-modules label {
+.diagnostics-module-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+    gap: var(--space-1) var(--space-3);
+}
+.diagnostics-modules .checkbox-row {
     display: flex;
     align-items: center;
     gap: var(--space-2);
+    min-height: 36px;
+    cursor: pointer;
 }
-
+.diagnostics-modules .checkbox-row input { width: 18px; height: 18px; flex: none; }
+.diagnostics-hint { margin: var(--space-2) 0 0; }
 .diagnostics-settings .global-settings-row {
     grid-template-columns: minmax(0, 1fr) minmax(0, 220px);
 }
-
 .diagnostics-explanation {
     display: grid;
     gap: var(--space-1);
@@ -5583,53 +5591,58 @@ body.mobile-details-open .geneo-inspector [data-geneo-inspector-toggle] {
     color: var(--text-secondary);
     line-height: 1.45;
 }
-
-.diagnostics-explanation p {
-    margin: 0;
-}
-
-.diagnostics-explanation strong,
-.diagnostics-status > strong,
-.diagnostics-metrics strong {
+.diagnostics-explanation p, .diagnostics-status p { margin: 0; }
+.diagnostics-explanation strong, .diagnostics-status-heading, .diagnostics-metrics strong {
     color: var(--text-primary);
 }
-
 .diagnostics-status {
     display: grid;
     gap: var(--space-2);
     border-top: 1px solid var(--surface-row-divider);
-    padding: var(--space-3) var(--space-4) 0;
+    padding: var(--space-4) var(--space-4) 0;
 }
-
+.diagnostics-status-heading { display: flex; align-items: center; gap: var(--space-2); }
+.diagnostics-status-heading > span {
+    display: inline-grid;
+    place-items: center;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: var(--gg-status-neutral-accent);
+    flex: none;
+}
+.diagnostics-status-heading > span[data-state="active"] { background: var(--gg-status-error-accent); }
+.diagnostics-status-heading > span[data-state="success"] {
+    width: 18px;
+    height: 18px;
+    background: var(--gg-status-success-accent);
+    color: var(--gg-status-success-on-accent);
+}
+.diagnostics-status-heading svg { width: 14px; height: 14px; }
 .diagnostics-metrics {
-    display: flex;
-    flex-wrap: wrap;
-    gap: var(--space-2) var(--space-5);
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(145px, 1fr));
+    gap: var(--space-3);
     color: var(--text-secondary);
     font-size: 13px;
     line-height: 1.45;
+    padding-block: var(--space-2);
 }
-
-.diagnostics-metrics strong {
-    font-variant-numeric: tabular-nums;
-}
-
-@media (max-width: 540px) {
-    .diagnostics-settings .global-settings-row {
-        grid-template-columns: minmax(0, 1fr);
-        gap: var(--space-2);
-    }
-
-    .diagnostics-settings .global-settings-select-shell {
-        width: 100%;
-    }
-}
-
+.diagnostics-metrics > div { display: grid; align-content: start; gap: var(--space-1); }
+.diagnostics-metrics strong { font-size: 26px; font-variant-numeric: tabular-nums; }
+.diagnostics-warning, .diagnostics-warning strong { color: var(--gg-status-warning-accent); }
 .diagnostics-actions {
     display: flex;
     flex-wrap: wrap;
     gap: var(--space-2);
     padding: var(--space-3) var(--space-4);
+}
+.diagnostics-actions svg { width: 18px; height: 18px; flex: none; }
+.diagnostics-actions .diagnostics-discard { color: var(--gg-status-error-accent); margin-inline-start: auto; }
+@media (max-width: 540px) {
+    .diagnostics-settings .global-settings-row { grid-template-columns: minmax(0, 1fr); gap: var(--space-2); }
+    .diagnostics-settings .global-settings-select-shell { width: 100%; }
+    .diagnostics-actions .diagnostics-discard { margin-inline-start: 0; }
 }
 
 .global-settings-row:last-child {

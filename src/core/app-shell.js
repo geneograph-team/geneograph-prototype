@@ -584,6 +584,7 @@ function renderApplicationShell()
         disposeTreeElkLayout();
         disposeTreeRenderer();
     }
+    if (typeof archiveDiagnosticReset === 'function' && state.activeModule !== 'Archive' && archiveDiagnosticRoot) archiveDiagnosticReset();
     if (typeof archiveImageSyncLifecycle === 'function') archiveImageSyncLifecycle();
     appNavigationObserve();
     if (mobileSurface !== 'details' || mobileDetailModule !== state.activeModule)
@@ -1231,44 +1232,78 @@ function syncDiagnosticsTopbar()
     if (button) button.hidden = !appPerf.status().active;
 }
 
+function diagnosticsView(status, config)
+{
+    const ready = !status.active && !status.count;
+    return {
+        ready, active: status.active, results: !status.active && status.count > 0,
+        canStart: config.scope !== 'selected' || config.modules.length > 0,
+        confirmNew: !status.active && status.count > 0 && !status.exported,
+        heading: status.active ? 'Recording in progress' : ready ? 'Ready to record'
+            : status.exported ? 'Recording exported' : 'Recording ready to export',
+        description: status.active ? 'You can continue using GeneoGraph while recording.'
+            : ready ? status.emptyStop ? 'No operations were recorded. Start a new recording to try again.'
+                : 'Start recording to measure application performance.'
+            : 'Your recording is complete and can be exported for review.'
+    };
+}
+
+function diagnosticsStartFresh(recording, confirmed = false)
+{
+    const status = appPerf.status(), view = diagnosticsView(status, appPerf.settings());
+    if (status.recording !== recording || status.active || !view.canStart || (view.confirmNew && !confirmed)) return false;
+    appPerf.clear();
+    const started = appPerf.start();
+    if (started && typeof archiveDiagnosticAttachCurrent === 'function') archiveDiagnosticAttachCurrent();
+    return started;
+}
+
 function diagnosticsSettingsMarkup()
 {
     const config = appPerf.settings();
-    const status = appPerf.status();
-    const option = (value, label, selected) =>
-        '<option value="' + value + '"' + (selected ? ' selected' : '') + '>' + escapeHtml(t(label)) + '</option>';
-    const disabled = status.active ? 'disabled' : '';
+    const disabled = appPerf.status().active ? 'disabled' : '';
+    const label = text => escapeHtml(t(text));
+    const option = (value, text, selected) =>
+        '<option value="' + value + '"' + (selected ? ' selected' : '') + '>' + label(text) + '</option>';
     const select = (id, options) =>
-        '<span class="common-select-shell global-settings-select-shell">'
-        + '<select class="common-select" id="' + id + '" ' + disabled + '>' + options + '</select>'
-        + '<span class="common-select-chevron" aria-hidden="true">' + icon.chevron + '</span></span>';
-    return '<h3>' + escapeHtml(t('Diagnostics')) + '</h3>'
-        + '<p>' + escapeHtml(t('Record anonymous application timings locally. Export manually; no genealogy data is included.')) + '</p>'
+        '<span class="common-select-shell global-settings-select-shell"><select class="common-select" id="'
+        + id + '" ' + disabled + '>' + options + '</select><span class="common-select-chevron" aria-hidden="true">'
+        + icon.chevron + '</span></span>';
+    const button = (action, style, artwork, text) => '<button class="button ' + style
+        + '" type="button" data-performance-' + action + ' hidden>' + artwork + label(text) + '</button>';
+    return '<h3>' + label('Diagnostics') + '</h3>'
+        + '<p>' + label('Record anonymous application timings locally. Export manually; no genealogy data is included.') + '</p>'
         + '<div class="global-settings-section diagnostics-settings" data-diagnostics-settings>'
-        + '<div class="global-settings-row"><label for="diagnosticsScope">' + escapeHtml(t('Recording scope')) + '</label>'
+        + '<div class="global-settings-row"><label for="diagnosticsScope">' + label('Recording scope') + '</label>'
         + select('diagnosticsScope', option('all', 'Entire application', config.scope === 'all')
             + option('selected', 'Selected modules', config.scope === 'selected')) + '</div>'
         + '<fieldset class="diagnostics-modules" data-diagnostics-modules ' + (config.scope === 'all' ? 'hidden' : '') + ' ' + disabled + '>'
-        + '<legend>' + escapeHtml(t('Selected modules')) + '</legend>'
-        + appPerf.modules.map(module => '<label><input type="checkbox" data-diagnostics-module value="' + escapeHtml(module)
-            + '" ' + (config.modules.includes(module) ? 'checked' : '') + '>' + escapeHtml(t(module)) + '</label>').join('')
-        + '</fieldset>'
-        + '<div class="global-settings-row"><label for="diagnosticsMode">' + escapeHtml(t('Recording mode')) + '</label>'
+        + '<legend>' + label('Selected modules') + '</legend>'
+        + '<div class="diagnostics-module-actions"><button type="button" class="text-action" data-diagnostics-all>'
+        + label('Select all') + '</button><button type="button" class="text-action" data-diagnostics-none>'
+        + label('Unselect all') + '</button></div><div class="diagnostics-module-grid">'
+        + appPerf.modules.map(module => '<label class="checkbox-row"><input type="checkbox" data-diagnostics-module value="' + escapeHtml(module)
+            + '" ' + (config.modules.includes(module) ? 'checked' : '') + '>' + label(module) + '</label>').join('')
+        + '</div><p class="field-help diagnostics-hint" data-diagnostics-hint hidden>' + label('Select at least one module to start recording.') + '</p></fieldset>'
+        + '<div class="global-settings-row"><label for="diagnosticsMode">' + label('Recording mode') + '</label>'
         + select('diagnosticsMode', option('basic', 'Basic', config.mode === 'basic')
             + option('detailed', 'Detailed', config.mode === 'detailed')) + '</div>'
         + '<div class="diagnostics-explanation field-help">'
-        + '<p><strong>' + escapeHtml(t('Basic')) + ':</strong> ' + escapeHtml(t('Operation durations and outcomes.')) + '</p>'
-        + '<p><strong>' + escapeHtml(t('Detailed')) + ':</strong> ' + escapeHtml(t('Also includes available stage timings and counters.')) + '</p></div>'
-        + '<div class="diagnostics-status" role="status">'
-        + '<strong data-performance-status></strong>'
-        + '<div class="diagnostics-metrics">'
-        + '<span>' + escapeHtml(t('Recorded operations')) + ': <strong data-performance-count></strong></span>'
-        + '<span>' + escapeHtml(t('Dropped operations')) + ': <strong data-performance-dropped></strong></span>'
-        + '</div></div>'
+        + '<p><strong>' + label('Basic') + ':</strong> ' + label('Operation durations and outcomes.') + '</p>'
+        + '<p><strong>' + label('Detailed') + ':</strong> ' + label('Also includes available stage timings and counters.') + '</p></div>'
+        + '<div class="diagnostics-status">'
+        + '<div class="diagnostics-status-heading" role="status"><span data-performance-indicator aria-hidden="true"></span><strong data-performance-status></strong></div>'
+        + '<p class="field-help" data-performance-description></p>'
+        + '<div class="diagnostics-metrics" data-performance-metrics hidden>'
+        + '<div><span>' + label('Operations recorded') + '</span><strong data-performance-count></strong></div>'
+        + '<div data-performance-drop-metric><span>' + label('Dropped operations') + '</span><strong data-performance-dropped></strong></div></div>'
+        + '<p class="field-help diagnostics-warning" data-performance-warning hidden>' + label('The recording buffer is full. Older operations have been replaced.') + '</p></div>'
         + '<div class="diagnostics-actions">'
-        + '<button class="button primary" type="button" data-performance-toggle></button>'
-        + '<button class="button secondary" type="button" data-performance-clear>' + escapeHtml(t('Clear recording')) + '</button>'
-        + '<button class="button secondary" type="button" data-performance-export>' + escapeHtml(t('Export recording')) + '</button>'
+        + button('start', 'primary', icon.play, 'Start recording')
+        + button('stop', 'danger-filled', icon.stopSquare, 'Stop recording')
+        + button('export', 'primary', icon.download, 'Export recording')
+        + button('new', 'secondary', icon.play, 'New recording')
+        + button('clear', 'ghost diagnostics-discard', icon.trash, 'Discard recording')
         + '</div></div>';
 }
 
@@ -1276,36 +1311,68 @@ function bindDiagnosticsSettings(root)
 {
     const panel = root.querySelector('[data-diagnostics-settings]');
     if (!panel) return;
-    const scope = panel.querySelector('#diagnosticsScope');
-    const mode = panel.querySelector('#diagnosticsMode');
-    const moduleFields = panel.querySelector('[data-diagnostics-modules]');
+    const q = selector => panel.querySelector(selector);
+    const scope = q('#diagnosticsScope'), mode = q('#diagnosticsMode');
+    const moduleFields = q('[data-diagnostics-modules]');
     const moduleInputs = [...panel.querySelectorAll('[data-diagnostics-module]')];
-    const toggle = panel.querySelector('[data-performance-toggle]');
-    const clear = panel.querySelector('[data-performance-clear]');
-    const exportButton = panel.querySelector('[data-performance-export]');
-    const statusText = panel.querySelector('[data-performance-status]');
-    const countText = panel.querySelector('[data-performance-count]');
-    const droppedText = panel.querySelector('[data-performance-dropped]');
-    const statusLabel = status => t(status.active ? 'Recording active' : 'Recording stopped');
+    const all = q('[data-diagnostics-all]'), none = q('[data-diagnostics-none]');
+    const start = q('[data-performance-start]'), stop = q('[data-performance-stop]');
+    const fresh = q('[data-performance-new]'), discard = q('[data-performance-clear]'), exportButton = q('[data-performance-export]');
+    const statusText = q('[data-performance-status]'), countText = q('[data-performance-count]'), droppedText = q('[data-performance-dropped]');
+    const dropMetric = q('[data-performance-drop-metric]'), warning = q('[data-performance-warning]');
+    let timer = null;
     const updateText = (element, value) =>
     {
         const text = String(value);
         if (element.textContent !== text) element.textContent = text;
     };
-    const update = () =>
+    const updateCounts = status =>
     {
-        const status = appPerf.status();
-        const config = appPerf.settings();
-        scope.disabled = mode.disabled = moduleFields.disabled = status.active;
-        moduleFields.hidden = config.scope === 'all';
-        toggle.disabled = !status.active && config.scope === 'selected' && !config.modules.length;
-        toggle.textContent = t(status.active ? 'Stop recording' : 'Start recording');
-        updateText(statusText, statusLabel(status));
         updateText(countText, status.count);
         updateText(droppedText, status.dropped);
-        clear.disabled = !status.active && !status.count;
-        exportButton.disabled = !status.count;
+        dropMetric.hidden = status.active && status.dropped === 0;
+        dropMetric.classList.toggle('diagnostics-warning', status.dropped > 0);
+        warning.hidden = status.dropped === 0;
+    };
+    const update = () =>
+    {
+        const status = appPerf.status(), config = appPerf.settings(), view = diagnosticsView(status, config);
+        scope.value = config.scope;
+        mode.value = config.mode;
+        scope.disabled = mode.disabled = moduleFields.disabled = status.active;
+        moduleInputs.forEach(input => { input.checked = config.modules.includes(input.value); });
+        moduleFields.hidden = config.scope === 'all';
+        all.disabled = status.active || config.modules.length === appPerf.modules.length;
+        none.disabled = status.active || config.modules.length === 0;
+        q('[data-diagnostics-hint]').hidden = config.scope === 'all' || config.modules.length > 0;
+        start.hidden = !view.ready;
+        stop.hidden = !view.active;
+        fresh.hidden = discard.hidden = exportButton.hidden = !view.results;
+        start.disabled = fresh.disabled = !view.canStart;
+        const indicator = q('[data-performance-indicator]');
+        const indicatorState = view.active ? 'active' : view.results ? 'success' : 'neutral';
+        if (indicator.dataset.state !== indicatorState)
+        {
+            indicator.dataset.state = indicatorState;
+            indicator.innerHTML = view.results ? icon.check : '';
+        }
+        updateText(statusText, t(view.heading));
+        updateText(q('[data-performance-description]'), t(view.description));
+        q('[data-performance-metrics]').hidden = view.ready;
+        updateCounts(status);
         syncDiagnosticsTopbar();
+        if (view.active && timer === null)
+            timer = setInterval(() =>
+            {
+                if (!panel.isConnected || !root.classList.contains('open') || !appPerf.status().active)
+                {
+                    clearInterval(timer);
+                    timer = null;
+                    if (panel.isConnected && root.classList.contains('open')) update();
+                    return;
+                }
+                updateCounts(appPerf.status());
+            }, 500);
     };
     const configure = () =>
     {
@@ -1313,29 +1380,69 @@ function bindDiagnosticsSettings(root)
             modules: moduleInputs.filter(input => input.checked).map(input => input.value) });
         update();
     };
+    const selectModules = modules =>
+    {
+        appPerf.configure({ modules });
+        update();
+        // Bulk action may become disabled; keep focus in the same controls.
+        (all.disabled ? none : all).focus({ preventScroll: true });
+    };
     scope.addEventListener('change', configure);
     mode.addEventListener('change', configure);
     moduleInputs.forEach(input => input.addEventListener('change', configure));
-    toggle.addEventListener('click', () =>
+    all.addEventListener('click', () => selectModules(appPerf.modules));
+    none.addEventListener('click', () => selectModules([]));
+    const confirm = (title, message, action, onConfirm) =>
     {
-        if (appPerf.status().active) appPerf.stop();
-        else appPerf.start();
+        openNestedModal('<section class="modal" role="dialog" aria-modal="true" aria-labelledby="diagnosticsConfirmTitle">'
+            + '<header class="modal-header"><h2 id="diagnosticsConfirmTitle">' + escapeHtml(t(title)) + '</h2></header>'
+            + '<div class="modal-body"><p>' + escapeHtml(t(message)) + '</p></div>'
+            + '<footer class="modal-footer"><button type="button" class="button secondary" data-close>' + escapeHtml(t('Cancel'))
+            + '</button><button type="button" class="button danger" data-diagnostics-confirm>'
+            + escapeHtml(t(action)) + '</button></footer></section>');
+        modalBackdrop.querySelector('[data-diagnostics-confirm]').addEventListener('click', () =>
+        {
+            closeModal({ force: true });
+            onConfirm();
+            update();
+            requestAnimationFrame(() => (appPerf.status().active ? stop : appPerf.status().count ? exportButton : start).focus({ preventScroll: true }));
+        });
+    };
+    const begin = () =>
+    {
+        const status = appPerf.status(), view = diagnosticsView(status, appPerf.settings());
+        if (!view.canStart || status.active) return;
+        if (view.confirmNew)
+            confirm('Replace unexported recording?', 'The retained recording will be discarded without exporting.',
+                'New recording', () => diagnosticsStartFresh(status.recording, true));
+        else if (diagnosticsStartFresh(status.recording))
+        {
+            update();
+            stop.focus({ preventScroll: true });
+        }
+    };
+    start.addEventListener('click', begin);
+    fresh.addEventListener('click', begin);
+    stop.addEventListener('click', () =>
+    {
+        appPerf.stop();
+        update();
+        (appPerf.status().count ? exportButton : start).focus({ preventScroll: true });
+    });
+    discard.addEventListener('click', () =>
+    {
+        const status = appPerf.status();
+        if (status.active || !status.count) return;
+        confirm('Discard recording?', 'The retained performance recording will be permanently discarded.', 'Discard recording', () =>
+        {
+            const current = appPerf.status();
+            if (!current.active && current.recording === status.recording) appPerf.clear();
+        });
+    });
+    exportButton.addEventListener('click', () =>
+    {
+        if (!appPerf.download()) showToast(t('Recording could not be exported.'));
         update();
     });
-    clear.addEventListener('click', () => { appPerf.clear(); update(); });
-    exportButton.addEventListener('click', () => { appPerf.download(); update(); });
-    // Refresh only while this panel is mounted, so asynchronous operation counts stay current.
-    const timer = setInterval(() =>
-    {
-        if (!panel.isConnected || !root.classList.contains('open'))
-        {
-            clearInterval(timer);
-            return;
-        }
-        const status = appPerf.status();
-        if (statusText.textContent !== statusLabel(status)
-            || countText.textContent !== String(status.count)
-            || droppedText.textContent !== String(status.dropped)) update();
-    }, 500);
     update();
 }

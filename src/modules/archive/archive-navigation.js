@@ -1185,33 +1185,38 @@ function archiveNavigateToLocation(
     runAfterArchiveFileEditGuard(
         () =>
         {
-            archiveNavigateToLocationCommit(
-                location,
-                options
-            );
+            const navigate = () => archiveNavigateToLocationCommit(location, options);
+            if (typeof archiveDiagnosticRun === 'function') archiveDiagnosticRun('folderNavigation', navigate, 'full');
+            else navigate();
         }
     );
 }
 
 function archiveNavigateBack()
 {
-    runAfterArchiveFileEditGuard(
-        archiveNavigateBackCommit
-    );
+    runAfterArchiveFileEditGuard(() =>
+    {
+        if (typeof archiveDiagnosticRun === 'function') archiveDiagnosticRun('folderNavigation', archiveNavigateBackCommit, 'full');
+        else archiveNavigateBackCommit();
+    });
 }
 
 function archiveNavigateForward()
 {
-    runAfterArchiveFileEditGuard(
-        archiveNavigateForwardCommit
-    );
+    runAfterArchiveFileEditGuard(() =>
+    {
+        if (typeof archiveDiagnosticRun === 'function') archiveDiagnosticRun('folderNavigation', archiveNavigateForwardCommit, 'full');
+        else archiveNavigateForwardCommit();
+    });
 }
 
 function archiveNavigateUp()
 {
-    runAfterArchiveFileEditGuard(
-        archiveNavigateUpCommit
-    );
+    runAfterArchiveFileEditGuard(() =>
+    {
+        if (typeof archiveDiagnosticRun === 'function') archiveDiagnosticRun('folderNavigation', archiveNavigateUpCommit, 'full');
+        else archiveNavigateUpCommit();
+    });
 }
 
 function selectArchiveFolderItem(

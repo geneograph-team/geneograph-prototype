@@ -117,7 +117,10 @@ function fitArchiveToolbar(root)
         }
     };
     update();
-    archiveToolbarResizeObserver = new ResizeObserver(update);
+    archiveToolbarResizeObserver = new ResizeObserver(() =>
+    {
+        if (toolbar.isConnected) archiveDiagnosticCoalesced('resize', update);
+    });
     archiveToolbarResizeObserver.observe(toolbar);
     archiveToolbarResizeObserver.observe(toolbar.querySelector('.archive-toolbar-create'));
     archiveToolbarResizeObserver.observe(toolbar.querySelector('.app-sort-field'));
@@ -285,7 +288,7 @@ function bindArchiveControls(root = main.querySelector('.archive-shell'))
         runAfterArchiveFileEditGuard(() => {
             resetArchiveFolderRowClick();
             state.archiveFileLayout = button.dataset.archiveFileLayout;
-            renderArchiveMain();
+            archiveDiagnosticRun('layoutSwitch', renderArchiveMain, 'full');
             main.querySelector(`[data-archive-file-layout="${state.archiveFileLayout}"]`)?.focus({ preventScroll: true });
             if (state.archiveFileLayout !== 'images' && state.archiveSelectedFileId)
                 main.querySelector(`[data-archive-file-row="${CSS.escape(state.archiveSelectedFileId)}"]`)?.scrollIntoView({ block: 'nearest' });
@@ -297,7 +300,7 @@ function bindArchiveControls(root = main.querySelector('.archive-shell'))
         runAfterArchiveFileEditGuard(() => {
             resetArchiveFolderRowClick();
             state.archiveFileLayout = layout;
-            renderArchiveMain();
+            archiveDiagnosticRun('layoutSwitch', renderArchiveMain, 'full');
             main.querySelector('[data-archive-layout-select]')?.focus({ preventScroll: true });
             if (layout !== 'images' && state.archiveSelectedFileId)
                 main.querySelector(`[data-archive-file-row="${CSS.escape(state.archiveSelectedFileId)}"]`)?.scrollIntoView({ block: 'nearest' });
