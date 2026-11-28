@@ -5589,7 +5589,7 @@ body.mobile-details-open .geneo-inspector [data-geneo-inspector-toggle] {
 .global-settings-section {
     border: 1px solid var(--border-default);
     border-radius: var(--radius-md);
-    background: color-mix(in srgb, var(--surface-card) 96%, var(--text-primary));
+    background: var(--surface-sidebar-soft);
     overflow: hidden;
 }
 
