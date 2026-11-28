@@ -4,7 +4,7 @@
 
 ### Requirement: Bounded Archive previews
 
-Archive SHALL hydrate Icons and Image filmstrip previews with display-sized derivatives, using bounded session-local jobs and storage. The full-resolution viewer SHALL continue to use the original document source. The current folder-local buffer SHALL retain at most 256 cached results, 4 MiB encoded derivatives, 100 mounted derivative images and one running generation job. No original-document URL is owned by this buffer.
+Archive SHALL hydrate Icons and Image filmstrip previews with display-sized derivatives through the shared media preview runtime, using its folder-local policy for jobs and storage. The full-resolution viewer SHALL continue to use the original document source. The current folder-local buffer SHALL retain at most 256 cached results, 4 MiB encoded derivatives, 100 mounted derivative images and one running generation job. No original-document URL is owned by this buffer.
 
 #### Scenario: Switch between preview layouts
 

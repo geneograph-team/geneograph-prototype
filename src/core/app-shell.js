@@ -606,6 +606,7 @@ function renderApplicationShell()
     if (state.activeModule !== 'Albums')
     {
         disconnectAlbumsGridResizeObserver();
+        albumsPreviewRuntime.lifecycle();
     }
     if (state.activeModule !== 'Places')
     {

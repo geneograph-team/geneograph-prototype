@@ -607,17 +607,7 @@ function renderAlbumsPhotoHero(
               || 'photo'
             )}">
 
-            ${renderPhotoThumbnail(
-                photo,
-                {
-                    className:
-                  'albums-detail-preview',
-
-                    label:
-                  photo.title
-                  || photo.filename
-                }
-            )}
+            ${renderAlbumsPreviewHost(photo, { className: 'albums-detail-preview', layout: 'detail' })}
             <span class="albums-face-highlight" data-albums-face-highlight hidden aria-hidden="true"></span>
           </button>
 
@@ -1472,7 +1462,7 @@ function renderAlbumsDetailPaneWithDiagnosticsBody()
                 )
             )}
           <div class="albums-face-floating-preview" data-albums-face-floating hidden aria-hidden="true">
-            ${renderPhotoThumbnail(photo, { className: 'albums-detail-preview', label: photo.title || photo.filename })}
+            ${renderAlbumsPreviewHost(photo, { className: 'albums-detail-preview', layout: 'detail' })}
             <span class="albums-face-highlight" data-albums-face-highlight></span>
           </div>
         </aside>

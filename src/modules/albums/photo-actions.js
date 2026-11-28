@@ -1683,7 +1683,7 @@ function toggleAlbumPhotoFavouriteBody(
 
     renderAlbumsPreserveViewport({
         focusPhotoId: photo.id,
-        focusTarget, reuseGrid: true, refreshPhotoId: photo.id
+        focusTarget, reuseGrid: true, refreshPhotoId: photo.id, interaction: 'favorite'
     });
 }
 
@@ -1709,7 +1709,7 @@ function togglePhotoSelection(
 
     renderAlbumsPreserveViewport({
         focusPhotoId: photoId,
-        focusTarget: 'selection', reuseGrid: true
+        focusTarget: 'selection', reuseGrid: true, interaction: 'selection'
     });
 }
 
@@ -1753,7 +1753,7 @@ function toggleAllVisibleAlbumPhotosBody(photos = currentAlbumsPagePhotos())
     });
 
     state.selectedPhotoIds = [...selectedIds];
-    renderAlbumsPreserveViewport();
+    renderAlbumsPreserveViewport({ interaction: 'selection' });
 }
 
 function clearAlbumSelection(
@@ -1764,7 +1764,7 @@ function clearAlbumSelection(
 
     if (rerender)
     {
-        renderAlbumsPreserveViewport();
+        renderAlbumsPreserveViewport({ interaction: 'selection' });
     }
 }
 

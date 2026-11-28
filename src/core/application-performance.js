@@ -18,7 +18,7 @@ const appPerf = (() =>
     for (const kind of ['search', 'filter', 'page', 'sort']) operations.get('People').add(kind);
     operations.get('Notes').add('editor');
     const actions = new Set(['moduleEntry', 'navigation', 'search', 'filter', 'sort', 'selection', 'multiSelection',
-        'favorite', 'layoutSwitch', 'resize', 'gridHydrate', 'viewportRestore', 'inspector', 'edit', 'mutation']);
+        'favorite', 'layoutSwitch', 'resize', 'gridHydrate', 'viewportRestore', 'inspector', 'edit', 'mutation', 'page', 'pageSize']);
     for (const kind of actions) operations.get('Albums').add(kind);
     operations.get('Publish').add('preview');
     for (const kind of ['layoutSwitch', 'folderNavigation', 'scroll', 'resize', 'previewHydrate']) operations.get('Archive').add(kind);
@@ -328,7 +328,7 @@ const appPerf = (() =>
                     observed: 0, loaded: 0, errors: 0, canceled: 0, skipped: 0, dimensionsKnown: 0,
                     pixels: 0, maxWidth: null, maxHeight: null, maxPixels: null,
                     bytesKnown: 0, sourceBytes: 0, sources: {}, pendingPeak: 0,
-                    decodeMs: null, previewQueueMs: null, previewGenerationMs: null, cache: null
+                    decodeMs: null, previewQueueMs: null, previewGenerationMs: null, cache: null, previewEvents: null
                 } : null };
         observedImages = new WeakSet();
         recordings.push(recording);
@@ -622,6 +622,11 @@ const appPerf = (() =>
             duration.count++;
             duration.totalMs = round(duration.totalMs + value);
             duration.maxMs = Math.max(duration.maxMs, value);
+        }
+        else if (['queued', 'canceled', 'completed', 'failed', 'mounted', 'detached'].includes(key))
+        {
+            const events = summary.previewEvents ??= {};
+            events[key] = (events[key] || 0) + value;
         }
         else if (['hits', 'misses', 'evictions'].includes(key))
         {

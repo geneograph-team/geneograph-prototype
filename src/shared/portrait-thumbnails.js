@@ -19,12 +19,7 @@ function portraitThumbnailTier(size, dpr = window.devicePixelRatio || 1)
 function portraitThumbnailSource(photo)
 {
     const source = typeof photo?.src === 'string' ? photo.src.trim() : '';
-    if (!source) return '';
-    if (/^(data:image\/|blob:)/i.test(source)) return source;
-    const url = new URL(source, document.baseURI);
-    if (url.protocol === 'file:' && location.protocol === 'file:')
-        return url.href.startsWith(new URL('.', document.baseURI).href) ? url.href : '';
-    return /^https?:$/.test(url.protocol) && url.origin === location.origin ? url.href : '';
+    return mediaPreviewLocalSource(source);
 }
 
 async function generatePortraitThumbnail({ source, crop, region, aspect, tier, sourcePixels })

@@ -185,6 +185,8 @@ Shapes and drawings have separate creation-strip settings, copied into new objec
 
 **Albums** organizes project photographs, album membership, associations to people and places, metadata, and primary portraits. It includes library and detail views, batch selection, photo/album workflows, and browser-local upload interactions. These update the prototype state; there is no durable media backend.
 
+Albums Grid and List use bounded, display-sized derivatives from the same runtime as Archive Icons and filmstrip. Compatible photo selection, favorites and inspector changes retain existing results and previews. Viewers and face-area editing continue to use originals. See the [shared media previews spec](../openspec/specs/media-previews/spec.md) for ownership and budgets.
+
 **Archive** organizes files, folders, sources, and linked research records. Browser-local document import supports PNG, JPEG, WebP, TXT, CSV, PDF, and DOCX, up to 20 MB each; imported file contents are available until reload. The document viewer has preview and download paths, using bundled parsing/sanitization libraries where needed. This is more than a visual mock, but it is not persistent document storage, OCR processing, or a production source-citation service. Record metadata and browser-local binary lifetime must be described separately.
 
 ## 9. Notes and Places

@@ -778,11 +778,16 @@ function albumsHaveActiveQuery()
 let albumsGridResizeObserver = null;
 let albumsGridCardObserver = null;
 let albumsGridResizeFrame = null;
+let albumsGridHydrationFrame = null;
+const albumsGridMountedLimit = 128;
+const albumsGridHydrationBatch = 6;
 
 function disconnectAlbumsGridResizeObserver()
 {
     albumsGridCardObserver?.disconnect();
     albumsGridCardObserver = null;
+    if (albumsGridHydrationFrame !== null) cancelAnimationFrame(albumsGridHydrationFrame);
+    albumsGridHydrationFrame = null;
     albumsGridResizeObserver?.disconnect();
     albumsGridResizeObserver = null;
     if (albumsGridResizeFrame !== null)
@@ -841,33 +846,53 @@ function bindAlbumsGridResizeObserver(photos)
         grid.addEventListener('focusin', event =>
         {
             const card = event.target.closest('[data-photo-id]');
-            if (card) hydrateAlbumsGridCard(grid, card);
-        });
-        grid.addEventListener('focusout', event =>
-        {
-            const card = event.target.closest('[data-photo-id]');
-            if (card?.albumsGridNear === false && !card.contains(event.relatedTarget)) dehydrateAlbumsGridCard(card);
+            if (!card) return;
+            if (!card.albumsHydrated) observeAlbumsHydration(grid, () => hydrateAlbumsGridCard(grid, card));
+            touchAlbumsGridCard(grid, card);
+            albumsPreviewRuntime.prioritize(card.querySelector('[data-albums-preview-host]'));
         });
     }
     const cards = grid.querySelectorAll('[data-photo-id]');
+    const needsHydration = new Set();
+    const scheduleHydration = () =>
+    {
+        if (!needsHydration.size || albumsGridHydrationFrame !== null) return;
+        albumsGridHydrationFrame = requestAnimationFrame(() =>
+        {
+            albumsGridHydrationFrame = null;
+            if (!grid.isConnected || state.activeModule !== 'Albums') return;
+            observeAlbumsHydration(grid, () =>
+            {
+                for (const card of [...needsHydration].slice(0, albumsGridHydrationBatch))
+                {
+                    needsHydration.delete(card);
+                    if (card.albumsGridNear && !hydrateAlbumsGridCard(grid, card))
+                    {
+                        needsHydration.add(card);
+                        return;
+                    }
+                }
+                scheduleHydration();
+            });
+        });
+    };
     if (typeof IntersectionObserver === 'function')
     {
         const observer = new IntersectionObserver(entries =>
         {
             if (albumsGridCardObserver !== observer || !grid.isConnected || state.activeModule !== 'Albums') return;
-            const synchronize = () =>
+            for (const entry of entries)
             {
-                for (const entry of entries)
+                const card = entry.target;
+                card.albumsGridNear = entry.isIntersecting;
+                if (entry.isIntersecting)
                 {
-                    const card = entry.target;
-                    card.albumsGridNear = entry.isIntersecting;
-                    if (entry.isIntersecting) hydrateAlbumsGridCard(grid, card);
-                    else if (!card.contains(document.activeElement)) dehydrateAlbumsGridCard(card);
+                    if (card.albumsHydrated) touchAlbumsGridCard(grid, card);
+                    else needsHydration.add(card);
                 }
-            };
-            const hasNewCards = entries.some(entry => entry.isIntersecting && !entry.target.albumsHydrated);
-            if (hasNewCards) observeAlbumsHydration(grid, synchronize);
-            else synchronize();
+                else needsHydration.delete(card);
+            }
+            scheduleHydration();
         }, { rootMargin: '350px 0px' });
         albumsGridCardObserver = observer;
         cards.forEach(card => observer.observe(card));
@@ -901,20 +926,36 @@ function observeAlbumsHydration(grid, run)
     });
 }
 
+function touchAlbumsGridCard(grid, card)
+{
+    if (!card.albumsHydrated) return;
+    const mounted = grid.albumsHydratedCards ??= new Set();
+    mounted.delete(card);
+    mounted.add(card);
+}
+
 function dehydrateAlbumsGridCard(card)
 {
     if (!card.albumsHydrated) return;
     card.albumsHydrated = false;
-    if (typeof appPerf !== 'undefined' && appPerf.enabled('Albums'))
-        appPerf.cancelAlbumImage(card.querySelector('.thumb-img'));
+    card.closest('[data-albums-justified-grid]')?.albumsHydratedCards?.delete(card);
+    const preview = card.querySelector('[data-albums-preview-host]');
+    if (preview) albumsPreviewRuntime.forget(preview);
     card.replaceChildren(Object.assign(document.createElement('div'), { className: 'albums-thumb' }));
 }
 
 function hydrateAlbumsGridCard(grid, card)
 {
-    if (card.albumsHydrated) return;
+    if (card.albumsHydrated) return true;
     const photo = grid.albumsPhotosById?.get(card.dataset.photoId);
-    if (!photo) return;
+    if (!photo) return true;
+    const mounted = grid.albumsHydratedCards ??= new Set();
+    if (mounted.size >= albumsGridMountedLimit)
+    {
+        const victim = [...mounted].find(item => !item.albumsGridNear && !item.contains(document.activeElement));
+        if (!victim) return false;
+        dehydrateAlbumsGridCard(victim);
+    }
     const trace = typeof appPerf === 'undefined' ? null : appPerf.currentDetailed('Albums');
     const render = () => renderAlbumsPhotoCard(photo, new Set(state.selectedPhotoIds));
     const markup = trace ? appPerf.phase(trace, 'imageMarkup', render) : render();
@@ -927,17 +968,19 @@ function hydrateAlbumsGridCard(grid, card)
     if (trace)
     {
         appPerf.phase(trace, 'dom', mount);
-        appPerf.observeAlbumImage(card.querySelector('.thumb-img'), 'original', photo.sizeBytes);
         appPerf.count(trace, 'recordsRendered', 1, true);
     }
     else mount();
     card.albumsHydrated = true;
+    touchAlbumsGridCard(grid, card);
+    mountAlbumsPreviews(card, grid.albumsPhotosById);
     albumsPhase('binding', () =>
     {
         bindAlbumsCardControls(card);
         card.querySelector('[data-mobile-open-details]')?.addEventListener('click', () => openMobileSurface('details'));
     });
     albumsPhase('localization', () => localizeUI(card));
+    return true;
 }
 
 function syncAlbumsGridSelection(grid, changedPhotoId)
@@ -950,20 +993,15 @@ function syncAlbumsGridSelection(grid, changedPhotoId)
         const detail = id === state.selectedPhotoId;
         const checked = selected.has(id);
         const changed = card.classList.contains('selected-detail') !== detail || card.classList.contains('is-checked') !== checked;
-        if (changed)
-        {
-            card.classList.toggle('selected-detail', detail);
-            card.classList.toggle('is-checked', checked);
-            card.setAttribute('aria-selected', String(checked));
-        }
+        if (changed) syncAlbumsCardSelection(card, checked, detail);
         if (id === changedPhotoId)
         {
             const photo = grid.albumsPhotosById?.get(id);
             if (photo) card.setAttribute('aria-label', photo.title || photo.filename || '');
         }
-        if (card.albumsHydrated && (changed || id === changedPhotoId))
+        if (card.albumsHydrated && id === changedPhotoId)
         {
-            card.albumsHydrated = false;
+            dehydrateAlbumsGridCard(card);
             hydrateAlbumsGridCard(grid, card);
         }
     }
@@ -971,9 +1009,11 @@ function syncAlbumsGridSelection(grid, changedPhotoId)
 
 function renderAlbumsPreserveViewport({
     focusPhotoId = '',
-    focusTarget = '', reuseGrid = false, refreshPhotoId = ''
+    focusTarget = '', reuseGrid = false, refreshPhotoId = '', interaction = ''
 } = {})
 {
+    if (interaction && refreshAlbumsRetainedPresentation(interaction, refreshPhotoId, focusPhotoId, focusTarget)) return;
+
     const scrollSelector =
         innerWidth <= 900
             ? '.albums-main'
@@ -1230,6 +1270,7 @@ function renderAlbums(...args)
 function renderAlbumsWithDiagnosticsBody({ reuseGrid = false, refreshPhotoId = '' } = {})
 {
     appNavigationObserve();
+    albumsPreviewRuntime.lifecycle();
     disconnectAlbumsGridResizeObserver();
 
     if (state.albumsView === 'album'
@@ -1330,6 +1371,8 @@ function renderAlbumsWithDiagnosticsBody({ reuseGrid = false, refreshPhotoId = '
         sidebar.innerHTML = nextSidebarMarkup;
         replaceSharedSearchMarkup(main, nextMainMarkup);
     });
+    main.querySelector('.albums-shell').albumsPresentation = { photos, selectedId: selectedPhoto?.id,
+        projectId: currentProjectId(), view: state.albumsView, albumId: state.activeAlbumId, mode: state.albumsViewMode };
     if (retainedGrid) albumsPhase('retainedNodes', () =>
     {
         main.querySelector('[data-albums-grid-replacement]').replaceWith(retainedGrid);
@@ -1350,6 +1393,14 @@ function renderAlbumsWithDiagnosticsBody({ reuseGrid = false, refreshPhotoId = '
         bindAlbumsControls(photos);
     });
     albumsPhase('observers', () => bindAlbumsGridResizeObserver(photos));
+    albumsPreviewRuntime.prune();
+    if (!retainedGrid && state.albumsViewMode === 'list')
+        mountAlbumsPreviews(main, new Map(currentAlbumsPagePhotos(photos).map(photo => [photo.id, photo])));
+    else
+    {
+        const detail = main.querySelector('.albums-detail');
+        if (detail) mountAlbumsPreviews(detail);
+    }
     if (trace) appPerf.pruneAlbumImageObservations();
 }
 
@@ -1667,11 +1718,7 @@ function renderAlbumsMainMarkup(photos = filteredAlbumPhotos(), retainedGrid = n
           </div>
         </div>
       </div>
-      ${
-            state.selectedPhotoIds.length
-                ? renderAlbumsSelectionBar()
-                : renderAlbumsBreadcrumbs()
-        }
+      <div data-albums-selection-chrome>${renderAlbumsSelectionChrome()}</div>
       ${activeFilters}
       <div class="albums-content">
         ${
@@ -1695,6 +1742,127 @@ function renderAlbumsMainMarkup(photos = filteredAlbumPhotos(), retainedGrid = n
                 : ''
         }
       `;
+}
+
+function renderAlbumsSelectionChrome()
+{
+    return state.selectedPhotoIds.length ? renderAlbumsSelectionBar() : renderAlbumsBreadcrumbs();
+}
+
+function syncAlbumsCardSelection(card, checked, shownInInspector)
+{
+    card.classList.toggle('selected-detail', shownInInspector);
+    card.classList.toggle('is-checked', checked);
+    card.setAttribute('aria-selected', String(checked));
+    const check = card.querySelector('[data-photo-check]');
+    if (!check) return;
+    const title = card.querySelector('.albums-card-title, .albums-list-title strong')?.textContent.trim()
+        || card.getAttribute('aria-label') || '';
+    check.setAttribute('aria-label', (t(checked ? 'Deselect' : 'Select') + ' ' + title).trim());
+    if (check.type === 'checkbox') check.checked = checked;
+    else
+    {
+        check.setAttribute('aria-pressed', String(checked));
+        check.innerHTML = checked ? icon.check : '';
+    }
+}
+
+function refreshAlbumsRetainedPresentation(interaction, photoId, focusId, focusTarget)
+{
+    const shell = main.querySelector('.albums-shell');
+    const presentation = shell?.albumsPresentation;
+    const chrome = shell?.querySelector('[data-albums-selection-chrome]');
+    if (!presentation || !chrome || state.albumsDetailEditing || state.albumsNameEditingId
+        || presentation.projectId !== currentProjectId() || presentation.view !== state.albumsView
+        || presentation.albumId !== state.activeAlbumId || presentation.mode !== state.albumsViewMode
+        || interaction === 'favorite' && (state.albumsView === 'favorites' || state.albumsFilters?.favouriteOnly)) return false;
+
+    const photos = presentation.photos;
+    const visible = state.albumsViewMode === 'list' ? currentAlbumsPagePhotos(photos) : photos;
+    const selected = new Set(state.selectedPhotoIds);
+    const replaceInspector = interaction === 'inspector' || presentation.selectedId !== state.selectedPhotoId;
+    const currentDetail = shell.querySelector('.albums-detail');
+    const selectedPhoto = replaceInspector ? visible.find(photo => photo.id === state.selectedPhotoId) : null;
+    if (replaceInspector && !selectedPhoto) return false;
+
+    const trace = typeof appPerf === 'undefined' ? null : appPerf.currentDetailed('Albums');
+    if (trace) appPerf.albumsContext(trace, 'partial', photos.length, visible.length);
+    const inspectorMarkup = replaceInspector ? albumsPhase('inspector', () =>
+        state.albumsDetailCollapsed ? renderAlbumsDetailCollapsed() : renderAlbumsDetailPane()) : '';
+    albumsPhase('retainedNodes', () =>
+    {
+        if (interaction === 'selection')
+        {
+            const grid = shell.querySelector('[data-albums-justified-grid]');
+            grid?.classList.toggle('is-selecting', selected.size > 0);
+            for (const card of shell.querySelectorAll('[data-photo-id]'))
+            {
+                const id = card.dataset.photoId;
+                const checked = selected.has(id);
+                const current = id === state.selectedPhotoId;
+                if (card.classList.contains('selected-detail') !== current || card.classList.contains('is-checked') !== checked)
+                    syncAlbumsCardSelection(card, checked, current);
+            }
+            syncAlbumsListSelectionHeader(shell, photos);
+            const copy = chrome.querySelector('.albums-selection-copy');
+            if (copy && selected.size)
+            {
+                copy.textContent = `${selected.size} selected`;
+                localizeUI(copy);
+            }
+            else if (Boolean(copy) !== Boolean(selected.size))
+            {
+                const restoreFocus = chrome.contains(document.activeElement);
+                chrome.innerHTML = renderAlbumsSelectionChrome();
+                bindAlbumsSelectionChrome(chrome);
+                localizeUI(chrome);
+                if (restoreFocus) shell.querySelector('#albumsSearch')?.focus({ preventScroll: true });
+            }
+        }
+        if (interaction === 'favorite')
+        {
+            const photo = getPhoto(photoId, { projectId: presentation.projectId });
+            if (photo) shell.querySelectorAll(`[data-photo-fav="${CSS.escape(photoId)}"]`).forEach(button =>
+            {
+                const label = t(photo.favorite ? 'Remove from favourites'
+                    : button.classList.contains('albums-list-favourite') ? 'Mark as favourite' : 'Mark as favorite');
+                button.classList.toggle('active', Boolean(photo.favorite));
+                button.setAttribute('aria-pressed', String(Boolean(photo.favorite)));
+                button.setAttribute('aria-label', label);
+                if (button.hasAttribute('title')) button.title = label;
+            });
+        }
+        if (replaceInspector)
+        {
+            const scrollTop = currentDetail?.scrollTop || 0;
+            const restoreToggle = document.activeElement?.matches('[data-albums-detail-toggle]');
+            const template = document.createElement('template');
+            template.innerHTML = inspectorMarkup.trim();
+            const detail = template.content.firstElementChild;
+            if (currentDetail) currentDetail.replaceWith(detail);
+            else shell.append(detail);
+            shell.classList.remove('no-detail');
+            shell.classList.toggle('detail-collapsed', state.albumsDetailCollapsed);
+            presentation.selectedId = state.selectedPhotoId;
+            detail.scrollTop = scrollTop;
+            albumsPhase('binding', () =>
+            {
+                bindAlbumsCardControls(detail);
+                bindAlbumsDetailControls(detail);
+            });
+            albumsPhase('localization', () => localizeUI(detail));
+            albumsPreviewRuntime.prune();
+            mountAlbumsPreviews(detail);
+            if (restoreToggle) detail.querySelector('[data-albums-detail-toggle]')?.focus({ preventScroll: true });
+        }
+    });
+    if (focusId && interaction !== 'favorite')
+    {
+        const escaped = CSS.escape(focusId);
+        const selector = focusTarget === 'selection' ? `[data-photo-check="${escaped}"]` : `[data-photo-id="${escaped}"]`;
+        shell.querySelector(selector)?.focus({ preventScroll: true });
+    }
+    return true;
 }
 
 function renderAlbumsSelectionBar()
@@ -1783,13 +1951,7 @@ function renderAlbumsPhotoCard(photo, selectedIds, width = 0)
 
     return `<article class="album-photo-card ${state.selectedPhotoId === photo.id ? 'selected-detail' : ''} ${selected ? 'is-checked' : ''}"${widthStyle} tabindex="0" data-photo-id="${escapeHtml(photo.id)}" aria-selected="${selected}">
         <div class="albums-thumb">
-          ${renderPhotoThumbnail(
-                photo,
-                {
-                    label:
-                photo.title
-                }
-            )}
+          ${renderAlbumsPreviewHost(photo)}
 
           <button
             class="albums-check"
@@ -2066,12 +2228,7 @@ function renderAlbumsList(photos)
                 class="
                   albums-list-thumb
                 " role="cell">
-                ${renderPhotoThumbnail(
-                    photo,
-                    {
-                        label: title
-                    }
-                )}
+                ${renderAlbumsPreviewHost(photo, { layout: 'list', label: title })}
               </span>
 
               <span

@@ -123,6 +123,8 @@ function bindAlbumsCardControls(root = main)
         {
             if (card.albumsCardBound) return;
             card.albumsCardBound = true;
+            if (card.classList.contains('albums-list-row')) card.addEventListener('focusin', () =>
+                albumsPreviewRuntime.prioritize(card.querySelector('[data-albums-preview-host]')));
             const selectPhoto = () =>
             {
                 runAfterAlbumsPhotoEditGuard(
@@ -138,7 +140,7 @@ function bindAlbumsCardControls(root = main)
 
                         albumsAction('selection', () => renderAlbumsPreserveViewport({
                             focusPhotoId: mobile ? '' : photoId,
-                            focusTarget: 'card', reuseGrid: true
+                            focusTarget: 'card', reuseGrid: true, interaction: 'selection'
                         }));
 
                         if (mobile)
@@ -287,10 +289,11 @@ function bindAlbumsPaginationControls()
                         return;
                     }
 
-                    state.albumsPage =
-                        nextPage;
-
-                    renderAlbums();
+                    albumsAction('page', () =>
+                    {
+                        state.albumsPage = nextPage;
+                        renderAlbums();
+                    });
                 }
             );
         });
@@ -303,13 +306,12 @@ function bindAlbumsPaginationControls()
             'change',
             event =>
             {
-                state.albumsRowsPerPage =
-                    normalizeAlbumsRowsPerPage(
-                        event.currentTarget.value
-                    );
-
-                resetAlbumsPage();
-                renderAlbums();
+                albumsAction('pageSize', () =>
+                {
+                    state.albumsRowsPerPage = normalizeAlbumsRowsPerPage(event.currentTarget.value);
+                    resetAlbumsPage();
+                    renderAlbums();
+                });
             }
         );
 }
@@ -317,12 +319,6 @@ function bindAlbumsPaginationControls()
 function bindAlbumsControls(photos)
 {
     bindToasts(main);
-    main.querySelectorAll('[data-albums-breadcrumb]').forEach(button =>
-    {
-        button.addEventListener('click', () =>
-            navigateAlbumsView(button.dataset.albumsBreadcrumb)
-        );
-    });
     if (state.albumsView === 'albums')
     {
         const browserSearch = main.querySelector('#albumsBrowserSearch');
@@ -584,25 +580,34 @@ function bindAlbumsControls(photos)
 
     bindAlbumsCardControls(main);
 
-    const visibleSelection = albumsVisibleSelectionState(currentAlbumsPagePhotos(photos));
-    const selectVisibleCheckbox = main.querySelector(
-        '[data-albums-select-visible]'
-    );
+    syncAlbumsListSelectionHeader(main, photos, true);
+    bindAlbumsDetailControls(main.querySelector('.albums-detail'));
+    bindAlbumsSelectionChrome(main);
+}
+
+function syncAlbumsListSelectionHeader(root, photos, bind = false)
+{
+    const selectVisibleCheckbox = root.querySelector('[data-albums-select-visible]');
 
     if (selectVisibleCheckbox)
     {
+        const visibleSelection = albumsVisibleSelectionState(currentAlbumsPagePhotos(photos));
         selectVisibleCheckbox.checked = visibleSelection.allVisibleSelected;
         selectVisibleCheckbox.indeterminate = visibleSelection.someVisibleSelected
           && !visibleSelection.allVisibleSelected;
         selectVisibleCheckbox.disabled = visibleSelection.visibleIds.length === 0;
-        selectVisibleCheckbox.addEventListener('click', event =>
+        if (bind) selectVisibleCheckbox.addEventListener('click', event =>
         {
             event.stopPropagation();
             toggleAllVisibleAlbumPhotos();
         });
     }
+}
 
-    main
+function bindAlbumsDetailControls(root)
+{
+    if (!root) return;
+    root
         .querySelectorAll(
             '[data-photo-open]'
         )
@@ -619,7 +624,7 @@ function bindAlbumsControls(photos)
             );
         });
 
-    main
+    root
         .querySelectorAll(
             '[data-photo-person-open]'
         )
@@ -636,9 +641,9 @@ function bindAlbumsControls(photos)
             );
         });
 
-    const detailPreview = main.querySelector('.albums-detail-preview-button');
+    const detailPreview = root.querySelector('.albums-detail-preview-button');
     const faceHighlight = detailPreview?.querySelector('[data-albums-face-highlight]');
-    const floatingPreview = main.querySelector('[data-albums-face-floating]');
+    const floatingPreview = root.querySelector('[data-albums-face-floating]');
     const clearFaceHighlight = () =>
     {
         if (faceHighlight) faceHighlight.hidden = true;
@@ -649,7 +654,7 @@ function bindAlbumsControls(photos)
         if (!faceHighlight || !detailPreview) return;
         const photo = getPhoto(state.selectedPhotoId, { projectId: currentProjectId() });
         const region = photoPersonRegion(photo, personId);
-        const pane = main.querySelector('.albums-detail');
+        const pane = root;
         const previewRect = detailPreview.getBoundingClientRect();
         const paneRect = pane?.getBoundingClientRect();
         const useFloating = Boolean(floatingPreview && paneRect && previewRect.bottom < paneRect.top + 80);
@@ -663,7 +668,7 @@ function bindAlbumsControls(photos)
         else if (floatingPreview) floatingPreview.hidden = true;
         const preview = useFloating ? floatingPreview : detailPreview;
         const highlight = useFloating ? floatingPreview.querySelector('[data-albums-face-highlight]') : faceHighlight;
-        const image = preview.querySelector('.albums-detail-preview .thumb-img');
+        const image = preview.querySelector('.albums-detail-preview');
         if (!region || !image || !photo?.width || !photo?.height)
         {
             clearFaceHighlight();
@@ -671,8 +676,9 @@ function bindAlbumsControls(photos)
         }
         faceHighlight.hidden = useFloating;
         const bounds = preview.getBoundingClientRect();
-        const imageWidth = image.naturalWidth || photo.width;
-        const imageHeight = image.naturalHeight || photo.height;
+        const mountedImage = image.querySelector('.thumb-img');
+        const imageWidth = mountedImage?.naturalWidth || photo.width;
+        const imageHeight = mountedImage?.naturalHeight || photo.height;
         const scale = Math.min(image.clientWidth / imageWidth, image.clientHeight / imageHeight);
         const width = imageWidth * scale;
         const height = imageHeight * scale;
@@ -685,7 +691,7 @@ function bindAlbumsControls(photos)
         });
         highlight.hidden = false;
     };
-    main.querySelectorAll('[data-albums-person-region]').forEach(row =>
+    root.querySelectorAll('[data-albums-person-region]').forEach(row =>
     {
         row.addEventListener('pointerenter', () => highlightPerson(row.dataset.albumsPersonRegion));
         row.addEventListener('pointerleave', clearFaceHighlight);
@@ -696,7 +702,7 @@ function bindAlbumsControls(photos)
         });
     });
 
-    main
+    root
         .querySelectorAll(
             '[data-albums-photo-person-menu]'
         )
@@ -718,14 +724,14 @@ function bindAlbumsControls(photos)
             );
         });
 
-    main.querySelectorAll('[data-photo-album-open]').forEach(button =>
+    root.querySelectorAll('[data-photo-album-open]').forEach(button =>
     {
         button.addEventListener('click', () =>
             navigateAlbumsView('album', button.dataset.photoAlbumOpen)
         );
     });
 
-    main
+    root
         .querySelectorAll(
             '[data-photo-remove-album]'
         )
@@ -743,7 +749,7 @@ function bindAlbumsControls(photos)
             );
         });
 
-    main
+    root
         .querySelectorAll(
             '[data-albums-detail-toggle]'
         )
@@ -758,7 +764,7 @@ function bindAlbumsControls(photos)
                     )
                     {
                         state.albumsDetailCollapsed = false;
-                        albumsAction('inspector', renderAlbums);
+                        albumsAction('inspector', () => renderAlbumsPreserveViewport({ interaction: 'inspector' }));
                         return;
                     }
 
@@ -766,14 +772,14 @@ function bindAlbumsControls(photos)
                         () =>
                         {
                             state.albumsDetailCollapsed = true;
-                            albumsAction('inspector', renderAlbums);
+                            albumsAction('inspector', () => renderAlbumsPreserveViewport({ interaction: 'inspector' }));
                         }
                     );
                 }
             );
         });
 
-    main
+    root
         .querySelectorAll(
             '[data-albums-section-toggle]'
         )
@@ -781,7 +787,7 @@ function bindAlbumsControls(photos)
         {
             button.addEventListener(
                 'click',
-                event =>
+                event => albumsAction('inspector', () =>
                 {
                     if (
                         event.target.closest(
@@ -835,32 +841,32 @@ function bindAlbumsControls(photos)
                     {
                         body.hidden = !open;
                     }
-                }
+                })
             );
         });
 
-    main
+    root
         .querySelector('#albumsEditPhoto')
         ?.addEventListener(
             'click',
             () => runAfterAlbumsPhotoEditGuard(() => albumsAction('edit', beginAlbumsPhotoEdit))
         );
-    main.querySelector('#albumsRenamePhoto')?.addEventListener('click', () =>
+    root.querySelector('#albumsRenamePhoto')?.addEventListener('click', () =>
         runAfterAlbumsPhotoEditGuard(beginAlbumsPhotoRename));
-    main.querySelector('#albumsSavePhotoName')?.addEventListener('click', saveAlbumsPhotoRename);
-    main.querySelector('#albumsCancelPhotoName')?.addEventListener('click', () =>
+    root.querySelector('#albumsSavePhotoName')?.addEventListener('click', saveAlbumsPhotoRename);
+    root.querySelector('#albumsCancelPhotoName')?.addEventListener('click', () =>
         runAfterAlbumsPhotoEditGuard(() =>
         {
             renderAlbums();
-            requestAnimationFrame(() => main.querySelector('#albumsRenamePhoto')?.focus({ preventScroll: true }));
+            requestAnimationFrame(() => root.querySelector('#albumsRenamePhoto')?.focus({ preventScroll: true }));
         }));
-    main.querySelector('#albumsPhotoNameInput')?.addEventListener('keydown', event =>
+    root.querySelector('#albumsPhotoNameInput')?.addEventListener('keydown', event =>
     {
         if (event.key === 'Enter') { event.preventDefault(); saveAlbumsPhotoRename(); }
-        if (event.key === 'Escape') { event.preventDefault(); main.querySelector('#albumsCancelPhotoName')?.click(); }
+        if (event.key === 'Escape') { event.preventDefault(); root.querySelector('#albumsCancelPhotoName')?.click(); }
     });
 
-    main
+    root
         .querySelector(
             '#albumsCancelPhotoEdit'
         )
@@ -869,7 +875,7 @@ function bindAlbumsControls(photos)
             cancelAlbumsPhotoEdit
         );
 
-    main
+    root
         .querySelector(
             '#albumsSavePhotoEdit'
         )
@@ -878,7 +884,7 @@ function bindAlbumsControls(photos)
             saveAlbumsPhotoEdit
         );
 
-    main
+    root
         .querySelector(
             '#albumsInspectorMore'
         )
@@ -893,7 +899,7 @@ function bindAlbumsControls(photos)
             }
         );
 
-    main
+    root
         .querySelector('#albumsTagPeople')
         ?.addEventListener(
             'click',
@@ -905,7 +911,7 @@ function bindAlbumsControls(photos)
             }
         );
 
-    main
+    root
         .querySelector('#albumsLinkAlbum')
         ?.addEventListener(
             'click',
@@ -919,7 +925,7 @@ function bindAlbumsControls(photos)
             }
         );
 
-    main
+    root
         .querySelector(
             '#albumsManagePhotoNotes'
         )
@@ -931,7 +937,7 @@ function bindAlbumsControls(photos)
                 )
         );
 
-    main
+    root
         .querySelector(
             '#albumsManagePhotoSources'
         )
@@ -980,7 +986,7 @@ function bindAlbumsControls(photos)
         );
 
     const editRoot =
-        main.querySelector(
+        root.querySelector(
             '[data-albums-photo-edit-root]'
         );
 
@@ -995,8 +1001,17 @@ function bindAlbumsControls(photos)
             'change',
             syncAlbumsPhotoEditDraftFromPane
         );
+}
 
-    main
+function bindAlbumsSelectionChrome(root)
+{
+    root.querySelectorAll('[data-albums-breadcrumb]').forEach(button =>
+    {
+        button.addEventListener('click', () =>
+            navigateAlbumsView(button.dataset.albumsBreadcrumb)
+        );
+    });
+    root
         .querySelector(
             '#albumsDeleteSelected'
         )
@@ -1010,7 +1025,7 @@ function bindAlbumsControls(photos)
             }
         );
 
-    main
+    root
         .querySelector(
             '#albumsCancelSelection'
         )
@@ -1019,14 +1034,14 @@ function bindAlbumsControls(photos)
             () => clearAlbumSelection()
         );
 
-    main
+    root
         .querySelector('#albumsSelectAll')
         ?.addEventListener(
             'click',
             () => toggleAllVisibleAlbumPhotos()
         );
 
-    main
+    root
         .querySelector(
             '#albumsAddSelectedToAlbum'
         )
@@ -1035,7 +1050,7 @@ function bindAlbumsControls(photos)
             openAddToAlbumModal
         );
 
-    main
+    root
         .querySelector(
             '#albumsRemoveFromCurrent'
         )
@@ -1044,4 +1059,3 @@ function bindAlbumsControls(photos)
             removeSelectedFromCurrentAlbum
         );
 }
-

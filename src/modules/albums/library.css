@@ -42,6 +42,8 @@ body.mobile-surface-open:has(.albums-shell) .menu-popover {
 }
 
 
+[data-albums-selection-chrome] { display: contents; }
+
 /* Album folder navigation; visual roles match the Archive breadcrumb pattern. */
 .albums-breadcrumbs {
     min-width: 0;
