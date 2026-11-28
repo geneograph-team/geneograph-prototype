@@ -130,7 +130,7 @@ function fitArchiveToolbar(root)
 function bindArchiveControls(root = main.querySelector('.archive-shell'))
 {
     if (!root) return;
-    fitArchiveToolbar(root);
+    if (!root.matches('.archive-inspector')) fitArchiveToolbar(root);
     root.querySelector('.archive-compact-path')?.addEventListener('keydown', event => {
         if (event.key !== 'Escape') return;
         event.preventDefault();
@@ -1356,10 +1356,9 @@ function bindArchiveControls(root = main.querySelector('.archive-shell'))
         input.addEventListener('click', event => event.stopPropagation());
         input.addEventListener('change', () => toggleArchiveFolderSelection(input.dataset.archiveFolderCheckbox));
     });
-    const visibleSelection =
-        archiveVisibleSelectionState();
-
-    root.querySelectorAll('[data-archive-select-all]').forEach(selectVisibleCheckbox => {
+    const selectAll = root.querySelectorAll('[data-archive-select-all]');
+    const visibleSelection = selectAll.length ? archiveVisibleSelectionState() : null;
+    selectAll.forEach(selectVisibleCheckbox => {
         selectVisibleCheckbox.checked =
             visibleSelection
                 .allVisibleSelected;

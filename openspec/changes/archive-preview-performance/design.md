@@ -1,0 +1,9 @@
+# Design
+
+Archive Icons and the existing windowed filmstrip mount generic image placeholders. A shared intersection observer queues work for intersecting previews. One job at a time loads a same-origin or local source, prefers an authored thumbnail when present, checks the source budget, sizes to a 96 / 192 / 288 pixel tier and encodes a JPEG asynchronously. Unsupported or failed sources retain their placeholder. Source dimensions that lack metadata can only be checked after the browser has acquired the image. The filmstrip can reuse the full-resolution viewer's already-requested image when the source matches.
+
+The derivative cache holds at most 100 results and 4 MiB of encoded blobs. Identity includes project, file, URL, byte metadata and dimension tier. Compatible previews reuse the same derivative across layout switches. Leaving the module or switching project identity clears owned URLs. A new edit revision reconciles retained records with the owning project. Full render discards obsolete targets and an asynchronous completion validates its current target before mounting. Viewer originals remain governed by the existing separate neighbor cache.
+
+A compatible desktop pointer selection changes the affected rows and checkboxes, then replaces and binds the inspector. The compatibility check requires an existing single selection and an expanded inspector without active editing. Composition changes, including bulk transitions, and other view operations use the full render path. Both desktop and mobile markup are still built for full renders. This keeps the existing resize and input behavior across the breakpoint.
+
+The existing Diagnostics adapter receives thumbnail task outcomes and bounded cache/queue metrics. Viewer decode and estimated viewer RGBA bytes remain independent. The upload audit found one legacy notification per successful imported file. The historical 159 aggregate invalidations cannot be reconstructed from that export alone.

@@ -1,7 +1,7 @@
 const archiveImageView = {
     projectId: null, scope: '', files: [], indices: new Map(), index: 0,
     mode: 'fit', zoom: 1, panX: .5, panY: .5, scroll: 0,
-    expanded: false, stripHidden: false, cache: new Map(), thumbs: new Map(),
+    expanded: false, stripHidden: false, cache: new Map(),
     dispose: null, token: 0, host: null, geometry: null, hoveredPersonId: null
 };
 
@@ -23,12 +23,11 @@ function resetArchiveImageSession()
 {
     archiveImageUnmount();
     appPerf.archiveMetric('image', 'viewerCacheEvictions', archiveImageView.cache.size);
-    appPerf.archiveMetric('image', 'thumbnailCacheEvictions', archiveImageView.thumbs.size);
     archiveImageView.cache.forEach(entry => { entry.cancel?.(); entry.image.onload = null; entry.image.onerror = null; entry.image.src = ''; });
     Object.assign(archiveImageView, {
         projectId: currentProjectId(), scope: '', files: [], indices: new Map(), index: 0,
         mode: 'fit', zoom: 1, panX: .5, panY: .5, scroll: 0,
-        expanded: false, stripHidden: false, cache: new Map(), thumbs: new Map(), geometry: null
+        expanded: false, stripHidden: false, cache: new Map(), geometry: null
     });
     document.body.classList.remove('archive-image-expanded');
     archiveImageRecordCache();
@@ -36,6 +35,7 @@ function resetArchiveImageSession()
 
 function archiveImageSyncLifecycle()
 {
+    archiveThumbnailLifecycle();
     if (!archiveImagesActive())
     {
         archiveImageUnmount();
@@ -97,21 +97,11 @@ function archiveImageRecordCache()
 {
     if (!appPerf.archiveDetailed()) return;
     const view = archiveImageView;
-    let bytes = 0, decoded = 0;
-    for (const data of view.thumbs.values())
-    {
-        // The existing generated JPEG data URLs are base64. Count payload bytes only.
-        const comma = data.indexOf(',');
-        if (comma < 0 || !data.slice(0, comma).endsWith(';base64')) continue;
-        bytes += Math.floor((data.length - comma - 1) * 3 / 4)
-            - (data.endsWith('==') ? 2 : data.endsWith('=') ? 1 : 0);
-    }
+    let decoded = 0;
     for (const { image } of view.cache.values())
         if (image.complete && image.naturalWidth && image.naturalHeight)
             decoded += image.naturalWidth * image.naturalHeight * 4;
     appPerf.archiveMetric('image', 'viewerEntries', view.cache.size);
-    appPerf.archiveMetric('image', 'thumbnailEntries', view.thumbs.size);
-    appPerf.archiveMetric('image', 'thumbnailEncodedBytes', bytes);
     appPerf.archiveMetric('image', 'estimatedDecodedBytes', decoded);
 }
 
@@ -231,7 +221,7 @@ function archiveImageRenderStrip()
     {
         if (!desired.has(Number(button.dataset.avIndex)))
         {
-            if (archiveDiagnosticImages.size) archiveDiagnosticFinishImage(button.querySelector('img'), 'canceled');
+            archiveThumbnailForget(button);
             button.remove();
         }
     });
@@ -246,12 +236,9 @@ function archiveImageRenderStrip()
             button.type = 'button';
             button.dataset.avIndex = index;
             button.style.left = `${index * slot}px`;
-            const src = file.thumbnailUrl || file.previewUrl || view.thumbs.get(file.id);
-            button.innerHTML = `${src ? `<img src="${escapeHtml(src)}" alt="" loading="lazy" decoding="async">` : icon.image}<span>${index + 1}</span>`;
+            button.innerHTML = `${icon.image}<span>${index + 1}</span>`;
             track.appendChild(button);
-            if (appPerf.archiveDetailed()) archiveDiagnosticObserveImage(button.querySelector('img'), 'image', 'stripLoad',
-                file.thumbnailUrl ? 'thumbnail' : file.previewUrl ? 'preview' : 'derived');
-            button.querySelector('img')?.addEventListener('error', event => { event.currentTarget.remove(); });
+            archiveThumbnailTrack(button, file, 'image');
         }
         button.title = file.name || t('Image');
         button.setAttribute('aria-label', `${t('Image')} ${index + 1}: ${file.name || ''}`);
@@ -310,42 +297,7 @@ async function archiveImageShow()
         image.hidden = false;
         status.hidden = true;
         archiveImageLayout();
-        if (!view.thumbs.has(file.id))
-        {
-            appPerf.archiveMetric('image', 'thumbnailCacheMisses', 1);
-            const thumbnailJob = appPerf.archiveTaskBegin('image', 'thumbnail', 'derived');
-            try
-            {
-                const canvas = document.createElement('canvas');
-                canvas.width = 96;
-                canvas.height = Math.max(1, Math.round(96 * loaded.naturalHeight / loaded.naturalWidth));
-                if (canvas.height > 128) { canvas.width = Math.max(1, Math.round(128 * loaded.naturalWidth / loaded.naturalHeight)); canvas.height = 128; }
-                const resizeStart = thumbnailJob ? appPerf.now() : 0;
-                canvas.getContext('2d').drawImage(loaded, 0, 0, canvas.width, canvas.height);
-                if (thumbnailJob) appPerf.archiveMetric('image', 'resizeMs', appPerf.now() - resizeStart);
-                const encodeStart = thumbnailJob ? appPerf.now() : 0;
-                view.thumbs.set(file.id, canvas.toDataURL('image/jpeg', .65));
-                if (thumbnailJob) appPerf.archiveMetric('image', 'encodeMs', appPerf.now() - encodeStart);
-                if (view.thumbs.size > 100)
-                {
-                    view.thumbs.delete(view.thumbs.keys().next().value);
-                    appPerf.archiveMetric('image', 'thumbnailCacheEvictions', 1);
-                }
-                archiveImageRecordCache();
-                appPerf.archiveTaskFinish(thumbnailJob, 'completed', canvas.width, canvas.height);
-                const button = host.querySelector(`[data-av-index="${view.index}"]`);
-                if (button && !button.querySelector('img'))
-                {
-                    const thumb = document.createElement('img');
-                    thumb.alt = '';
-                    thumb.src = view.thumbs.get(file.id);
-                    button.querySelector('svg')?.replaceWith(thumb);
-                    archiveDiagnosticObserveImage(thumb, 'image', 'stripLoad', 'derived');
-                }
-            }
-            catch (_) { appPerf.archiveTaskFinish(thumbnailJob, 'failed'); /* Cross-origin originals remain viewable. */ }
-        }
-        else appPerf.archiveMetric('image', 'thumbnailCacheHits', 1);
+
     }
     catch (_)
     {

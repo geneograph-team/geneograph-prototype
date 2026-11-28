@@ -742,6 +742,54 @@ function archiveSelectDesktopItem(root, type, id, event)
 function archiveSelectDesktopItemWithDiagnosticsBody(root, type, id, event)
 {
     const key = `${type}:${id}`;
+    const plain = !event.shiftKey && !event.ctrlKey && !event.metaKey;
+    const oldFileId = state.archiveSelectedFileIds[0];
+    if (plain && type === 'file' && state.archiveSelectedFileIds.length === 1
+        && !state.archiveSelectedFolderIds?.length && !archiveFileEditIsActive()
+        && !state.archiveInspectorCollapsed && state.archiveSelectedFileId === oldFileId
+        && root === main.querySelector('.archive-shell'))
+    {
+        const row = root.querySelector(`[data-archive-file-row="${CSS.escape(id)}"]`);
+        const inspector = root.querySelector('.archive-inspector');
+        if (row && inspector)
+        {
+            archiveSelectionAnchor = key;
+            if (id !== oldFileId)
+            {
+                state.archiveSelectedFileIds = [id];
+                state.archiveSelectedFileId = id;
+                for (const [fileId, checked] of [[oldFileId, false], [id, true]])
+                {
+                    const escaped = CSS.escape(fileId);
+                    const item = root.querySelector(`[data-archive-file-row="${escaped}"]`);
+                    item?.classList.toggle('selected-detail', checked);
+                    if (item?.hasAttribute('aria-selected'))
+                    {
+                        item.classList.toggle('is-checked', checked);
+                        item.setAttribute('aria-selected', String(checked));
+                    }
+                    root.querySelector(`[data-archive-mobile-file="${escaped}"]`)
+                        ?.closest('.archive-mobile-item').classList.toggle('is-checked', checked);
+                    for (const input of root.querySelectorAll(`[data-archive-file-checkbox="${escaped}"]`))
+                        input.checked = checked;
+                }
+                const trace = typeof appPerf === 'undefined' ? null : appPerf.currentDetailed('Archive');
+                archiveDiagnosticContext(trace, 'partial');
+                const scroll = inspector.querySelector('.archive-inspector-scroll')?.scrollTop || 0;
+                const markup = archiveDiagnosticMeasure(trace, 'inspector', () => renderArchiveInspector());
+                archiveDiagnosticMeasure(trace, 'domReplace', () => { inspector.outerHTML = markup; });
+                const next = root.querySelector('.archive-inspector');
+                archiveDiagnosticMeasure(trace, 'binding', () => bindArchiveControls(next));
+                archiveDiagnosticMeasure(trace, 'localization', () => localizeUI(next));
+                const scroller = next.querySelector('.archive-inspector-scroll');
+                if (scroller) scroller.scrollTop = scroll;
+                archiveDiagnosticMounted(trace, root);
+                appNavigationObserve();
+            }
+            row.focus({ preventScroll: true });
+            return;
+        }
+    }
     const visible = archiveVisibleMainItemKeys(main.querySelector('.archive-shell') || root);
     const targetIndex = visible.indexOf(key);
     if (targetIndex < 0) return;
@@ -800,6 +848,8 @@ function renderArchiveMainWithDiagnosticsBody()
     const trace = typeof appPerf === 'undefined' ? null : appPerf.currentDetailed('Archive');
     if (trace) archiveDiagnosticContext(trace, 'full');
     if (archiveDiagnosticRoot || archiveDiagnosticImages.size) archiveDiagnosticReset();
+    archiveThumbnailUnmount();
+    archiveThumbnailLifecycle();
     archiveImageUnmount();
     const locationKey = `${currentProjectId() || ''}:${state.archiveView}:${state.archiveSelectedFolderId || ''}`;
     if (archiveRenderedLocationKey !== null && locationKey !== archiveRenderedLocationKey)
@@ -858,6 +908,7 @@ function renderArchiveMainWithDiagnosticsBody()
     archiveDiagnosticMeasure(trace, 'binding', () => bindArchiveControls());
     archiveDiagnosticMeasure(trace, 'localization', () => localizeUI(main));
     archiveDiagnosticMeasure(trace, 'mount', () => mountArchiveImageView());
+    archiveDiagnosticMeasure(trace, 'mount', () => mountArchiveTileThumbnails(main));
     archiveDiagnosticMounted(trace, main);
     const nextInspectorScroll = main.querySelector('.archive-inspector-scroll');
     if (nextInspectorScroll) nextInspectorScroll.scrollTop = previousInspectorScroll;
@@ -2080,16 +2131,12 @@ function renderArchiveFileTiles(files, folders)
     }).join('');
     const fileTiles = files.map(file => {
         const checked = bulkActive && (state.archiveSelectedFileIds || []).includes(file.id);
-        const source = archiveFileKind(file) === 'img'
-            ? file.previewUrl || file.thumbnailUrl || file.src : '';
-        const previewKind = typeof appPerf !== 'undefined' && appPerf.archiveDetailed() && source
-            ? ` data-archive-preview-kind="${file.previewUrl ? 'preview' : file.thumbnailUrl ? 'thumbnail' : 'original'}"` : '';
-        const art = `${archiveFileIcon(file)}${source ? `<img src="${escapeHtml(source)}" alt="" loading="lazy"${previewKind}>` : ''}`;
+        const preview = archiveFileKind(file) === 'img' ? ' data-archive-tile-preview' : '';
         return `<div class="archive-tile ${checked ? 'is-checked' : ''} ${state.archiveSelectedFileId === file.id ? 'selected-detail' : ''}"
             data-archive-file-row="${escapeHtml(file.id)}" tabindex="0" aria-label="${escapeHtml(file.name)}">
             ${bulkActive ? `<input class="albums-select-checkbox archive-tile-select" type="checkbox" data-archive-file-checkbox="${escapeHtml(file.id)}" ${checked ? 'checked' : ''} aria-label="${escapeHtml(t('Select'))}: ${escapeHtml(file.name)}">` : ''}
             <button class="archive-row-icon-button archive-tile-more" type="button" data-archive-row-actions="file" data-archive-row-id="${escapeHtml(file.id)}" aria-label="${escapeHtml(t('File actions'))}: ${escapeHtml(file.name)}">${icon.more}</button>
-            <div class="archive-tile-art">${art}</div>
+            <div class="archive-tile-art"${preview}>${archiveFileIcon(file)}</div>
             <div class="archive-tile-copy">
                 <div class="archive-tile-name-row"><strong title="${escapeHtml(file.name)}">${escapeHtml(file.name)}</strong>
                     ${file.favorite ? `<span class="archive-tile-favorite" aria-label="${escapeHtml(t('Favourite'))}">${icon.star}</span>` : ''}</div>
