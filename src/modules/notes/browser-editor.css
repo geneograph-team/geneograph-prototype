@@ -199,9 +199,9 @@
 
     display: grid;
     grid-template-columns:
-        32px minmax(0, 1fr) 32px;
+        24px minmax(0, 1fr) 30px 30px;
     align-items: start;
-    gap: 10px;
+    gap: 6px;
 
     border:
         1px solid var(--border-default);
@@ -226,6 +226,44 @@
     background: var(--notes-card-hover);
     border-color: var(--border-strong);
 }
+
+.notes-row.bulk-selected:not(.active) {
+    background: color-mix(in srgb, var(--surface-card) 92%, var(--gg-primary));
+    border-color: var(--notes-card-selected-border);
+}
+
+.notes-row-checkbox, .notes-bulk-checkbox {
+    display: grid;
+    place-items: center;
+    min-height: 30px;
+    margin: 0;
+    cursor: pointer;
+}
+
+.notes-row-checkbox input, .notes-bulk-checkbox input {
+    width: 18px;
+    height: 18px;
+    margin: 0;
+}
+
+.notes-bulk-bar {
+    grid-column: 1 / -1;
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+    padding: var(--space-2);
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-sm);
+    background: var(--surface-card);
+    color: var(--text-secondary);
+    font-size: 13px;
+}
+
+.notes-bulk-bar[hidden] { display: none; }
+.notes-bulk-actions { display: flex; flex-wrap: wrap; gap: var(--space-1); margin-inline-start: auto; }
+.notes-bulk-button { width: 32px; height: 32px; cursor: pointer; }
+.notes-bulk-button svg { width: 17px; height: 17px; }
 
 .notes-row.active {
     background: var(--notes-card-selected);
@@ -947,6 +985,13 @@
 
     color:
         var(--brand-green-300);
+}
+
+#notesRichTextToolbar.ql-toolbar.ql-snow [data-notes-history]:disabled {
+    color: var(--gg-disabled-text);
+    border-color: transparent;
+    background: transparent;
+    cursor: not-allowed;
 }
 
 .rich-text-toolbar.ql-toolbar.ql-snow button svg {

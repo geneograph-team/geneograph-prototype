@@ -1704,6 +1704,7 @@ let modalBackdropDismissBinding = null;
 
 const notesRichTextRuntime = {
     content: null,
+    historyCleanup: null,
     instance:
         null,
 

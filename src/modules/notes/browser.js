@@ -57,6 +57,7 @@ function renderNotesWithDiagnosticsBody()
     const list =
         filteredNotes();
 
+    reconcileNotesBulkSelection(list);
     ensureNotesSelection(list);
 
     const selected =
@@ -522,6 +523,7 @@ function renderNotesBrowserPane(
             </div>
 
             ${renderNotesActiveFilters()}
+            ${renderNotesBulkBar()}
           </header>
 
           <div class="notes-browser-scroll">
@@ -1560,33 +1562,16 @@ function renderNoteListRow(
         <article
           class="notes-row ${
                 selected ? 'active' : ''
-            }"
+            } ${notesBulkSelection.ids.has(note.id) ? 'bulk-selected' : ''}"
           role="listitem"
           data-note-id="${escapeHtml(
                 note.id
             )}">
 
-          <button
-            class="notes-row-favorite ${
-                note.favorite ? 'active' : ''
-            }"
-            type="button"
-            data-note-favorite="${escapeHtml(
-                note.id
-            )}"
-            aria-pressed="${note.favorite}"
-            aria-label="${escapeHtml(
-                note.favorite
-                    ? `Remove ${note.title} from favourites`
-                    : `Add ${note.title} to favourites`
-            )}"
-            title="${
-                note.favorite
-                    ? 'Remove from favourites'
-                    : 'Add to favourites'
-            }">
-            ${icon.star}
-          </button>
+          <label class="checkbox-row notes-row-checkbox">
+            <input type="checkbox" data-note-bulk="${escapeHtml(note.id)}" ${notesBulkSelection.ids.has(note.id) ? 'checked' : ''}
+              aria-label="${escapeHtml(t('Select note') + ': ' + note.title)}">
+          </label>
 
           <button
             class="notes-row-open"
@@ -1636,6 +1621,28 @@ function renderNoteListRow(
                 )}
               </span>
             </span>
+          </button>
+
+          <button
+            class="notes-row-favorite ${
+                note.favorite ? 'active' : ''
+            }"
+            type="button"
+            data-note-favorite="${escapeHtml(
+                note.id
+            )}"
+            aria-pressed="${note.favorite}"
+            aria-label="${escapeHtml(
+                note.favorite
+                    ? `Remove ${note.title} from favourites`
+                    : `Add ${note.title} to favourites`
+            )}"
+            title="${
+                note.favorite
+                    ? 'Remove from favourites'
+                    : 'Add to favourites'
+            }">
+            ${icon.star}
           </button>
 
           <button
@@ -2142,7 +2149,8 @@ function renderNoteEditorContent(
                     'notesRichTextToolbar',
 
                     ariaLabel:
-                    'Note formatting'
+                    'Note formatting',
+                    historyControls: true
                 })}
 
                 <div

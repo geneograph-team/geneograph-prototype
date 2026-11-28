@@ -864,13 +864,14 @@ function updateRelatedNoteLinks(
 }
 
 function duplicateCentralNote(
-    noteId
+    noteId, { projectId = currentProjectId(), batch = false } = {}
 )
 {
     const note =
         getNote(
             noteId,
             {
+                projectId,
                 includeArchived:
               true
             }
@@ -979,6 +980,7 @@ function duplicateCentralNote(
             false
         }
     );
+    if (batch) return copy;
     markPrototypeSessionEdited(copy.projectId, copiedSourceIds.length ? ['notes', 'sources'] : ['notes'],
         { placeReferences: copy.linkedPlaceIds.length > 0 });
 
@@ -1003,8 +1005,274 @@ function duplicateCentralNote(
     return copy;
 }
 
+// Transient selection is independent of the note open in the editor.
+const notesBulkSelection = { context: '', ids: new Set(), order: [], anchor: null };
+
+function notesBulkContext()
+{
+    const context = state.notesContext;
+    return JSON.stringify([currentProjectId(), state.notesView, state.notesActiveCollectionId || '',
+        context?.type || '', context?.id || '']);
+}
+
+function clearNotesBulkSelection()
+{
+    notesBulkSelection.context = '';
+    notesBulkSelection.ids.clear();
+    notesBulkSelection.order = [];
+    notesBulkSelection.anchor = null;
+}
+
+function reconcileNotesBulkSelection(list)
+{
+    const context = notesBulkContext();
+    if (notesBulkSelection.context !== context) clearNotesBulkSelection();
+    notesBulkSelection.context = context;
+    notesBulkSelection.order = list.map(note => note.id);
+    const visible = new Set(notesBulkSelection.order);
+    for (const id of notesBulkSelection.ids)
+        if (!visible.has(id)) notesBulkSelection.ids.delete(id);
+    if (!visible.has(notesBulkSelection.anchor)) notesBulkSelection.anchor = null;
+}
+
+function toggleNotesBulkSelection(id, checked, range = false)
+{
+    const order = notesBulkSelection.order;
+    const index = order.indexOf(id);
+    if (index < 0) return;
+    const anchor = order.indexOf(notesBulkSelection.anchor);
+    const ids = range && anchor >= 0
+        ? order.slice(Math.min(index, anchor), Math.max(index, anchor) + 1) : [id];
+    for (const item of ids)
+        if (checked) notesBulkSelection.ids.add(item);
+        else notesBulkSelection.ids.delete(item);
+    notesBulkSelection.anchor = id;
+}
+
+function selectAllNotesBulk(checked)
+{
+    notesBulkSelection.ids = new Set(checked ? notesBulkSelection.order : []);
+    notesBulkSelection.anchor = null;
+}
+
+function captureNotesBulkAction()
+{
+    return { projectId: currentProjectId(), context: notesBulkContext(),
+        ids: notesBulkSelection.order.filter(id => notesBulkSelection.ids.has(id)) };
+}
+
+// Reject a stale action as a whole rather than mutating a newly hidden subset.
+function resolveNotesBulkAction(action)
+{
+    if (!action?.projectId || state.activeModule !== 'Notes' ||
+        currentProjectId() !== action.projectId || notesBulkContext() !== action.context ||
+        !action.ids.length) return null;
+    const visible = new Map(filteredNotes().map(note => [note.id, note]));
+    const notes = [...new Set(action.ids)].map(id => visible.get(id));
+    return notes.length && notes.every(note => note?.projectId === action.projectId) ? notes : null;
+}
+
+function notesBulkUnavailable()
+{
+    showToast(rpText('The selected records are no longer available.', 'Выбранные записи больше недоступны.'));
+}
+
+function notesBulkCountText(count)
+{
+    return rpText(count + ' selected', 'Выбрано: ' + count);
+}
+
+function renderNotesBulkBar()
+{
+    const button = (action, artwork, label, menu = false) => '<button type="button" class="control-icon-button notes-bulk-button" id="notesBulk-' +
+        action + '" data-notes-bulk-action="' + action + '" aria-label="' + escapeHtml(t(label)) +
+        '" title="' + escapeHtml(t(label)) + '"' + (menu ? ' aria-haspopup="menu" aria-expanded="false"' : '') + '>' + artwork + '</button>';
+    return '<div class="notes-bulk-bar" data-notes-bulk-bar' + (notesBulkSelection.ids.size ? '' : ' hidden') +
+        '><label class="checkbox-row notes-bulk-checkbox"><input type="checkbox" data-notes-bulk-all aria-label="' +
+        escapeHtml(t('Select all notes')) + '"></label><span data-notes-bulk-count role="status">' +
+        escapeHtml(notesBulkCountText(notesBulkSelection.ids.size)) + '</span><div class="notes-bulk-actions">' +
+        button('favorite', icon.star, 'Favourite', true) + button('collection', icon.folder, 'Manage collections') +
+        button('archive', icon.archive, 'Archive', true) + button('more', icon.more, 'More actions', true) +
+        button('clear', icon.close, 'Clear selection') + '</div></div>';
+}
+
+function syncNotesBulkControls(root = main)
+{
+    const bar = root.querySelector('[data-notes-bulk-bar]');
+    if (!bar) return;
+    const count = notesBulkSelection.ids.size;
+    bar.hidden = !count;
+    bar.querySelector('[data-notes-bulk-count]').textContent = notesBulkCountText(count);
+    const all = bar.querySelector('[data-notes-bulk-all]');
+    all.checked = count > 0 && count === notesBulkSelection.order.length;
+    all.indeterminate = count > 0 && !all.checked;
+    root.querySelectorAll('[data-note-bulk]').forEach(input =>
+    {
+        const checked = notesBulkSelection.ids.has(input.dataset.noteBulk);
+        input.checked = checked;
+        input.closest('.notes-row')?.classList.toggle('bulk-selected', checked);
+    });
+}
+
+function bindNotesBulkControls(root = main)
+{
+    const pane = root.querySelector('.notes-browser-pane');
+    if (!pane) return;
+    const bar = pane.querySelector('[data-notes-bulk-bar]');
+    if (!bar) return;
+    pane.querySelectorAll('[data-note-bulk]').forEach(input =>
+    {
+        input.addEventListener('click', event =>
+        {
+            event.stopPropagation();
+            toggleNotesBulkSelection(input.dataset.noteBulk, input.checked, event.shiftKey);
+            syncNotesBulkControls(root);
+        });
+    });
+    bar.querySelector('[data-notes-bulk-all]').addEventListener('change', event =>
+    {
+        const previous = pane.querySelector('[data-note-bulk]');
+        selectAllNotesBulk(event.target.checked);
+        syncNotesBulkControls(root);
+        if (!notesBulkSelection.ids.size) previous?.focus({ preventScroll: true });
+    });
+    bar.addEventListener('click', event =>
+    {
+        const button = event.target.closest('[data-notes-bulk-action]');
+        if (!button) return;
+        if (button.dataset.notesBulkAction === 'clear')
+        {
+            const previous = pane.querySelector('[data-note-bulk]:checked');
+            selectAllNotesBulk(false);
+            syncNotesBulkControls(root);
+            previous?.focus({ preventScroll: true });
+        }
+        else openNotesBulkAction(button.dataset.notesBulkAction, button);
+    });
+    pane.addEventListener('keydown', event =>
+    {
+        if (event.key !== 'Escape' || !notesBulkSelection.ids.size || event.defaultPrevented ||
+            modalBackdrop.classList.contains('open') || document.getElementById('projectMenu') ||
+            event.target.matches('input:not([type=checkbox]), textarea, select, [contenteditable]')) return;
+        const previous = pane.querySelector('[data-note-bulk]:checked');
+        const focusWasInBar = bar.contains(document.activeElement);
+        selectAllNotesBulk(false);
+        syncNotesBulkControls(root);
+        if (focusWasInBar) previous?.focus({ preventScroll: true });
+        event.preventDefault();
+        event.stopPropagation();
+    });
+    syncNotesBulkControls(root);
+}
+
+function openNotesBulkAction(kind, anchor)
+{
+    const action = captureNotesBulkAction();
+    const notes = resolveNotesBulkAction(action);
+    if (!notes) return notesBulkUnavailable();
+    closeMenu();
+    if (kind === 'collection') return openNoteCollectionsModal(action.ids, action);
+    const choices = kind === 'favorite' ? [
+        ['favorite-add', 'Add to favourites', notes.filter(note => !note.favorite).length],
+        ['favorite-remove', 'Remove from favourites', notes.filter(note => note.favorite).length]
+    ] : kind === 'archive' ? [
+        ['archive-add', 'Archive', notes.filter(note => !note.archived).length],
+        ['archive-remove', 'Unarchive', notes.filter(note => note.archived).length]
+    ] : [
+        ['duplicate', 'Duplicate', notes.length],
+        ['delete', 'Delete permanently', notes.length]
+    ];
+    const menu = document.createElement('div');
+    menu.className = 'menu-popover app-action-menu';
+    menu.id = 'projectMenu';
+    menu.innerHTML = choices.map(([key, label, applicable]) =>
+        '<button type="button" data-action="' + key + '"' + (key === 'delete' ? ' class="danger"' : '') +
+        (applicable ? '' : ' disabled') + '>' + escapeHtml(t(label)) + ' (' + applicable + ')</button>').join('');
+    document.body.appendChild(menu);
+    positionAnchoredActionMenu(menu, anchor);
+    menu.addEventListener('click', event =>
+    {
+        const button = event.target.closest('[data-action]');
+        if (!button || button.disabled) return;
+        const operation = button.dataset.action;
+        closeMenu();
+        anchor?.focus({ preventScroll: true });
+        if (operation === 'delete') openNotesBulkDeleteConfirm(action);
+        else applyNotesBulkAction(action, operation);
+    });
+    bindMenuLifecycle(anchor);
+}
+
+function applyNotesBulkAction(action, operation)
+{
+    const notes = resolveNotesBulkAction(action);
+    if (!notes) return notesBulkUnavailable();
+    let changed = 0;
+    let domains = ['notes'];
+    let placeReferences = false;
+    const timestamp = new Date().toISOString();
+    if (operation === 'duplicate')
+    {
+        for (const note of notes)
+        {
+            const copy = duplicateCentralNote(note.id, { projectId: action.projectId, batch: true });
+            if (!copy) continue;
+            changed++;
+            placeReferences ||= copy.linkedPlaceIds.length > 0;
+        }
+        domains = ['notes', 'sources'];
+    }
+    else
+    {
+        const fields = { 'favorite-add': ['favorite', true], 'favorite-remove': ['favorite', false],
+            'archive-add': ['archived', true], 'archive-remove': ['archived', false] };
+        const field = fields[operation];
+        if (!field) return;
+        for (const note of notes)
+        {
+            if (note[field[0]] === field[1]) continue;
+            note[field[0]] = field[1];
+            note.updatedAt = timestamp;
+            changed++;
+        }
+    }
+    if (changed)
+    {
+        markPrototypeSessionEdited(action.projectId, domains, { placeReferences });
+        renderNotesPreservingInteraction();
+    }
+    showToast(rpText('Notes affected: ' + changed, 'Изменено заметок: ' + changed));
+}
+
+function openNotesBulkDeleteConfirm(action)
+{
+    const notes = resolveNotesBulkAction(action);
+    if (!notes) return notesBulkUnavailable();
+    const count = notes.length;
+    openModal('<div class="modal" role="dialog" aria-modal="true" aria-labelledby="notesBulkDeleteTitle">' +
+        '<div class="modal-header"><div><h2 id="notesBulkDeleteTitle">' +
+        escapeHtml(rpText('Delete selected notes?', 'Удалить выбранные заметки?')) + '</h2><p>' +
+        escapeHtml(rpText('Notes to delete: ' + count, 'Заметок к удалению: ' + count)) + '</p></div>' +
+        '<button class="close-button" type="button" data-close aria-label="' + escapeHtml(t('Close')) + '">' + icon.close + '</button></div>' +
+        '<div class="modal-body"><p>' + escapeHtml(rpText('Selected notes and their linked references will be permanently removed. This cannot be undone.',
+            'Выбранные заметки и ссылки на них будут удалены без возможности восстановления.')) + '</p></div>' +
+        '<div class="modal-footer"><button type="button" class="button secondary" data-close data-modal-initial-focus>' +
+        escapeHtml(t('Cancel')) + '</button><button type="button" class="button danger" data-notes-bulk-delete-confirm>' +
+        escapeHtml(t('Delete permanently')) + '</button></div></div>');
+    modalBackdrop.querySelector('[data-notes-bulk-delete-confirm]')?.addEventListener('click', () =>
+    {
+        const current = resolveNotesBulkAction(action);
+        if (!current) return notesBulkUnavailable();
+        const deleted = deleteNotesRecords(current.map(note => note.id), action.projectId);
+        closeModal();
+        renderNotesPreservingInteraction();
+        showToast(rpText('Notes deleted: ' + deleted, 'Удалено заметок: ' + deleted));
+    });
+}
+
 function bindNotesBrowserControls()
 {
+    bindNotesBulkControls();
     bindSearchInput(
         main,
         '#notesSearch',

@@ -33,6 +33,10 @@ section navigation and scroll-state checks. Browser QA additionally covers
 content-only scrolling, stable header/footer, keyboard focus, narrow and
 very short viewport fallback, EN/RU, themes, tour and Diagnostics confirmations.
 
+## Notes bulk selection and history
+
+Run `node tests/notes/test-notes-bulk-history.cjs` alongside the existing Notes editor-retention, search and review regressions. Real browser QA covers Quill History, mixed collection decisions, responsive row actions and modal/focus lifecycle.
+
 ## Build identity verification
 
 Run `node tests/diagnostics/test-build-info.cjs`. The test uses a disposable

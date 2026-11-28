@@ -1,30 +1,19 @@
 function openNoteCollectionsModal(
-    noteId
+    noteId, bulkAction = null
 )
 {
-    const note =
-        getNote(
-            noteId,
-            {
-                includeArchived: true
-            }
-        );
-
-    if (!note)
-    {
-        return;
-    }
-
-    const projectId =
-        note.projectId;
+    const bulk = Array.isArray(noteId);
+    const notes = bulk ? resolveNotesBulkAction(bulkAction) : [getNote(noteId, { includeArchived: true })];
+    if (!notes?.length || !notes[0]) return;
+    const note = notes[0];
+    const projectId = note.projectId;
+    const pendingCollections = [];
+    const membershipCount = id => notes.filter(item => item.collectionIds.includes(id)).length;
 
     let query = '';
     let createMode = false;
 
-    const assignedCollectionIds =
-        new Set(
-            note.collectionIds || []
-        );
+    const assignedCollectionIds = new Set((note.collectionIds || []).filter(id => membershipCount(id) === notes.length));
 
     const selectedCollectionIds =
         new Set(assignedCollectionIds);
@@ -37,9 +26,7 @@ function openNoteCollectionsModal(
     };
 
     const allCollections = () =>
-        getProjectNoteCollections(
-            projectId
-        );
+        [...getProjectNoteCollections(projectId), ...pendingCollections];
 
     const collectionSearchText =
         collection =>
@@ -105,10 +92,9 @@ function openNoteCollectionsModal(
                     collection.id
                 );
 
-            const noteCount =
-                collectionNoteCount(
-                    collection
-                );
+            const noteCount = collectionNoteCount(collection);
+            const memberCount = membershipCount(collection.id);
+            const partial = bulk && !collectionDecisions.has(collection.id) && memberCount > 0 && memberCount < notes.length;
 
             return `
             <label
@@ -184,14 +170,14 @@ function openNoteCollectionsModal(
                 value="${escapeHtml(
                     collection.id
                 )}"
-                data-note-collection-picker-choice
+                data-note-collection-picker-choice ${partial ? 'data-notes-membership-partial' : ''}
                 ${
                     selected
                         ? 'checked'
                         : ''
                 }
                 ${
-                    alreadyAssigned
+                    !bulk && alreadyAssigned
                         ? 'disabled'
                         : ''
                 }
@@ -298,14 +284,11 @@ function openNoteCollectionsModal(
           <div class="modal-header">
             <div>
               <h2 id="noteCollectionPickerTitle">
-                Add to collection
+                ${escapeHtml(t(bulk ? 'Manage collections' : 'Add to collection'))}
               </h2>
 
               <p>
-                ${escapeHtml(
-                    note.title
-                  || 'Untitled note'
-                )}
+                ${escapeHtml(bulk ? notesBulkCountText(notes.length) : (note.title || 'Untitled note'))}
               </p>
             </div>
 
@@ -641,6 +624,18 @@ function openNoteCollectionsModal(
                 resultsHost
             );
             rpRefreshMembershipRows(resultsHost);
+            if (bulk) resultsHost.querySelectorAll('[data-note-collection-picker-choice]').forEach(input =>
+            {
+                input.indeterminate = input.hasAttribute('data-notes-membership-partial');
+                const row = input.closest('.album-picker-result');
+                const detail = document.createElement('span');
+                detail.className = 'album-picker-description';
+                const count = membershipCount(input.value);
+                detail.textContent = rpText(count + ' of ' + notes.length + ' selected notes assigned',
+                    'В коллекции: ' + count + ' из ' + notes.length + ' выбранных заметок');
+                row?.querySelector('.album-picker-copy')?.append(detail);
+                input.setAttribute('aria-label', (row?.querySelector('strong')?.textContent.trim() || '') + ': ' + detail.textContent);
+            });
         }
 
         refreshFooter();
@@ -791,9 +786,8 @@ function openNoteCollectionsModal(
                   .trim()
             };
 
-            sampleData.noteCollections.push(
-                collection
-            );
+            if (bulk) pendingCollections.push(collection);
+            else sampleData.noteCollections.push(collection);
 
             selectedCollectionIds.add(
                 collection.id
@@ -855,10 +849,13 @@ function openNoteCollectionsModal(
                 );
             }
 
-            if (checkbox.checked === assignedCollectionIds.has(collectionId)) collectionDecisions.delete(collectionId);
+            const initialCount = membershipCount(collectionId);
+            if ((checkbox.checked && initialCount === notes.length) || (!checkbox.checked && initialCount === 0))
+                collectionDecisions.delete(collectionId);
             else collectionDecisions.set(collectionId, checkbox.checked);
 
             refreshResults();
+            resultsHost?.querySelector('[data-note-collection-picker-choice][value="' + CSS.escape(collectionId) + '"]')?.focus({ preventScroll: true });
         }
     );
 
@@ -928,10 +925,24 @@ function openNoteCollectionsModal(
                     return;
                 }
 
-                const currentNote = getNote(note.id, { projectId, includeArchived: true });
-                if (currentProjectId() !== projectId || !currentNote
+                const currentNotes = bulk ? resolveNotesBulkAction(bulkAction) : [getNote(note.id, { projectId, includeArchived: true })];
+                if (currentProjectId() !== projectId || !currentNotes?.length || !currentNotes[0]
                     || [...collectionDecisions.keys()].some(id => !allCollections().some(collection => collection.id === id)))
-                { showToast(rpText('The selected records are no longer available.', 'Выбранные записи больше недоступны.')); return; }
+                { notesBulkUnavailable(); return; }
+                if (bulk)
+                {
+                    // Only explicitly chosen new collections are committed. Cancel never creates them.
+                    const newCollections = pendingCollections.filter(collection => collectionDecisions.get(collection.id) === true);
+                    sampleData.noteCollections.push(...newCollections);
+                    const result = applyNotesBulkCollections(currentNotes, collectionDecisions, projectId);
+                    if (result.changed || newCollections.length)
+                        markPrototypeSessionEdited(projectId, ['notes'], { placeReferences: false });
+                    closeModal();
+                    renderNotesPreservingInteraction();
+                    showToast(rpText('Notes affected: ' + result.changed, 'Изменено заметок: ' + result.changed));
+                    return;
+                }
+                const currentNote = currentNotes[0];
                 const nextIds = new Set(currentNote.collectionIds || []);
                 collectionDecisions.forEach((linked, id) => linked ? nextIds.add(id) : nextIds.delete(id));
                 const saved = setNoteCollections(

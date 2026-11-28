@@ -2993,7 +2993,8 @@ function normalizeCentralNoteIdArray(
 function renderRichTextToolbar({
     id,
     className = '',
-    ariaLabel = 'Text formatting'
+    ariaLabel = 'Text formatting',
+    historyControls = false
 } = {})
 {
     const resolvedId =
@@ -3017,6 +3018,7 @@ function renderRichTextToolbar({
                 ariaLabel
             )}">
 
+          ${historyControls ? `<span class="ql-formats notes-history-controls"><button type="button" data-notes-history="undo" aria-label="${escapeHtml(t('Undo'))}" title="${escapeHtml(t('Undo'))}" disabled>${icon.undo}</button><button type="button" data-notes-history="redo" aria-label="${escapeHtml(t('Redo'))}" title="${escapeHtml(t('Redo'))}" disabled>${icon.redo}</button></span>` : ''}
           <span class="ql-formats">
             <select
               class="ql-header"

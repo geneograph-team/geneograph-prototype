@@ -1,0 +1,3 @@
+# Design
+
+Selection is scoped by project, collection/view and linked-record context, reconciled against the complete filtered order. Checkbox actions update only selection chrome. Capture and revalidate visible project records before bulk changes, reject stale targets as a whole, and invalidate/render once. Duplicate uses existing copy semantics with navigation suppressed; delete shares single/bulk cleanup. No note-backed board node exists in the current prototype. The existing collection picker stages explicit membership decisions, including untouched partial membership, and stages new bulk collections until Save. Notes opts into shared toolbar history markup and binds Quill History directly; editor teardown removes handlers. No persistent schema changes.

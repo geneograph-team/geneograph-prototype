@@ -1572,6 +1572,30 @@ function formatNoteUpdatedAt(
     );
 }
 
+function applyNotesBulkCollections(notes, decisions, projectId)
+{
+    const validIds = new Set(getProjectNoteCollections(projectId).map(collection => collection.id));
+    let changed = 0, added = 0, removed = 0;
+    const timestamp = new Date().toISOString();
+    for (const note of notes)
+    {
+        if (note.projectId !== projectId) continue;
+        const ids = new Set(note.collectionIds);
+        let dirty = false;
+        for (const [id, linked] of decisions)
+        {
+            if (!validIds.has(id)) continue;
+            if (linked && !ids.has(id)) { ids.add(id); added++; dirty = true; }
+            else if (!linked && ids.delete(id)) { removed++; dirty = true; }
+        }
+        if (!dirty) continue;
+        note.collectionIds = [...ids];
+        note.updatedAt = timestamp;
+        changed++;
+    }
+    return { changed, added, removed };
+}
+
 function setNoteCollections(
     noteId,
     collectionIds,
@@ -1724,8 +1748,48 @@ function notesEditorContentMatches(note)
         && content.format === note.bodyFormat && content.language === state.language;
 }
 
+function bindNotesHistoryControls(instance, toolbar)
+{
+    const undo = toolbar.querySelector('[data-notes-history="undo"]');
+    const redo = toolbar.querySelector('[data-notes-history="redo"]');
+    if (!undo || !redo) return () => {};
+    const sync = () =>
+    {
+        const active = notesRichTextRuntime.instance === instance;
+        undo.disabled = !active || !instance.history.stack.undo.length;
+        redo.disabled = !active || !instance.history.stack.redo.length;
+    };
+    const preserveSelection = event => event.preventDefault();
+    const invoke = kind =>
+    {
+        if (notesRichTextRuntime.instance !== instance || !instance.history.stack[kind].length) return;
+        instance.history[kind]();
+        sync();
+    };
+    const undoClick = () => invoke('undo');
+    const redoClick = () => invoke('redo');
+    undo.addEventListener('mousedown', preserveSelection);
+    redo.addEventListener('mousedown', preserveSelection);
+    undo.addEventListener('click', undoClick);
+    redo.addEventListener('click', redoClick);
+    // Quill History processes editor-change before text-change; stack state is then current.
+    instance.on('text-change', sync);
+    sync();
+    return () =>
+    {
+        instance.off('text-change', sync);
+        undo.removeEventListener('mousedown', preserveSelection);
+        redo.removeEventListener('mousedown', preserveSelection);
+        undo.removeEventListener('click', undoClick);
+        redo.removeEventListener('click', redoClick);
+        undo.disabled = redo.disabled = true;
+    };
+}
+
 function destroyNotesRichTextEditor()
 {
+    notesRichTextRuntime.historyCleanup?.();
+    notesRichTextRuntime.historyCleanup = null;
     notesRichTextRuntime.content = null;
     const instance =
         notesRichTextRuntime
@@ -2697,6 +2761,7 @@ function initializeNotesRichTextEditorWithDiagnosticsBody(
             selectionChangeHandler
         );
 
+        notesRichTextRuntime.historyCleanup = bindNotesHistoryControls(instance, toolbar);
         notesRichTextRuntime.initializing =
             false;
     }

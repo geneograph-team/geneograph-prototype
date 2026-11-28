@@ -15,6 +15,8 @@ scrolling and short-viewport fallback). The Product tour entry in General
 and Help both use the existing tour owner. Section changes replace only
 the panel contents, retaining the dialog frame.
 
+Notes bulk selection is transient in `modules/notes/editor.js`, reconciled against the filtered browser results. The existing collection picker owns membership decisions, and `notes-model.js` owns Notes-only Quill history bindings and teardown. Single and bulk deletion share project-scoped cleanup in `search-and-dialogs.js`.
+
 ## Owners
 
 | Area | Source owner |

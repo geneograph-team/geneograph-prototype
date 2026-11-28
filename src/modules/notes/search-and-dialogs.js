@@ -372,100 +372,48 @@ function removeBoardObjectsForEntity(
     return affectedNodeIds;
 }
 
-function deleteNotePermanently(
-    noteId
-)
+function deleteNotesRecords(noteIds, projectId = currentProjectId())
 {
-    const index =
-        sampleData.notes.findIndex(
-            note =>
-                note.id === noteId
-        );
+    if (!projectId || currentProjectId() !== projectId) return 0;
+    const requested = new Set(noteIds);
+    const ids = new Set(sampleData.notes.filter(note =>
+        note.projectId === projectId && requested.has(note.id)).map(note => note.id));
+    if (!ids.size) return 0;
 
-    if (index < 0)
+    sampleData.sourceLinks = (sampleData.sourceLinks || []).filter(link =>
+        !(link.projectId === projectId && link.targetType === 'note' && ids.has(link.targetId)));
+    sampleData.notes = sampleData.notes.filter(note => note.projectId !== projectId || !ids.has(note.id));
+    for (const note of sampleData.notes)
     {
-        return;
+        if (note.projectId !== projectId || !note.relatedNoteIds?.some(id => ids.has(id))) continue;
+        note.relatedNoteIds = note.relatedNoteIds.filter(id => !ids.has(id));
     }
-
-    removeSourceLinksForTarget(
-        'note',
-        noteId
-    );
-    sampleData.notes.splice(
-        index,
-        1
-    );
-    markPrototypeSessionEdited();
-
-    sampleData.notes.forEach(
-        note =>
-        {
-            note.relatedNoteIds =
-                (
-                    note.relatedNoteIds || []
-                ).filter(
-                    relatedId =>
-                        relatedId !== noteId
-                );
-        }
-    );
-
-    sampleData.links =
-        (
-            sampleData.links || []
-        ).filter(link =>
-        {
-            const noteIsSource =
-                (
-                    link.sourceType === 'note'
-              && link.sourceId === noteId
-                )
-            || (
-                link.fromType === 'note'
-              && link.fromId === noteId
-            );
-
-            const noteIsTarget =
-                (
-                    link.targetType === 'note'
-              && link.targetId === noteId
-                )
-            || (
-                link.toType === 'note'
-              && link.toId === noteId
-            );
-
-            return (
-                !noteIsSource
-            && !noteIsTarget
-            );
-        });
-
-    if (
-        state.selectedNoteId === noteId
-    )
+    sampleData.links = (sampleData.links || []).filter(link =>
     {
-        state.selectedNoteId =
-            null;
-
-        state.notesRightCollapsed =
-            true;
-
-        state.notesMobilePane =
-            'browser';
+        if (link.projectId && link.projectId !== projectId) return true;
+        return !((link.sourceType === 'note' && ids.has(link.sourceId)) ||
+            (link.fromType === 'note' && ids.has(link.fromId)) ||
+            (link.targetType === 'note' && ids.has(link.targetId)) ||
+            (link.toType === 'note' && ids.has(link.toId)));
+    });
+    // The existing board cleanup has no note-backed node type in this prototype.
+    for (const id of ids) notesBulkSelection.ids.delete(id);
+    if (ids.has(state.selectedNoteId))
+    {
+        state.selectedNoteId = null;
+        state.notesRightCollapsed = true;
+        state.notesMobilePane = 'browser';
     }
+    markPrototypeSessionEdited(projectId, ['notes', 'sources', 'boards'], { placeReferences: true });
+    return ids.size;
+}
 
-    removeBoardObjectsForEntity(
-        'note',
-        noteId
-    );
-
+function deleteNotePermanently(noteId, projectId = currentProjectId())
+{
+    if (!deleteNotesRecords([noteId], projectId)) return;
     closeModal();
-    renderNotes();
-
-    showToast(
-        'Note deleted.'
-    );
+    renderNotesPreservingInteraction();
+    showToast('Note deleted.');
 }
 
 function openDeleteNoteModal(
@@ -558,7 +506,7 @@ function openDeleteNoteModal(
             'click',
             () =>
                 deleteNotePermanently(
-                    noteId
+                    noteId, note.projectId
                 )
         );
 }

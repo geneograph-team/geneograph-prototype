@@ -594,6 +594,7 @@ function renderApplicationShell()
 
     if (state.activeModule !== 'Notes')
     {
+        clearNotesBulkSelection();
         destroyNotesRichTextEditor();
         disconnectNotesCollectionRowsObserver();
     }
