@@ -9,3 +9,7 @@ Global settings SHALL expose General, Storage & backup, Diagnostics and About. G
 ### Requirement: Responsive content scrolling
 
 At ordinary supported viewport sizes, only the selected content panel SHALL scroll, with a stable dialog, header, navigation and footer. Section changes SHALL retain navigation focus and reset content scroll; same-section refresh SHALL preserve scroll where practical. Very short viewports SHALL provide one reachable fallback scroll owner. Keyboard users SHALL be able to focus and scroll the panel and reach all actions.
+
+### Requirement: Consistent settings presentation
+
+Settings groups SHALL use a subtle theme-adaptive surface, medium corner rounding and clear group headings. General preference selects SHALL use a consistent width on desktop and fill their control row on narrow screens. Informational rows without actions SHALL use the available width. Header and footer SHALL retain compact spacing without compromising reachability. Provider link styling and Diagnostics state presentation SHALL remain unchanged.

@@ -62,3 +62,14 @@ assert.match(css, /\.global-settings-panel\s*\{[^}]*min-height:\s*0;[^}]*overflo
 assert.match(css, /#modalBackdrop > \.modal\.global-settings-modal > \.modal-body\s*\{[^}]*overflow:\s*hidden;/s);
 assert.match(css, /@media \(max-height: 360px\), \(max-width: 840px\) and \(max-height: 480px\)/);
 console.log('Global settings markup, section navigation and scroll ownership checks passed.');
+
+assert.match(css, /\.global-settings-nav-button\s*\{[^}]*font-weight:\s*600;/s);
+assert.match(css, /\.global-settings-group > h4\s*\{[^}]*font-size:\s*14px;/s);
+assert.match(css, /\.global-settings-section\s*\{[^}]*border-radius:\s*var\(--radius-md\);[^}]*background:\s*color-mix\(in srgb, var\(--surface-card\) 96%, var\(--text-primary\)\);/s);
+assert.match(css, /\.global-settings-group \.global-settings-select-shell\s*\{[^}]*width:\s*160px;/s);
+assert.match(css, /\.global-settings-group \.global-settings-select-shell\s*\{[^}]*width:\s*100%;/s);
+assert.match(css, /\.global-settings-row > div:only-child\s*\{\s*grid-column:\s*1 \/ -1;/s);
+assert.match(css, /\.global-settings-modal > \.modal-header\s*\{\s*padding:\s*var\(--space-4\) var\(--space-6\);/s);
+assert.match(css, /\.global-settings-modal > \.modal-footer\s*\{\s*padding:\s*var\(--space-3\) var\(--space-6\) var\(--space-4\);/s);
+assert.match(css, /\.diagnostics-settings \.global-settings-select-shell\s*\{\s*width:\s*185px;/s);
+console.log('Global settings visual polish contracts passed.');

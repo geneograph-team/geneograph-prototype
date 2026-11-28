@@ -5471,6 +5471,14 @@ body.mobile-details-open .geneo-inspector [data-geneo-inspector-toggle] {
     flex: 0 0 auto;
 }
 
+.global-settings-modal > .modal-header {
+    padding: var(--space-4) var(--space-6);
+}
+
+.global-settings-modal > .modal-footer {
+    padding: var(--space-3) var(--space-6) var(--space-4);
+}
+
 #modalBackdrop > .modal.global-settings-modal > .modal-body {
     flex: 1 1 0;
     min-height: 0;
@@ -5509,7 +5517,7 @@ body.mobile-details-open .geneo-inspector [data-geneo-inspector-toggle] {
     gap: var(--space-2);
     padding: 0 var(--space-3);
     text-align: left;
-    font-weight: 800;
+    font-weight: 600;
     transition: background var(--ease), color var(--ease), border-color var(--ease);
 }
 
@@ -5569,7 +5577,7 @@ body.mobile-details-open .geneo-inspector [data-geneo-inspector-toggle] {
 .global-settings-group > h4 {
     margin: 0;
     color: var(--text-secondary);
-    font-size: 13px;
+    font-size: 14px;
     font-weight: 600;
 }
 
@@ -5580,8 +5588,8 @@ body.mobile-details-open .geneo-inspector [data-geneo-inspector-toggle] {
 
 .global-settings-section {
     border: 1px solid var(--border-default);
-    border-radius: var(--radius-lg);
-    background: var(--surface-panel-soft);
+    border-radius: var(--radius-md);
+    background: color-mix(in srgb, var(--surface-card) 96%, var(--text-primary));
     overflow: hidden;
 }
 
@@ -5752,6 +5760,10 @@ body.mobile-details-open .geneo-inspector [data-geneo-inspector-toggle] {
     .diagnostics-actions .diagnostics-discard { margin-inline-start: 0; }
 }
 
+.global-settings-row > div:only-child {
+    grid-column: 1 / -1;
+}
+
 .global-settings-row:last-child {
     border-bottom: 0;
 }
@@ -5802,8 +5814,8 @@ body.mobile-details-open .geneo-inspector [data-geneo-inspector-toggle] {
     text-align: right;
 }
 
-.global-settings-select-shell {
-    width: 220px;
+.global-settings-group .global-settings-select-shell {
+    width: 160px;
     max-width: 100%;
 }
 
