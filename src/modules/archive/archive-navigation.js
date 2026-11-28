@@ -37,13 +37,24 @@ function archiveFilePlaceIds(file)
     return archiveUniqueIds([file?.documentPlaceId, ...(file?.linkedPlaceIds || [])].filter(Boolean));
 }
 
-function archiveSetFilePlaces(file, placeIds)
+function archiveSetFilePlaces(file, placeIds, { notify = true } = {})
 {
     const ids = archiveUniqueIds(placeIds || []);
-    if (!file || ids.some(id => !getPlace(id) || getPlace(id).projectId !== file.projectId)) return false;
+    if (!file || ids.some(id =>
+    {
+        const place = getPlace(id);
+        return !place || place.projectId !== file.projectId;
+    })) return false;
     const documentPlaceId = ids.includes(file.documentPlaceId) ? file.documentPlaceId : null;
+    const relatedIds = ids.filter(id => id !== documentPlaceId);
+    const previousRelatedIds = file.linkedPlaceIds || [];
+    if ((file.documentPlaceId || null) === documentPlaceId
+        && relatedIds.length === previousRelatedIds.length
+        && relatedIds.every((id, index) => id === previousRelatedIds[index])) return true;
+
     archiveApplyDocumentPlace(file, documentPlaceId, ids);
     file.updatedAt = new Date().toISOString();
+    if (notify) markPrototypeSessionEdited(file.projectId, ['archive']);
     return true;
 }
 

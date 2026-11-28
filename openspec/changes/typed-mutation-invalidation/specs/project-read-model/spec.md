@@ -19,6 +19,12 @@ The prototype SHALL notify the read model before a consumer reads a successful t
 - **WHEN** an Archive connection batch is rejected or a later write fails
 - **THEN** the batch leaves prior canonical references and timestamps available and does not publish a successful edit notification
 
+#### Scenario: Single-file Archive Place picker
+
+- **WHEN** the Archive picker commits changed links to existing Places for one file
+- **THEN** the file's project receives one Archive notification, the dirty revision advances once, and any Keep decision for a newly linked Place expires
+- **AND** a canceled, invalid or unchanged selection leaves the original references, timestamp and dirty revision intact
+
 ### Requirement: Linked Place dismissal expiry
 
 The prototype SHALL expire a Keep decision when a committed authored reference links that Place. A scoped check SHALL preserve unrelated decisions, including decisions belonging to other projects.

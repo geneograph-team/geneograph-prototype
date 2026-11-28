@@ -546,7 +546,7 @@ function archiveSetConnection(
         if (!shouldLink && !currentIds.includes(entityId)) return false;
         if (!archiveSetFilePlaces(file, shouldLink
             ? [...currentIds, entityId]
-            : currentIds.filter(id => id !== entityId))) return false;
+            : currentIds.filter(id => id !== entityId), { notify: false })) return false;
     }
     else
     {

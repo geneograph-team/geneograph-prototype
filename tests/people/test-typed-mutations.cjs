@@ -39,6 +39,12 @@ vm.runInContext(read('core/bootstrap.js').split('function prototypeSessionBefore
 const actions = read('shared/shared-actions.js');
 vm.runInContext(actions.slice(actions.indexOf('function normalizeCentralNoteIdArray'),
     actions.indexOf('function renderRichTextToolbar')), context);
+const navigation = read('modules/archive/archive-navigation.js');
+vm.runInContext(navigation.slice(navigation.indexOf('function archiveFilePlaceIds'),
+    navigation.indexOf('function archiveFilterCollator')), context);
+const dialogs = read('modules/archive/archive-link-dialogs.js');
+vm.runInContext(dialogs.slice(dialogs.indexOf('function openArchiveFilePlacesModal'),
+    dialogs.indexOf('function openArchiveFilesPlaceModal')), context);
 
 const run = code => vm.runInContext(code, context);
 run(`
@@ -192,6 +198,53 @@ assert.equal(person.meta.updated, 'Just now');
 assert.equal(rendered, 1);
 assert.equal(revision(), 8);
 checkNotifications('a:events,people');
+
+const archivePlace = { id: 'archive-place', projectId: 'a', name: 'Archive Place' };
+const otherPlace = { id: 'other-place', projectId: 'b', name: 'Other Place' };
+sampleData.places.push(archivePlace, otherPlace);
+sampleData.placeIssues.push({ type: 'unlinked', projectId: 'a', placeId: archivePlace.id });
+file.documentPlaceId = place.id;
+file.linkedPlaceIds = [];
+let picker;
+const openNotesPlacesModal = options => { picker = options.linkContext; };
+const renderArchive = () => {};
+const rpApplyConnectionChanges = (ids, context) => [...ids, ...context.changes.addedIds];
+const readModel = acquireProjectReadModel('a');
+const retainedPeople = projectPeopleIndex(readModel);
+const placesRevision = readModel.revisionToken(['places']);
+const build = () => file.linkedPlaceIds.slice();
+const retainedArchive = readModel.read('test:archive', ['archive'], build);
+openArchiveFilePlacesModal(file.id);
+assert.equal(revision(), 8);
+assert.equal(picker.onSave([otherPlace.id]), false);
+assert.equal(revision(), 8);
+checkNotifications();
+assert.equal(picker.onSave([], { changes: { addedIds: [archivePlace.id] } }), true);
+checkNotifications('a:archive');
+assert.equal(revision(), 9);
+assert.equal(file.documentPlaceId, place.id);
+assert.equal(file.linkedPlaceIds.join(), archivePlace.id);
+assert.equal(sampleData.placeIssues.map(issue => issue.placeId).join(), 'keep-a,keep-b');
+assert.notEqual(readModel.read('test:archive', ['archive'], build), retainedArchive);
+assert.equal(projectPeopleIndex(readModel), retainedPeople);
+assert.equal(readModel.revisionToken(['places']), placesRevision);
+const savedAt = file.updatedAt;
+assert.ok(savedAt);
+assert.equal(picker.onSave([place.id, archivePlace.id]), true);
+assert.equal(file.updatedAt, savedAt);
+assert.equal(revision(), 9);
+checkNotifications();
+assert.equal(archiveSetConnection('file', file.id, 'place', place.id, false), true);
+checkNotifications('a:archive');
+assert.equal(revision(), 10);
+assert.equal(file.documentPlaceId, null);
+assert.equal(file.linkedPlaceIds.join(), archivePlace.id);
+assert.equal(archiveSetConnectionsAtomically([
+    { ownerType: 'file', ownerId: file.id, entityType: 'place', entityId: archivePlace.id, shouldLink: false },
+    { ownerType: 'file', ownerId: file.id, entityType: 'place', entityId: place.id }
+]).changedCount, 2);
+checkNotifications('a:archive');
+assert.equal(revision(), 11);
 `);
 assert.equal(edited, 1);
 console.log('Typed mutation boundaries: Notes, sources, Archive success/rollback, derived changes, dismissals and project switching passed.');
