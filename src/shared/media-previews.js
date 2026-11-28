@@ -136,6 +136,32 @@ function createMediaPreviewRuntime(policy)
         return victim !== undefined && detach(victim);
     }
 
+    // Keep only the encoded size of a blocked derivative. Check that enough bytes
+    // and an entry can be reclaimed before reopening its source.
+    function canFit(bytes)
+    {
+        if (bytes > policy.bytes) return false;
+        let entries = cache.size;
+        let total = encodedBytes + bytes;
+        if (entries < policy.entries && total <= policy.bytes) return true;
+        for (const [key, entry] of cache)
+        {
+            const holders = leases.get(key);
+            if (holders && [...holders].some(element => !offscreen(element))) continue;
+            entries--;
+            total -= entry.bytes;
+            if (entries < policy.entries && total <= policy.bytes) return true;
+        }
+        return false;
+    }
+
+    function waitForCacheRoom(target)
+    {
+        if (target.requiredCacheBytes === undefined || canFit(target.requiredCacheBytes)) return false;
+        target.blocked = true;
+        return true;
+    }
+
     function makeRoom(bytes, layout)
     {
         if (bytes > policy.bytes) return false;
@@ -187,7 +213,7 @@ function createMediaPreviewRuntime(policy)
             queue.delete(target.element);
             return;
         }
-        if (queue.has(target.element) || runningJob?.target === target) return;
+        if (queue.has(target.element) || runningJob?.target === target || waitForCacheRoom(target)) return;
         if (queue.size >= (policy.pending ?? Infinity))
         {
             const far = (target.inViewport || focused(target)) && [...queue.values()].find(item => !item.inViewport && !focused(item));
@@ -203,8 +229,8 @@ function createMediaPreviewRuntime(policy)
 
     function wakeBlocked()
     {
-        const waiting = [...targets.values()].filter(target => target.blocked && target.visible);
-        waiting.sort((a, b) => Number(b.inViewport) - Number(a.inViewport));
+        const waiting = [...targets.values()].filter(target => target.blocked && (target.visible || focused(target)));
+        waiting.sort((a, b) => Number(focused(b)) - Number(focused(a)) || Number(b.inViewport) - Number(a.inViewport));
         for (const target of waiting) enqueue(target);
     }
 
@@ -278,8 +304,14 @@ function createMediaPreviewRuntime(policy)
             const record = records.get(target.file.id);
             if (record && target.element.isConnected) track(target.element, record, target.layout);
         }
+        const previousEntries = cache.size;
         for (const [key, entry] of cache)
             if (changed(entry)) release(key, policy.layout());
+        if (cache.size < previousEntries)
+        {
+            wakeBlocked();
+            schedule();
+        }
         metrics(policy.layout());
     }
 
@@ -452,6 +484,8 @@ function createMediaPreviewRuntime(policy)
             return;
         }
 
+        if (waitForCacheRoom(target)) { schedule(); return; }
+
         const job = runningJob = { target, cancel: null };
         mediaPreviewGenerating = true;
         const observation = policy.begin(layout, 'thumbnail', 'derived');
@@ -513,7 +547,8 @@ function createMediaPreviewRuntime(policy)
             if (job.canceled || !targetCurrent(target)) return;
             if (!makeRoom(blob.size, policy.valid(observation) ? layout : null))
             {
-                target.blocked = blob.size <= policy.bytes;
+                target.requiredCacheBytes = blob.size;
+                target.blocked = true;
                 return;
             }
             cache.set(key, { file, source, sizeBytes: file.sizeBytes,

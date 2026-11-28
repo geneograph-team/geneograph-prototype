@@ -446,6 +446,42 @@ const runTests = (async () =>
         context.visible = visible;
         run('albumsPreviewRuntime.observer.callback([{ target: element, isIntersecting: visible }])');
     }
+    blobBytes = 6 * 1024 * 1024;
+    const protectedA = albumHost(albumPhoto('protected-a'));
+    const protectedB = albumHost(albumPhoto('protected-b'));
+    albumVisible(protectedA, true);
+    albumVisible(protectedB, true);
+    await flushFrame();
+    await flushFrame();
+    assert.ok(protectedA.img && protectedB.img);
+    blobBytes = 11 * 1024 * 1024;
+    const pressurePhoto = albumPhoto('blocked-by-leases');
+    const blockedHost = albumHost(pressurePhoto);
+    const attempts = () => opened.filter(source => source === pressurePhoto.src).length;
+    albumVisible(blockedHost, true);
+    await flushFrame();
+    assert.equal(attempts(), 1);
+    assert.equal(blockedHost.img, null);
+    for (let frame = 0; frame < 4; frame++) await flushFrame();
+    assert.equal(attempts(), 1, 'unchanged cache pressure must not reopen the source');
+    assert.equal(frames.size, 0, 'the blocked target leaves the frame scheduler idle');
+
+    albumVisible(protectedA, false);
+    albumVisible(blockedHost, true);
+    await flushFrame();
+    assert.equal(attempts(), 1, 'an evictable lease that frees too few bytes must not trigger generation');
+    assert.equal(blockedHost.img, null);
+    albumVisible(protectedB, false);
+    await flushFrame();
+    assert.equal(attempts(), 2, 'retry once when enough cache bytes can be reclaimed');
+    assert.ok(blockedHost.img, 'generation resumes when capacity becomes available');
+
+    state.activeModule = 'People';
+    run('albumsPreviewRuntime.lifecycle()');
+    state.activeModule = 'Albums';
+    run('albumsPreviewRuntime.lifecycle()');
+    blobBytes = 100;
+
     const a = albumPhoto('a');
     const oldHost = albumHost(a);
     albumVisible(oldHost, true);

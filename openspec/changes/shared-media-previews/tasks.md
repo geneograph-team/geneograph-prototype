@@ -9,3 +9,7 @@ Hosted English/dark desktop and direct-file Russian/light at 780 px verified der
 The matched Archive comparison used 158 records and 246,473,364 logical bytes in hosted English Edge. The baseline served the pre-extraction Archive adapter on the same application and fixture. Three Icons-to-Image switches measured 56.0 / 48.8 / 53.3 ms before and 22.8 / 14.1 / 18.5 ms after. Image-to-Icons measured 243.6 / 276.8 / 248.6 ms before and 51.3 / 70.9 / 66.5 ms after. Both paths awaited derivative availability between switches. A separate hosted tagging regression passed multiple commits, face-area editing and Albums primary-photo removal confirmation and cancellation.
 
 The founder's imported media and its source variability, and a browser pass covering every edit, crop, missing-source and mobile gesture remain pending. The in-memory fixture reused encoded data and does not establish behavior on all independent originals, paint latency or resident memory.
+
+## Cache-pressure follow-up
+
+The shared scheduler records the encoded size of a cache-blocked derivative and checks both entry and byte capacity before retrying. The retry check includes reclaimable entries and respects protected leases. The deterministic Albums regression reproduced five source opens across five frames before the fix. After the fix it observed one initial attempt, no additional attempt while capacity was unchanged or insufficient, and exactly one successful retry once both leases became evictable. Albums, Archive, and Diagnostics regressions passed.
