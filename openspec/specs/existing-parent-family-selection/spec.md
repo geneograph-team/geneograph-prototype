@@ -14,7 +14,7 @@ When connecting an existing Parent to a child, the UI SHALL present that parent'
 - **THEN** neither family is silently selected and Connect requires a choice
 
 ### Requirement: Validate all intended parent links
-The connection SHALL validate the chosen parent and any additionally selected parent for relationship cycles, duplicate links and biological constraints before mutation. A parent-only choice SHALL NOT attach the parent's partner.
+The connection SHALL validate all chosen parent links before mutation for cycles, duplicate links, project ownership, biological parent count and role conflicts. A parent-only choice SHALL NOT attach the parent's partner. The selected type SHALL apply to every explicitly selected parent. When adding a partner as parent to the existing children of the unique single-parent family, inherit each child's recorded type from the existing parent. When a new parent is added to a unique eligible existing family, the selected child receives the chosen type and other existing children inherit the recorded type of the existing parent. Reject conflicting proposed links without partial writes. Existing ambiguous or non-biological parentage is not automatically rewritten. Parentage edits to Biological SHALL validate the same biological constraints. Preserve explicit source-family role hints in sibling isolation and explicit Add father/mother roles in possible-match links.
 
 #### Scenario: Co-parent is already linked
 - **WHEN** the child already has a link to the other parent in the chosen family

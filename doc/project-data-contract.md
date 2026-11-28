@@ -6,6 +6,8 @@ A project owns the records listed by PROJECT_OWNED_COLLECTIONS in src/core/valid
 
 A Family Tree family is identified by its own ID. partnerAId and partnerBId identify its members, with an empty slot for a one-parent family. childIds records memberships. parentChildTypes records the type of each parent-child link. Partner role hints support display and placement. A pair of partners can belong to more than one family record. A child can belong to several families, and neither case implies that records should be merged. Family events carry relationship dates and places. The recorded marriage event stores the marriage type in its typeLabel. Timeline rows display recorded events and facts.
 
+Relationship creation and connection commands validate all intended parent-child links before writing membership. The selected parentage type applies to explicitly selected links; when a partner joins a single-parent family as a parent, inherit the existing parent's recorded type individually for each child. When Add parent uses the unique eligible existing family, apply the selected type to the selected child and inherit recorded types for the other children; multiple eligible families use a separate parent-only family. Partner-only mode does not add child links. Preserve explicit father/mother role hints and genuinely Unknown parentage; do not retroactively rewrite existing parentage. Edits to Biological check biological-parent count and role conflicts. See [existing-parent family selection](../openspec/specs/existing-parent-family-selection/spec.md) for behavior.
+
 ## Stored records and derived views
 
 | Record | Contract |
