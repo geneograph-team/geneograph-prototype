@@ -5,7 +5,7 @@
 - [x] Repeat the same stress-project workload and verify provider freshness, reuse, ownership and representative failure and rollback with automated regressions.
 - [x] Verify patched browser flows for People and Profile, Places, Notes, Albums and Archive. Check Geneograph matching and project isolation in the stress harness.
 - [x] Audit and verify single-file Archive Place commits, transactional callers and Keep dismissal expiry.
-- [ ] Complete founder acceptance and any remaining manual checks before archiving.
+- [x] Founder acceptance received on 28 November 2026; remaining integrated checks delegated to #460.
 
 ## Matched browser measurements
 
@@ -37,3 +37,7 @@ The full deployed map/geocoder path and comprehensive keyboard coverage were out
 The regression reproduced a successful single-file picker write with zero notifications. Existing Place additions and removals now notify the file owner's Archive domain once and check authored Place references. The file's document Place is preserved while still selected. Validation failures and unchanged saves leave the timestamp and edit revision alone. The direct unlink, shared Archive picker and bulk writes use the existing atomic boundary. The nested setter defers notification to that boundary, which also records Places if its caller creates a Place as part of the commit. A new Place opened and saved separately in Places is its own commit.
 
 The focused regression verifies the picker callback, exact domain and dirty revision, preserved People and Places state, expiry of the linked Keep decision, rejection of a foreign Place, repeated saves, direct unlink and a two-write Archive transaction. Local HTTP Chromium QA kept a new unlinked Place, linked it to one Whiskerfield Archive file via the keyboard-operable picker, and saw the connected file count rise to one. Removing the link in the same picker restored the unlinked review card and preserved the existing document Place. Discarding a staged re-link left the original link count intact. No console errors were reported in the checked window. This follow-up used existing saved Places in the picker and did not exercise remote geocoding.
+
+## Founder acceptance — 28 November 2026
+
+Founder explicitly accepts #474 at `f5958eb38d7ef2e554b446b981ef2a7f57850bd4` after the Archive Place picker follow-up. Review independently exercised the actual Archive setter, coordinator and dirty boundary in an isolated JavaScript harness, with Place-reference scanning and unload callbacks stubbed: cross-project rejection, one scoped commit, retained unrelated projections, unchanged save and deferred nested notification passed. Other automated/browser coverage above is implementation-reported; no further native/browser tests were run at archival closeout. Remaining imported evidence-density, deployed map/geocoder, comprehensive keyboard and cross-module lifecycle/interaction coverage belongs to #460. The earlier 3.9-second task remains unattributed; no universal latency claim or further person-save optimization is approved. Conservative legacy paths remain intentional. Acceptance does not imply every manual case was executed.
