@@ -19,6 +19,7 @@ const RU_UI_SHARED = Object.freeze({
     'Basic': 'Базовый',
     'Detailed': 'Подробный',
     'Operation durations and outcomes.': 'Длительность и результаты операций.',
+    'Operation durations, outcomes, available stage timings and counters.': 'Длительность и результаты операций, доступные замеры этапов и счётчики.',
     'Also includes available stage timings and counters.': 'Также включает доступные замеры этапов и счётчики.',
     'Recorded operations': 'Записано операций',
     'Ready to record': 'Готово к записи',

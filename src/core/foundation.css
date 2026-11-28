@@ -5551,61 +5551,99 @@ body.mobile-details-open .geneo-inspector [data-geneo-inspector-toggle] {
     color: var(--text-secondary);
 }
 
+.diagnostics-configuration {
+    display: grid;
+    gap: var(--space-3);
+    padding: var(--space-3) var(--space-4);
+}
+
+.diagnostics-settings .global-settings-row {
+    min-height: 0;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 185px);
+    gap: var(--space-3);
+    padding: 0;
+    border: 0;
+    color: var(--text-primary);
+    font-size: 14px;
+    font-weight: 600;
+}
+.diagnostics-settings .global-settings-select-shell { width: 185px; }
+.diagnostics-settings .common-select { font-size: 14px; }
+
 .diagnostics-modules {
+    display: block;
     margin: 0;
     border: 0;
-    padding: var(--space-2) var(--space-4) var(--space-3);
+    border-radius: var(--radius-sm);
+    background: var(--surface-raised);
+    padding: var(--space-2) var(--space-3);
     min-width: 0;
 }
 
 .diagnostics-settings [hidden] { display: none !important; }
 .diagnostics-module-actions {
     display: flex;
+    align-items: center;
     justify-content: flex-end;
     flex-wrap: wrap;
-    gap: var(--space-3);
-    margin-bottom: var(--space-2);
+    gap: var(--space-2);
+    margin-bottom: var(--space-1);
+    font-size: 13px;
 }
+.diagnostics-modules-caption {
+    margin-inline-end: auto;
+    color: var(--text-secondary);
+    font-weight: 600;
+}
+.diagnostics-module-actions .text-action { min-height: 28px; font-size: 13px; }
 .diagnostics-module-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
-    gap: var(--space-1) var(--space-3);
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 118px), 1fr));
+    gap: var(--space-1) var(--space-2);
 }
 .diagnostics-modules .checkbox-row {
     display: flex;
     align-items: center;
     gap: var(--space-2);
-    min-height: 36px;
+    margin: 0;
+    min-width: 0;
+    min-height: 32px;
+    font-size: 14px;
+    line-height: 1.35;
+    overflow-wrap: anywhere;
     cursor: pointer;
 }
-.diagnostics-modules .checkbox-row input { width: 18px; height: 18px; flex: none; }
-.diagnostics-hint { margin: var(--space-2) 0 0; }
-.diagnostics-settings .global-settings-row {
-    grid-template-columns: minmax(0, 1fr) minmax(0, 220px);
-}
-.diagnostics-explanation {
-    display: grid;
-    gap: var(--space-1);
-    padding: var(--space-3) var(--space-4);
+.diagnostics-modules .checkbox-row input { width: 18px; height: 18px; flex: none; margin: 0; }
+.diagnostics-modules:disabled .checkbox-row { cursor: default; }
+.diagnostics-mode-copy { display: grid; gap: var(--space-1); min-width: 0; }
+.diagnostics-settings .field-help {
     color: var(--text-secondary);
-    line-height: 1.45;
+    font-size: 13px;
+    font-weight: 400;
+    line-height: 1.4;
 }
-.diagnostics-explanation p, .diagnostics-status p { margin: 0; }
-.diagnostics-explanation strong, .diagnostics-status-heading, .diagnostics-metrics strong {
-    color: var(--text-primary);
-}
+.diagnostics-mode-copy p, .diagnostics-status p { margin: 0; }
+.diagnostics-hint { margin: var(--space-1) 0 0; }
+
 .diagnostics-status {
     display: grid;
     gap: var(--space-2);
     border-top: 1px solid var(--surface-row-divider);
-    padding: var(--space-4) var(--space-4) 0;
+    padding: var(--space-3) var(--space-4);
 }
-.diagnostics-status-heading { display: flex; align-items: center; gap: var(--space-2); }
+.diagnostics-status-heading {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    font-size: 15px;
+    color: var(--text-primary);
+}
+.diagnostics-status-heading strong { font-weight: 600; }
 .diagnostics-status-heading > span {
     display: inline-grid;
     place-items: center;
-    width: 12px;
-    height: 12px;
+    width: 8px;
+    height: 8px;
     border-radius: 50%;
     background: var(--gg-status-neutral-accent);
     flex: none;
@@ -5620,24 +5658,42 @@ body.mobile-details-open .geneo-inspector [data-geneo-inspector-toggle] {
 .diagnostics-status-heading svg { width: 14px; height: 14px; }
 .diagnostics-metrics {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(145px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 145px), 1fr));
     gap: var(--space-3);
     color: var(--text-secondary);
     font-size: 13px;
-    line-height: 1.45;
-    padding-block: var(--space-2);
+    line-height: 1.4;
 }
 .diagnostics-metrics > div { display: grid; align-content: start; gap: var(--space-1); }
-.diagnostics-metrics strong { font-size: 26px; font-variant-numeric: tabular-nums; }
-.diagnostics-warning, .diagnostics-warning strong { color: var(--gg-status-warning-accent); }
+.diagnostics-metrics strong { color: var(--text-primary); font-size: 24px; line-height: 1.2; font-variant-numeric: tabular-nums; }
+.diagnostics-warning, .diagnostics-warning strong, .diagnostics-settings .field-help.diagnostics-warning { color: var(--gg-status-warning-accent); }
 .diagnostics-actions {
     display: flex;
+    align-items: center;
     flex-wrap: wrap;
     gap: var(--space-2);
-    padding: var(--space-3) var(--space-4);
+    padding-top: var(--space-1);
+}
+.diagnostics-actions .button {
+    gap: var(--space-2);
+    font-size: 14px;
+    font-weight: 600;
+    letter-spacing: normal;
+    max-width: 100%;
+    white-space: normal;
+}
+.diagnostics-actions .button:disabled,
+.diagnostics-actions .button:disabled:hover {
+    background: var(--gg-disabled-surface);
+    color: var(--gg-disabled-text);
+    border-color: var(--border-default);
+    cursor: not-allowed;
+    transform: none;
+    filter: none;
+    box-shadow: none;
 }
 .diagnostics-actions svg { width: 18px; height: 18px; flex: none; }
-.diagnostics-actions .diagnostics-discard { color: var(--gg-status-error-accent); margin-inline-start: auto; }
+.diagnostics-actions .diagnostics-discard { color: var(--gg-status-error-accent); margin-inline-start: auto; border-color: transparent; }
 @media (max-width: 540px) {
     .diagnostics-settings .global-settings-row { grid-template-columns: minmax(0, 1fr); gap: var(--space-2); }
     .diagnostics-settings .global-settings-select-shell { width: 100%; }

@@ -1258,6 +1258,12 @@ function diagnosticsStartFresh(recording, confirmed = false)
     return started;
 }
 
+function diagnosticsModeDescription(mode)
+{
+    return mode === 'basic' ? 'Operation durations and outcomes.'
+        : 'Operation durations, outcomes, available stage timings and counters.';
+}
+
 function diagnosticsSettingsMarkup()
 {
     const config = appPerf.settings();
@@ -1267,43 +1273,41 @@ function diagnosticsSettingsMarkup()
         '<option value="' + value + '"' + (selected ? ' selected' : '') + '>' + label(text) + '</option>';
     const select = (id, options) =>
         '<span class="common-select-shell global-settings-select-shell"><select class="common-select" id="'
-        + id + '" ' + disabled + '>' + options + '</select><span class="common-select-chevron" aria-hidden="true">'
+        + id + '"' + (id === 'diagnosticsMode' ? ' aria-describedby="diagnosticsModeDescription"' : '') + ' ' + disabled + '>' + options + '</select><span class="common-select-chevron" aria-hidden="true">'
         + icon.chevron + '</span></span>';
     const button = (action, style, artwork, text) => '<button class="button ' + style
         + '" type="button" data-performance-' + action + ' hidden>' + artwork + label(text) + '</button>';
     return '<h3>' + label('Diagnostics') + '</h3>'
         + '<p>' + label('Record anonymous application timings locally. Export manually; no genealogy data is included.') + '</p>'
-        + '<div class="global-settings-section diagnostics-settings" data-diagnostics-settings>'
+        + '<div class="global-settings-section diagnostics-settings" data-diagnostics-settings><div class="diagnostics-configuration">'
         + '<div class="global-settings-row"><label for="diagnosticsScope">' + label('Recording scope') + '</label>'
         + select('diagnosticsScope', option('all', 'Entire application', config.scope === 'all')
             + option('selected', 'Selected modules', config.scope === 'selected')) + '</div>'
         + '<fieldset class="diagnostics-modules" aria-label="' + label('Selected modules') + '" data-diagnostics-modules ' + (config.scope === 'all' ? 'hidden' : '') + ' ' + disabled + '>'
-        + '<div class="diagnostics-module-actions"><button type="button" class="text-action" data-diagnostics-all>'
+        + '<div class="diagnostics-module-actions"><span class="diagnostics-modules-caption">' + label('Modules') + '</span><button type="button" class="text-action" data-diagnostics-all>'
         + label('Select all') + '</button><button type="button" class="text-action" data-diagnostics-none>'
         + label('Unselect all') + '</button></div><div class="diagnostics-module-grid">'
         + appPerf.selectableModules.map(module => '<label class="checkbox-row"><input type="checkbox" data-diagnostics-module value="' + escapeHtml(module)
             + '" ' + (config.modules.includes(module) ? 'checked' : '') + '>' + label(module) + '</label>').join('')
         + '</div><p class="field-help diagnostics-hint" data-diagnostics-hint hidden>' + label('Select at least one module to start recording.') + '</p></fieldset>'
-        + '<div class="global-settings-row"><label for="diagnosticsMode">' + label('Recording mode') + '</label>'
+        + '<div class="global-settings-row"><div class="diagnostics-mode-copy"><label for="diagnosticsMode">' + label('Recording mode') + '</label>'
+        + '<p class="field-help" id="diagnosticsModeDescription">' + label(diagnosticsModeDescription(config.mode)) + '</p></div>'
         + select('diagnosticsMode', option('basic', 'Basic', config.mode === 'basic')
-            + option('detailed', 'Detailed', config.mode === 'detailed')) + '</div>'
-        + '<div class="diagnostics-explanation field-help">'
-        + '<p><strong>' + label('Basic') + ':</strong> ' + label('Operation durations and outcomes.') + '</p>'
-        + '<p><strong>' + label('Detailed') + ':</strong> ' + label('Also includes available stage timings and counters.') + '</p></div>'
+            + option('detailed', 'Detailed', config.mode === 'detailed')) + '</div></div>'
         + '<div class="diagnostics-status">'
         + '<div class="diagnostics-status-heading" role="status"><span data-performance-indicator aria-hidden="true"></span><strong data-performance-status></strong></div>'
-        + '<p class="field-help" data-performance-description></p>'
         + '<div class="diagnostics-metrics" data-performance-metrics hidden>'
         + '<div><span>' + label('Operations recorded') + '</span><strong data-performance-count></strong></div>'
         + '<div data-performance-drop-metric><span>' + label('Dropped operations') + '</span><strong data-performance-dropped></strong></div></div>'
-        + '<p class="field-help diagnostics-warning" data-performance-warning hidden>' + label('The recording buffer is full. Older operations have been replaced.') + '</p></div>'
+        + '<p class="field-help diagnostics-warning" data-performance-warning hidden>' + label('The recording buffer is full. Older operations have been replaced.') + '</p>'
+        + '<p class="field-help" data-performance-description></p>'
         + '<div class="diagnostics-actions">'
         + button('start', 'primary', icon.play, 'Start recording')
         + button('stop', 'danger-filled', icon.stopSquare, 'Stop recording')
         + button('export', 'primary', icon.download, 'Export recording')
         + button('new', 'secondary', icon.play, 'New recording')
         + button('clear', 'ghost diagnostics-discard', icon.trash, 'Discard recording')
-        + '</div></div>';
+        + '</div></div></div>';
 }
 
 function bindDiagnosticsSettings(root)
@@ -1338,6 +1342,7 @@ function bindDiagnosticsSettings(root)
         const status = appPerf.status(), config = appPerf.settings(), view = diagnosticsView(status, config);
         scope.value = config.scope;
         mode.value = config.mode;
+        updateText(q('#diagnosticsModeDescription'), t(diagnosticsModeDescription(config.mode)));
         scope.disabled = mode.disabled = moduleFields.disabled = status.active;
         moduleInputs.forEach(input => { input.checked = config.modules.includes(input.value); });
         moduleFields.hidden = config.scope === 'all';
