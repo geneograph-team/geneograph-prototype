@@ -189,7 +189,14 @@ vm.runInContext(shellSource.slice(shellSource.indexOf('function diagnosticsView(
 vm.runInContext(`
 assert.equal(appPerf.settings().modules.length, 0);
 assert.equal(diagnosticsView(appPerf.status(), appPerf.settings()).heading, 'Ready to record');
-assert.equal((diagnosticsSettingsMarkup().match(/data-diagnostics-module value=/g) || []).length, appPerf.modules.length);
+assert.equal((diagnosticsSettingsMarkup().match(/data-diagnostics-module value=/g) || []).length, 8);
+assert.equal(diagnosticsSettingsMarkup().includes('value="Publish"'), false);
+assert.equal(diagnosticsSettingsMarkup().includes('<legend>'), false);
+assert.equal(diagnosticsSettingsMarkup().includes('aria-label="Selected modules"'), true);
+assert.equal(appPerf.modules.includes('Publish'), true);
+appPerf.configure({ scope: 'selected', modules: ['Publish'] });
+assert.equal(appPerf.settings().modules.length, 0);
+assert.equal(appPerf.start(), false);
 appPerf.configure({ scope: 'selected', modules: [] });
 assert.equal(diagnosticsStartFresh(appPerf.status().recording), false);
 appPerf.configure({ modules: ['Archive'] });
@@ -324,7 +331,7 @@ const get = selector =>
     if (!elements.has(selector)) elements.set(selector, node());
     return elements.get(selector);
 };
-const modules = appPerf.modules.map(node);
+const modules = appPerf.selectableModules.map(node);
 const panel = { isConnected: true, querySelector: get, querySelectorAll: () => modules };
 const root = { classList: { contains: () => true }, querySelector: () => panel };
 const modalBackdrop = { querySelector: () => get('[data-diagnostics-confirm]') };
@@ -340,7 +347,9 @@ change('#diagnosticsScope');
 assert.equal(button('start').disabled, true);
 assert.equal(get('[data-diagnostics-hint]').hidden, false);
 click('[data-diagnostics-all]');
-assert.equal(appPerf.settings().modules.length, appPerf.modules.length);
+assert.equal(appPerf.settings().modules.length, 8);
+assert.equal(appPerf.settings().modules.includes('Publish'), false);
+assert.equal(get('[data-diagnostics-all]').disabled, true);
 assert.equal(get('[data-diagnostics-hint]').hidden, true);
 click('[data-diagnostics-none]');
 assert.equal(appPerf.settings().modules.length, 0);

@@ -1277,12 +1277,11 @@ function diagnosticsSettingsMarkup()
         + '<div class="global-settings-row"><label for="diagnosticsScope">' + label('Recording scope') + '</label>'
         + select('diagnosticsScope', option('all', 'Entire application', config.scope === 'all')
             + option('selected', 'Selected modules', config.scope === 'selected')) + '</div>'
-        + '<fieldset class="diagnostics-modules" data-diagnostics-modules ' + (config.scope === 'all' ? 'hidden' : '') + ' ' + disabled + '>'
-        + '<legend>' + label('Selected modules') + '</legend>'
+        + '<fieldset class="diagnostics-modules" aria-label="' + label('Selected modules') + '" data-diagnostics-modules ' + (config.scope === 'all' ? 'hidden' : '') + ' ' + disabled + '>'
         + '<div class="diagnostics-module-actions"><button type="button" class="text-action" data-diagnostics-all>'
         + label('Select all') + '</button><button type="button" class="text-action" data-diagnostics-none>'
         + label('Unselect all') + '</button></div><div class="diagnostics-module-grid">'
-        + appPerf.modules.map(module => '<label class="checkbox-row"><input type="checkbox" data-diagnostics-module value="' + escapeHtml(module)
+        + appPerf.selectableModules.map(module => '<label class="checkbox-row"><input type="checkbox" data-diagnostics-module value="' + escapeHtml(module)
             + '" ' + (config.modules.includes(module) ? 'checked' : '') + '>' + label(module) + '</label>').join('')
         + '</div><p class="field-help diagnostics-hint" data-diagnostics-hint hidden>' + label('Select at least one module to start recording.') + '</p></fieldset>'
         + '<div class="global-settings-row"><label for="diagnosticsMode">' + label('Recording mode') + '</label>'
@@ -1342,7 +1341,7 @@ function bindDiagnosticsSettings(root)
         scope.disabled = mode.disabled = moduleFields.disabled = status.active;
         moduleInputs.forEach(input => { input.checked = config.modules.includes(input.value); });
         moduleFields.hidden = config.scope === 'all';
-        all.disabled = status.active || config.modules.length === appPerf.modules.length;
+        all.disabled = status.active || config.modules.length === appPerf.selectableModules.length;
         none.disabled = status.active || config.modules.length === 0;
         q('[data-diagnostics-hint]').hidden = config.scope === 'all' || config.modules.length > 0;
         start.hidden = !view.ready;
@@ -1390,7 +1389,7 @@ function bindDiagnosticsSettings(root)
     scope.addEventListener('change', configure);
     mode.addEventListener('change', configure);
     moduleInputs.forEach(input => input.addEventListener('change', configure));
-    all.addEventListener('click', () => selectModules(appPerf.modules));
+    all.addEventListener('click', () => selectModules(appPerf.selectableModules));
     none.addEventListener('click', () => selectModules([]));
     const confirm = (title, message, action, onConfirm) =>
     {

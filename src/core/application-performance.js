@@ -4,6 +4,7 @@ const appPerf = (() =>
     const limit = 256;
     const modules = Object.freeze(['Projects', 'Family Tree', 'People', 'Geneograph',
         'Albums', 'Archive', 'Notes', 'Places', 'Publish']);
+    const selectableModules = Object.freeze(modules.filter(module => module !== 'Publish'));
     const treeKinds = new Set(['focus', 'selection', 'orientation', 'depth', 'render', 'zoom', 'pan']);
     const operations = new Map(modules.map(module => [module, new Set(['navigation', 'shellRender', 'render', 'query', 'selection', 'picker'])]));
     for (const kind of treeKinds) operations.get('Family Tree').add(kind);
@@ -162,7 +163,7 @@ const appPerf = (() =>
     function configure(options = {})
     {
         if (active) return false;
-        const selected = Array.isArray(options.modules) ? modules.filter(module => options.modules.includes(module)) : config.modules;
+        const selected = Array.isArray(options.modules) ? selectableModules.filter(module => options.modules.includes(module)) : config.modules;
         config = {
             scope: options.scope === 'selected' ? 'selected' : options.scope === 'all' ? 'all' : config.scope,
             modules: [...selected],
@@ -473,7 +474,7 @@ const appPerf = (() =>
             if (url) setTimeout(() => URL.revokeObjectURL(url), 1000);
         }
     }
-    return { modules, enabled, configure, settings, start, stop, clear, begin, run,
+    return { modules, selectableModules, enabled, configure, settings, start, stop, clear, begin, run,
         measure, span, count, mark, pass, finish, snapshot, download, valid, now,
         currentDetailed, recordProvider, recordLifecycle, recordDomain,
         archiveDetailed, archiveContext, archiveMetric, archiveTaskBegin, archiveTaskValid, archiveTaskFinish, archiveOnStop,

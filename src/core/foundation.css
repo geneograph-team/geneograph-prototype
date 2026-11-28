@@ -5552,10 +5552,9 @@ body.mobile-details-open .geneo-inspector [data-geneo-inspector-toggle] {
 }
 
 .diagnostics-modules {
-    margin: var(--space-3) var(--space-4);
-    border: 1px solid var(--border-default);
-    border-radius: var(--radius-sm);
-    padding: var(--space-3);
+    margin: 0;
+    border: 0;
+    padding: var(--space-2) var(--space-4) var(--space-3);
     min-width: 0;
 }
 
