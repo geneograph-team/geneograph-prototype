@@ -1170,41 +1170,69 @@ function handleProfileAction(action)
     showToast(`${action === 'account' ? 'My account' : 'Account'} flow is a visual placeholder.`);
 }
 
-let globalSettingsStartupPreview = 'picker';
+function normalizeGlobalSettingsSection(section)
+{
+    return ['general', 'storage', 'diagnostics', 'about'].includes(section) ? section : 'general';
+}
 
-function openGlobalSettingsModal(section = state.globalSettingsSection, preservePreview = false)
+function openGlobalSettingsModal(section = state.globalSettingsSection)
 {
     closeTopbarPopover();
     if (modalBackdrop.classList.contains('open')) closeModal();
-    if (!preservePreview) globalSettingsStartupPreview = 'picker';
-    state.globalSettingsSection = ['general', 'storage', 'diagnostics', 'about'].includes(section) ? section : 'general';
-    openModal(`<div class="modal global-settings-modal" role="dialog" aria-modal="true" aria-labelledby="globalSettingsTitle"><div class="modal-header"><div><h2 id="globalSettingsTitle">Global settings</h2><p>App-wide preferences for GeneoGraph. Project-specific settings stay inside each project.</p></div><button class="close-button" type="button" data-close>${icon.close}</button></div><div class="modal-body" style="padding:0"><div class="global-settings-layout"><nav class="global-settings-nav" aria-label="Global settings sections">${renderGlobalSettingsNav()}</nav><section class="global-settings-panel">${renderGlobalSettingsPanel(state.globalSettingsSection)}</section></div></div><div class="modal-footer"><button class="button secondary" type="button" data-close>Close</button></div></div>`);
-    modalBackdrop.querySelectorAll('[data-global-settings-section]').forEach(button => button.addEventListener('click', () => openGlobalSettingsModal(button.dataset.globalSettingsSection, true)));
-    modalBackdrop.querySelector('#globalStartupPreview')?.addEventListener('change', event =>
+    state.globalSettingsSection = normalizeGlobalSettingsSection(section);
+    openModal(`<div class="modal global-settings-modal" role="dialog" aria-modal="true" aria-labelledby="globalSettingsTitle"><div class="modal-header"><div><h2 id="globalSettingsTitle">Global settings</h2><p>App-wide preferences for GeneoGraph. Project-specific settings stay inside each project.</p></div><button class="close-button" type="button" data-close aria-label="Close">${icon.close}</button></div><div class="modal-body"><div class="global-settings-layout"><nav class="global-settings-nav" aria-label="Global settings sections">${renderGlobalSettingsNav()}</nav><section class="global-settings-panel" aria-labelledby="globalSettingsPanelTitle" tabindex="0">${renderGlobalSettingsPanel(state.globalSettingsSection)}</section></div></div><div class="modal-footer"><button class="button secondary" type="button" data-close>Close</button></div></div>`);
+    modalBackdrop.querySelectorAll('[data-global-settings-section]').forEach(button =>
+        button.addEventListener('click', () => selectGlobalSettingsSection(button.dataset.globalSettingsSection)));
+    bindGlobalSettingsPanel(modalBackdrop);
+}
+
+function selectGlobalSettingsSection(section, refresh = false)
+{
+    const panel = modalBackdrop.querySelector('.global-settings-panel');
+    if (!panel) return;
+    const next = normalizeGlobalSettingsSection(section);
+    const same = next === state.globalSettingsSection;
+    if (same && !refresh) return;
+    const scrollTop = same ? panel.scrollTop : 0;
+    state.globalSettingsSection = next;
+    modalBackdrop.querySelectorAll('[data-global-settings-section]').forEach(button =>
     {
-        globalSettingsStartupPreview = event.target.value;
+        const active = button.dataset.globalSettingsSection === next;
+        button.classList.toggle('active', active);
+        if (active) button.setAttribute('aria-current', 'true');
+        else button.removeAttribute('aria-current');
     });
-    modalBackdrop.querySelector('#globalThemeSelect')?.addEventListener('change', event =>
+    panel.innerHTML = renderGlobalSettingsPanel(next);
+    bindGlobalSettingsPanel(modalBackdrop);
+    panel.scrollTop = scrollTop;
+}
+
+function bindGlobalSettingsPanel(root)
+{
+    root.querySelector('#globalThemeSelect')?.addEventListener('change', event =>
     {
         window.geneographTheme.setPreference(event.target.value);
     });
-    modalBackdrop.querySelector('#globalLanguageSelect')?.addEventListener('change', event =>
+    root.querySelector('#globalLanguageSelect')?.addEventListener('change', event =>
     {
         setLanguage(event.target.value, false);
         render();
-        openGlobalSettingsModal(state.globalSettingsSection, true);
-        showToast(
-            'Interface language updated.'
-        );
+        if (root.querySelector('.global-settings-panel'))
+        {
+            selectGlobalSettingsSection(state.globalSettingsSection, true);
+            root.querySelector('#globalLanguageSelect')?.focus({ preventScroll: true });
+        }
+        else openGlobalSettingsModal(state.globalSettingsSection);
+        showToast('Interface language updated.');
     });
-    modalBackdrop.querySelector('[data-global-settings-tour]')?.addEventListener('click', () =>
+    root.querySelector('[data-global-settings-tour]')?.addEventListener('click', () =>
     {
         closeModal();
         startGeneoProductTour();
     });
-    modalBackdrop.querySelector('[data-copy-build-info]')?.addEventListener('click', () => copyPrototypeBuildInfo(modalBackdrop));
-    bindDiagnosticsSettings(modalBackdrop);
-    localizeUI(modalBackdrop);
+    root.querySelector('[data-copy-build-info]')?.addEventListener('click', () => copyPrototypeBuildInfo(root));
+    bindDiagnosticsSettings(root);
+    localizeUI(root);
 }
 
 function renderGlobalSettingsNav()
@@ -1216,7 +1244,7 @@ function renderGlobalSettingsNav()
         ['about', 'About', icon.info]
     ];
 
-    return sections.map(([id, label, glyph]) => `<button class="global-settings-nav-button ${state.globalSettingsSection === id ? 'active' : ''}" type="button" data-global-settings-section="${id}">
+    return sections.map(([id, label, glyph]) => `<button class="global-settings-nav-button ${state.globalSettingsSection === id ? 'active' : ''}" type="button" data-global-settings-section="${id}" ${state.globalSettingsSection === id ? 'aria-current="true"' : ''}>
         <span class="global-settings-nav-icon" aria-hidden="true">${glyph}</span>
         <span class="global-settings-nav-label">${escapeHtml(label)}</span>
       </button>`).join('');
@@ -1261,12 +1289,22 @@ async function copyPrototypeBuildInfo(root)
     }
 }
 
+function renderGlobalSettingsGroup(label, content, className = '')
+{
+    return `<div class="global-settings-group ${className}"><h4>${escapeHtml(t(label))}</h4><div class="global-settings-section">${content}</div></div>`;
+}
+
 function renderGlobalSettingsPanel(section)
 {
     if (section === 'diagnostics') return diagnosticsSettingsMarkup();
-    if (section === 'storage') return `<h3>Storage & backup</h3><p>Backup and sync are not available in this demo.</p><div class='global-settings-section'><div class='global-settings-row'><div><strong>Local backups</strong><span>This demo cannot create backup files.</span></div></div><div class='global-settings-row'><div><strong>Cloud sync</strong><span>This demo does not connect to cloud storage.</span></div></div></div>`;
-    if (section === 'about') return `<h3>About GeneoGraph</h3><p>Prototype information and useful links.</p><div class='global-settings-section about-settings'>${renderPrototypeBuildInfo()}<div class='global-settings-row'><div><strong>Product tour</strong><span>Explore the sample project across GeneoGraph.</span></div><button class='button secondary' type='button' data-global-settings-tour>Take the tour</button></div><div class='global-settings-row'><div><strong>Help center</strong><span>Coming soon</span></div></div><div class='global-settings-row'><div><strong>Privacy policy</strong><span>Read how GeneoGraph handles privacy.</span></div><a class='text-action about-link' href='${geneographLandingUrl('legal.html#privacy')}' target='_blank' rel='noopener noreferrer'>Read policy</a></div><div class='global-settings-row'><div><strong>${escapeHtml(t('Open-source licenses'))}</strong><span>${escapeHtml(t('Application license and third-party notices.'))}</span></div><a class='text-action about-link' href='${geneographLandingUrl('legal.html#licenses')}' target='_blank' rel='noopener noreferrer'>${escapeHtml(t('View licenses'))}</a></div><div class='global-settings-row'><div><strong>Contact us</strong><span>Get in touch with the GeneoGraph team.</span></div><a class='text-action about-link' href='${geneographLandingUrl('contact.html')}' target='_blank' rel='noopener noreferrer'>Contact us</a></div><div class='global-settings-row'><div><strong>${escapeHtml(t('Data providers'))}</strong><span>${escapeHtml(t('Place search providers'))}: <a href='https://www.geoapify.com/' target='_blank' rel='noopener noreferrer'>Powered by Geoapify</a> · <a href='https://locationiq.com' target='_blank' rel='noopener noreferrer'>Search by LocationIQ.com</a>. ${escapeHtml(t('Map data'))}: <a href='https://openfreemap.org/' target='_blank' rel='noopener noreferrer'>OpenFreeMap</a> · <a href='https://www.openstreetmap.org/copyright' target='_blank' rel='noopener noreferrer'>OpenStreetMap</a>.</span></div></div><div class='global-settings-row'><div><strong>GeneoGraph website</strong><span>Learn more about GeneoGraph.</span></div><a class='text-action about-link' href='${geneographLandingUrl()}' target='_blank' rel='noopener noreferrer'>Visit website</a></div></div>`;
-    return `<h3>General</h3><p>Basic app-wide preferences.</p><div class='global-settings-section'><div class='global-settings-row'><div><strong>Interface theme</strong><span>Choose the app appearance.</span></div><span class='common-select-shell global-settings-select-shell'><select class='common-select' id='globalThemeSelect' aria-label='Interface theme'><option value='system' ${window.geneographTheme.getPreference() === 'system' ? 'selected' : ''}>System</option><option value='dark' ${window.geneographTheme.getPreference() === 'dark' ? 'selected' : ''}>Dark</option><option value='light' ${window.geneographTheme.getPreference() === 'light' ? 'selected' : ''}>Light</option></select><span class='common-select-chevron' aria-hidden='true'>${icon.chevron}</span></span></div><div class='global-settings-row'><div><strong>Startup behavior</strong><span>Preview only; this choice does not change what opens when the demo starts.</span></div><span class='common-select-shell global-settings-select-shell'><select class='common-select' id='globalStartupPreview' aria-label='Startup behavior'><option value='picker' ${globalSettingsStartupPreview === 'picker' ? 'selected' : ''}>Show project picker</option><option value='last' ${globalSettingsStartupPreview === 'last' ? 'selected' : ''}>Open last project</option></select><span class='common-select-chevron' aria-hidden='true'>${icon.chevron}</span></span></div><div class='global-settings-row'><div><strong>Language</strong><span>App interface language.</span></div><span class='common-select-shell global-settings-select-shell'><select class='common-select' id='globalLanguageSelect' aria-label='Language'><option value='en' ${state.language === 'en' ? 'selected' : ''}>English</option><option value='ru' ${state.language === 'ru' ? 'selected' : ''}>Русский</option></select><span class='common-select-chevron' aria-hidden='true'>${icon.chevron}</span></span></div><div class='global-settings-row'><div><strong>Time zone</strong><span>Used for activity timestamps.</span></div><span class='global-settings-value'>System default</span></div></div>`;
+    if (section === 'storage') return `<h3 id='globalSettingsPanelTitle'>Storage & backup</h3><p>Backup and sync are not available in this demo.</p><div class='global-settings-section'><div class='global-settings-row'><div><strong>Local backups</strong><span>This demo cannot create backup files.</span></div></div><div class='global-settings-row'><div><strong>Cloud sync</strong><span>This demo does not connect to cloud storage.</span></div></div></div>`;
+    if (section === 'about') return `<h3 id='globalSettingsPanelTitle'>About GeneoGraph</h3><p>Prototype information and useful links.</p>
+        ${renderGlobalSettingsGroup('Application', renderPrototypeBuildInfo() + `<div class='global-settings-row'><div><strong>GeneoGraph website</strong><span>Learn more about GeneoGraph.</span></div><a class='text-action about-link' href='${geneographLandingUrl()}' target='_blank' rel='noopener noreferrer'>Visit website</a></div>`, 'about-settings')}
+        ${renderGlobalSettingsGroup('Legal & credits', `<div class='global-settings-row'><div><strong>Privacy policy</strong><span>Read how GeneoGraph handles privacy.</span></div><a class='text-action about-link' href='${geneographLandingUrl('legal.html#privacy')}' target='_blank' rel='noopener noreferrer'>Read policy</a></div><div class='global-settings-row'><div><strong>${escapeHtml(t('Open-source licenses'))}</strong><span>${escapeHtml(t('Application license and third-party notices.'))}</span></div><a class='text-action about-link' href='${geneographLandingUrl('legal.html#licenses')}' target='_blank' rel='noopener noreferrer'>${escapeHtml(t('View licenses'))}</a></div><div class='global-settings-row'><div><strong>${escapeHtml(t('Data providers'))}</strong><span>${escapeHtml(t('Place search providers'))}: <a href='https://www.geoapify.com/' target='_blank' rel='noopener noreferrer'>Powered by Geoapify</a> · <a href='https://locationiq.com' target='_blank' rel='noopener noreferrer'>Search by LocationIQ.com</a>. ${escapeHtml(t('Map data'))}: <a href='https://openfreemap.org/' target='_blank' rel='noopener noreferrer'>OpenFreeMap</a> · <a href='https://www.openstreetmap.org/copyright' target='_blank' rel='noopener noreferrer'>OpenStreetMap</a>.</span></div></div>`, 'about-settings')}`;
+    return `<h3 id='globalSettingsPanelTitle'>General</h3><p>Basic app-wide preferences.</p>
+        ${renderGlobalSettingsGroup('Appearance', `<div class='global-settings-row'><div><strong>Interface theme</strong><span>Choose the app appearance.</span></div><span class='common-select-shell global-settings-select-shell'><select class='common-select' id='globalThemeSelect' aria-label='Interface theme'><option value='system' ${window.geneographTheme.getPreference() === 'system' ? 'selected' : ''}>System</option><option value='dark' ${window.geneographTheme.getPreference() === 'dark' ? 'selected' : ''}>Dark</option><option value='light' ${window.geneographTheme.getPreference() === 'light' ? 'selected' : ''}>Light</option></select><span class='common-select-chevron' aria-hidden='true'>${icon.chevron}</span></span></div>`)}
+        ${renderGlobalSettingsGroup('Regional preferences', `<div class='global-settings-row'><div><strong>Language</strong><span>App interface language.</span></div><span class='common-select-shell global-settings-select-shell'><select class='common-select' id='globalLanguageSelect' aria-label='Language'><option value='en' ${state.language === 'en' ? 'selected' : ''}>English</option><option value='ru' ${state.language === 'ru' ? 'selected' : ''}>Русский</option></select><span class='common-select-chevron' aria-hidden='true'>${icon.chevron}</span></span></div>`)}
+        ${renderGlobalSettingsGroup('Product tour', `<div class='global-settings-row'><div><span>Explore the sample project across GeneoGraph.</span></div><button class='button secondary' type='button' data-global-settings-tour>Take the tour</button></div>`)}`;
 }
 
 
@@ -1321,7 +1359,7 @@ function diagnosticsSettingsMarkup()
         + icon.chevron + '</span></span>';
     const button = (action, style, artwork, text) => '<button class="button ' + style
         + '" type="button" data-performance-' + action + ' hidden>' + artwork + label(text) + '</button>';
-    return '<h3>' + label('Diagnostics') + '</h3>'
+    return '<h3 id="globalSettingsPanelTitle">' + label('Diagnostics') + '</h3>'
         + '<p>' + label('Record anonymous application timings locally. Export manually; no genealogy data is included.') + '</p>'
         + '<div class="global-settings-section diagnostics-settings" data-diagnostics-settings><div class="diagnostics-configuration">'
         + '<div class="global-settings-row"><label for="diagnosticsScope">' + label('Recording scope') + '</label>'

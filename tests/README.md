@@ -26,6 +26,13 @@ node tests/search/test-shared-search-input.cjs
 
 Select the checks relevant to the change. A nonzero exit means failure. `tree-cases.cjs` is a shared topology builder, not an executable test. The internal stress-project check must be removed with its temporary application fixture before open user testing; see the [removal guide](../doc/family-tree-stress-test.md).
 
+## Global settings verification
+
+Run `node tests/diagnostics/test-global-settings.cjs` for focused markup,
+section navigation and scroll-state checks. Browser QA additionally covers
+content-only scrolling, stable header/footer, keyboard focus, narrow and
+very short viewport fallback, EN/RU, themes, tour and Diagnostics confirmations.
+
 ## Build identity verification
 
 Run `node tests/diagnostics/test-build-info.cjs`. The test uses a disposable

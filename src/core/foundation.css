@@ -5459,12 +5459,33 @@ body.mobile-details-open .geneo-inspector [data-geneo-inspector-toggle] {
 
 .global-settings-modal {
     width: min(980px, 100%);
+    height: min(86vh, 780px);
+    height: min(86dvh, 780px);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.global-settings-modal > .modal-header,
+.global-settings-modal > .modal-footer {
+    flex: 0 0 auto;
+}
+
+#modalBackdrop > .modal.global-settings-modal > .modal-body {
+    flex: 1 1 0;
+    min-height: 0;
+    padding: 0;
+    overflow: hidden;
+    display: grid;
+    grid-template-rows: minmax(0, 1fr);
 }
 
 .global-settings-layout {
-    min-height: 360px;
+    min-height: 0;
+    min-width: 0;
     display: grid;
     grid-template-columns: 230px minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr);
 }
 
 .global-settings-nav {
@@ -5519,11 +5540,42 @@ body.mobile-details-open .geneo-inspector [data-geneo-inspector-toggle] {
 }
 
 .global-settings-panel {
+    min-height: 0;
+    min-width: 0;
     padding: var(--space-5);
-    display: grid;
-    align-content: start;
+    display: flex;
+    flex-direction: column;
     gap: var(--space-4);
-    overflow: auto;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+}
+
+.global-settings-panel > * {
+    flex: 0 0 auto;
+    min-width: 0;
+}
+
+.global-settings-panel:focus-visible {
+    outline: var(--control-focus-width) solid var(--control-focus-color);
+    outline-offset: calc(-1 * var(--control-focus-width));
+}
+
+.global-settings-group {
+    display: grid;
+    gap: var(--space-2);
+    min-width: 0;
+}
+
+.global-settings-group > h4 {
+    margin: 0;
+    color: var(--text-secondary);
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.global-settings-group .global-settings-row > div {
+    min-width: 0;
+    overflow-wrap: anywhere;
 }
 
 .global-settings-section {
@@ -5755,26 +5807,10 @@ body.mobile-details-open .geneo-inspector [data-geneo-inspector-toggle] {
     max-width: 100%;
 }
 
-.global-settings-row .global-settings-value {
-    color: var(--text-secondary);
-    font-size: 13px;
-    font-weight: 700;
-    text-align: right;
-}
-
-.global-settings-row .global-settings-unavailable:disabled {
-    opacity: .45;
-    cursor: not-allowed;
-}
-
-.global-settings-row .global-settings-unavailable:disabled:hover {
-    transform: none;
-    filter: none;
-}
-
 @media (max-width: 840px) {
     .global-settings-layout {
-        grid-template-columns: 1fr;
+        grid-template-columns: minmax(0, 1fr);
+        grid-template-rows: auto minmax(0, 1fr);
     }
 
     .global-settings-nav {
@@ -5789,6 +5825,47 @@ body.mobile-details-open .geneo-inspector [data-geneo-inspector-toggle] {
     }
 }
 
+
+@media (max-width: 540px) {
+    .global-settings-modal .global-settings-nav {
+        padding: var(--space-2) var(--space-3);
+    }
+
+    .global-settings-modal .global-settings-panel {
+        padding: var(--space-3);
+    }
+
+    .global-settings-group .global-settings-row:has(.global-settings-select-shell) {
+        grid-template-columns: minmax(0, 1fr);
+        gap: var(--space-2);
+    }
+
+    .global-settings-group .global-settings-select-shell {
+        width: 100%;
+    }
+}
+
+/* If fixed chrome would consume the viewport, use one outer scroll owner. */
+@media (max-height: 360px), (max-width: 840px) and (max-height: 480px) {
+    #modalBackdrop > .modal.global-settings-modal {
+        display: block;
+        overflow-y: auto;
+        overscroll-behavior: contain;
+    }
+
+    #modalBackdrop > .modal.global-settings-modal > .modal-body {
+        display: block;
+        overflow: visible;
+    }
+
+    .global-settings-layout {
+        grid-template-rows: auto;
+    }
+
+    .global-settings-panel {
+        overflow: visible;
+    }
+}
 
 .topbar-text-button {
     min-height: 34px;

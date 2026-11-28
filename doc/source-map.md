@@ -9,6 +9,12 @@ About and Diagnostics read the same immutable `geneographBuildInfo`; the
 generator `scripts/generate-build-info.cjs` is build-time only. See README
 for tag selection and deployment limits.
 
+Global settings are owned by `core/app-shell.js` (section navigation and panel
+bindings) and `core/foundation.css` (bounded modal, independent content
+scrolling and short-viewport fallback). The Product tour entry in General
+and Help both use the existing tour owner. Section changes replace only
+the panel contents, retaining the dialog frame.
+
 ## Owners
 
 | Area | Source owner |
