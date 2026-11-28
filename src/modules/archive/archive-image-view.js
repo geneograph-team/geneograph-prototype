@@ -416,15 +416,6 @@ function mountArchiveImageView()
     };
     position.addEventListener('change', commitPosition);
     position.addEventListener('keydown', event => { if (event.key === 'Enter') { event.preventDefault(); commitPosition(); } });
-    host.addEventListener('keydown', event =>
-    {
-        if (modalBackdrop.classList.contains('open') || event.altKey || event.ctrlKey || event.metaKey || event.shiftKey
-            || event.target.closest('input, textarea, select, [contenteditable="true"]')
-            || !event.target.closest('.archive-image-stage, [data-av-strip], .archive-image-tools')) return;
-        if (!['ArrowLeft', 'ArrowRight'].includes(event.key)) return;
-        event.preventDefault();
-        archiveImageNavigate(view.index + (event.key === 'ArrowRight' ? 1 : -1), Boolean(event.target.closest('[data-av-strip]')));
-    });
     function zoomBy(factor, anchor = null)
     {
         const geometry = view.geometry;

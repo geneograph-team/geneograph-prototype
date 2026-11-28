@@ -768,10 +768,10 @@ function archiveSelectDesktopItemWithDiagnosticsBody(root, type, id, event)
                 state.archiveSelectedFolderItemId = null;
                 state.archiveSelectedFileIds = [id];
                 state.archiveSelectedFileId = id;
-                if (oldFolderId)
-                    root.querySelector(`[data-archive-folder-row="${CSS.escape(oldFolderId)}"]`)?.classList.remove('selected-detail');
-                if (oldFileId)
-                    root.querySelector(`[data-archive-file-row="${CSS.escape(oldFileId)}"]`)?.classList.remove('selected-detail');
+                const previous = oldFolderId ? root.querySelector(`[data-archive-folder-row="${CSS.escape(oldFolderId)}"]`)
+                    : oldFileId ? root.querySelector(`[data-archive-file-row="${CSS.escape(oldFileId)}"]`) : null;
+                previous?.classList.remove('selected-detail');
+                if (previous?.hasAttribute('aria-current')) previous.setAttribute('aria-current', 'false');
                 for (const fileId of new Set([...selectedFiles, id]))
                 {
                     const checked = fileId === id;
@@ -786,6 +786,7 @@ function archiveSelectDesktopItemWithDiagnosticsBody(root, type, id, event)
                         input.checked = checked;
                 }
                 row.classList.add('selected-detail');
+                if (row.hasAttribute('aria-current')) row.setAttribute('aria-current', 'true');
                 const all = Number(page.dataset.archiveResultItemCount) === 1;
                 root.querySelectorAll('[data-archive-select-all]').forEach(input =>
                 {
@@ -956,6 +957,7 @@ function renderArchiveMainWithDiagnosticsBody()
 
           <section
             class="archive-main"
+            tabindex="-1"
             aria-label="Archive workspace">
 
             ${
@@ -990,6 +992,7 @@ function renderArchiveMainWithDiagnosticsBody()
         if (document.scrollingElement) document.scrollingElement.scrollTop = previousPageScroll;
     }
     archiveRenderedLocationKey = locationKey;
+    if (typeof archiveKeyboardReady === 'function') archiveKeyboardReady();
 }
 
 function renderArchivePageHead({
@@ -2157,7 +2160,7 @@ function renderArchiveMobileItems(files, folders, showPaths)
         const checked = (state.archiveSelectedFolderIds || []).includes(folder.id);
         return `<li class="archive-mobile-item archive-mobile-folder ${checked ? 'is-checked' : ''}">
             ${selecting ? `<input class="albums-select-checkbox" type="checkbox" data-archive-folder-checkbox="${escapeHtml(folder.id)}" ${checked ? 'checked' : ''} aria-label="${escapeHtml(t('Select'))}: ${escapeHtml(folder.name)}">` : ''}
-            <button type="button" class="archive-mobile-item-main" data-archive-mobile-folder="${escapeHtml(folder.id)}" title="${escapeHtml(folder.name)}">
+            <button type="button" class="archive-mobile-item-main" data-archive-mobile-folder="${escapeHtml(folder.id)}" aria-current="${state.archiveSelectedFolderItemId === folder.id}" title="${escapeHtml(folder.name)}">
                 ${archiveFileIcon({ kind: 'folder' })}
                 <span class="archive-mobile-item-copy"><strong>${escapeHtml(folder.name)}</strong>${folder.favorite ? `<small>${escapeHtml(t('Favourite'))}</small>` : ''}</span>
             </button>
@@ -2170,7 +2173,7 @@ function renderArchiveMobileItems(files, folders, showPaths)
             : [formatMediaBytes(file.sizeBytes), archiveFormatDate(file.updatedAt || file.createdAt)].filter(Boolean).join(' · ');
         return `<li class="archive-mobile-item archive-mobile-file ${checked ? 'is-checked' : ''}">
             ${selecting ? `<input class="albums-select-checkbox" type="checkbox" data-archive-file-checkbox="${escapeHtml(file.id)}" ${checked ? 'checked' : ''} aria-label="${escapeHtml(t('Select'))}: ${escapeHtml(file.name)}">` : ''}
-            <button type="button" class="archive-mobile-item-main" data-archive-mobile-file="${escapeHtml(file.id)}" title="${escapeHtml(file.name)}">
+            <button type="button" class="archive-mobile-item-main" data-archive-mobile-file="${escapeHtml(file.id)}" aria-current="${state.archiveSelectedFileId === file.id}" title="${escapeHtml(file.name)}">
                 ${archiveFileIcon(file)}
                 <span class="archive-mobile-item-copy"><strong>${escapeHtml(file.name)}</strong><small>${escapeHtml(metadata)}</small></span>
             </button>
@@ -2191,7 +2194,7 @@ function renderArchiveFileTiles(files, folders)
     const folderTiles = archiveSortFoldersForTable(folders).map(folder => {
         const checked = bulkActive && (state.archiveSelectedFolderIds || []).includes(folder.id);
         return `<div class="archive-tile archive-folder-tile ${checked ? 'is-checked' : ''} ${state.archiveSelectedFolderItemId === folder.id ? 'selected-detail' : ''}"
-            data-archive-folder-row="${escapeHtml(folder.id)}" tabindex="0" aria-label="${escapeHtml(folder.name)}${folder.favorite ? `, ${escapeHtml(t('Favourite'))}` : ''}">
+            data-archive-folder-row="${escapeHtml(folder.id)}" tabindex="0" aria-current="${state.archiveSelectedFolderItemId === folder.id}" aria-label="${escapeHtml(folder.name)}${folder.favorite ? `, ${escapeHtml(t('Favourite'))}` : ''}">
             ${bulkActive ? `<input class="albums-select-checkbox archive-tile-select" type="checkbox" data-archive-folder-checkbox="${escapeHtml(folder.id)}" ${checked ? 'checked' : ''} aria-label="${escapeHtml(t('Select'))}: ${escapeHtml(folder.name)}">` : ''}
             <button class="archive-row-icon-button archive-tile-more" type="button" data-archive-row-actions="folder" data-archive-row-id="${escapeHtml(folder.id)}" aria-label="${escapeHtml(t('Folder actions'))}: ${escapeHtml(folder.name)}">${icon.more}</button>
             <div class="archive-tile-art">${archiveFileIcon({ kind: 'folder' })}
@@ -2205,7 +2208,7 @@ function renderArchiveFileTiles(files, folders)
         const checked = bulkActive && (state.archiveSelectedFileIds || []).includes(file.id);
         const preview = archiveFileKind(file) === 'img' ? ' data-archive-tile-preview' : '';
         return `<div class="archive-tile ${checked ? 'is-checked' : ''} ${state.archiveSelectedFileId === file.id ? 'selected-detail' : ''}"
-            data-archive-file-row="${escapeHtml(file.id)}" tabindex="0" aria-label="${escapeHtml(file.name)}">
+            data-archive-file-row="${escapeHtml(file.id)}" tabindex="0" aria-current="${state.archiveSelectedFileId === file.id}" aria-label="${escapeHtml(file.name)}">
             ${bulkActive ? `<input class="albums-select-checkbox archive-tile-select" type="checkbox" data-archive-file-checkbox="${escapeHtml(file.id)}" ${checked ? 'checked' : ''} aria-label="${escapeHtml(t('Select'))}: ${escapeHtml(file.name)}">` : ''}
             <button class="archive-row-icon-button archive-tile-more" type="button" data-archive-row-actions="file" data-archive-row-id="${escapeHtml(file.id)}" aria-label="${escapeHtml(t('File actions'))}: ${escapeHtml(file.name)}">${icon.more}</button>
             <div class="archive-tile-art"${preview}>${archiveFileIcon(file)}</div>

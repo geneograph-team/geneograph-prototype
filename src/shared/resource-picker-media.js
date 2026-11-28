@@ -118,18 +118,21 @@
             const errors = form.querySelector('[data-rp-upload-errors]');
             const confirm = form.querySelector('[data-rp-upload-confirm]');
             const drafts = [];
+            const destinationProject = validProjectById(config.projectId);
             let busy = false;
+            const progress = createUploadProgress(form, input, dropzone);
             bindUploadDropzoneChooser(dropzone, input);
             const render = () =>
             {
                 form.classList.toggle('has-items', drafts.length > 0);
                 tiles.hidden = !drafts.length;
                 tiles.innerHTML = drafts.map(draft => `<article class="rp-upload-tile">
-                    <span class="rp-upload-tile-preview"><img src="${escapeHtml(draft.src)}" alt=""></span>
+                    <span class="rp-upload-tile-preview" data-upload-preview="${escapeHtml(draft.id)}">${icon.photo}</span>
                     <strong title="${escapeHtml(draft.filename)}">${escapeHtml(draft.filename)}</strong>
                     <small>${draft.width} × ${draft.height} · ${formatMediaBytes(draft.sizeBytes)}</small>
                     <button type="button" class="rp-upload-remove" data-rp-upload-remove="${escapeHtml(draft.id)}" aria-label="${escapeHtml(rpText('Remove', 'Убрать'))}: ${escapeHtml(draft.filename)}" ${busy ? 'disabled' : ''}>${icon.close}</button>
                 </article>`).join('');
+                mountUploadStagingPreviews(form, tiles, drafts);
                 dropzone.querySelector('.upload-dropzone-copy strong').textContent = drafts.length
                     ? rpText('Add more photos', 'Добавить ещё фотографии') : rpText('Choose photos', 'Выбрать фотографии');
                 confirm.disabled = busy || !drafts.length;
@@ -138,13 +141,15 @@
             {
                 if (busy || !files.length) return;
                 busy = true;
-                input.disabled = true;
-                form.setAttribute('aria-busy', 'true');
+                progress.begin(rpText('Preparing photos…', 'Подготовка фотографий…'), files.length);
+                uploadStagingSessions.get(form)?.();
                 modalBackdrop.beforeClose = () => !busy;
                 errors.hidden = true;
                 errors.replaceChildren();
+                let processed = 0, failed = 0;
                 try
                 {
+                    await uploadPaint();
                     for (const file of files)
                     {
                         try
@@ -159,16 +164,19 @@
                             const row = document.createElement('p');
                             row.textContent = `${file.name}: ${error.message}`;
                             errors.append(row);
+                            failed++;
                         }
+                        progress.update(++processed, failed);
+                        await uploadYield();
+                        if (!form.isConnected) return;
                     }
                 }
                 finally
                 {
                     busy = false;
-                    input.disabled = false;
+                    progress.end();
                     input.value = '';
-                    form.setAttribute('aria-busy', 'false');
-                    render();
+                    if (form.isConnected) render();
                 }
             };
             input.addEventListener('change', () => read([...input.files]));
@@ -186,17 +194,51 @@
                 if (index >= 0) drafts.splice(index, 1);
                 render();
             });
-            confirm.addEventListener('click', () =>
+            confirm.addEventListener('click', async () =>
             {
                 if (busy || !drafts.length) return;
-                const ids = [];
-                for (const draft of drafts)
+                busy = true;
+                modalBackdrop.beforeClose = () => !busy;
+                progress.begin(rpText('Adding photos…', 'Добавление фотографий…'), drafts.length);
+                uploadStagingSessions.get(form)?.();
+                const ids = [], failed = [];
+                errors.replaceChildren(); errors.hidden = true;
+                try
                 {
-                    const photo = createMediaFromPhotoUpload({ projectId: config.projectId, draft, personIds: [], idPrefix: config.uploadedPhotoIdPrefix || 'rp-photo' });
-                    if (photo) ids.push(photo.id);
+                    await uploadPaint();
+                    const project = destinationProject;
+                    let processed = 0;
+                    for (const draft of drafts)
+                    {
+                        try
+                        {
+                            const photo = project && validProjectById(config.projectId) === project && createMediaFromPhotoUpload({ projectId: config.projectId, draft, personIds: [], idPrefix: config.uploadedPhotoIdPrefix || 'rp-photo' });
+                            if (!photo) throw new Error(rpText('Could not add photo.', 'Не удалось добавить фотографию.'));
+                            ids.push(photo.id);
+                        }
+                        catch (error)
+                        {
+                            failed.push(draft);
+                            const row = document.createElement('p'); row.textContent = draft.filename + ': ' + error.message;
+                            errors.append(row); errors.hidden = false;
+                        }
+                        progress.update(++processed, failed.length);
+                        await uploadYield();
+                    }
+                    progress.finalizing();
+                    await uploadPaint();
+                    drafts.splice(0, drafts.length, ...failed);
+                    if (ids.length) session.selectCreated(ids);
                 }
-                if (ids.length) session.selectCreated(ids);
-                closeModal();
+                finally
+                {
+                    busy = false; progress.end();
+                    if (form.isConnected)
+                    {
+                        if (failed.length) render();
+                        else closeModal();
+                    }
+                }
             });
             form.addEventListener('submit', event => event.preventDefault());
             render();

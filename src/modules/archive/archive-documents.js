@@ -294,9 +294,16 @@ async function archiveValidateDocument(extension, buffer) {
 async function archiveImportFiles(selected, { projectId = currentProjectId(), folderId = null, onResult = () => {} } = {}) {
     const ids = [];
     if (!projectId || (folderId && !archiveFolderById(folderId, projectId))) return ids;
+    const project = typeof validProjectById === 'function' ? validProjectById(projectId) : null;
     for (const source of Array.from(selected || [])) {
         const report = (status, message) => onResult(source, status, message);
         report('uploading', archiveDocumentLabel('Importing...', 'Добавление...'));
+        if (typeof uploadYield === 'function') await uploadYield();
+        if ((typeof validProjectById === 'function' && (!project || validProjectById(projectId) !== project))
+            || (folderId && !archiveFolderById(folderId, projectId))) {
+            report('error', archiveDocumentLabel('The import destination is no longer available.', 'Место добавления больше недоступно.'));
+            continue;
+        }
         const extension = archiveDocumentExtension(source.name);
         if (!(archiveDocumentExtensions.has(extension) || archiveImageExtensions.has(extension)) || source.size > archiveDocumentMaxBytes || source.size === 0) {
             report('error', archiveDocumentLabel('Unsupported, empty, or over 20 MB.', 'Неподдерживаемый, пустой или больше 20 МБ.'));
@@ -305,6 +312,8 @@ async function archiveImportFiles(selected, { projectId = currentProjectId(), fo
         try {
             if (!archiveImageExtensions.has(extension)) await archiveValidateDocument(extension, await source.arrayBuffer());
             if (archiveImageExtensions.has(extension)) await archiveValidateImage(source, extension);
+            if ((typeof validProjectById === 'function' && (!project || validProjectById(projectId) !== project))
+                || (folderId && !archiveFolderById(folderId, projectId))) throw new Error(archiveDocumentLabel('The import destination is no longer available.', 'Место добавления больше недоступно.'));
             const id = `af-upload-${crypto.randomUUID()}`;
             const now = new Date().toISOString();
             const image = archiveImageExtensions.has(extension);
@@ -338,6 +347,7 @@ function archiveRollbackImportedFiles(ids) {
 
 function archiveBindStagedImport({ modal, input, drop, result, rows, chooseButton, doneButton, files, projectId, folderId, onImported }) {
     const queue = [];
+    const destinationProject = validProjectById(projectId);
     const tiles = document.createElement('div');
     tiles.className = 'rp-upload-tiles';
     tiles.setAttribute('aria-label', archiveDocumentLabel('Selected files', 'Выбранные файлы'));
@@ -345,14 +355,8 @@ function archiveBindStagedImport({ modal, input, drop, result, rows, chooseButto
     modal.classList.add('rp-upload-staging', 'is-staged');
     doneButton.textContent = archiveDocumentLabel('Cancel', 'Отмена');
     let importing = false;
+    const progress = createUploadProgress(modal, input, drop);
     modalBackdrop.beforeClose = () => !importing;
-    const release = item => { if (item.previewUrl) URL.revokeObjectURL(item.previewUrl); };
-    const observer = new MutationObserver(() => {
-        if (modal.isConnected) return;
-        queue.forEach(release);
-        observer.disconnect();
-    });
-    observer.observe(modalBackdrop, { childList: true, subtree: true });
     const showErrors = messages => {
         rows.innerHTML = messages.map(message => `<p class="archive-document-import-row error">${escapeHtml(message)}</p>`).join('');
         result.hidden = !messages.length;
@@ -361,32 +365,46 @@ function archiveBindStagedImport({ modal, input, drop, result, rows, chooseButto
         modal.classList.toggle('has-items', queue.length > 0);
         tiles.hidden = !queue.length;
         tiles.innerHTML = queue.map(item => `<article class="rp-upload-tile">
-            <span class="rp-upload-tile-preview">${item.previewUrl ? `<img src="${escapeHtml(item.previewUrl)}" alt="">` : archiveImageExtensions.has(archiveDocumentExtension(item.file.name)) ? icon.photo : archiveStagedDocumentIcon(item.file)}</span>
+            <span class="rp-upload-tile-preview" ${archiveImageExtensions.has(archiveDocumentExtension(item.file.name)) ? `data-upload-preview="${escapeHtml(item.id)}"` : ''}>${archiveImageExtensions.has(archiveDocumentExtension(item.file.name)) ? icon.photo : archiveStagedDocumentIcon(item.file)}</span>
             <strong title="${escapeHtml(item.file.name)}">${escapeHtml(item.file.name)}</strong>
             <small>${Math.max(1, Math.ceil(item.file.size / 1024))} KB${item.error ? ` · ${escapeHtml(item.error)}` : ''}</small>
             <button type="button" class="rp-upload-remove" data-document-remove="${item.id}" aria-label="${escapeHtml(archiveDocumentLabel('Remove', 'Убрать'))}: ${escapeHtml(item.file.name)}" ${importing ? 'disabled' : ''}>${icon.close}</button>
         </article>`).join('');
+        mountUploadStagingPreviews(modal, tiles, queue);
         drop.querySelector('.upload-dropzone-copy strong').textContent = queue.length
             ? archiveDocumentLabel('Add more files', 'Добавить ещё файлы')
             : archiveDocumentLabel('Choose files', 'Выбрать файлы');
         chooseButton.textContent = archiveDocumentLabel('Add files', 'Добавить файлы');
         chooseButton.disabled = importing || !queue.length;
     };
-    const receive = selected => {
+    const receive = async selected => {
         if (importing) return;
+        const incoming = Array.from(selected || []);
+        if (!incoming.length) return;
+        importing = true;
+        progress.begin(rpText('Preparing files…', 'Подготовка файлов…'), incoming.length);
+        uploadStagingSessions.get(modal)?.();
         const errors = [];
-        for (const file of Array.from(selected || [])) {
-            const extension = archiveDocumentExtension(file.name);
-            if (!(archiveDocumentExtensions.has(extension) || archiveImageExtensions.has(extension)) || !file.size || file.size > archiveDocumentMaxBytes) {
-                errors.push(`${file.name}: ${archiveDocumentLabel('Unsupported, empty, or over 20 MB.', 'Неподдерживаемый, пустой или больше 20 МБ.')}`);
-                continue;
+        try {
+            await uploadPaint();
+            let processed = 0;
+            for (const file of incoming) {
+                const extension = archiveDocumentExtension(file.name);
+                if (!(archiveDocumentExtensions.has(extension) || archiveImageExtensions.has(extension)) || !file.size || file.size > archiveDocumentMaxBytes)
+                    errors.push(`${file.name}: ${archiveDocumentLabel('Unsupported, empty, or over 20 MB.', 'Неподдерживаемый, пустой или больше 20 МБ.')}`);
+                else queue.push({ id: crypto.randomUUID(), file, error: '' });
+                progress.update(++processed, errors.length);
+                if (processed % 16 === 0) await uploadYield();
+                if (!modal.isConnected) return;
             }
-            const previewUrl = archiveImageExtensions.has(extension) ? URL.createObjectURL(file) : '';
-            queue.push({ id: crypto.randomUUID(), file, previewUrl, error: '' });
+            showErrors(errors);
         }
-        showErrors(errors);
-        input.value = '';
-        render();
+        finally {
+            importing = false;
+            progress.end();
+            input.value = '';
+            if (modal.isConnected) render();
+        }
     };
     bindUploadDropzoneChooser(drop, input);
     input.addEventListener('change', () => receive(input.files));
@@ -397,33 +415,37 @@ function archiveBindStagedImport({ modal, input, drop, result, rows, chooseButto
         const button = event.target.closest('[data-document-remove]');
         if (!button || importing) return;
         const index = queue.findIndex(item => item.id === button.dataset.documentRemove);
-        if (index >= 0) release(queue.splice(index, 1)[0]);
+        if (index >= 0) queue.splice(index, 1);
         render();
     });
     chooseButton.addEventListener('click', async () => {
         if (importing || !queue.length) return;
-        if (folderId && !archiveFolderById(folderId, projectId)) {
+        if (!destinationProject || validProjectById(projectId) !== destinationProject || (folderId && !archiveFolderById(folderId, projectId))) {
             showErrors([archiveDocumentLabel('This folder is no longer available. Choose another folder.', 'Эта папка больше недоступна. Выберите другую папку.')]);
             return;
         }
         importing = true;
-        modal.setAttribute('aria-busy', 'true');
-        input.disabled = true;
-        doneButton.disabled = true;
-        drop.setAttribute('aria-disabled', 'true');
-        render();
+        progress.begin(rpText('Adding files…', 'Добавление файлов…'), queue.length);
+        uploadStagingSessions.get(modal)?.();
         const errors = [];
         const selected = [...queue];
-        selected.forEach(item => { item.error = ''; });
+        selected.forEach(item => { item.error = ''; item.imported = false; });
         let shouldClose = false;
+        let processed = 0;
         try {
+            await uploadPaint();
             const ids = await archiveImportFiles(selected.map(item => item.file), { projectId, folderId, onResult: (file, status, message) => {
-                const item = selected.find(candidate => candidate.file === file);
+                const item = selected[processed];
                 if (item && status === 'error') { item.error = message; errors.push(`${file.name}: ${message}`); }
+                if (item && status === 'success') item.imported = true;
+                if (status === 'error' || status === 'success') progress.update(++processed, errors.length);
             } });
-            for (const item of selected.filter(item => !item.error)) {
+            if (processed !== selected.length) errors.push(rpText('The import destination is no longer available.', 'Место добавления больше недоступно.'));
+            progress.finalizing();
+            await uploadPaint();
+            for (const item of selected.filter(item => item.imported)) {
                 const index = queue.indexOf(item);
-                if (index >= 0) release(queue.splice(index, 1)[0]);
+                if (index >= 0) queue.splice(index, 1);
             }
             if (ids.length) {
                 let linked;
@@ -439,16 +461,13 @@ function archiveBindStagedImport({ modal, input, drop, result, rows, chooseButto
         }
         finally {
             importing = false;
-            modal.setAttribute('aria-busy', 'false');
-            input.disabled = false;
-            doneButton.disabled = false;
-            drop.setAttribute('aria-disabled', 'false');
+            progress.end();
             if (modal.isConnected) render();
         }
         if (shouldClose && modal.isConnected) closeModal();
     });
-    if (files?.length) receive(files);
     render();
+    if (files?.length) receive(files);
 }
 function openArchiveDocumentImport({ files = null, onImported = null, projectId = currentProjectId(), folderId = state.activeModule === 'Archive' ? state.archiveSelectedFolderId || null : null, destinationLabel = null, modalOpener = openModal } = {}) {
     const destination = destinationLabel || (folderId ? archiveFolderById(folderId, projectId)?.name : archiveDocumentLabel('All files', 'Все файлы'));

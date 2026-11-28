@@ -922,7 +922,11 @@ function renderTopbar()
     topbar.querySelectorAll('[data-module]').forEach(button => button.addEventListener('click', () =>
     {
         closeTopbarPopover();
-        if (state.projectOpen && state.activeModule === button.dataset.module) return;
+        if (state.projectOpen && state.activeModule === button.dataset.module)
+        {
+            if (button.dataset.module === 'Archive') archiveKeyboardReady(true);
+            return;
+        }
         navigateToProjectModule(currentProjectId(), button.dataset.module);
     }));
     topbar.querySelector('[data-topbar-recording]')?.addEventListener('click', () =>

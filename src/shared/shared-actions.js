@@ -1035,7 +1035,9 @@ function activateProjectWithDiagnosticsBody(projectId, {
 
 function navigateToProjectModuleCommit(projectId, moduleName = 'Projects')
 {
-    return activateProject(projectId, { moduleName });
+    const activated = activateProject(projectId, { moduleName });
+    if (activated && moduleName === 'Archive' && typeof archiveKeyboardReady === 'function') archiveKeyboardReady(true);
+    return activated;
 }
 
 function navigateToProjectModule(
@@ -2812,6 +2814,7 @@ function closeModal(options = {})
                 if ((!escapeDismissed || !returnTarget.closest?.('.tool-split')) && (lastInteractionWasKeyboard || !returnTarget.closest?.('.tool-split')))
                     returnTarget.focus({ preventScroll: true });
             }
+            else if (typeof archiveKeyboardReady === 'function') archiveKeyboardReady();
 
             cancelledPlaceEditorCompletion
                 ?.onCancel

@@ -1061,3 +1061,19 @@
 .people-sidebar-toggle-restore svg {
     transform: rotate(180deg);
 }
+
+/* Import progress remains outside the scrolling staging body. */
+.upload-progress {
+    display: grid;
+    gap: var(--space-2);
+    padding: var(--space-3) var(--space-4);
+    border-bottom: 1px solid var(--surface-row-divider);
+    color: var(--text-secondary);
+    flex: none;
+}
+.upload-progress[hidden] { display: none; }
+.upload-progress strong { color: var(--text-primary); }
+.upload-progress progress { width: 100%; accent-color: var(--gg-primary); }
+.upload-progress-announcement { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+.rp-upload-tile-preview[data-upload-preview] { position: relative; }
+.rp-upload-tile-preview[data-upload-preview] img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; }

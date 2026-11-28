@@ -1,3 +1,177 @@
+
+const archiveKeyboardItemSelector = '[data-archive-file-row], [data-archive-folder-row], [data-archive-mobile-file], [data-archive-mobile-folder]';
+
+function archiveKeyboardRows(root)
+{
+    return root ? [...root.querySelectorAll(archiveKeyboardItemSelector)].filter(row => row.getClientRects().length) : [];
+}
+
+function archiveKeyboardItem(row)
+{
+    const folder = row.dataset.archiveFolderRow || row.dataset.archiveMobileFolder;
+    return folder ? { type: 'folder', id: folder }
+        : { type: 'file', id: row.dataset.archiveFileRow || row.dataset.archiveMobileFile };
+}
+
+function archiveKeyboardSelected(rows)
+{
+    return rows.find(row =>
+    {
+        const { type, id } = archiveKeyboardItem(row);
+        return type === 'folder' ? id === state.archiveSelectedFolderItemId : id === state.archiveSelectedFileId;
+    });
+}
+
+// Rectangles are read only on a directional key, not at render or scroll time.
+// Horizontal keys stay in the current visual row; vertical keys choose the
+// nearest adjacent row and then the closest horizontal center (including
+// separate folder/file sections and incomplete final rows).
+function archiveKeyboardNeighbor(rects, index, key, grid)
+{
+    if (index < 0) return rects.length ? 0 : -1;
+    if (!grid)
+    {
+        if (key === 'ArrowUp') return Math.max(0, index - 1);
+        if (key === 'ArrowDown') return Math.min(rects.length - 1, index + 1);
+        return index;
+    }
+    const centers = rects.map(rect => ({ x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 }));
+    const origin = centers[index];
+    const horizontal = key === 'ArrowLeft' || key === 'ArrowRight';
+    const sign = key === 'ArrowLeft' || key === 'ArrowUp' ? -1 : 1;
+    const candidates = centers.map((point, i) => ({ i, dx: point.x - origin.x, dy: point.y - origin.y }))
+        .filter(point => point.i !== index && (horizontal
+            ? Math.abs(point.dy) < 2 && sign * point.dx > 2
+            : sign * point.dy > 2));
+    candidates.sort((a, b) => horizontal
+        ? Math.abs(a.dx) - Math.abs(b.dx)
+        : Math.abs(a.dy - b.dy) > 2
+            ? Math.abs(a.dy) - Math.abs(b.dy)
+            : Math.abs(a.dx) - Math.abs(b.dx));
+    return candidates[0]?.i ?? index;
+}
+
+function archiveKeyboardReady(force = false)
+{
+    if (state.activeModule !== 'Archive' || state.archiveView === 'sources'
+        || modalBackdrop.classList.contains('open') || archiveFileEditIsActive()
+        || state.archiveFileNameEditingId) return;
+    const root = main.querySelector('.archive-shell');
+    if (!root) return;
+    const active = document.activeElement;
+    if (!force && active && active !== document.body && active !== main && active.isConnected
+        && !active.matches('[data-module="Archive"], [data-archive-file-layout], [data-archive-layout-select]')) return;
+    if (state.archiveFileLayout === 'images')
+    {
+        (root.querySelector('.archive-image-stage') || root.querySelector('.archive-main'))?.focus({ preventScroll: true });
+        return;
+    }
+    const rows = archiveKeyboardRows(root);
+    const selected = archiveKeyboardSelected(rows);
+    // If there is no selection, focus the workspace, not an unselected row:
+    // the first arrow establishes the first item rather than skipping it.
+    const target = selected || root.querySelector('.archive-main');
+    target?.focus({ preventScroll: true });
+}
+
+function archiveKeyboardSelect(row)
+{
+    const { type, id } = archiveKeyboardItem(row);
+    const projectId = currentProjectId();
+    const wasEditing = archiveFileEditIsActive() || Boolean(state.archiveFileNameEditingId);
+    runAfterArchiveFileEditGuard(() =>
+    {
+        if (state.activeModule !== 'Archive' || currentProjectId() !== projectId) return;
+        const root = main.querySelector('.archive-shell');
+        const target = archiveKeyboardRows(root).find(item =>
+        {
+            const key = archiveKeyboardItem(item);
+            return key.type === type && key.id === id;
+        });
+        if (!target) return;
+        resetArchiveFolderRowClick();
+        archiveLastFileRowClick = { fileId: null, at: 0 };
+        if (target.matches('[data-archive-mobile-file], [data-archive-mobile-folder]'))
+        {
+            state.archiveSelectedFileIds = type === 'file' ? [id] : [];
+            state.archiveSelectedFolderIds = type === 'folder' ? [id] : [];
+            state.archiveSelectedFileId = type === 'file' ? id : null;
+            state.archiveSelectedFolderItemId = type === 'folder' ? id : null;
+            state.archiveInspectorCollapsed = false;
+            archiveSelectionAnchor = type + ':' + id;
+            renderArchiveMain();
+        }
+        else
+        {
+            if (wasEditing) renderArchiveMain();
+            archiveSelectDesktopItem(main.querySelector('.archive-shell'), type, id, { shiftKey: false, ctrlKey: false, metaKey: false });
+        }
+        const next = archiveKeyboardRows(main.querySelector('.archive-shell')).find(item =>
+        {
+            const key = archiveKeyboardItem(item);
+            return key.type === type && key.id === id;
+        });
+        next?.focus({ preventScroll: true });
+        next?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+        // Discard confirmation can restore the old row's focus after selection.
+        if (wasEditing) requestAnimationFrame(() =>
+        {
+            if (state.activeModule === 'Archive' && currentProjectId() === projectId
+                && !modalBackdrop.classList.contains('open') && next?.isConnected
+                && (type === 'file' ? state.archiveSelectedFileId === id : state.archiveSelectedFolderItemId === id))
+                next.focus({ preventScroll: true });
+        });
+    });
+}
+
+function handleArchiveFileKeyboard(event)
+{
+    if (!['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Enter'].includes(event.key)
+        || event.defaultPrevented || state.activeModule !== 'Archive' || state.archiveView === 'sources'
+        || event.altKey || event.ctrlKey || event.metaKey || event.shiftKey || event.isComposing
+        || modalBackdrop.classList.contains('open') || mobileSurface
+        || document.querySelector('.menu-popover, .common-menu, .dropdown-menu, .mobile-choice-sheet')) return;
+    const root = main.querySelector('.archive-shell');
+    if (!root) return;
+    const target = event.target;
+    const row = target.closest?.(archiveKeyboardItemSelector) || null;
+    const neutral = target === document.body || target === document.documentElement || target === main
+        || target === root || target === root.querySelector('.archive-main');
+    const imageMode = state.archiveFileLayout === 'images';
+    const imageOwner = imageMode && root.contains(target) && target.matches?.('.archive-image-stage, [data-av-index], [data-av-strip]');
+    if (!neutral && !(row === target && root.contains(row)) && !imageOwner) return;
+    if (imageMode)
+    {
+        if (!['ArrowLeft', 'ArrowRight'].includes(event.key) || !archiveImageView.host || !archiveImageView.files.length) return;
+        event.preventDefault(); event.stopPropagation();
+        archiveImageNavigate(archiveImageView.index + (event.key === 'ArrowRight' ? 1 : -1),
+            Boolean(target.matches?.('[data-av-index]')), !target.matches?.('[data-av-index]'));
+        return;
+    }
+    const rows = archiveKeyboardRows(root);
+    if (!rows.length) return;
+    const selected = archiveKeyboardSelected(rows);
+    if (event.key === 'Enter')
+    {
+        const item = row === target ? row : selected;
+        if (!item || !rows.includes(item)) return;
+        event.preventDefault(); event.stopPropagation();
+        const { type, id } = archiveKeyboardItem(item);
+        if (type === 'folder') archiveOpenFolder(id);
+        else runAfterArchiveFileEditGuard(() => openArchiveDocumentViewer(id));
+        return;
+    }
+    const grid = state.archiveFileLayout === 'tiles' && rows[0].matches('.archive-tile');
+    if (!(grid ? ['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'] : ['ArrowUp', 'ArrowDown']).includes(event.key)) return;
+    event.preventDefault(); event.stopPropagation();
+    const current = rows.indexOf(row === target ? row : selected);
+    const rects = grid ? rows.map(item => item.getBoundingClientRect()) : rows;
+    const index = archiveKeyboardNeighbor(rects, current, event.key, grid);
+    if (index !== current && index >= 0) archiveKeyboardSelect(rows[index]);
+}
+
+document.addEventListener('keydown', handleArchiveFileKeyboard, true);
+
 let archiveDragItem = null;
 let archiveDragExpandTimer = null;
 
@@ -299,7 +473,7 @@ function bindArchiveControls(root = main.querySelector('.archive-shell'))
             resetArchiveFolderRowClick();
             state.archiveFileLayout = button.dataset.archiveFileLayout;
             archiveDiagnosticRun('layoutSwitch', renderArchiveMain, 'full');
-            main.querySelector(`[data-archive-file-layout="${state.archiveFileLayout}"]`)?.focus({ preventScroll: true });
+            archiveKeyboardReady(true);
             if (state.archiveFileLayout !== 'images' && state.archiveSelectedFileId)
                 main.querySelector(`[data-archive-file-row="${CSS.escape(state.archiveSelectedFileId)}"]`)?.scrollIntoView({ block: 'nearest' });
         });
@@ -311,7 +485,7 @@ function bindArchiveControls(root = main.querySelector('.archive-shell'))
             resetArchiveFolderRowClick();
             state.archiveFileLayout = layout;
             archiveDiagnosticRun('layoutSwitch', renderArchiveMain, 'full');
-            main.querySelector('[data-archive-layout-select]')?.focus({ preventScroll: true });
+            archiveKeyboardReady(true);
             if (layout !== 'images' && state.archiveSelectedFileId)
                 main.querySelector(`[data-archive-file-row="${CSS.escape(state.archiveSelectedFileId)}"]`)?.scrollIntoView({ block: 'nearest' });
         });
@@ -1120,14 +1294,7 @@ function bindArchiveControls(root = main.querySelector('.archive-shell'))
                 'keydown',
                 event =>
                 {
-                    if (
-                        event.key === 'Enter'
-                    )
-                    {
-                        event.preventDefault();
-                        open();
-                    }
-                    else if (innerWidth > 900 && (event.key === ' ' || event.key === 'Spacebar'))
+                    if (event.target === row && innerWidth > 900 && (event.key === ' ' || event.key === 'Spacebar'))
                     {
                         event.preventDefault();
                         open();
@@ -1235,26 +1402,7 @@ function bindArchiveControls(root = main.querySelector('.archive-shell'))
                 'keydown',
                 event =>
                 {
-                    if (
-                        event.key === 'Enter'
-                    )
-                    {
-                        event.preventDefault();
-
-                        resetArchiveFolderRowClick();
-
-                        archiveOpenFolder(
-                            folderId
-                        );
-
-                        return;
-                    }
-
-                    if (
-                        event.key === ' '
-                || event.key
-                  === 'Spacebar'
-                    )
+                    if (event.target === row && (event.key === ' ' || event.key === 'Spacebar'))
                     {
                         event.preventDefault();
 

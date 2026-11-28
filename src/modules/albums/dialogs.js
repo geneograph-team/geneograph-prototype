@@ -339,10 +339,12 @@ function openAddPhotosModal()
     let uploadDrafts = [];
     let uploadErrors = [];
     let processing = false;
+    let progress;
+    const destinationProject = validProjectById(projectId);
 
     const renderUploadTile = draft => `
         <article class="rp-upload-tile">
-          <span class="rp-upload-tile-preview"><img src="${escapeHtml(draft.src)}" alt=""></span>
+          <span class="rp-upload-tile-preview" data-upload-preview="${escapeHtml(draft.id)}">${icon.photo}</span>
           <strong title="${escapeHtml(draft.filename)}">${escapeHtml(draft.filename)}</strong>
           <small>${draft.width} × ${draft.height} · ${formatMediaBytes(draft.sizeBytes)}</small>
           <button class="rp-upload-remove" type="button"
@@ -435,171 +437,105 @@ function openAddPhotosModal()
             }
 
             processing = true;
-
-            const modal =
-                modalBackdrop.querySelector(
-                    '[data-albums-photo-upload]'
-                );
-
-            modal
-                ?.querySelectorAll(
-                    'button'
-                )
-                .forEach(button =>
+            const modal = modalBackdrop.querySelector('[data-albums-photo-upload]');
+            progress.begin(rpText('Preparing photos…', 'Подготовка фотографий…'), files.length);
+            uploadStagingSessions.get(modal)?.();
+            uploadErrors = [];
+            let processed = 0;
+            try
+            {
+                await uploadPaint();
+                for (const file of files)
                 {
-                    button.disabled = true;
-                });
-
-            const results =
-                await Promise.all(
-                    files.map(async file =>
+                    try
                     {
-                        try
-                        {
-                            return {
-                                draft:
-                      await createPhotoUploadDraft(
-                          file,
-                          {
-                              idPrefix:
-                            'albums-photo-upload-draft'
-                          }
-                      ),
-
-                                error:
-                      ''
-                            };
-                        }
-                        catch (error)
-                        {
-                            return {
-                                draft:
-                      null,
-
-                                error:
-                      error?.message
-                      || `${
-                          file.name
-                        || 'File'
-                      } — could not be read`
-                            };
-                        }
-                    })
-                );
-
-            processing = false;
-
-            uploadDrafts = [
-                ...uploadDrafts,
-
-                ...results
-                    .map(result =>
-                        result.draft
-                    )
-                    .filter(Boolean)
-            ];
-
-            uploadErrors =
-                results
-                    .map(result =>
-                        result.error
-                    )
-                    .filter(Boolean);
-
-            renderDialog();
+                        const draft = await createPhotoUploadDraft(file, { idPrefix: 'albums-photo-upload-draft' });
+                        if (!modal.isConnected) return;
+                        uploadDrafts.push(draft);
+                    }
+                    catch (error)
+                    {
+                        uploadErrors.push(error?.message || file.name);
+                    }
+                    progress.update(++processed, uploadErrors.length);
+                    await uploadYield();
+                    if (!modal.isConnected) return;
+                }
+            }
+            finally
+            {
+                processing = false;
+                progress.end();
+                if (modal.isConnected) renderDialog();
+            }
         };
 
-    const commitUploads = () =>
+    const commitUploads = async () =>
     {
-        if (
-            processing
-          || !uploadDrafts.length
-        )
+        if (processing || !uploadDrafts.length) return;
+        if (uploadDrafts.some(draft => !photoUploadDraftIsValid(draft))
+            || !destinationProject || validProjectById(projectId) !== destinationProject
+            || (targetAlbumId && !getProjectAlbums(projectId).some(album => album.id === targetAlbumId)))
         {
-            return;
-        }
-
-        if (
-            uploadDrafts.some(
-                draft =>
-                    !photoUploadDraftIsValid(
-                        draft
-                    )
-            )
-        )
-        {
-            uploadErrors = [
-                'One or more uploaded photos are no longer valid. Remove them and choose the files again.'
-            ];
-
+            uploadErrors = [rpText('The photos or import destination are no longer valid.', 'Фотографии или место добавления больше недоступны.')];
             renderDialog();
             return;
         }
-
-        const createdPhotos =
-            uploadDrafts
-                .map(draft =>
-                    createMediaFromPhotoUpload({
-                        projectId,
-
-                        draft,
-
-                        personIds:
-                  [],
-
-                        idPrefix:
-                  'photo-albums'
-                    })
-                )
-                .filter(Boolean);
-
-        if (!createdPhotos.length)
+        const modal = modalBackdrop.querySelector('[data-albums-photo-upload]');
+        const project = validProjectById(projectId);
+        processing = true;
+        progress.begin(rpText('Adding photos…', 'Добавление фотографий…'), uploadDrafts.length);
+        uploadStagingSessions.get(modal)?.();
+        const createdPhotos = [], remaining = [];
+        uploadErrors = [];
+        let processed = 0;
+        try
         {
-            uploadErrors = [
-                'No valid photos were added.'
-            ];
-
-            renderDialog();
-            return;
-        }
-
-        if (targetAlbumId)
-        {
-            createdPhotos.forEach(photo =>
+            await uploadPaint();
+            for (const draft of uploadDrafts)
             {
-                photo.albumIds = [
-                    ...new Set([
-                        ...(photo.albumIds || []),
-                        targetAlbumId
-                    ])
-                ];
-            });
+                try
+                {
+                    if (validProjectById(projectId) !== project || (targetAlbumId && !getProjectAlbums(projectId).some(album => album.id === targetAlbumId)))
+                        throw new Error(rpText('The import destination is no longer available.', 'Место добавления больше недоступно.'));
+                    const photo = createMediaFromPhotoUpload({ projectId, draft, personIds: [], idPrefix: 'photo-albums' });
+                    if (!photo) throw new Error(rpText('Could not add photo.', 'Не удалось добавить фотографию.'));
+                    if (targetAlbumId) photo.albumIds = [...new Set([...(photo.albumIds || []), targetAlbumId])];
+                    createdPhotos.push(photo);
+                }
+                catch (error)
+                {
+                    remaining.push(draft);
+                    uploadErrors.push(draft.filename + ': ' + error.message);
+                }
+                progress.update(++processed, uploadErrors.length);
+                await uploadYield();
+            }
+            progress.finalizing();
+            await uploadPaint();
+            uploadDrafts = remaining;
+            if (createdPhotos.length)
+            {
+                touchProjectModified(sampleData.projects.find(item => item.id === projectId));
+                if (currentProjectId() === projectId && state.activeModule === 'Albums')
+                {
+                    state.selectedPhotoIds = [];
+                    state.selectedPhotoId = createdPhotos[0].id;
+                    renderAlbums();
+                }
+                showToast('Photos added');
+            }
         }
-
-        const project =
-            sampleData.projects.find(
-                item =>
-                    item.id === projectId
-            );
-
-        touchProjectModified(
-            project
-        );
-
-        state.selectedPhotoIds = [];
-
-        state.selectedPhotoId =
-            createdPhotos[0].id;
-
-        closeModal({
-            force: true
-        });
-
-        renderAlbums();
-
-        showToast(
-            'Photos added'
-        );
+        finally
+        {
+            processing = false;
+            progress.end();
+            if (modal.isConnected)
+            {
+                if (remaining.length || !createdPhotos.length) renderDialog();
+                else closeModal({ force: true });
+            }
+        }
     };
 
     const bindDialog = () =>
@@ -685,10 +621,14 @@ function openAddPhotosModal()
             );
         }
 
+        progress = createUploadProgress(modal, fileInput, dropzone);
+        modalBackdrop.beforeClose = () => !processing;
+        mountUploadStagingPreviews(modal, modal, uploadDrafts);
         modal.addEventListener(
             'click',
             event =>
             {
+                if (processing) return;
                 const removeButton =
                     event.target.closest(
                         '[data-person-photos-adder-remove-upload]'

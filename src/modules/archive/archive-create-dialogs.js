@@ -580,34 +580,7 @@ function openArchiveCreateFolderModal(
 
             closeModal();
 
-            archiveNavigateToLocation(
-                {
-                    view:
-                'files',
-
-                    folderId:
-                folder.id,
-
-                    search:
-                '',
-
-                    searchScope:
-                'folder',
-
-                    personFilterId:
-                '',
-
-                    selectedFileId:
-                null,
-
-                    inspectorCollapsed:
-                false
-                },
-                {
-                    expandCurrent:
-                true
-                }
-            );
+            renderArchive();
 
             showToast(
                 'Folder created.'
