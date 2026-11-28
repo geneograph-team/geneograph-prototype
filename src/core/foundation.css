@@ -5598,7 +5598,7 @@ body.mobile-details-open .geneo-inspector [data-geneo-inspector-toggle] {
 .diagnostics-module-actions .text-action { min-height: 28px; font-size: 13px; }
 .diagnostics-module-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(min(100%, 118px), 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, max(118px, calc((100% - 3 * var(--space-2)) / 4))), 1fr));
     gap: var(--space-1) var(--space-2);
 }
 .diagnostics-modules .checkbox-row {
