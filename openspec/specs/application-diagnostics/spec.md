@@ -55,7 +55,9 @@ A Tree gesture trace is finished only by its native input owner. A superseding g
 ## Artifact build identity
 
 The export optionally carries an additive schema-3 `buildInfo` object shared
-with About. It describes the loaded artifact, not a remote branch head:
+with About. About displays and copies a compact version/short-revision
+string; detailed revision and channel remain in Diagnostics. It describes
+the loaded artifact, not a remote branch head:
 version, full revision, short revision, tag, commit distance and channel.
 Unavailable values are null; an unprepared checkout has channel local.
 The immutable artifact identity applies to all epochs in the export.

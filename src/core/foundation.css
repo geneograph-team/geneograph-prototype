@@ -5717,6 +5717,39 @@ body.mobile-details-open .geneo-inspector [data-geneo-inspector-toggle] {
     line-height: 1.35;
 }
 
+.about-settings .about-version-copy {
+    width: 32px;
+    height: 32px;
+    cursor: pointer;
+}
+
+.about-settings .about-version-copy svg {
+    width: 16px;
+    height: 16px;
+}
+
+.about-settings .about-version-value {
+    overflow-wrap: anywhere;
+    font-variant-numeric: tabular-nums;
+    user-select: text;
+}
+
+.about-settings .about-version-copy-fallback:not([hidden]) {
+    box-sizing: border-box;
+    width: 100%;
+    margin-top: var(--space-2);
+    color: var(--text-primary);
+    background: var(--surface-input);
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-sm);
+    padding: var(--space-2);
+}
+
+.about-settings .about-link {
+    justify-self: end;
+    text-align: right;
+}
+
 .global-settings-select-shell {
     width: 220px;
     max-width: 100%;

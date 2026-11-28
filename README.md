@@ -19,7 +19,9 @@ components). The nearest reachable valid tag is chosen by the smallest
 `git rev-list --count refs/tags/<tag>..HEAD` distance; ties choose the highest
 numeric version. Annotated and lightweight tags both work. An exact tag
 displays the release version; later commits display, for example,
-`1.6.0-dev.141` with the short commit hash, and copy/export the full revision.
+`1.6.0-dev.141`. About displays and copies a single version/build string,
+for example `1.6.0-dev.141-41e31c3` (or `1.6.1-96219dd` for a tagged
+release); Diagnostics exports the full revision and channel.
 Without a reachable tag the artifact is a development build with a known
 revision but no release version. These labels identify builds, not release
 ordering guarantees.
