@@ -403,7 +403,7 @@ function renderNotesBrowserPane(
 
     return `
         <section
-          class="notes-browser-pane"
+          class="notes-browser-pane${notesBulkSelection.ids.size ? ' has-bulk-selection' : ''}"
           aria-label="Notes browser">
 
           <header class="notes-browser-header">

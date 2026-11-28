@@ -240,10 +240,35 @@
     cursor: pointer;
 }
 
-.notes-row-checkbox input, .notes-bulk-checkbox input {
+.notes-bulk-checkbox input {
     width: 18px;
     height: 18px;
     margin: 0;
+}
+
+/* Keep the existing grid column and click target; align the glyph to
+   the 15px / 1.35 title line rather than the 30px action buttons. */
+.notes-row-checkbox {
+    align-items: start;
+}
+
+.notes-row-checkbox input {
+    width: 16px;
+    height: 16px;
+    margin: 2px 0 0;
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .notes-browser-pane:not(.has-bulk-selection) .notes-row:not(:hover):not(:focus-within) .notes-row-checkbox {
+        opacity: 0;
+    }
+}
+
+/* Hybrid touch laptops must also expose the control without hover. */
+@media (any-pointer: coarse) {
+    .notes-browser-pane:not(.has-bulk-selection) .notes-row:not(:hover):not(:focus-within) .notes-row-checkbox {
+        opacity: 1;
+    }
 }
 
 .notes-bulk-bar {

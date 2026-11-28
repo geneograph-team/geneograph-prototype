@@ -108,6 +108,44 @@ cleanup();
 assert.ok(undo.disabled && redo.disabled);
 assert.equal(listeners.size, 0);
 assert.equal(undo.handlers.size + redo.handlers.size, 0);
+
+// The pane reveal state follows actual bulk selection, without rerendering.
+const paneClasses = new Set();
+const pane = { classList: { toggle(name, enabled) { if (enabled) paneClasses.add(name); else paneClasses.delete(name); } } };
+const countLabel = { textContent: '' };
+const allCheckbox = {};
+const bar = { hidden: true, querySelector: selector => selector === '[data-notes-bulk-count]' ? countLabel : allCheckbox };
+const rowClasses = new Set();
+const row = { classList: { toggle(name, enabled) { if (enabled) rowClasses.add(name); else rowClasses.delete(name); } } };
+const rowCheckbox = { dataset: { noteBulk: 'a' }, closest: () => row };
+const root = { querySelector: selector => selector === '.notes-browser-pane' ? pane : bar,
+    querySelectorAll: () => [rowCheckbox] };
+state.notesView = 'all';
+reconcileNotesBulkSelection(notes.slice(0, 3));
+syncNotesBulkControls(root);
+assert.equal(paneClasses.has('has-bulk-selection'), false);
+assert.equal(bar.hidden, true);
+toggleNotesBulkSelection('a', true);
+syncNotesBulkControls(root);
+assert.equal(paneClasses.has('has-bulk-selection'), true);
+assert.equal(rowCheckbox.checked, true);
+assert.equal(allCheckbox.indeterminate, true);
+assert.equal(bar.hidden, false);
+selectAllNotesBulk(true);
+syncNotesBulkControls(root);
+assert.equal(allCheckbox.checked, true);
+selectAllNotesBulk(false);
+syncNotesBulkControls(root);
+assert.equal(paneClasses.has('has-bulk-selection'), false);
+assert.equal(rowCheckbox.checked, false);
+assert.equal(bar.hidden, true);
+
 console.log('Notes bulk selection, scoped mutations, collection and history controls passed.');
 `;
 vm.runInNewContext(source + '\n' + assertions, { assert, console });
+
+const css = read('browser-editor.css');
+assert.match(css, /\.notes-row-checkbox input\s*\{[^}]*width:\s*16px;[^}]*height:\s*16px;[^}]*margin:\s*2px 0 0;/s);
+assert.match(css, /@media \(hover: hover\) and \(pointer: fine\)\s*\{\s*\.notes-browser-pane:not\(\.has-bulk-selection\) \.notes-row:not\(:hover\):not\(:focus-within\) \.notes-row-checkbox\s*\{\s*opacity: 0;/s);
+assert.match(css, /@media \(any-pointer: coarse\)\s*\{\s*\.notes-browser-pane:not\(\.has-bulk-selection\) \.notes-row:not\(:hover\):not\(:focus-within\) \.notes-row-checkbox\s*\{\s*opacity: 1;/s);
+assert.match(read('browser.js'), /class="notes-browser-pane\$\{notesBulkSelection\.ids\.size \? ' has-bulk-selection' : ''\}/);

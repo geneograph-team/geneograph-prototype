@@ -1101,6 +1101,7 @@ function syncNotesBulkControls(root = main)
     const bar = root.querySelector('[data-notes-bulk-bar]');
     if (!bar) return;
     const count = notesBulkSelection.ids.size;
+    root.querySelector('.notes-browser-pane')?.classList.toggle('has-bulk-selection', count > 0);
     bar.hidden = !count;
     bar.querySelector('[data-notes-bulk-count]').textContent = notesBulkCountText(count);
     const all = bar.querySelector('[data-notes-bulk-all]');
