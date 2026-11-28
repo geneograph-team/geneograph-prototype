@@ -26,6 +26,15 @@ node tests/search/test-shared-search-input.cjs
 
 Select the checks relevant to the change. A nonzero exit means failure. `tree-cases.cjs` is a shared topology builder, not an executable test. The internal stress-project check must be removed with its temporary application fixture before open user testing; see the [removal guide](../doc/family-tree-stress-test.md).
 
+## Build identity verification
+
+Run `node tests/diagnostics/test-build-info.cjs`. The test uses a disposable
+Git repository outside the canonical checkout, checks tag selection,
+generation, runtime normalization, About markup/copy text and Diagnostics
+agreement. Git and Node are required for this developer test, not the
+static runtime. Separately check the actual Pages artifact, existing
+geocoder config, direct-file fallback and EN/RU About copy/focus behavior.
+
 ## Performance verification
 
 Assert structural counts in Node fixtures: builds per compatible revision, collection or membership passes, query versus detail work, and release on switch, rollback or invalidation. Compare cold and warm browser paths on the same revision pairing, browser, viewport, theme, locale, data and operations. Include the sample, the internal stress fixture when available, and synthetic linked evidence. Record counts beside timings, specify the timing boundary, and agree budgets from measured results. Do not use hardware-dependent time assertions.

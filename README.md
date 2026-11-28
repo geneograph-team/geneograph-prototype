@@ -11,6 +11,35 @@ Static browser prototype for genealogy research. Open `src/index.html` directly 
 - `src/assets/photos/`, `documents/`, `covers/`, and `ui/` hold static media. `src/assets/boards/whiskerfield-tree-research.js` registers the seeded board before `src/seed/seed-boards.js` loads.
 - `src/vendor/` holds pinned local browser libraries, including `html-to-image`. Quill 2.0.3 and MapLibre GL JS 6.16.0 load from local vendor assets. The Places renderer imports MapLibre only on hosted HTTP(S) pages. Opening via file:// retains the Places list and manual coordinates without an interactive map.
 
+## Prototype build identity
+
+The Pages build generates `dist/build-info.js` from its checked-out Git commit.
+Create milestone tags in the form `vMAJOR.MINOR.PATCH` (no leading zeroes in
+components). The nearest reachable valid tag is chosen by the smallest
+`git rev-list --count refs/tags/<tag>..HEAD` distance; ties choose the highest
+numeric version. Annotated and lightweight tags both work. An exact tag
+displays the release version; later commits display, for example,
+`1.6.0-dev.141` with the short commit hash, and copy/export the full revision.
+Without a reachable tag the artifact is a development build with a known
+revision but no release version. These labels identify builds, not release
+ordering guarantees.
+
+Unprepared source checkouts show Local development build and unknown revision.
+A prepared static artifact retains its embedded identity on HTTP(S) or
+`file://`; subsequent local edits are not detected. About and Diagnostics
+use the same immutable metadata without fetching GitHub. For a deliberately
+prepared local artifact, a maintainer may copy `src/` to a separate output
+directory and run `node scripts/generate-build-info.cjs <output>/build-info.js`
+from a complete Git checkout. Do not overwrite the tracked fallback.
+The generator requires complete Git history; deployment fails rather than
+publishing misleading metadata if Git identity cannot be determined.
+
+Creating a tag alone does not trigger the current Pages workflow. It will be
+reflected on the next eligible default-branch deployment of a revision that
+can reach it; to publish that exact tagged commit as a release, the eligible
+deployment must build that commit after its tag exists. No trigger or
+automatic tag/release policy is changed.
+
 ## Tests and scripts
 
 - [`tests/`](tests/README.md): reusable regression checks grouped by domain; run locally with Node.js.

@@ -52,6 +52,16 @@ Native long-task summaries only count entries that start inside the observed epo
 
 A Tree gesture trace is finished only by its native input owner. A superseding gesture or disposal cancels it. A normal end completes it. A native touch cancellation cancels it. Stop terminates genuinely active retained traces. A delayed callback from an earlier gesture, an evicted trace, or another epoch cannot complete a newer trace.
 
+## Artifact build identity
+
+The export optionally carries an additive schema-3 `buildInfo` object shared
+with About. It describes the loaded artifact, not a remote branch head:
+version, full revision, short revision, tag, commit distance and channel.
+Unavailable values are null; an unprepared checkout has channel local.
+The immutable artifact identity applies to all epochs in the export.
+Older exports without this object remain valid. No network request is
+needed to determine build identity.
+
 ## Archive Detailed evidence
 Detailed Archive operations SHALL expose available allowlisted layout, presentation, full/partial/observation path, result and mounted structure counts and separated render stages. The existing epoch-scoped recorder SHALL aggregate bounded asynchronous image observation, explicit decode and thumbnail generation outcomes, timings and available dimensions, cache counters and gauges without retaining image identity or initiating additional image work. Unsupported/unavailable measurements remain absent. Stop/clear/replacement SHALL exclude obsolete completions. Basic/inactive/excluded scopes SHALL not collect Archive details. Native load elapsed and frame opportunities SHALL NOT be represented as pure decode or paint; long tasks remain page-wide in Entire application Detailed only. Schema 3 remains backward compatible.
 

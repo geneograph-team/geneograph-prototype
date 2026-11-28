@@ -2,6 +2,13 @@
 
 `src/index.html` is the authoritative order for CSS and classic deferred JavaScript. `src/browser-config.js` carries empty public credential defaults, replaced only in GitHub Pages deployment by repository Actions secrets. `src/core/geocoder-adapter.js` precedes `src/shared/date-and-place-fields.js` and both place-search screens; it owns browser-only interactive Geoapify → LocationIQ lookup and single-provider automatic import lookup. Each script shares one global scope; do not duplicate top-level bindings or move an eager initializer before its dependencies. Direct `file://` opening remains required.
 
+The nondeferred `src/build-info.js` is an empty local fallback; the Pages
+artifact replaces only its copied file with Git-derived metadata.
+`src/core/build-info.js` normalizes it before the other deferred scripts.
+About and Diagnostics read the same immutable `geneographBuildInfo`; the
+generator `scripts/generate-build-info.cjs` is build-time only. See README
+for tag selection and deployment limits.
+
 ## Owners
 
 | Area | Source owner |

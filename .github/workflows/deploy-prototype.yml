@@ -55,6 +55,9 @@ jobs:
                       -Destination ${{ github.workspace }}/dist/ `
                       -Recurse
 
+            - name: Generate prototype build identity
+              run: node scripts/generate-build-info.cjs dist/build-info.js
+
             # Browser tokens are public in the deployed artifact. Repository secrets
             # prevent committing them to source; provider restrictions remain essential.
             - name: Inject public geocoder tokens into deployment copy

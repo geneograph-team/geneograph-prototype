@@ -1,0 +1,3 @@
+# Design
+
+Generate a small static script in the copied artifact from the actual checkout. Select the nearest reachable strict numeric version tag by revision distance; break ties by descending numeric version. Treat no tag as development, no generated identity as local. Normalize once in the runtime before About and Diagnostics; never fetch remote state. Preserve the full SHA in copy/export, short SHA in the UI. Use the existing toast and a selectable text fallback for denied clipboard access. The existing workflow's branch/path triggers remain unchanged; tag-only pushes do not deploy. See README for full policy.

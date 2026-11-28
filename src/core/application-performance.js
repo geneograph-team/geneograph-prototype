@@ -414,6 +414,7 @@ const appPerf = (() =>
     function snapshot()
     {
         return { schemaVersion: 3, recorder: 'geneograph-application-performance', elkVersion: '0.12.1',
+            buildInfo: typeof geneographBuildInfo === 'undefined' ? null : geneographBuildInfo,
             active, configuration: settings(), capacity: limit, dropped, totalOperations: next,
             summaryCoverage: summaryCoverage && {
                 recording: summaryCoverage.recording,
