@@ -5,7 +5,7 @@
 - [x] Preserve compatible desktop file selection nodes and scope inspector rebinding.
 - [x] Audit import invalidations with a production-path reproduction.
 - [x] Run focused thumbnail, Archive and Diagnostics regressions and representative browser checks.
-- [ ] Complete remaining integrated browser coverage and founder acceptance.
+- [x] Founder acceptance (28 November 2026): founder reports test passed and authorizes closeout. Remaining integrated coverage is tracked by #460.
 
 ## Browser measurements
 
@@ -50,3 +50,9 @@ Founder recording after PR #511: 93 completed operations, zero drops, 158 high-r
 - [x] Implement bounded folder-local mounted and derivative buffers, immediate warm-cache restore and strict viewport priority.
 - [x] Execute actual updated thumbnail regression assertions in isolated JavaScript with Node VM/DOM/IntersectionObserver doubles: 281 successive tiles, 256-entry/100-element limits, 101 simultaneous near targets, byte pressure, retained node identity, warm hit during active encode, foreground before prefetch, same-folder layout reuse, folder switch during encode, stale observers, original/source/URL ownership and failure handling.
 - [ ] Native regression and browser QA of the revised buffer: scroll down/back through the 158-image folder, exceed both budgets with synthetic larger collections, compare warm load/miss counts and frame opportunities, verify folder exit/return and same-folder layout switching; retain outstanding integrated QA. No browser measurements of this revision yet.
+
+## Acceptance and archival — 28 November 2026
+
+Founder reports the test passed and explicitly accepts #456, including the final folder-local buffer. PR #513 is merged on default at `02e1b7ff174797a50154589d05ad4e52f8f062db`. This acceptance supersedes the pending standalone acceptance gate, not the historical record of which tests were run. No additional runtime or browser checks were performed at archival; the founder did not provide a new timing export or enumerate all test scenarios. The unchecked native/browser and broader integrated coverage items above remain honest historical limitations, carried proportionately into #460. Residual Details full-query cost and unattributed invalidation/eviction are accepted limitations, not new optimization work. Upload progress and folder creation behavior remain separate #512.
+
+- [x] Integrate final requirements in `openspec/specs/archive-previews/spec.md` and move the accepted change to the dated archive (pending archival PR merge).
