@@ -88,7 +88,7 @@ assert.equal(JSON.stringify(data).includes('private'), false);
 appPerf.clear();
 appPerf.configure({ scope: 'selected', modules: ['People'], mode: 'detailed' });
 appPerf.start();
-assert.equal(appPerf.snapshot().browser.longTasks.status, 'outOfScope');
+assert.equal(appPerf.snapshot().browser.longTasks.scope, 'pageWide');
 appPerf.finish(stopped, 'completed');
 assert.equal(appPerf.snapshot().samples.length, 0);
 appPerf.clear();
@@ -101,9 +101,61 @@ for (let index = 0; index < 256; index++) appPerf.run('Notes', 'render', () => a
 appPerf.finish(evicted, 'completed');
 assert.equal(appPerf.snapshot().dropped, 1);
 assert.equal(appPerf.snapshot().samples.some(sample => sample.seq === evicted.seq), false);
-assert.equal(evicted.status, 'pending');
+assert.equal(evicted.status, 'completed');
+assert.equal(appPerf.snapshot().epochSummaries.recordings[0].operations['Places/mapInitialize/asynchronous/completed'].count, 1);
 appPerf.stop();
-console.log('Application diagnostics: real provider adapter, causality, frame, async and long-task fallback passed.');
+
+appPerf.clear();
+appPerf.configure({ scope: 'selected', modules: ['Albums'], mode: 'detailed' });
+navigator = { userAgent: 'private-url Firefox/123.0 (Windows)', hardwareConcurrency: 8 };
+location = { protocol: 'file:', href: 'file:///private-filename' };
+appPerf.start();
+appPerf.run('Albums', 'search', () => appPerf.run('Albums', 'render', () =>
+{
+    const trace = appPerf.currentDetailed('Albums');
+    appPerf.phase(trace, 'markup', () =>
+    {
+        advance(3);
+        appPerf.phase(trace, 'inspector', () => advance(7));
+    });
+    advance(4);
+}));
+assert.throws(() => appPerf.run('Albums', 'render', () =>
+    appPerf.phase(appPerf.currentDetailed('Albums'), 'dom', () => { advance(6); throw Error('private-error'); })));
+const evictedPending = appPerf.begin('Albums', 'gridHydrate', null, 'asynchronous');
+const asyncTrace = appPerf.begin('Albums', 'gridHydrate', null, 'asynchronous');
+appPerf.phase(asyncTrace, 'markup', () => advance(5));
+appPerf.finish(asyncTrace, 'canceled');
+appPerf.observeAlbumImage({ complete: true, naturalWidth: 16, naturalHeight: 8 }, 'private-source', 512);
+const phaseSnapshot = appPerf.snapshot();
+assert.equal(phaseSnapshot.samples[1].action, 'search');
+assert.equal(phaseSnapshot.samples[1].parentSeq, phaseSnapshot.samples[0].seq);
+assert.equal(phaseSnapshot.samples[1].synchronousCoverage.coveredMs, 10);
+assert.equal(phaseSnapshot.samples[1].synchronousCoverage.remainderMs, 4);
+assert.equal(phaseSnapshot.samples[1].stages.inspector.ms, 7);
+assert.equal(phaseSnapshot.samples[2].synchronousCoverage.coveredMs, 6);
+assert.equal(phaseSnapshot.samples.at(-1).synchronousCoverage, undefined);
+assert.equal(phaseSnapshot.epochSummaries.recordings[0].albumsImages.maxPixels, 128);
+assert.equal(phaseSnapshot.epochSummaries.recordings[0].albumsImages.sources.unknown, 1);
+assert.equal(phaseSnapshot.epochSummaries.recordings[0].environment.browserMajor, 123);
+assert.ok(!JSON.stringify(phaseSnapshot).includes('private'));
+for (let index = 0; index < 270; index++) appPerf.run('Albums', 'render', () => advance(2));
+appPerf.stop();
+const result = appPerf.snapshot();
+const epochSummary = result.epochSummaries.recordings[0];
+assert.equal(epochSummary.incomplete, 1);
+assert.equal(evictedPending.status, 'pending');
+assert.equal(result.samples.length, 256);
+assert.equal(result.dropped, 19);
+const aggregate = epochSummary.operations['Albums/render/synchronous/completed'];
+assert.equal(aggregate.count, 271);
+assert.equal(aggregate.totalMs, 554);
+assert.equal(aggregate.histogram[1], 270);
+assert.equal(aggregate.histogram[3], 1);
+for (let index = 0; index < 9; index++) { appPerf.start(); appPerf.stop(); }
+assert.equal(appPerf.snapshot().epochSummaries.recordings.length, 8);
+assert.equal(appPerf.snapshot().epochSummaries.omittedRecordings, 2);
+console.log('Application diagnostics: provider, phase union, action, eviction, epoch bounds and privacy passed.');
 `, providerContext);
 
 
@@ -262,7 +314,7 @@ assert.equal(data.archivePerformance.layouts.icons.tasks.tileLoad.thumbnail.canc
 assert.equal(data.archivePerformance.layouts.icons.tasks.tileLoad.thumbnail.pending, 1);
 assert.equal(data.archivePerformance.layouts.icons.gauges.pendingJobs.max, 3);
 assert.equal(data.archivePerformance.layouts.icons.gauges.pendingJobs.last, 1);
-assert.equal(data.browser.longTasks.status, 'outOfScope');
+assert.ok(['observed', 'unsupported'].includes(data.browser.longTasks.status));
 assert.equal(JSON.stringify(data).includes('private'), false);
 assert.equal(diagnosticsView(appPerf.status(), appPerf.settings()).confirmNew, true);
 const recording = appPerf.status().recording;

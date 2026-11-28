@@ -951,7 +951,8 @@ function activateProject(projectId, options)
     const target = appPerf.modules.includes(options?.moduleName) ? options.moduleName : 'Projects';
     if (!appPerf.enabled('Projects') && !appPerf.enabled(target))
         return activateProjectWithDiagnosticsBody(projectId, options);
-    const invoke = () => appPerf.run(target, 'navigation', () => activateProjectWithDiagnosticsBody(projectId, options));
+    const kind = target === 'Albums' ? 'moduleEntry' : 'navigation';
+    const invoke = () => appPerf.run(target, kind, () => activateProjectWithDiagnosticsBody(projectId, options));
     if (!state.projectOpen || state.currentProjectId !== projectId)
         return appPerf.run('Projects', 'activation', invoke);
     return invoke();

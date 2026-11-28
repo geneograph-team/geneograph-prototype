@@ -17,11 +17,12 @@ const appPerf = (() =>
     operations.get('People').add('mutation');
     for (const kind of ['search', 'filter', 'page', 'sort']) operations.get('People').add(kind);
     operations.get('Notes').add('editor');
-    operations.get('Albums').add('resize');
-    operations.get('Albums').add('gridHydrate');
+    const actions = new Set(['moduleEntry', 'navigation', 'search', 'filter', 'sort', 'selection', 'multiSelection',
+        'favorite', 'layoutSwitch', 'resize', 'gridHydrate', 'viewportRestore', 'inspector', 'edit', 'mutation']);
+    for (const kind of actions) operations.get('Albums').add(kind);
     operations.get('Publish').add('preview');
     for (const kind of ['layoutSwitch', 'folderNavigation', 'scroll', 'resize', 'previewHydrate']) operations.get('Archive').add(kind);
-    const frameKinds = new Set(['selection', 'review', 'editor', 'profile', 'picker', 'preview', 'layoutSwitch', 'folderNavigation', 'scroll', 'resize']);
+    const frameKinds = new Set(['selection', 'review', 'editor', 'profile', 'picker', 'preview', 'layoutSwitch', 'folderNavigation', 'scroll', 'resize', 'multiSelection']);
     const providerKeys = new Set(['people:index', 'families:index', 'families:graph', 'families:labels', 'people:directory',
         'people:link-search', 'places:associations', 'places:duplicate-pairs', 'places:inspector-events', 'people:photo-filter-search', 'people:geneo-match-names', 'notes:search-resources', 'people:album-tag-search', 'albums:tag-memberships', 'albums:photo-search']);
     const domainKeys = new Set(['projects', 'people', 'families', 'places', 'media', 'sources', 'notes',
@@ -32,7 +33,7 @@ const appPerf = (() =>
         'portraitDemand', 'portraitWait', 'portraitDecode', 'renderSync',
         'lookup', 'index', 'query', 'filter', 'sort', 'detail', 'markup', 'dom', 'analysis',
         'evidence', 'editor', 'imageMarkup', 'mapSetup', 'markupBuild', 'domReplace',
-        'binding', 'localization', 'mount', 'previewResize', 'previewEncode']);
+        'binding', 'localization', 'mount', 'previewResize', 'previewEncode', 'retainedNodes', 'observers', 'layoutReadsWrites']);
     const metrics = new Set(['projectPeople', 'projectFamilies', 'visiblePeople', 'visibleFamilies',
         'cards', 'placeholders', 'families', 'edges', 'paths', 'diagnostics', 'mountedCards',
         'mountedPlaceholders', 'mountedControls', 'mountedPaths', 'passes', 'secondPass',
@@ -69,6 +70,98 @@ const appPerf = (() =>
         'estimatedDecodedBytes', 'pendingJobs', 'runningJobs', 'mountedPreviews']);
     const archiveDurations = new Set(['resizeMs', 'encodeMs', 'queueWaitMs']);
     let archiveSummary = null, archiveStopCleanup = null;
+    const summaryLimit = 8;
+    const latencyBoundsMs = [1, 4, 8, 16, 33, 50, 100, 250, 500, 1000];
+    let recordings = [], omittedRecordings = 0, recording = null;
+    let projectContext = null;
+    const imageLimit = 256;
+    const pendingImages = new Map();
+    let observedImages = new WeakSet();
+    const known = value => Number.isFinite(value) && value >= 0 ? value : null;
+    const viewport = () => ({ width: known(globalThis.innerWidth), height: known(globalThis.innerHeight) });
+
+    function environment()
+    {
+        const ua = globalThis.navigator?.userAgent || '';
+        const blink = ua.match(/(?:Chrome|Chromium)\/(\d{1,3})\./);
+        const gecko = ua.match(/Firefox\/(\d{1,3})\./);
+        const webkit = ua.match(/Version\/(\d{1,3})\..*Safari\//);
+        const protocol = globalThis.location?.protocol;
+        const theme = globalThis.document?.documentElement?.dataset?.theme;
+        return {
+            mode: protocol === 'file:' ? 'directFile' : ['https:', 'http:'].includes(protocol) ? 'hosted' : null,
+            engine: blink ? 'Blink' : gecko ? 'Gecko' : webkit ? 'WebKit' : null,
+            browserMajor: known(Number((blink || gecko || webkit)?.[1])),
+            os: /Android/.test(ua) ? 'Android' : /iPhone|iPad|iPod/.test(ua) ? 'iOS'
+                : /Windows/.test(ua) ? 'Windows' : /Macintosh/.test(ua) ? 'macOS' : /Linux/.test(ua) ? 'Linux' : null,
+            viewport: viewport(), devicePixelRatio: known(globalThis.devicePixelRatio),
+            locale: typeof state !== 'undefined' && ['en', 'ru'].includes(state.language) ? state.language : null,
+            theme: ['dark', 'light'].includes(theme) ? theme : null,
+            logicalCpuHint: known(globalThis.navigator?.hardwareConcurrency),
+            deviceMemoryGiBHint: known(globalThis.navigator?.deviceMemory)
+        };
+    }
+
+    function workload()
+    {
+        if (typeof acquireProjectReadModel !== 'function' || typeof currentProjectId !== 'function'
+            || typeof sampleData === 'undefined') return null;
+        const id = currentProjectId();
+        const model = acquireProjectReadModel(id);
+        if (model.generation === null) return null;
+        if (projectContext?.generation !== model.generation)
+            projectContext = { generation: model.generation, collections: new Map() };
+
+        const fields = [
+            ['people', 'people'], ['families', 'families'], ['photos', 'media'],
+            ['archiveFiles', 'archive', 'archiveFiles'], ['notes', 'notes'], ['places', 'places'],
+            ['sources', 'sources'], ['boards', 'boards']
+        ];
+        const counts = { media: {} };
+        for (const [key, domain, collection = domain] of fields)
+        {
+            const revision = model.revisionToken([domain]);
+            if (revision === null) return null;
+            let cached = projectContext.collections.get(key);
+            if (cached?.revision !== revision)
+            {
+                const records = sampleData[collection];
+                let count = Array.isArray(records) ? 0 : null;
+                let bytes = 0, sizeKnown = 0;
+                const media = key === 'photos' || key === 'archiveFiles';
+                if (Array.isArray(records))
+                {
+                    for (const record of records)
+                    {
+                        if (record.projectId !== id || record.deleted) continue;
+                        count++;
+                        if (!media || known(record.sizeBytes) === null) continue;
+                        sizeKnown++;
+                        bytes += record.sizeBytes;
+                    }
+                }
+                cached = { revision, count, size: media ? { sizeKnown, bytes: sizeKnown ? bytes : null } : null };
+                projectContext.collections.set(key, cached);
+            }
+            counts[key] = cached.count;
+            if (cached.size) counts.media[key] = cached.size;
+        }
+        return counts;
+    }
+
+    function summarize(trace)
+    {
+        const key = [trace.module, trace.kind, trace.timing || 'unspecified', trace.status].join('/');
+        const row = recording.operations[key] ??= { count: 0, totalMs: 0, minMs: null, maxMs: null,
+            histogram: Array(latencyBoundsMs.length + 1).fill(0) };
+        row.count++;
+        row.totalMs = round(row.totalMs + trace.totalMs);
+        row.minMs = row.minMs === null ? trace.totalMs : Math.min(row.minMs, trace.totalMs);
+        row.maxMs = row.maxMs === null ? trace.totalMs : Math.max(row.maxMs, trace.totalMs);
+        const index = latencyBoundsMs.findIndex(bound => trace.totalMs <= bound);
+        row.histogram[index < 0 ? latencyBoundsMs.length : index]++;
+        recording.finished++;
+    }
     const archiveDetailed = () => enabled('Archive') && config.mode === 'detailed';
 
     function archiveBucket(layout)
@@ -185,8 +278,7 @@ const appPerf = (() =>
 
     function observeLongTasks()
     {
-        longTasks = { status: config.mode !== 'detailed' ? 'basic'
-            : config.scope !== 'all' ? 'outOfScope' : 'unsupported' };
+        longTasks = { status: config.mode !== 'detailed' ? 'basic' : 'unsupported' };
         if (longTasks.status !== 'unsupported' || typeof PerformanceObserver === 'undefined'
             || !PerformanceObserver.supportedEntryTypes?.includes('longtask')) return;
         observationStart = now();
@@ -198,7 +290,7 @@ const appPerf = (() =>
             });
             instance.observe({ entryTypes: ['longtask'] });
             observer = instance;
-            longTasks = { status: 'observed', count: 0, totalMs: 0, maxMs: 0 };
+            longTasks = { status: 'observed', scope: 'pageWide', count: 0, totalMs: 0, maxMs: 0 };
         }
         catch (_error) {}
     }
@@ -206,6 +298,7 @@ const appPerf = (() =>
     function cancelFrame()
     {
         if (frame === null) return;
+        recording.frames.canceled++;
         cancelAnimationFrame(frame);
         frame = null;
     }
@@ -228,13 +321,30 @@ const appPerf = (() =>
             archivePerformance: archiveSummary ? 'recorded' : 'outOfScope'
         };
         observeLongTasks();
+        recording = { recording: epoch, configuration: settings(), environment: config.mode === 'detailed' ? environment() : null,
+            started: 0, finished: 0, operations: {}, longTasks, frames: { observed: 0, coalesced: 0, canceled: 0, unsupported: 0 },
+            build: typeof geneographBuildInfo === 'undefined' ? null : geneographBuildInfo,
+            albumsImages: enabled('Albums') && config.mode === 'detailed' ? {
+                    observed: 0, loaded: 0, errors: 0, canceled: 0, skipped: 0, dimensionsKnown: 0,
+                    pixels: 0, maxWidth: null, maxHeight: null, maxPixels: null,
+                    bytesKnown: 0, sourceBytes: 0, sources: {}, pendingPeak: 0,
+                    decodeMs: null, previewQueueMs: null, previewGenerationMs: null, cache: null
+                } : null };
+        observedImages = new WeakSet();
+        recordings.push(recording);
+        if (recordings.length > summaryLimit)
+        {
+            recordings.shift();
+            omittedRecordings++;
+        }
         return true;
     }
     function finish(trace, status)
     {
-        if (!valid(trace) || trace.status !== 'pending' || !statuses.has(status)) return;
+        if (!active || !trace || trace.epoch !== epoch || trace.status !== 'pending' || !statuses.has(status)) return;
         trace.status = status;
         trace.totalMs = round(Math.max(0, now() - startTime - trace.atMs));
+        summarize(trace);
     }
     function stop()
     {
@@ -246,6 +356,7 @@ const appPerf = (() =>
             observer.disconnect();
             observer = null;
         }
+        for (const cancel of pendingImages.values()) cancel();
         for (const trace of samples) finish(trace, 'stopped');
         archiveStopCleanup?.();
         archiveStopCleanup = null;
@@ -261,6 +372,10 @@ const appPerf = (() =>
         longTasks = { status: 'inactive' };
         summaryCoverage = null;
         dropped = next = 0;
+        recordings = [];
+        recording = null;
+        omittedRecordings = 0;
+        projectContext = null;
         archiveSummary = null;
         exportedEpoch = -1;
         emptyStop = false;
@@ -272,7 +387,13 @@ const appPerf = (() =>
         const trace = { epoch, retained: true, seq: ++next, module, mode: config.mode, kind,
             atMs: round(now() - startTime), status: 'pending' };
         if (timing === 'synchronous' || timing === 'asynchronous') trace.timing = timing;
-        if (valid(current) && current.status === 'pending') trace.parentSeq = current.seq;
+        recording.started++;
+        if (current?.epoch === epoch && current.status === 'pending')
+        {
+            trace.parentSeq = current.seq;
+            if (current.module === module) trace.action = current.action;
+        }
+        if (!trace.action && actions.has(kind)) trace.action = kind;
         if (trace.mode === 'detailed')
         {
             Object.assign(trace, { stages: {}, counts: {}, passTimings: [], milestones: {} });
@@ -303,12 +424,16 @@ const appPerf = (() =>
         {
             const result = fn();
             finish(trace, result === false ? 'failed' : 'completed');
-            if (trace.status === 'completed' && detailed(trace) && frameKinds.has(kind) && frameSupported() && frame === null)
+            if (trace.status !== 'completed' || !detailed(trace) || !(frameKinds.has(kind) || module === 'Albums' && ['render', 'gridHydrate'].includes(kind))) return result;
+            if (!frameSupported()) recording.frames.unsupported++;
+            else if (frame !== null) recording.frames.coalesced++;
+            else
             {
                 const handle = requestAnimationFrame(() =>
                 {
                     if (trace.epoch !== epoch || frame !== handle) return;
                     frame = null;
+                    recording.frames.observed++;
                     mark(trace, 'frameOpportunity');
                 });
                 frame = handle;
@@ -396,6 +521,122 @@ const appPerf = (() =>
             if (Number.isFinite(values[field]) && values[field] >= 0) entry[field] = round(values[field]);
         trace.passTimings.push(entry);
     }
+    function phase(trace, stage, fn)
+    {
+        if (!detailed(trace) || trace.timing !== 'synchronous' || !stages.has(stage)) return fn();
+        const start = now();
+        trace.phaseDepth = (trace.phaseDepth || 0) + 1;
+        try { return fn(); }
+        finally
+        {
+            const elapsed = now() - start;
+            const outermost = --trace.phaseDepth === 0;
+            if (detailed(trace) && trace.status === 'pending')
+            {
+                span(trace, stage, elapsed);
+                if (outermost) trace.coveredMs = (trace.coveredMs || 0) + elapsed;
+            }
+        }
+    }
+
+    function albumsContext(trace, path, matched, displayed)
+    {
+        if (!detailed(trace) || trace.module !== 'Albums') return;
+        trace.renderPath = ['full', 'partial', 'hydrate'].includes(path) ? path : undefined;
+        trace.workload = { project: workload(), matched: known(matched), displayed: known(displayed), viewport: viewport() };
+    }
+
+    function observeAlbumImage(image, source, size)
+    {
+        if (!image || !enabled('Albums') || config.mode !== 'detailed' || observedImages.has(image)) return;
+        const summary = recording.albumsImages;
+        observedImages.add(image);
+        if (!image.complete && pendingImages.size >= imageLimit)
+        {
+            summary.skipped++;
+            return;
+        }
+        summary.observed++;
+        const category = archiveSources.has(source) ? source : 'unknown';
+        summary.sources[category] = (summary.sources[category] || 0) + 1;
+        if (known(size) !== null)
+        {
+            summary.bytesKnown++;
+            summary.sourceBytes += size;
+        }
+        const finishImage = loaded =>
+        {
+            if (!loaded) { summary.errors++; return; }
+            summary.loaded++;
+            if (image.naturalWidth > 0 && image.naturalHeight > 0)
+            {
+                summary.dimensionsKnown++;
+                const pixels = image.naturalWidth * image.naturalHeight;
+                summary.pixels += pixels;
+                summary.maxWidth = Math.max(summary.maxWidth || 0, image.naturalWidth);
+                summary.maxHeight = Math.max(summary.maxHeight || 0, image.naturalHeight);
+                summary.maxPixels = Math.max(summary.maxPixels || 0, pixels);
+            }
+        };
+        if (image.complete) finishImage(image.naturalWidth > 0);
+        else
+        {
+            const events = new AbortController();
+            const cleanup = () => { events.abort(); pendingImages.delete(image); };
+            pendingImages.set(image, () => { cleanup(); summary.canceled++; });
+            summary.pendingPeak = Math.max(summary.pendingPeak, pendingImages.size);
+            const settle = loaded =>
+            {
+                if (!pendingImages.has(image)) return;
+                if (!image.isConnected) pendingImages.get(image)();
+                else { cleanup(); finishImage(loaded); }
+            };
+            image.addEventListener('load', () => settle(true), { signal: events.signal });
+            image.addEventListener('error', () => settle(false), { signal: events.signal, capture: true });
+        }
+    }
+
+    function cancelAlbumImage(image)
+    {
+        pendingImages.get(image)?.();
+    }
+
+    function pruneAlbumImageObservations()
+    {
+        for (const [image, cancel] of pendingImages)
+            if (!image.isConnected) cancel();
+    }
+
+    function albumsMediaEpoch()
+    {
+        return enabled('Albums') && config.mode === 'detailed' ? epoch : null;
+    }
+
+    function albumsMediaMetric(origin, key, value)
+    {
+        if (origin === null || origin !== albumsMediaEpoch() || known(value) === null) return;
+        const summary = recording.albumsImages;
+        if (['decodeMs', 'previewQueueMs', 'previewGenerationMs'].includes(key))
+        {
+            const duration = summary[key] ??= { count: 0, totalMs: 0, maxMs: 0 };
+            duration.count++;
+            duration.totalMs = round(duration.totalMs + value);
+            duration.maxMs = Math.max(duration.maxMs, value);
+        }
+        else if (['hits', 'misses', 'evictions'].includes(key))
+        {
+            const cache = summary.cache ??= {};
+            cache[key] = (cache[key] || 0) + value;
+        }
+        else if (['entries', 'encodedBytes', 'mountedPreviews', 'pendingJobs', 'runningJobs'].includes(key))
+        {
+            const cache = summary.cache ??= {};
+            const gauge = cache[key] ??= { last: 0, peak: 0 };
+            gauge.last = value;
+            gauge.peak = Math.max(gauge.peak, value);
+        }
+    }
+
     function settings()
     {
         return { scope: config.scope, modules: [...config.modules], mode: config.mode };
@@ -416,6 +657,8 @@ const appPerf = (() =>
         return { schemaVersion: 3, recorder: 'geneograph-application-performance', elkVersion: '0.12.1',
             buildInfo: typeof geneographBuildInfo === 'undefined' ? null : geneographBuildInfo,
             active, configuration: settings(), capacity: limit, dropped, totalOperations: next,
+            epochSummaries: { capacity: summaryLimit, omittedRecordings, histogramUpperBoundsMs: [...latencyBoundsMs],
+                recordings: recordings.map(item => ({ ...JSON.parse(JSON.stringify(item)), incomplete: item.started - item.finished })) },
             summaryCoverage: summaryCoverage && {
                 recording: summaryCoverage.recording,
                 configuration: { ...summaryCoverage.configuration, modules: [...summaryCoverage.configuration.modules] },
@@ -432,6 +675,12 @@ const appPerf = (() =>
                 kind: trace.kind, atMs: trace.atMs, status: trace.status, totalMs: trace.totalMs,
                 timing: trace.timing, parentSeq: trace.parentSeq,
                 ...(trace.mode === 'detailed' ? {
+                    action: trace.action, renderPath: trace.renderPath,
+                    workload: trace.workload && JSON.parse(JSON.stringify(trace.workload)),
+                    synchronousCoverage: trace.coveredMs === undefined || trace.totalMs === undefined ? undefined : {
+                        coveredMs: round(Math.min(trace.totalMs, trace.coveredMs)),
+                        remainderMs: round(Math.max(0, trace.totalMs - trace.coveredMs))
+                    },
                     archiveLayout: trace.archiveLayout, archivePresentation: trace.archivePresentation,
                     archiveRenderPath: trace.archiveRenderPath,
                     orientation: trace.orientation, ancestorDepth: trace.ancestorDepth,
@@ -476,7 +725,7 @@ const appPerf = (() =>
         }
     }
     return { modules, selectableModules, enabled, configure, settings, start, stop, clear, begin, run,
-        measure, span, count, mark, pass, finish, snapshot, download, valid, now,
+        measure, phase, albumsContext, observeAlbumImage, cancelAlbumImage, pruneAlbumImageObservations, albumsMediaEpoch, albumsMediaMetric, span, count, mark, pass, finish, snapshot, download, valid, now,
         currentDetailed, recordProvider, recordLifecycle, recordDomain,
         archiveDetailed, archiveContext, archiveMetric, archiveTaskBegin, archiveTaskValid, archiveTaskFinish, archiveOnStop,
         kind(trace, kind) { if (valid(trace) && trace.module === 'Family Tree' && treeKinds.has(kind)) trace.kind = kind; },

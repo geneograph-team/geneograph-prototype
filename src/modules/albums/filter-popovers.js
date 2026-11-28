@@ -401,7 +401,7 @@ function openAlbumsFilterPopover(
 
                 closeAlbumsFilterPopover();
 
-                renderAlbums();
+                albumsAction('filter', renderAlbums);
             }
         );
 
@@ -470,7 +470,7 @@ function removeAlbumFilter(
         filters;
 
     resetAlbumsPage();
-    renderAlbums();
+    albumsAction('filter', renderAlbums);
 }
 
 function clearAlbumFilters()
@@ -481,6 +481,6 @@ function clearAlbumFilters()
         );
 
     resetAlbumsPage();
-    renderAlbums();
+    albumsAction('filter', renderAlbums);
 }
 

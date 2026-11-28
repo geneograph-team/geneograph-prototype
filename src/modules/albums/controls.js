@@ -136,10 +136,10 @@ function bindAlbumsCardControls(root = main)
 
                         const mobile = innerWidth <= 900;
 
-                        renderAlbumsPreserveViewport({
+                        albumsAction('selection', () => renderAlbumsPreserveViewport({
                             focusPhotoId: mobile ? '' : photoId,
                             focusTarget: 'card', reuseGrid: true
-                        });
+                        }));
 
                         if (mobile)
                         {
@@ -180,7 +180,7 @@ function bindAlbumsCardControls(root = main)
             {
                 runAfterAlbumsPhotoEditGuard(() =>
                 {
-                    togglePhotoSelection(control.dataset.photoCheck);
+                    albumsAction('multiSelection', () => togglePhotoSelection(control.dataset.photoCheck));
                 });
             };
 
@@ -463,8 +463,11 @@ function bindAlbumsControls(photos)
             'albumsSearch',
             () =>
             {
-                resetAlbumsPage();
-                renderAlbums();
+                albumsAction('search', () =>
+                {
+                    resetAlbumsPage();
+                    renderAlbums();
+                });
             }
         );
 
@@ -484,8 +487,11 @@ function bindAlbumsControls(photos)
                 state.albumsSortDirection =
                     direction;
 
-                resetAlbumsPage();
-                renderAlbums();
+                albumsAction('sort', () =>
+                {
+                    resetAlbumsPage();
+                    renderAlbums();
+                });
             }
         });
 
@@ -540,10 +546,11 @@ function bindAlbumsControls(photos)
                     'click',
                     () =>
                     {
-                        state.albumsViewMode =
-                            button.dataset.albumsMode;
-
-                        renderAlbums();
+                        albumsAction('layoutSwitch', () =>
+                        {
+                            state.albumsViewMode = button.dataset.albumsMode;
+                            renderAlbums();
+                        });
                     }
                 );
             });
@@ -750,20 +757,16 @@ function bindAlbumsControls(photos)
                         state.albumsDetailCollapsed
                     )
                     {
-                        state.albumsDetailCollapsed =
-                            false;
-
-                        renderAlbums();
+                        state.albumsDetailCollapsed = false;
+                        albumsAction('inspector', renderAlbums);
                         return;
                     }
 
                     runAfterAlbumsPhotoEditGuard(
                         () =>
                         {
-                            state.albumsDetailCollapsed =
-                                true;
-
-                            renderAlbums();
+                            state.albumsDetailCollapsed = true;
+                            albumsAction('inspector', renderAlbums);
                         }
                     );
                 }
@@ -840,7 +843,7 @@ function bindAlbumsControls(photos)
         .querySelector('#albumsEditPhoto')
         ?.addEventListener(
             'click',
-            () => runAfterAlbumsPhotoEditGuard(beginAlbumsPhotoEdit)
+            () => runAfterAlbumsPhotoEditGuard(() => albumsAction('edit', beginAlbumsPhotoEdit))
         );
     main.querySelector('#albumsRenamePhoto')?.addEventListener('click', () =>
         runAfterAlbumsPhotoEditGuard(beginAlbumsPhotoRename));

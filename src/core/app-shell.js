@@ -612,9 +612,12 @@ function renderApplicationShell()
         destroyPlacesMap();
         if (placeEditorDraft) resetPlaceEditorDraft();
     }
-    applyLanguage();
+    const albumsTrace = state.activeModule === 'Albums' ? appPerf.currentDetailed('Albums') : null;
+    if (albumsTrace) appPerf.phase(albumsTrace, 'localization', applyLanguage);
+    else applyLanguage();
     main.classList.remove('people-profile-main');
-    renderTopbar();
+    if (albumsTrace) appPerf.phase(albumsTrace, 'domReplace', renderTopbar);
+    else renderTopbar();
     if (mobileSurface === 'details') requestAnimationFrame(() =>
     {
         if (mobileSurface === 'details' && !mobileDetailTarget()) closeMobileSurface(false);
@@ -637,7 +640,8 @@ function renderApplicationShell()
     }
     if (state.activeModule === 'Albums')
     {
-        renderAlbums();
+        if (albumsTrace) appPerf.phase(albumsTrace, 'renderSync', renderAlbums);
+        else renderAlbums();
         return;
     }
     if (state.activeModule === 'Archive')

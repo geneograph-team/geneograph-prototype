@@ -122,7 +122,7 @@ function filteredAlbumPhotos()
     if (typeof appPerf === 'undefined' || !appPerf.enabled('Albums')) return filteredAlbumPhotosWithDiagnosticsBody();
     const trace = appPerf.currentDetailed('Albums');
     if (!trace) return filteredAlbumPhotosWithDiagnosticsBody();
-    const result = appPerf.measure(trace, 'query', () => filteredAlbumPhotosWithDiagnosticsBody());
+    const result = appPerf.phase(trace, 'query', () => filteredAlbumPhotosWithDiagnosticsBody());
     appPerf.count(trace, 'recordsMatched', result.length, true);
     return result;
 }
@@ -795,7 +795,7 @@ function disconnectAlbumsGridResizeObserver()
 function updateAlbumsGridLayout()
 {
     if (typeof appPerf === 'undefined' || !appPerf.enabled('Albums')) return updateAlbumsGridLayoutWithDiagnosticsBody();
-    return appPerf.run('Albums', 'resize', () => updateAlbumsGridLayoutWithDiagnosticsBody());
+    return appPerf.run('Albums', 'resize', () => albumsPhase('layoutReadsWrites', updateAlbumsGridLayoutWithDiagnosticsBody));
 }
 
 function updateAlbumsGridLayoutWithDiagnosticsBody()
@@ -866,8 +866,7 @@ function bindAlbumsGridResizeObserver(photos)
                 }
             };
             const hasNewCards = entries.some(entry => entry.isIntersecting && !entry.target.albumsHydrated);
-            if (hasNewCards && typeof appPerf !== 'undefined' && appPerf.enabled('Albums'))
-                appPerf.run('Albums', 'gridHydrate', synchronize);
+            if (hasNewCards) observeAlbumsHydration(grid, synchronize);
             else synchronize();
         }, { rootMargin: '350px 0px' });
         albumsGridCardObserver = observer;
@@ -892,10 +891,22 @@ function bindAlbumsGridResizeObserver(photos)
     albumsGridResizeObserver.observe(content);
 }
 
+function observeAlbumsHydration(grid, run)
+{
+    return albumsAction('gridHydrate', () =>
+    {
+        const trace = typeof appPerf === 'undefined' ? null : appPerf.currentDetailed('Albums');
+        if (trace) appPerf.albumsContext(trace, 'hydrate', grid.albumsPhotos?.length);
+        return albumsPhase('mount', run);
+    });
+}
+
 function dehydrateAlbumsGridCard(card)
 {
     if (!card.albumsHydrated) return;
     card.albumsHydrated = false;
+    if (typeof appPerf !== 'undefined' && appPerf.enabled('Albums'))
+        appPerf.cancelAlbumImage(card.querySelector('.thumb-img'));
     card.replaceChildren(Object.assign(document.createElement('div'), { className: 'albums-thumb' }));
 }
 
@@ -906,7 +917,7 @@ function hydrateAlbumsGridCard(grid, card)
     if (!photo) return;
     const trace = typeof appPerf === 'undefined' ? null : appPerf.currentDetailed('Albums');
     const render = () => renderAlbumsPhotoCard(photo, new Set(state.selectedPhotoIds));
-    const markup = trace ? appPerf.measure(trace, 'imageMarkup', render) : render();
+    const markup = trace ? appPerf.phase(trace, 'imageMarkup', render) : render();
     const mount = () =>
     {
         const template = document.createElement('template');
@@ -915,14 +926,18 @@ function hydrateAlbumsGridCard(grid, card)
     };
     if (trace)
     {
-        appPerf.measure(trace, 'dom', mount);
+        appPerf.phase(trace, 'dom', mount);
+        appPerf.observeAlbumImage(card.querySelector('.thumb-img'), 'original', photo.sizeBytes);
         appPerf.count(trace, 'recordsRendered', 1, true);
     }
     else mount();
     card.albumsHydrated = true;
-    bindAlbumsCardControls(card);
-    card.querySelector('[data-mobile-open-details]')?.addEventListener('click', () => openMobileSurface('details'));
-    localizeUI(card);
+    albumsPhase('binding', () =>
+    {
+        bindAlbumsCardControls(card);
+        card.querySelector('[data-mobile-open-details]')?.addEventListener('click', () => openMobileSurface('details'));
+    });
+    albumsPhase('localization', () => localizeUI(card));
 }
 
 function syncAlbumsGridSelection(grid, changedPhotoId)
@@ -987,7 +1002,11 @@ function renderAlbumsPreserveViewport({
     requestAnimationFrame(() =>
     {
         if (!nextContent?.isConnected || main.querySelector(scrollSelector) !== nextContent) return;
+        albumsAction('viewportRestore', () => albumsPhase('viewport', restoreViewport));
+    });
 
+    function restoreViewport()
+    {
         if (nextContent)
         {
             const maximumTop =
@@ -1045,7 +1064,11 @@ function renderAlbumsPreserveViewport({
 
         const escapedPhotoId = CSS.escape(focusPhotoId);
         const card = main.querySelector(`[data-albums-justified-grid] [data-photo-id="${escapedPhotoId}"]`);
-        if (card) hydrateAlbumsGridCard(card.closest('[data-albums-justified-grid]'), card);
+        if (card && !card.albumsHydrated)
+        {
+            const grid = card.closest('[data-albums-justified-grid]');
+            observeAlbumsHydration(grid, () => hydrateAlbumsGridCard(grid, card));
+        }
 
         const focusSelectors = {
             card:
@@ -1070,7 +1093,7 @@ function renderAlbumsPreserveViewport({
             ?.focus({
                 preventScroll: true
             });
-    });
+    }
 }
 
 
@@ -1187,6 +1210,17 @@ function renderAlbumsBrowser()
       </div>`;
 }
 
+function albumsAction(kind, run)
+{
+    return typeof appPerf === 'undefined' || !appPerf.enabled('Albums') ? run() : appPerf.run('Albums', kind, run);
+}
+
+function albumsPhase(stage, run)
+{
+    const trace = typeof appPerf === 'undefined' ? null : appPerf.currentDetailed('Albums');
+    return trace ? appPerf.phase(trace, stage, run) : run();
+}
+
 function renderAlbums(...args)
 {
     if (typeof appPerf === 'undefined' || !appPerf.enabled('Albums')) return renderAlbumsWithDiagnosticsBody(...args);
@@ -1273,47 +1307,50 @@ function renderAlbumsWithDiagnosticsBody({ reuseGrid = false, refreshPhotoId = '
         workspace stays intact instead of showing a
         new sidebar beside stale module content.
       */
-    const nextSidebarMarkup =
-        renderAlbumsSidebar();
+    const nextSidebarMarkup = albumsPhase('markup', renderAlbumsSidebar);
+    const mainMarkup = albumsPhase('markup', () => renderAlbumsMainMarkup(photos, retainedGrid));
+    const detailMarkup = albumsPhase('inspector', () => !selectedPhoto ? ''
+        : state.albumsDetailCollapsed ? renderAlbumsDetailCollapsed() : renderAlbumsDetailPane());
 
     const nextMainMarkup = `
         <div class="${shellClasses}">
           <section class="albums-main" data-albums-scroll-key="${escapeHtml(scrollKey)}">
-            ${renderAlbumsMainMarkup(photos, retainedGrid)}
+            ${mainMarkup}
           </section>
 
-          ${
-                !selectedPhoto
-                    ? ''
-                    : state.albumsDetailCollapsed
-                        ? renderAlbumsDetailCollapsed()
-                        : renderAlbumsDetailPane()
-            }
+          ${detailMarkup}
         </div>
       `;
 
-    sidebar.innerHTML =
-        nextSidebarMarkup;
-
-    replaceSharedSearchMarkup(main, nextMainMarkup);
-    if (retainedGrid)
+    const trace = typeof appPerf === 'undefined' ? null : appPerf.currentDetailed('Albums');
+    if (trace) appPerf.albumsContext(trace, retainedGrid ? 'partial' : 'full', photos.length,
+        state.albumsView === 'albums' ? undefined : state.albumsViewMode === 'grid' ? photos.length : currentAlbumsPagePhotos(photos).length);
+    albumsPhase('domReplace', () =>
+    {
+        sidebar.innerHTML = nextSidebarMarkup;
+        replaceSharedSearchMarkup(main, nextMainMarkup);
+    });
+    if (retainedGrid) albumsPhase('retainedNodes', () =>
     {
         main.querySelector('[data-albums-grid-replacement]').replaceWith(retainedGrid);
         retainedGrid.albumsPhotos = photos;
         if (!sameOrder) updateAlbumsGridLayoutWithDiagnosticsBody();
         syncAlbumsGridSelection(retainedGrid, refreshPhotoId);
-    }
-    const nextDetail = main.querySelector('.albums-detail');
-    if (nextDetail) nextDetail.scrollTop = previousDetailScrollTop;
-
-    if (innerWidth <= 900 && mobileScrollTop)
+    });
+    albumsPhase('viewport', () =>
     {
-        main.querySelector('.albums-main').scrollTop = mobileScrollTop;
-    }
-
-    bindAlbumsSidebar();
-    bindAlbumsControls(photos);
-    bindAlbumsGridResizeObserver(photos);
+        const nextDetail = main.querySelector('.albums-detail');
+        if (nextDetail) nextDetail.scrollTop = previousDetailScrollTop;
+        if (innerWidth <= 900 && mobileScrollTop)
+            main.querySelector('.albums-main').scrollTop = mobileScrollTop;
+    });
+    albumsPhase('binding', () =>
+    {
+        bindAlbumsSidebar();
+        bindAlbumsControls(photos);
+    });
+    albumsPhase('observers', () => bindAlbumsGridResizeObserver(photos));
+    if (trace) appPerf.pruneAlbumImageObservations();
 }
 
 function renderAlbumsSidebar()

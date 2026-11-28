@@ -1,0 +1,9 @@
+# Verification
+
+Verified in isolated Edge with 157 synthetic photos and 6,481 people. Three synchronous warm renders in milliseconds were 10.1 / 6.1 / 6.7 off, 15.3 / 7.3 / 6.1 Basic, and 16.7 / 8.1 / 5.9 Detailed in hosted English. Direct-file Russian was 7.2 / 6.4 / 7.6 off, 13.3 / 9.0 / 8.9 Basic, and 15.4 / 9.1 / 6.2 Detailed. These are small sequential samples from one machine, with no paint or decode timing.
+
+Albums-only Detailed recorded three hosted and four direct-file page-wide long tasks, including a controlled 70 ms task while People was active. Entire application Detailed also captured the controlled task. Both Detailed runs observed 144 loaded image elements at 1,000 x 829 px and 11 or 12 frame opportunities. Basic installed no image or long-task observation. Edge Settings Start, Stop and localized Export availability passed in both languages. Deterministic Diagnostics, build identity, Tree performance, Albums, Archive and localization checks passed. The broader Global Settings test failed on its existing CSS assertion for the section surface. This change did not edit the CSS.
+
+A repeat on the final code also exercised module entry, search, multi-selection, favorite, inspector collapse, viewport restoration and scrolling. Hosted off / Basic / Detailed render samples were 6.6 / 6.0 / 6.1, 11.7 / 4.6 / 4.9 and 11.4 / 12.0 / 6.0 ms. Direct-file samples were 7.9 / 7.3 / 6.8, 4.8 / 5.0 / 4.7 and 9.2 / 10.7 / 7.4 ms. The repeat captured 195 loaded image elements in each protocol and 17 or 18 frame opportunities. The original 945.6 ms render was not reproduced with this fixture.
+
+Pending verification includes imported media libraries and cold decode workloads, cross-browser or hidden-tab observer delivery, and native downloads. Albums image observation currently covers grid card mounts and does not time decode. Cache and preview metrics are intentionally unavailable until the corresponding work is instrumented.

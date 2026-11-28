@@ -235,6 +235,11 @@ function cancelAlbumsPhotoEdit()
 
 function saveAlbumsPhotoEdit()
 {
+    return albumsAction('mutation', saveAlbumsPhotoEditBody);
+}
+
+function saveAlbumsPhotoEditBody()
+{
     const photo = getPhoto(
         state.selectedPhotoId,
         {

@@ -1649,7 +1649,12 @@ function removePhotoPersonTag(photoId, personId)
     });
 }
 
-function toggleAlbumPhotoFavourite(
+function toggleAlbumPhotoFavourite(...args)
+{
+    return albumsAction('favorite', () => toggleAlbumPhotoFavouriteBody(...args));
+}
+
+function toggleAlbumPhotoFavouriteBody(
     photoId,
     {
         focusTarget = 'favorite'
@@ -1725,7 +1730,12 @@ function albumsVisibleSelectionState(photos = currentAlbumsPagePhotos())
     };
 }
 
-function toggleAllVisibleAlbumPhotos(photos = currentAlbumsPagePhotos())
+function toggleAllVisibleAlbumPhotos(photos)
+{
+    return albumsAction('multiSelection', () => toggleAllVisibleAlbumPhotosBody(photos));
+}
+
+function toggleAllVisibleAlbumPhotosBody(photos = currentAlbumsPagePhotos())
 {
     const selection = albumsVisibleSelectionState(photos);
     const selectedIds = new Set(state.selectedPhotoIds || []);
