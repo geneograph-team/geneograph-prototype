@@ -116,15 +116,25 @@ function fitArchiveToolbar(root)
             fallback?.focus({ preventScroll: true });
         }
     };
+    const targets = [toolbar, toolbar.querySelector('.archive-toolbar-create'), toolbar.querySelector('.app-sort-field')];
+    const geometry = () => targets.map(element => element.getBoundingClientRect().width).join(',');
     update();
-    archiveToolbarResizeObserver = new ResizeObserver(() =>
+    let measured = geometry();
+    const refresh = () =>
     {
-        if (toolbar.isConnected) archiveDiagnosticCoalesced('resize', update);
+        if (!toolbar.isConnected || geometry() === measured) return;
+        archiveDiagnosticCoalesced('resize', update);
+        measured = geometry();
+    };
+    archiveToolbarResizeObserver = new ResizeObserver(refresh);
+    targets.forEach(element => archiveToolbarResizeObserver.observe(element));
+    // Fonts still require a full fit even if the currently visible compact labels did not resize.
+    if (document.fonts?.status === 'loading') document.fonts.ready.then(() =>
+    {
+        if (!toolbar.isConnected) return;
+        update();
+        measured = geometry();
     });
-    archiveToolbarResizeObserver.observe(toolbar);
-    archiveToolbarResizeObserver.observe(toolbar.querySelector('.archive-toolbar-create'));
-    archiveToolbarResizeObserver.observe(toolbar.querySelector('.app-sort-field'));
-    document.fonts?.ready.then(update);
 }
 
 function bindArchiveControls(root = main.querySelector('.archive-shell'))
@@ -1608,7 +1618,7 @@ function bindArchiveControls(root = main.querySelector('.archive-shell'))
         });
     root.querySelectorAll('[data-archive-unlink-id]').forEach(button => button.addEventListener('click', () => openArchiveUnlinkConfirm({ ownerType: button.dataset.archiveUnlinkOwnerType, ownerId: button.dataset.archiveUnlinkOwnerId, entityType: button.dataset.archiveUnlinkType, entityId: button.dataset.archiveUnlinkId })));
     root.querySelectorAll('[data-archive-open-connection]').forEach(button => button.addEventListener('click', () => openArchiveConnectedRecord(button.dataset.archiveOpenConnection, button.dataset.archiveConnectionId)));
-    root.addEventListener(
+    if (!root.matches('.archive-inspector')) root.addEventListener(
         'keydown',
         event =>
         {

@@ -22,3 +22,23 @@ Archive SHALL retain rows and tile image nodes during compatible desktop single-
 
 - **WHEN** a user selects another file in the same desktop list and the selection and inspector composition are compatible
 - **THEN** Archive updates selection and inspector state while keeping unaffected list and preview nodes mounted
+
+#### Scenario: Scroll through a collection larger than the cache
+
+- **WHEN** a preview leaves the near-viewport window or its derivative is invalidated
+- **THEN** its image element is detached and its generic fallback remains; re-entry may reuse a compatible retained derivative or request another bounded job
+- **AND** cache eviction never revokes a URL still used by a mounted preview; admission waits if mounted leases occupy the available budget
+
+#### Scenario: Authored thumbnail of an oversized original
+
+- **WHEN** a distinct supported small authored thumbnail is available for a document whose original exceeds the thumbnail-source budget
+- **THEN** the thumbnail may be hydrated using its own observable dimensions and source size rather than the original's metadata, without opening the oversized original for preview generation
+
+#### Scenario: First compatible desktop selection
+
+- **WHEN** a file is first selected in an ordinary desktop list without an active draft or bulk composition change
+- **THEN** the existing list and previews are retained, the selection state and select-all affordance are synchronized, and the inspector alone is replaced
+
+### Requirement: Responsive Archive presentation
+
+Ordinary Details and Icons list rendering SHALL construct only the active desktop or mobile variant. A breakpoint transition SHALL rebuild the applicable presentation while preserving canonical selection and compatible focus/scroll behavior. An active file edit or rename SHALL retain its input DOM across breakpoint changes. The existing Image viewer retains its independent presentation and resize behavior.

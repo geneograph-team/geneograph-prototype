@@ -743,38 +743,56 @@ function archiveSelectDesktopItemWithDiagnosticsBody(root, type, id, event)
 {
     const key = `${type}:${id}`;
     const plain = !event.shiftKey && !event.ctrlKey && !event.metaKey;
-    const oldFileId = state.archiveSelectedFileIds[0];
-    if (plain && type === 'file' && state.archiveSelectedFileIds.length === 1
+    const selectedFiles = state.archiveSelectedFileIds || [];
+    const oldFileId = state.archiveSelectedFileId;
+    const oldFolderId = state.archiveSelectedFolderItemId;
+    const page = root.querySelector('[data-archive-files-presentation]');
+    // On desktop a zero-to-one selection does not change list composition.
+    // The mobile bulk bar is generated when the mobile presentation is mounted.
+    if (plain && type === 'file' && selectedFiles.length <= 1
         && !state.archiveSelectedFolderIds?.length && !archiveFileEditIsActive()
-        && !state.archiveInspectorCollapsed && state.archiveSelectedFileId === oldFileId
+        && !state.archiveFileNameEditingId && !state.archiveInspectorCollapsed
+        && page?.dataset.archiveFilesPresentation === 'desktop'
         && root === main.querySelector('.archive-shell'))
     {
         const row = root.querySelector(`[data-archive-file-row="${CSS.escape(id)}"]`);
         const inspector = root.querySelector('.archive-inspector');
-        if (row && inspector)
+        if (row && inspector && row.getClientRects().length && archiveFileById(id))
         {
             archiveSelectionAnchor = key;
-            if (id !== oldFileId)
+            const trace = typeof appPerf === 'undefined' ? null : appPerf.currentDetailed('Archive');
+            archiveDiagnosticContext(trace, 'partial');
+            if (id !== oldFileId || selectedFiles[0] !== id || oldFolderId)
             {
+                state.archiveSelectedFolderIds = [];
+                state.archiveSelectedFolderItemId = null;
                 state.archiveSelectedFileIds = [id];
                 state.archiveSelectedFileId = id;
-                for (const [fileId, checked] of [[oldFileId, false], [id, true]])
+                if (oldFolderId)
+                    root.querySelector(`[data-archive-folder-row="${CSS.escape(oldFolderId)}"]`)?.classList.remove('selected-detail');
+                if (oldFileId)
+                    root.querySelector(`[data-archive-file-row="${CSS.escape(oldFileId)}"]`)?.classList.remove('selected-detail');
+                for (const fileId of new Set([...selectedFiles, id]))
                 {
+                    const checked = fileId === id;
                     const escaped = CSS.escape(fileId);
                     const item = root.querySelector(`[data-archive-file-row="${escaped}"]`);
-                    item?.classList.toggle('selected-detail', checked);
                     if (item?.hasAttribute('aria-selected'))
                     {
                         item.classList.toggle('is-checked', checked);
                         item.setAttribute('aria-selected', String(checked));
                     }
-                    root.querySelector(`[data-archive-mobile-file="${escaped}"]`)
-                        ?.closest('.archive-mobile-item').classList.toggle('is-checked', checked);
                     for (const input of root.querySelectorAll(`[data-archive-file-checkbox="${escaped}"]`))
                         input.checked = checked;
                 }
-                const trace = typeof appPerf === 'undefined' ? null : appPerf.currentDetailed('Archive');
-                archiveDiagnosticContext(trace, 'partial');
+                row.classList.add('selected-detail');
+                const all = Number(page.dataset.archiveResultItemCount) === 1;
+                root.querySelectorAll('[data-archive-select-all]').forEach(input =>
+                {
+                    input.checked = all;
+                    input.indeterminate = !all;
+                    input.disabled = false;
+                });
                 const scroll = inspector.querySelector('.archive-inspector-scroll')?.scrollTop || 0;
                 const markup = archiveDiagnosticMeasure(trace, 'inspector', () => renderArchiveInspector());
                 archiveDiagnosticMeasure(trace, 'domReplace', () => { inspector.outerHTML = markup; });
@@ -783,9 +801,9 @@ function archiveSelectDesktopItemWithDiagnosticsBody(root, type, id, event)
                 archiveDiagnosticMeasure(trace, 'localization', () => localizeUI(next));
                 const scroller = next.querySelector('.archive-inspector-scroll');
                 if (scroller) scroller.scrollTop = scroll;
-                archiveDiagnosticMounted(trace, root);
                 appNavigationObserve();
             }
+            archiveDiagnosticMounted(trace, root);
             row.focus({ preventScroll: true });
             return;
         }
@@ -832,6 +850,59 @@ function archiveSelectDesktopItemWithDiagnosticsBody(root, type, id, event)
     main.querySelector(`[data-archive-${type}-row="${CSS.escape(id)}"]`)?.focus({ preventScroll: true });
 }
 let archiveRenderedLocationKey = null;
+let archiveFilesMedia = null;
+
+function archiveFilesPresentation()
+{
+    if (archiveFileEditIsActive() || state.archiveFileNameEditingId) return 'both';
+    return innerWidth <= 900 ? 'mobile' : 'desktop';
+}
+
+function archiveBindResponsiveFiles()
+{
+    if (archiveFilesMedia || typeof matchMedia !== 'function') return;
+    archiveFilesMedia = matchMedia('(max-width: 900px)');
+    archiveFilesMedia.addEventListener('change', archiveRefreshResponsiveFiles);
+}
+
+function archiveRefreshResponsiveFiles()
+{
+    if (state.activeModule !== 'Archive' || state.archiveView === 'sources'
+        || state.archiveFileLayout === 'images') return;
+    const page = main.querySelector('[data-archive-files-presentation]');
+    const presentation = archiveFilesPresentation();
+    if (!page || page.dataset.archiveFilesPresentation === presentation
+        || page.dataset.archiveFilesPresentation === 'both') return;
+    // Editing/renaming renders both variants so a breakpoint never replaces an input draft.
+    if (presentation === 'both') return;
+    const active = document.activeElement;
+    const inside = active && main.contains(active);
+    const item = inside ? active.closest('[data-archive-file-row], [data-archive-folder-row], .archive-mobile-item') : null;
+    const fileId = item?.dataset.archiveFileRow || item?.querySelector('[data-archive-mobile-file]')?.dataset.archiveMobileFile;
+    const folderId = item?.dataset.archiveFolderRow || item?.querySelector('[data-archive-mobile-folder]')?.dataset.archiveMobileFolder;
+    const attributes = inside ? [...active.attributes].filter(attribute =>
+        attribute.name.startsWith('data-archive-') || attribute.name === 'id') : [];
+    const focusSelector = attributes.length
+        ? active.tagName.toLowerCase() + attributes.map(attribute =>
+            `[${attribute.name}="${CSS.escape(attribute.value)}"]`).join('') : '';
+    const oldScroll = main.querySelector('.archive-main')?.scrollTop || 0;
+    if (archiveDragItem)
+    {
+        archiveDragItem = null;
+        archiveClearDragExpandTimer();
+    }
+    archiveDiagnosticRun('resize', renderArchiveMain, 'full');
+    if (!inside) return;
+    const visible = selector => [...main.querySelectorAll(selector)].find(node => node.getClientRects().length && !node.disabled);
+    const kind = fileId ? 'file' : 'folder', id = fileId || folderId;
+    const next = (focusSelector && visible(focusSelector)) || (id && visible(presentation === 'mobile'
+        ? `[data-archive-mobile-${kind}="${CSS.escape(id)}"]`
+        : `[data-archive-${kind}-row="${CSS.escape(id)}"]`))
+        || visible('[data-archive-search], [data-archive-mobile-search-open], [data-archive-layout-select]');
+    next?.focus({ preventScroll: true });
+    if (id && next) next.scrollIntoView({ block: 'nearest' });
+    else if (oldScroll && presentation === 'desktop') main.querySelector('.archive-main').scrollTop = oldScroll;
+}
 
 function renderArchiveMain()
 {
@@ -909,6 +980,7 @@ function renderArchiveMainWithDiagnosticsBody()
     archiveDiagnosticMeasure(trace, 'localization', () => localizeUI(main));
     archiveDiagnosticMeasure(trace, 'mount', () => mountArchiveImageView());
     archiveDiagnosticMeasure(trace, 'mount', () => mountArchiveTileThumbnails(main));
+    archiveBindResponsiveFiles();
     archiveDiagnosticMounted(trace, main);
     const nextInspectorScroll = main.querySelector('.archive-inspector-scroll');
     if (nextInspectorScroll) nextInspectorScroll.scrollTop = previousInspectorScroll;
@@ -2318,8 +2390,9 @@ function renderArchiveFilesViewWithDiagnosticsBody()
     const emptyCopy =
         'Change or clear the active filters and try again.';
 
+    const presentation = archiveFilesPresentation();
     return `
-        <div class="archive-page archive-files-page">
+        <div class="archive-page archive-files-page" data-archive-files-presentation="${presentation}" data-archive-result-item-count="${files.length + folders.length}">
           <div class="archive-file-navigation">
             ${renderArchiveToolbar()}
             ${renderArchiveLocationRow()}
@@ -2335,15 +2408,15 @@ function renderArchiveFilesViewWithDiagnosticsBody()
                 files
             )}
 
-          ${archiveMobileSelectMode || state.archiveSelectedFileIds.length || (state.archiveSelectedFolderIds || []).length ? `<div class="archive-mobile-bulk"><strong>${escapeHtml(archiveBulkSelectionLabel())}</strong><button type="button" data-archive-mobile-bulk-actions ${state.archiveSelectedFileIds.length || (state.archiveSelectedFolderIds || []).length ? '' : 'disabled'}>${escapeHtml(t('Actions'))}</button><button type="button" data-archive-mobile-select aria-label="${escapeHtml(t('Cancel'))}">${icon.close}</button></div>` : ''}
+          ${presentation !== 'desktop' && (archiveMobileSelectMode || state.archiveSelectedFileIds.length || (state.archiveSelectedFolderIds || []).length) ? `<div class="archive-mobile-bulk"><strong>${escapeHtml(archiveBulkSelectionLabel())}</strong><button type="button" data-archive-mobile-bulk-actions ${state.archiveSelectedFileIds.length || (state.archiveSelectedFolderIds || []).length ? '' : 'disabled'}>${escapeHtml(t('Actions'))}</button><button type="button" data-archive-mobile-select aria-label="${escapeHtml(t('Cancel'))}">${icon.close}</button></div>` : ''}
 
           ${
                 state.archiveFileLayout === 'images'
                     ? renderArchiveImageView(files)
                     : hasRows
-                    ? `${renderArchiveMobileItems(files, archiveSortFoldersForTable(folders), flatResults)}${state.archiveFileLayout === 'tiles'
+                    ? `${presentation !== 'desktop' ? renderArchiveMobileItems(files, archiveSortFoldersForTable(folders), flatResults) : ''}${presentation !== 'mobile' ? (state.archiveFileLayout === 'tiles'
                         ? renderArchiveFileTiles(files, folders)
-                        : renderArchiveFileTableDesktop(files, folders, flatResults, projection.matchingCountByFolder)}`
+                        : renderArchiveFileTableDesktop(files, folders, flatResults, projection.matchingCountByFolder)) : ''}`
                     : filtering
                         ? renderArchiveEmpty(
                             emptyTitle,

@@ -66,7 +66,7 @@ const appPerf = (() =>
         'thumbnailCacheHits', 'thumbnailCacheMisses', 'thumbnailCacheEvictions', 'observationSkipped',
         'previewJobsQueued', 'previewJobsCanceled', 'sourceBytesObserved', 'sourceBytesSamples']);
     const archiveGauges = new Set(['viewerEntries', 'thumbnailEntries', 'thumbnailEncodedBytes',
-        'estimatedDecodedBytes', 'pendingJobs', 'runningJobs']);
+        'estimatedDecodedBytes', 'pendingJobs', 'runningJobs', 'mountedPreviews']);
     const archiveDurations = new Set(['resizeMs', 'encodeMs', 'queueWaitMs']);
     let archiveSummary = null, archiveStopCleanup = null;
     const archiveDetailed = () => enabled('Archive') && config.mode === 'detailed';

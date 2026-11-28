@@ -32,6 +32,10 @@ Assert structural counts in Node fixtures: builds per compatible revision, colle
 
 Use the existing Diagnostics recorder where available and disposable instrumentation for focused investigations. Record allowlisted aggregate metrics only. Keep private genealogy, record identifiers and unredacted traces out of the repository and shared diagnostics.
 
+### Archive preview and presentation regressions
+
+Run `node tests/archive/test-archive-thumbnails.cjs` and `node tests/archive/test-archive-presentation.cjs`. The production-path test doubles cover viewport exit/re-entry, derivative ownership and cache/element/byte caps, authored thumbnail budgets, async cancellation and project/source invalidation, compatible first/repeated desktop selection, select-all state, bulk fallback and active-only responsive markup with edit-safe breakpoint handling. They do not establish real browser image decode, scrolling, focus, drag/drop or paint behavior. Repeat matched image-heavy scenarios and mixed documents/linked evidence in the browser; verify EN/RU, light/dark and native direct-file separately.
+
 ### Performance Diagnostics recording checklist
 
 1. Use the same build, browser/version, device, viewport, locale, theme, protocol and dataset for compared runs. Record these separately using synthetic workload labels and counts.
