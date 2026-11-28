@@ -575,13 +575,21 @@ function archiveEventEvidencePeople(event, projectId)
         : null;
 }
 
+function sourceLinkMutationDomains(targetType)
+{
+    const targetDomain = { file: 'archive', photo: 'media', person: 'people',
+        event: 'events', note: 'notes', place: 'places' }[targetType];
+    return targetDomain ? ['sources', targetDomain] : ['sources'];
+}
+
 function setSourceIdsForTarget(
     targetType,
     targetId,
     nextSourceIds,
     {
         projectId =
-            currentProjectId()
+            currentProjectId(),
+        notify = true
     } = {}
 )
 {
@@ -644,6 +652,9 @@ function setSourceIdsForTarget(
             targetId,
             targetProjectId
         );
+    const currentIds = new Set(currentLinks.map(link => link.sourceId));
+    if (currentIds.size === desiredIds.size && [...desiredIds].every(id => currentIds.has(id)))
+        return [...currentIds];
 
     const affectedSourceIds =
         new Set([
@@ -759,6 +770,11 @@ function setSourceIdsForTarget(
             'Just now';
     }
 
+    if (notify)
+    {
+        markPrototypeSessionEdited(targetProjectId, sourceLinkMutationDomains(targetType),
+            { placeReferences: targetType === 'place' });
+    }
     return sourceIdsForTarget(
         targetType,
         targetId,
@@ -773,7 +789,8 @@ function setSourceLink(
     shouldLink = true,
     {
         projectId =
-            currentProjectId()
+            currentProjectId(),
+        notify = true
     } = {}
 )
 {
@@ -800,7 +817,7 @@ function setSourceLink(
             targetId,
             nextIds,
             {
-                projectId
+                projectId, notify
             }
         );
 
@@ -1477,15 +1494,13 @@ function removeSourceLinksForTargets(
         );
 }
 
-function pruneInvalidSourceLinks()
+function pruneInvalidSourceLinks(changes)
 {
     const seen =
         new Set();
+    const previous = sampleData.sourceLinks || [];
 
-    sampleData.sourceLinks =
-        (
-            sampleData.sourceLinks || []
-        ).filter(link =>
+    const retained = previous.filter(link =>
         {
             if (
                 !link
@@ -1538,5 +1553,16 @@ function pruneInvalidSourceLinks()
 
             return true;
         });
+    if (retained.length === previous.length) return;
+    sampleData.sourceLinks = retained;
+    if (!changes) return;
+    // Filter preserves order and object identity, including repeated references
+    // to the same link object. Account for each removed occurrence.
+    let retainedIndex = 0;
+    for (const link of previous)
+    {
+        if (retainedIndex < retained.length && link === retained[retainedIndex]) retainedIndex++;
+        else recordProjectMutation(changes, link?.projectId, 'sources');
+    }
 }
 

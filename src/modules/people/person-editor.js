@@ -1005,6 +1005,8 @@ function saveEditPersonModalValues(personId, initialRelationships = [])
     const deathDate = livingStatus === 'Deceased' ? collectGenealogyDateField('addPersonDeath') : null;
     if (livingStatus === 'Deceased' && !deathDate) return showToast('Check the death date before saving.');
 
+    const changes = new Map();
+    const placeCount = sampleData.places.length;
     const birthPlace = resolvePlaceInputSelector('#addPersonBirthPlace');
     const deathPlace = resolvePlaceInputSelector('#addPersonDeathPlace');
 
@@ -1063,14 +1065,16 @@ function saveEditPersonModalValues(personId, initialRelationships = [])
         ...relationshipValues,
         relationships: relationshipValues.relationships.filter(values =>
             initialById.get(values.relationshipId) !== JSON.stringify(values))
-    });
+    }, changes);
     applyAddPersonAttachmentDrafts(
-        personId
+        personId, changes
     );
 
-    markPersonUpdated(person);
-    markPrototypeSessionEdited();
-    rebuildSampleEventsAndPruneSourceLinks();
+    if (sampleData.places.length !== placeCount) recordProjectMutation(changes, currentProjectId(), 'places');
+    updatePersonTimestamp(person);
+    recordProjectMutation(changes, person.projectId, 'people');
+    rebuildSampleEventsAndPruneSourceLinks(changes);
+    markPrototypeProjectsEdited(changes);
 
     closeModal({ force: true });
     if (state.activeModule === 'Family Tree')

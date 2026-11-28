@@ -215,7 +215,7 @@ function photoPersonRegion(photo, personId)
         : null;
 }
 
-function setPhotoPersonRegion(photo, personId, region)
+function setPhotoPersonRegion(photo, personId, region, changes = null)
 {
     if (!photo || !(photo.personIds || []).includes(personId)
         || getPerson(personId)?.projectId !== photo.projectId) return false;
@@ -227,7 +227,9 @@ function setPhotoPersonRegion(photo, personId, region)
     const person = getPerson(personId);
     if (normalized && person?.primaryPhotoId === photo.id) person.primaryPhotoCrop = null;
     photo.updatedAt = new Date().toISOString();
-    markPrototypeSessionEdited(photo.projectId, normalized && person?.primaryPhotoId === photo.id ? ['media', 'people'] : ['media']);
+    const domains = normalized && person?.primaryPhotoId === photo.id ? ['media', 'people'] : ['media'];
+    if (changes) recordProjectMutation(changes, photo.projectId, ...domains);
+    else markPrototypeSessionEdited(photo.projectId, domains, { placeReferences: false });
     return true;
 }
 const PERSON_PHOTO_ZOOM_MIN = 1;
@@ -256,7 +258,7 @@ function normalizePersonPhotoCrop(crop)
 function repairPrimaryPhotoReferences(photoIds = [])
 {
     const ids = new Set(photoIds);
-    let changed = false;
+    const projects = new Set();
     sampleData.people.forEach(person =>
     {
         if (!person.primaryPhotoId || (ids.size && !ids.has(person.primaryPhotoId))) return;
@@ -271,13 +273,18 @@ function repairPrimaryPhotoReferences(photoIds = [])
         {
             person.primaryPhotoId = '';
             person.primaryPhotoCrop = null;
-            changed = true;
+            projects.add(person.projectId);
         }
     });
-    return changed;
+    return projects;
 }
 
-function setPhotoPersonIds(photoId, personIds, { rerender = true } = {})
+function recordPhotoPrimaryRepairs(changes, projects)
+{
+    for (const projectId of projects) recordProjectMutation(changes, projectId, 'people');
+}
+
+function setPhotoPersonIds(photoId, personIds, { rerender = true, changes = null } = {})
 {
     const photo = getPhoto(photoId);
     if (!photo) return false;
@@ -292,14 +299,15 @@ function setPhotoPersonIds(photoId, personIds, { rerender = true } = {})
         );
     }
     photo.updatedAt = new Date().toISOString();
-    const repaired = repairPrimaryPhotoReferences([photo.id]);
-    if (repaired) markPrototypeSessionEdited();
-    else markPrototypeSessionEdited(photo.projectId, ['media']);
+    const mutations = changes || new Map();
+    recordProjectMutation(mutations, photo.projectId, 'media');
+    recordPhotoPrimaryRepairs(mutations, repairPrimaryPhotoReferences([photo.id]));
+    if (!changes) markPrototypeProjectsEdited(mutations, { placeReferences: false });
     if (rerender) render();
     return true;
 }
 
-function setPersonPhotoIds(personId, photoIds, { rerender = true } = {})
+function setPersonPhotoIds(personId, photoIds, { rerender = true, changes = null } = {})
 {
     const person = getPerson(personId);
     if (!person) return false;
@@ -308,22 +316,30 @@ function setPersonPhotoIds(personId, photoIds, { rerender = true } = {})
             Boolean(getPhoto(photoId, { projectId: person.projectId }))
         )
     );
+    const mutations = changes || new Map();
     getProjectPhotos(person.projectId).forEach(photo =>
     {
         const ids = new Set(photo.personIds || []);
+        if (changes && selected.has(photo.id) === ids.has(person.id)
+            && (ids.has(person.id) || !Object.hasOwn(photo.personRegions || {}, person.id))) return;
         if (selected.has(photo.id)) ids.add(person.id);
         else ids.delete(person.id);
         photo.personIds = [...ids];
         if (photo.personRegions && !ids.has(person.id)) delete photo.personRegions[person.id];
         photo.updatedAt = new Date().toISOString();
+        recordProjectMutation(mutations, photo.projectId, 'media');
     });
-    repairPrimaryPhotoReferences();
-    markPrototypeSessionEdited();
+    recordPhotoPrimaryRepairs(mutations, repairPrimaryPhotoReferences());
+    if (!changes)
+    {
+        if (!mutations.size) markPrototypeSessionEdited(person.projectId, ['media'], { placeReferences: false });
+        else markPrototypeProjectsEdited(mutations, { placeReferences: false });
+    }
     if (rerender) render();
     return true;
 }
 
-function setPersonPrimaryPhoto(personId, photoId, crop = null, { rerender = true, notify = true } = {})
+function setPersonPrimaryPhoto(personId, photoId, crop = null, { rerender = true, notify = true, changes = null } = {})
 {
     const person = getPerson(personId);
     const photo = getPhoto(photoId, { projectId: person?.projectId || '' });
@@ -333,7 +349,12 @@ function setPersonPrimaryPhoto(personId, photoId, crop = null, { rerender = true
     person.primaryPhotoCrop = photoPersonRegion(photo, personId)
         ? null
         : normalizePersonPhotoCrop(crop || (previousPhotoId === photo.id ? person.primaryPhotoCrop : null));
-    markPersonUpdated(person);
+    if (changes)
+    {
+        updatePersonTimestamp(person);
+        recordProjectMutation(changes, person.projectId, 'people');
+    }
+    else markPersonUpdated(person, undefined, ['people']);
     if (rerender) render();
     if (notify) showToast('Primary photo updated.');
     return true;

@@ -676,6 +676,7 @@ function openArchiveSourceModal(
     {
         onCreated =
             null,
+        commitCreated = null,
         modalOpener = openModal,
         targetProjectId = null
     } = {}
@@ -1093,8 +1094,6 @@ function openArchiveSourceModal(
 
             target.updatedAt =
                 now;
-            markPrototypeSessionEdited();
-
             const created =
                 !source;
 
@@ -1104,6 +1103,15 @@ function openArchiveSourceModal(
                     target
                 );
             }
+            const domains = storedAt.created ? ['sources', 'places'] : ['sources'];
+            if (created && commitCreated)
+            {
+                const changes = new Map();
+                recordProjectMutation(changes, projectId, ...domains);
+                commitCreated(target, changes, storedAt.created ? getPlace(storedAt.placeId) : null);
+                return;
+            }
+            markPrototypeSessionEdited(projectId, domains);
 
             if (
                 created

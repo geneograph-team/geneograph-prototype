@@ -295,20 +295,32 @@
                 const primaryPhotoCrop = current.primaryPhotoCrop;
                 const updatedAt = current.updatedAt;
                 const meta = current.meta ? { ...current.meta } : current.meta;
+                const removedPhotoIds = new Set(decisions.filter(({ linked }) => !linked).map(({ id }) => id));
+                const primaryReferences = sampleData.people.filter(person => removedPhotoIds.has(person.primaryPhotoId))
+                    .map(person => [person, person.primaryPhotoId, person.primaryPhotoCrop]);
+                const mutations = new Map();
                 try
                 {
                     decisions.forEach(({ id, linked }, index) =>
                     {
                         const photo = photos[index];
                         if (linked) ensurePhotoPersonTag(photo, current);
-                        else setPhotoPersonIds(id, (photo.personIds || []).filter(personId => personId !== current.id), { rerender: false });
+                        else setPhotoPersonIds(id, (photo.personIds || []).filter(personId => personId !== current.id),
+                            { rerender: false, changes: mutations });
                     });
-                    markPersonUpdated(current);
+                    updatePersonTimestamp(current);
+                    recordProjectMutation(mutations, current.projectId, 'people', 'media');
+                    markPrototypeProjectsEdited(mutations, { placeReferences: false });
                     return true;
                 }
                 catch (error)
                 {
                     snapshots.forEach(snapshot => Object.assign(snapshot.photo, { personIds: snapshot.personIds, personRegions: snapshot.personRegions, updatedAt: snapshot.updatedAt }));
+                    for (const [person, photoId, crop] of primaryReferences)
+                    {
+                        person.primaryPhotoId = photoId;
+                        person.primaryPhotoCrop = crop;
+                    }
                     current.primaryPhotoId = primaryPhotoId;
                     current.primaryPhotoCrop = primaryPhotoCrop;
                     current.updatedAt = updatedAt;

@@ -424,14 +424,19 @@ function updateBoardFactPlaceReferences(board, place, replacement = null)
 // decisions or derived timeline events for matching strings.
 function visitProjectPlaceReferences(projectId, visit, { includeDeleted = false } = {})
 {
-    const owned = key => (sampleData[key] || []).filter(record =>
-        record.projectId === projectId && (includeDeleted || !record.deleted));
+    let domain;
+    const owned = (key, readDomain = key) =>
+    {
+        domain = readDomain;
+        return (sampleData[key] || []).filter(record =>
+            record.projectId === projectId && (includeDeleted || !record.deleted));
+    };
     const field = (owner, record, key, kind = 'scalar') =>
     {
         if (!record) return;
         const value = record[key];
         if (kind === 'array' ? Array.isArray(value) && value.length : typeof value === 'string' && value)
-            visit({ owner, record, key, kind });
+            visit({ owner, record, key, kind, domain });
     };
     const date = (owner, record) =>
     {
@@ -458,7 +463,7 @@ function visitProjectPlaceReferences(projectId, visit, { includeDeleted = false 
         field(record, record, 'placeId');
         date(record, record.date);
     }
-    for (const record of owned('archiveFiles'))
+    for (const record of owned('archiveFiles', 'archive'))
     {
         field(record, record, 'documentPlaceId');
         field(record, record, 'linkedPlaceIds', 'array');
@@ -470,7 +475,7 @@ function visitProjectPlaceReferences(projectId, visit, { includeDeleted = false 
         field(record, record, 'placeId');
         date(record, record.accessedDate);
     }
-    for (const record of owned('sourceLinks'))
+    for (const record of owned('sourceLinks', 'sources'))
         if (record.targetType === 'place') field(record, record, 'targetId', 'sourceLink');
     for (const record of owned('links'))
         for (const end of ['from', 'to'])
@@ -509,21 +514,30 @@ function placeLiveReferenceCount(place, owners = null)
 }
 
 // A Keep decision expires when a committed edit links the Place.
-function invalidateLinkedPlaceDismissals()
+function invalidateLinkedPlaceDismissals(projectIds = null)
 {
     const issues = sampleData.placeIssues || [];
-    if (!issues.some(issue => issue.type === 'unlinked')) return;
+    const shouldCheck = issue => issue.type === 'unlinked' && (!projectIds || projectIds.includes(issue.projectId));
+    if (!issues.some(shouldCheck)) return;
     const projects = new Map();
-    sampleData.placeIssues = issues.filter(issue =>
+    for (const issue of issues)
     {
-        if (issue.type !== 'unlinked') return true;
-        if (!projects.has(issue.projectId))
-            projects.set(issue.projectId, projectPlaceReferenceOwners(issue.projectId));
-        return !projects.get(issue.projectId).has(issue.placeId);
-    });
+        if (!shouldCheck(issue)) continue;
+        if (!projects.has(issue.projectId)) projects.set(issue.projectId, { pending: new Set(), linked: new Set() });
+        projects.get(issue.projectId).pending.add(issue.placeId);
+    }
+    for (const [projectId, { pending, linked }] of projects)
+        visitProjectPlaceReferences(projectId, ({ record, key, kind }) =>
+        {
+            for (const id of kind === 'array' ? record[key] : [record[key]])
+                if (pending.delete(id)) linked.add(id);
+        });
+    if ([...projects.values()].some(({ linked }) => linked.size))
+        sampleData.placeIssues = issues.filter(issue =>
+            !shouldCheck(issue) || !projects.get(issue.projectId).linked.has(issue.placeId));
 }
 
-function rewriteProjectPlaceReferences(place, replacement = null)
+function rewriteProjectPlaceReferences(place, replacement = null, changes = null)
 {
     const projectId = place.projectId;
     const keepId = replacement?.id || null;
@@ -534,9 +548,11 @@ function rewriteProjectPlaceReferences(place, replacement = null)
     const changedLinks = new Set();
     const boards = new Set((sampleData.boards || []).filter(board => board.projectId === projectId));
     const archiveFiles = new Set((sampleData.archiveFiles || []).filter(file => file.projectId === projectId));
-    visitProjectPlaceReferences(projectId, ({ owner, record, key, kind }) =>
+    visitProjectPlaceReferences(projectId, ({ owner, record, key, kind, domain }) =>
     {
         if (kind === 'array' ? !record[key].includes(place.id) : record[key] !== place.id) return;
+        if (changes) recordProjectMutation(changes, domain === 'links' ? undefined : owner.projectId,
+            domain === 'links' ? 'places' : domain);
         if (kind === 'sourceLink' || kind === 'link')
         {
             if (!replacement) removedLinks.add(owner);
@@ -591,10 +607,12 @@ function rewriteProjectPlaceReferences(place, replacement = null)
             return true;
         });
     };
-    sampleData.sourceLinks = deduplicate(sampleData.sourceLinks || [], changedSourceLinks,
-        link => JSON.stringify([link.sourceId, link.targetType, link.targetId]));
-    sampleData.links = deduplicate(sampleData.links || [], changedLinks,
-        link => JSON.stringify([link.fromType, link.fromId, link.toType, link.toId, link.label]));
+    if (removedLinks.size || changedSourceLinks.size)
+        sampleData.sourceLinks = deduplicate(sampleData.sourceLinks || [], changedSourceLinks,
+            link => JSON.stringify([link.sourceId, link.targetType, link.targetId]));
+    if (removedLinks.size || changedLinks.size)
+        sampleData.links = deduplicate(sampleData.links || [], changedLinks,
+            link => JSON.stringify([link.fromType, link.fromId, link.toType, link.toId, link.label]));
 }
 
 function deleteSavedPlace(placeId, { unlinkedOnly = false, projectId = currentProjectId() } = {})
@@ -602,12 +620,14 @@ function deleteSavedPlace(placeId, { unlinkedOnly = false, projectId = currentPr
     const place = (sampleData.places || []).find(item => item.id === placeId && item.projectId === projectId);
     if (!place || projectId !== currentProjectId() || (unlinkedOnly && placeLiveReferenceCount(place))) return false;
     if (typeof invalidateGedcomPlaceMatch === 'function') invalidateGedcomPlaceMatch(place);
-    rewriteProjectPlaceReferences(place);
+    const changes = new Map();
+    recordProjectMutation(changes, projectId, 'places');
+    rewriteProjectPlaceReferences(place, null, changes);
     sampleData.places = sampleData.places.filter(item => item !== place);
     sampleData.placeIssues = (sampleData.placeIssues || []).filter(issue =>
         issue.projectId !== projectId || (issue.placeId !== placeId && issue.otherPlaceId !== placeId));
-    sampleData.events = rebuildSampleEventsAndPruneSourceLinks();
-    markPrototypeSessionEdited();
+    rebuildSampleEventsAndPruneSourceLinks(changes);
+    markPrototypeProjectsEdited(changes);
     return true;
 }
 
@@ -726,7 +746,9 @@ function mergeSavedPlaces(keepId, removeId, { aliases = true, locationChoice, fi
     }
     keep.updatedAt = new Date().toISOString();
 
-    rewriteProjectPlaceReferences(removed, keep);
+    const changes = new Map();
+    recordProjectMutation(changes, projectId, 'places');
+    rewriteProjectPlaceReferences(removed, keep, changes);
     sampleData.places = sampleData.places.filter(place => place !== removed);
     sampleData.placeIssues = (sampleData.placeIssues || []).filter(issue =>
         issue.projectId !== keep.projectId || (issue.placeId !== removeId && issue.otherPlaceId !== removeId
@@ -741,8 +763,8 @@ function mergeSavedPlaces(keepId, removeId, { aliases = true, locationChoice, fi
             placesMapRuntime.pendingFocusPlaceId = keepId;
         if (!preserveSelection || state.selectedPlaceId === removeId) state.selectedPlaceId = keepId;
     }
-    sampleData.events = rebuildSampleEventsAndPruneSourceLinks();
-    markPrototypeSessionEdited(projectId);
+    rebuildSampleEventsAndPruneSourceLinks(changes);
+    markPrototypeProjectsEdited(changes);
     return true;
 }
 

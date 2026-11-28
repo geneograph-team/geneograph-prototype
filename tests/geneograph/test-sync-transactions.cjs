@@ -47,13 +47,15 @@ for (const file of files)
     const filename = path.join(__dirname, '../../src', file + '.js');
     vm.runInContext(fs.readFileSync(filename, 'utf8'), context, { filename });
 }
+vm.runInContext(fs.readFileSync(path.join(sourceDirectory, 'core/bootstrap.js'), 'utf8')
+    .split('function prototypeSessionBeforeUnload')[0], context);
 
 vm.runInContext(`
 let nextId = 0;
 const createRuntimeId = prefix => prefix + '-sync-test-' + ++nextId;
 const currentProjectId = () => 'p1';
 const validProjectById = id => sampleData.projects.find(project => project.id === id);
-const markPrototypeSessionEdited = () => invalidateProjectReadModel('p1');
+const updatePrototypeSessionUnloadGuard = () => {};
 const invalidateGeneographBoardPreview = () => {};
 const showToast = () => {};
 const renderGeneographEditorPreserveScroll = () => {};

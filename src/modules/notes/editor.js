@@ -159,7 +159,7 @@ function bindNotesSidebarControls(
 function touchNote(
     note,
     {
-        refreshPreview = true, bodyOnly = false
+        refreshPreview = true, bodyOnly = false, domains = ['notes'], placeReferences = false
     } = {}
 )
 {
@@ -170,7 +170,7 @@ function touchNote(
 
     note.updatedAt =
         new Date().toISOString();
-    markPrototypeSessionEdited(note.projectId, ['notes']);
+    markPrototypeSessionEdited(note.projectId, domains, { placeReferences });
 
     if (refreshPreview)
     {
@@ -967,8 +967,6 @@ function duplicateCentralNote(
     sampleData.notes.unshift(
         copy
     );
-    markPrototypeSessionEdited();
-
     setNoteEntityLinks(
         copy.id,
         'source',
@@ -981,6 +979,8 @@ function duplicateCentralNote(
             false
         }
     );
+    markPrototypeSessionEdited(copy.projectId, copiedSourceIds.length ? ['notes', 'sources'] : ['notes'],
+        { placeReferences: copy.linkedPlaceIds.length > 0 });
 
     state.notesView =
         'all';

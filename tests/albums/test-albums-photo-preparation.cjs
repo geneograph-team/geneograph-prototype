@@ -29,12 +29,21 @@ const context = vm.createContext({
     normalizePersonSearch: normalize,
     personSearchHaystack: person => normalize(person.name),
     personSearchMatches: (tokens, haystack) => tokens.every(token => haystack.includes(token)),
-    markPrototypeSessionEdited: (id, touched) => { domains.push(touched); context.invalidateProjectReadModel(id, touched); },
+    invalidateLinkedPlaceDismissals() {},
+    updatePrototypeSessionUnloadGuard() {},
     photoIsTaggedWithPerson: (photo, person) => photo.personIds.includes(person.id)
 });
 for (const file of ['core/project-read-model.js', 'shared/project-read-providers.js', 'modules/albums/photo-layout-and-crop.js',
     'modules/albums/photo-actions.js', 'modules/albums/library.js'])
     vm.runInContext(fs.readFileSync(path.join(__dirname, '../../src', file), 'utf8'), context, { filename: file });
+vm.runInContext(fs.readFileSync(path.join(__dirname, '../../src/core/bootstrap.js'), 'utf8')
+    .split('function prototypeSessionBeforeUnload')[0], context);
+const invalidate = context.invalidateProjectReadModel;
+context.invalidateProjectReadModel = (id, touched) =>
+{
+    domains.push(touched);
+    invalidate(id, touched);
+};
 
 context.setProjectReadModelActive('p1');
 const ranks = (query = '', archive = false) => Array.from(
@@ -62,6 +71,15 @@ people[1].primaryPhotoId = selected.id;
 context.setPhotoPersonIds(selected.id, ['tagged'], { rerender: false });
 assert.equal(people[1].primaryPhotoId, '');
 assert.equal(context.photoPersonRegion(selected, 'a'), null);
+assert.deepEqual([...domains.at(-1)].sort(), ['media', 'people']);
+const activePeople = context.projectPeopleIndex(context.acquireProjectReadModel('p1'));
+const foreign = people.find(person => person.id === 'foreign');
+foreign.primaryPhotoId = selected.id;
+const beforeForeignRepair = domains.length;
+context.setPhotoPersonIds(selected.id, ['tagged', 'a'], { rerender: false });
+assert.equal(foreign.primaryPhotoId, '');
+assert.deepEqual(domains.slice(beforeForeignRepair).map(touched => [...touched]), [['media'], ['people']]);
+assert.equal(context.projectPeopleIndex(context.acquireProjectReadModel('p1')), activePeople);
 
 for (let i = 0; i < 52; i++)
 {

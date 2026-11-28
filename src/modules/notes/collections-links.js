@@ -1238,9 +1238,10 @@ function setArchiveFileConnectionIds(
             }))
     ];
 
+    const changes = new Map();
     const committed =
         archiveSetConnectionsAtomically(
-            writes
+            writes, changes
         );
 
     if (!committed.ok)
@@ -1261,12 +1262,15 @@ function setArchiveFileConnectionIds(
         savedIds.size === normalizedNextIds.size
         && [...normalizedNextIds].every(id => savedIds.has(id));
 
-    if (saved && entityType === 'person' && file.personRegions)
+    if (saved && entityType === 'person'
+        && Object.keys(file.personRegions || {}).some(id => !savedIds.has(id)))
     {
         file.personRegions = Object.fromEntries(
             Object.entries(file.personRegions).filter(([personId]) => savedIds.has(personId))
         );
+        recordProjectMutation(changes, file.projectId, 'archive');
     }
+    markPrototypeProjectsEdited(changes, { placeReferences: entityType === 'place' });
 
     return saved;
 }

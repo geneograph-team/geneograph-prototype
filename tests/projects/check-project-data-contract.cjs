@@ -1127,11 +1127,14 @@ Object.assign(context, {
     clearPeopleSelection() {},
     treeDefaultPersonId: () => project.defaultPersonId,
     currentProjectId: () => project.id,
-    markPrototypeSessionEdited() {},
+    invalidateProjectReadModel() {},
+    updatePrototypeSessionUnloadGuard() {},
     closeModal() {},
     render() {},
     showToast() {}
 });
+vm.runInContext(fs.readFileSync(path.join(__dirname, '../../src/core/bootstrap.js'), 'utf8')
+    .split('function prototypeSessionBeforeUnload')[0], context);
 Object.assign(sample, JSON.parse(before));
 sample.events = context.buildSampleEvents(sample);
 let nextReviewId = 0;

@@ -58,6 +58,7 @@ const context = vm.createContext({
     t: value => value, escapeHtml: value => value, icon: {},
     main: { classList }, workspace: { classList }, sidebar: {},
     appNavigationObserve() {}, bindPeopleSidebar() {}, renderPersonSidebar() {},
+    replaceSharedSearchMarkup(root, markup) { root.innerHTML = markup; },
     renderPeopleProfile(_row, person) { counts.profile++; assert.equal(person.projectId, activeProject); },
     bindPeopleControls(rows) { displayedRows = Array.from(rows, row => row.id); }
 });

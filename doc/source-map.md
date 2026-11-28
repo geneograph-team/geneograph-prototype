@@ -42,6 +42,8 @@
 
 The classic-script order is coordinator, relationship rules, then providers. The People consumers and bootstrap load afterward. The coordinator lives in `core/project-read-model.js`. Provider construction lives in `shared/project-read-providers.js`. Acquire with `acquireProjectReadModel(projectId)`. A handle offers `projectId`, `generation`, `revisionToken(domains)`, and `read(key, domains, build, variant)`. A stale or non-active handle has a null revision token. The shell and project activation manage the active project and the import rollback releases the old generation.
 
+`core/bootstrap.js` owns the dirty-session notification boundary. Nested writes in scoped person, relationship, evidence and Sync commits report their changed owners and domains to a commit-local map. `shared/tree-seed-model.js` records changed projected events and pruned event references before the owning edit notifies retained readers. `modules/places/place-record-helpers.js` owns authored Place-reference traversal and dismissal expiry. Known edits without Place-reference changes can skip that traversal. The shell and Places check the active project, and unclassified commits retain a conservative global check.
+
 | Retained key | Owner and inputs | Variant |
 | --- | --- | --- |
 | `people:index` | `projectPeopleIndex(context)` reads people and indexes raw and eligible IDs | None |

@@ -3984,12 +3984,17 @@ function geneoNodeMaximumSize(
     };
 }
 
-function touchGeneographBoard(board = selectedGeneographBoard())
+function touchGeneographBoard(board = selectedGeneographBoard(), changes = null)
 {
     if (!board) return;
     board.modifiedAt = new Date().toISOString();
-    markPrototypeSessionEdited();
     invalidateGeneographBoardPreview(board.id);
+    if (changes)
+    {
+        recordProjectMutation(changes, board.projectId, 'boards');
+        markPrototypeProjectsEdited(changes);
+    }
+    else markPrototypeSessionEdited();
 }
 
 function geneoEnsureHistory()

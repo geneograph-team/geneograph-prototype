@@ -5,11 +5,43 @@ let prototypeSessionHasEdits = false;
 let prototypeSessionEditRevision = 0;
 let prototypeSessionUnloadListening = false;
 
-function markPrototypeSessionEdited(projectId, domains)
+function markPrototypeSessionEdited(projectId, domains, { placeReferences = true } = {})
+{
+    finishPrototypeSessionEdit(() => invalidateProjectReadModel(projectId, domains),
+        placeReferences ? (domains?.length ? [projectId] : null) : []);
+}
+
+function recordProjectMutation(changes, projectId, ...domains)
+{
+    if (!changes.has(projectId)) changes.set(projectId, new Set());
+    for (const domain of domains) changes.get(projectId).add(domain);
+}
+
+function markPrototypeProjectsEdited(changes, { placeReferences = true } = {})
+{
+    if (!changes.size) return;
+    if (changes.size === 1)
+    {
+        const [[projectId, domains]] = changes;
+        markPrototypeSessionEdited(projectId, [...domains], { placeReferences });
+        return;
+    }
+    finishPrototypeSessionEdit(() =>
+    {
+        if (changes.has(undefined) || changes.has(null) || changes.has(''))
+            invalidateProjectReadModel();
+        else
+            for (const [projectId, domains] of changes)
+                invalidateProjectReadModel(projectId, [...domains]);
+    }, placeReferences ? [...changes.keys()] : []);
+}
+
+function finishPrototypeSessionEdit(invalidate, placeProjects)
 {
     prototypeSessionEditRevision++;
-    invalidateProjectReadModel(projectId, domains);
-    invalidateLinkedPlaceDismissals();
+    invalidate();
+    if (!placeProjects || placeProjects.length)
+        invalidateLinkedPlaceDismissals(placeProjects?.every(Boolean) ? placeProjects : null);
     if (prototypeSessionHasEdits) return;
     prototypeSessionHasEdits = true;
     updatePrototypeSessionUnloadGuard();

@@ -679,9 +679,10 @@ function openArchiveFilesPlaceModal(
                 shouldLink: true
             }));
 
+            const changes = new Map();
             const committed =
                 archiveSetConnectionsAtomically(
-                    writes
+                    writes, changes
                 );
 
             if (!committed.ok)
@@ -698,6 +699,8 @@ function openArchiveFilesPlaceModal(
                 return;
             }
 
+            if (createdPlace) recordProjectMutation(changes, createdPlace.projectId, 'places');
+            markPrototypeProjectsEdited(changes);
             const changedCount =
                 changedFiles.length;
 
@@ -1743,8 +1746,8 @@ function openArchiveConnectionPicker({ ownerType, ownerIds, entityType })
                 openArchiveSourceModal(
                     '',
                     {
-                        onCreated:
-                  createdSource =>
+                        commitCreated:
+                  (createdSource, changes, createdPlace) =>
                   {
                       let committed;
                       try
@@ -1756,7 +1759,7 @@ function openArchiveConnectionPicker({ ownerType, ownerIds, entityType })
                                   entityType: 'source',
                                   entityId: createdSource.id,
                                   shouldLink: true
-                              }))
+                              })), changes
                           );
                       }
                       catch (error)
@@ -1770,9 +1773,10 @@ function openArchiveConnectionPicker({ ownerType, ownerIds, entityType })
                         !== ids.length
                       )
                       {
-                          removeSourceLinksForSource(createdSource.id);
                           sampleData.sources = (sampleData.sources || []).filter(source => source !== createdSource);
-                          markPrototypeSessionEdited();
+                          if (createdPlace)
+                              sampleData.places.splice(sampleData.places.indexOf(createdPlace), 1);
+                          closeModal();
                           showToast(
                               'Source could not be linked. It was not created.'
                           );
@@ -1780,6 +1784,8 @@ function openArchiveConnectionPicker({ ownerType, ownerIds, entityType })
                           return;
                       }
 
+                      markPrototypeProjectsEdited(changes);
+                      closeModal();
                       state.archiveSelectedFileIds =
                           [];
 
@@ -2375,17 +2381,6 @@ function openArchiveUnlinkConfirm({
                     );
 
                     return;
-                }
-
-                if (ownerType === 'file' && entityType === 'person')
-                {
-                    const file = archiveFileById(ownerId);
-                    if (file?.personRegions)
-                    {
-                        const regions = { ...file.personRegions };
-                        delete regions[entityId];
-                        file.personRegions = regions;
-                    }
                 }
 
                 closeModal();

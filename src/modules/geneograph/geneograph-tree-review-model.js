@@ -1453,9 +1453,25 @@ function geneoReviewHistoryCanRestore(entry)
 function geneoReviewRestoreHistory(entry)
 {
     if (!geneoReviewHistoryCanRestore(entry)) return false;
-    geneoReviewWritePatches(selectedGeneographBoard(), entry.patches, entry.side);
-    touchGeneographBoard();
+    const board = selectedGeneographBoard();
+    geneoReviewWritePatches(board, entry.patches, entry.side);
+    touchGeneographBoard(board, geneoReviewMutationDomains(entry.patches));
     return true;
+}
+
+function geneoReviewMutationDomains(patches)
+{
+    const changes = new Map();
+    const domains = { people: 'people', families: 'families', events: 'events',
+        archiveFiles: 'archive', notes: 'notes', sourceLinks: 'sources' };
+    for (const patch of patches)
+    {
+        if (patch.key.startsWith('board.')) continue;
+        const domain = domains[patch.key];
+        for (const record of [patch.before, patch.after])
+            if (record) recordProjectMutation(changes, domain ? record.projectId : undefined, domain || 'boards');
+    }
+    return changes;
 }
 
 function geneoTreeImportCommit()
@@ -1485,7 +1501,7 @@ function geneoTreeImportCommitBody()
         else write();
         if (plan.patches.length)
             geneoPushHistorySnapshot(JSON.stringify({ geneoReviewHistory: true, boardId: board.id, side: 'before', patches: plan.patches }));
-        touchGeneographBoard(board);
+        touchGeneographBoard(board, geneoReviewMutationDomains(plan.patches));
     }
     catch (error)
     {

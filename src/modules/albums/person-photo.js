@@ -934,6 +934,7 @@ function createMediaFromPhotoUpload({
     projectId,
     draft,
     personIds = [],
+    changes = null,
     idPrefix =
         'photo-upload'
 })
@@ -1036,7 +1037,8 @@ function createMediaFromPhotoUpload({
     sampleData.media.push(
         photo
     );
-    markPrototypeSessionEdited();
+    if (changes) recordProjectMutation(changes, projectId, 'media');
+    else markPrototypeSessionEdited(projectId, ['media'], { placeReferences: false });
 
     return photo;
 }
@@ -2211,6 +2213,7 @@ function commitPersonPhotosAdder()
         return;
     }
 
+    const changes = new Map();
     selectedProjectPhotos.forEach(photo =>
     {
         ensurePhotoPersonTag(
@@ -2226,6 +2229,7 @@ function commitPersonPhotosAdder()
             person.projectId,
 
             draft,
+            changes,
 
             personIds: [
                 person.id
@@ -2236,7 +2240,9 @@ function commitPersonPhotosAdder()
         });
     });
 
-    markPersonUpdated(person);
+    updatePersonTimestamp(person);
+    recordProjectMutation(changes, person.projectId, 'people', 'media');
+    markPrototypeProjectsEdited(changes, { placeReferences: false });
 
     const name =
         formatPersonFullName(person)
@@ -2680,6 +2686,7 @@ function applyPersonPrimaryPhoto({ personId, existingPhotoId = '', uploadDraft =
 {
     const person = getPerson(personId);
     if (!person) return false;
+    const changes = new Map();
     let photo = null;
     if (uploadDraft)
     {
@@ -2712,6 +2719,7 @@ function applyPersonPrimaryPhoto({ personId, existingPhotoId = '', uploadDraft =
 
                 draft:
               uploadDraft,
+                changes,
 
                 personIds: [
                     person.id
@@ -2734,8 +2742,9 @@ function applyPersonPrimaryPhoto({ personId, existingPhotoId = '', uploadDraft =
     }
     if (!photo) return false;
     ensurePhotoPersonTag(photo, person);
-    setPhotoPersonRegion(photo, person.id, region);
-    setPersonPrimaryPhoto(person.id, photo.id, null, { rerender: false, notify: false });
+    setPhotoPersonRegion(photo, person.id, region, changes);
+    setPersonPrimaryPhoto(person.id, photo.id, null, { rerender: false, notify: false, changes });
+    markPrototypeProjectsEdited(changes, { placeReferences: false });
     const name = formatPersonFullName(person) || 'Person';
     resetPersonPhotoPickerState();
     closeModal({ force: true });
@@ -2751,7 +2760,7 @@ function removeCurrentPersonPhoto()
     const name = formatPersonFullName(person) || 'Person';
     person.primaryPhotoId = '';
     person.primaryPhotoCrop = null;
-    markPersonUpdated(person);
+    markPersonUpdated(person, undefined, ['people']);
     resetPersonPhotoPickerState();
     closeModal({ force: true });
     renderAfterPersonPrimaryPhotoChange();

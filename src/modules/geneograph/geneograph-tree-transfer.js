@@ -95,14 +95,13 @@ function openGeneographBoardChooser(personIds)
         const now = new Date().toISOString();
         const board = { id: createRuntimeId('board'), projectId, title, description: '', collectionIds: [], modifiedAt: now, createdAt: now, favorite: false, archived: false, diagram: createEmptyGeneographDiagram({ colorPersonCardsByGender: true }) };
         sampleData.boards.unshift(board);
-        markPrototypeSessionEdited();
-        geneoAddPeopleToBoard(board.id);
+        geneoAddPeopleToBoard(board.id, { created: true });
     });
     renderList();
     search.focus();
 }
 
-function geneoAddPeopleToBoard(boardId)
+function geneoAddPeopleToBoard(boardId, { created = false } = {})
 {
     const draft = geneoBoardChooserDraft;
     const board = draft && getGeneographBoard(boardId, { projectId: draft.projectId });
@@ -132,7 +131,7 @@ function geneoAddPeopleToBoard(boardId)
         }
         return node;
     }).filter(Boolean);
-    if (needsChange) touchGeneographBoard(board);
+    if (needsChange || created) touchGeneographBoard(board, new Map());
     if (nodes.length)
     {
         setGeneographNodeSelection(nodes.map(node => node.id), nodes[0].id);

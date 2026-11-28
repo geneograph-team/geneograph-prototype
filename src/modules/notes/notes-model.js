@@ -1002,7 +1002,9 @@ function setNoteEntityLinks(
             true,
 
         refreshPreview =
-            true
+            true,
+        changes = null,
+        pendingPerson = null
     } = {}
 )
 {
@@ -1035,7 +1037,8 @@ function setNoteEntityLinks(
         normalizeCentralNoteIdArray(
             linkedIds
         ).filter(id =>
-            validIds.has(id)
+            validIds.has(id) || (type === 'person' && pendingPerson?.id === id
+                && pendingPerson.projectId === note.projectId && !pendingPerson.deleted)
         );
 
     const currentIds =
@@ -1069,7 +1072,8 @@ function setNoteEntityLinks(
                 nextIds,
                 {
                     projectId:
-                note.projectId
+                note.projectId,
+                    notify: false
                 }
             );
 
@@ -1086,8 +1090,14 @@ function setNoteEntityLinks(
 
     if (touchUpdatedAt)
     {
-        if (type === 'source') markPrototypeSessionEdited(note.projectId, ['sources']);
-        if (
+        const domains = type === 'source' ? ['notes', 'sources'] : ['notes'];
+        const placeReferences = type === 'place';
+        if (changes)
+        {
+            note.updatedAt = new Date().toISOString();
+            recordProjectMutation(changes, note.projectId, ...domains);
+        }
+        else if (
             state.activeModule === 'Notes'
           && state.selectedNoteId
             === note.id
@@ -1096,7 +1106,7 @@ function setNoteEntityLinks(
             touchNote(
                 note,
                 {
-                    refreshPreview
+                    refreshPreview, domains, placeReferences
                 }
             );
         }
@@ -1104,7 +1114,7 @@ function setNoteEntityLinks(
         {
             note.updatedAt =
                 new Date().toISOString();
-            markPrototypeSessionEdited(note.projectId, ['notes']);
+            markPrototypeSessionEdited(note.projectId, domains, { placeReferences });
         }
     }
 
@@ -1628,12 +1638,11 @@ function setNoteCollections(
 
     note.collectionIds =
         nextCollectionIds;
-    if (touchUpdatedAt) markPrototypeSessionEdited();
-
     if (touchUpdatedAt)
     {
         note.updatedAt =
             new Date().toISOString();
+        markPrototypeSessionEdited(note.projectId, ['notes'], { placeReferences: false });
     }
 
     return note;

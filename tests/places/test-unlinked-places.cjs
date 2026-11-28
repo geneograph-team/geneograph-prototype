@@ -10,11 +10,14 @@ const ctx = vm.createContext({
     cleanEditFieldValue: value => String(value ?? '').trim(),
     PLACE_EDITOR_CLOSE_COORDINATE_KM: 0.5,
     rebuildSampleEventsAndPruneSourceLinks: () => [],
-    markPrototypeSessionEdited: () => vm.runInContext('invalidateLinkedPlaceDismissals()', ctx),
+    invalidateProjectReadModel() {},
+    updatePrototypeSessionUnloadGuard() {},
     placesMapRuntime: {}, structuredClone, console
 });
 for (const file of ['place-record-helpers.js', 'filters.js'])
     vm.runInContext(fs.readFileSync(path.join(__dirname, '../../src/modules/places', file), 'utf8'), ctx, { filename: file });
+vm.runInContext(fs.readFileSync(path.join(__dirname, '../../src/core/bootstrap.js'), 'utf8')
+    .split('function prototypeSessionBeforeUnload')[0], ctx);
 const run = code => vm.runInContext(code, ctx);
 const place = { id: 'p', projectId: 'p1', name: 'Town', alternativeNames: [], coordinates: null };
 const other = { id: 'other', projectId: 'p1', name: 'Town', alternativeNames: [], coordinates: null };

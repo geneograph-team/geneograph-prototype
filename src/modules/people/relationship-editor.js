@@ -622,7 +622,7 @@ function upsertPartnerRelationshipEvents(relationship, values, options = {})
     }
 }
 
-function savePersonRelationshipBlock(personId, collected)
+function savePersonRelationshipBlock(personId, collected, changes)
 {
     if (!collected || collected.invalid || !collected.relationships?.length) return;
 
@@ -633,6 +633,7 @@ function savePersonRelationshipBlock(personId, collected)
 
         upsertPartnerRelationshipEvents(relationship, values);
         relationship.updatedAt = new Date().toISOString();
+        if (changes) recordProjectMutation(changes, relationship.projectId, 'families');
     });
 }
 
@@ -2061,7 +2062,8 @@ function connectPeopleByRelationship({
     parentFamilySelection = '',
     detailType = '',
     explicitParentRole = '',
-    partnerChildrenMode = PARTNER_CHILDREN_ADD_PARENT
+    partnerChildrenMode = PARTNER_CHILDREN_ADD_PARENT,
+    changes = null
 } = {})
 {
     const anchorId = String(anchorPersonId || '');
@@ -2157,8 +2159,8 @@ function connectPeopleByRelationship({
 
     }
 
-    rebuildSampleEventsAndPruneSourceLinks();
-    markPrototypeSessionEdited();
+    if (changes) recordProjectMutation(changes, result.family?.projectId, 'families');
+    else commitFamilyMutation(result.family?.projectId);
 
     return {
         ...result,
@@ -2290,7 +2292,6 @@ function applyPartnerDetailsToCreatedConnection(connectionResult, relationshipVa
 
     upsertPartnerRelationshipEvents(connectionResult.family, values);
 
-    rebuildSampleEventsAndPruneSourceLinks();
 }
 
 function addPersonDateFieldHasTypedValue(fieldId)
@@ -2398,7 +2399,7 @@ function validateAddPersonCreateIdentity(options = {}, additionalFacts = {})
     };
 }
 
-function applyAddPersonAttachmentDrafts(personId)
+function applyAddPersonAttachmentDrafts(personId, changes = null)
 {
     const person =
         getPerson(personId);
@@ -2409,7 +2410,7 @@ function applyAddPersonAttachmentDrafts(personId)
         person.id,
         readAddPersonPhotoIds(),
         {
-            rerender: false
+            rerender: false, changes
         }
     );
 
@@ -2429,7 +2430,7 @@ function applyAddPersonAttachmentDrafts(personId)
 
     if (fileWrites.length)
     {
-        archiveSetConnectionsAtomically(fileWrites);
+        archiveSetConnectionsAtomically(fileWrites, changes);
     }
 
     const linkedNotes = new Set(
@@ -2454,7 +2455,7 @@ function applyAddPersonAttachmentDrafts(personId)
         else personIds.delete(person.id);
 
         setNoteEntityLinks(note.id, 'person', [...personIds], {
-            projectId: person.projectId
+            projectId: person.projectId, changes, pendingPerson: person
         });
     }
 }
@@ -2532,6 +2533,8 @@ function commitAddPersonModalCreate(title, subtitle, options = {})
         death: deathDate
     });
     if (!newPerson) return null;
+    const changes = new Map();
+    recordProjectMutation(changes, newPerson.projectId, 'people');
     let connectionResult = null;
 
     if (connectionIntent.shouldConnect)
@@ -2544,7 +2547,8 @@ function commitAddPersonModalCreate(title, subtitle, options = {})
             detailType: connectionDetailType,
             explicitParentRole: ['father', 'mother'].includes(options.relativeType) ? options.relativeType : '',
             partnerChildrenMode:
-            addPersonPartnerChildrenMode(options)
+            addPersonPartnerChildrenMode(options),
+            changes
         });
 
         if (connectionResult.ok)
@@ -2561,10 +2565,9 @@ function commitAddPersonModalCreate(title, subtitle, options = {})
         }
     }
 
-    applyAddPersonAttachmentDrafts(newPerson.id);
-    markPrototypeSessionEdited();
-
-    rebuildSampleEventsAndPruneSourceLinks();
+    applyAddPersonAttachmentDrafts(newPerson.id, changes);
+    if (sampleData.places.length !== placesBeforeCreate) recordProjectMutation(changes, newPerson.projectId, 'places');
+    rebuildSampleEventsAndPruneSourceLinks(changes);
 
     if (projectPeopleBeforeCreate === 0)
     {
@@ -2572,7 +2575,8 @@ function commitAddPersonModalCreate(title, subtitle, options = {})
         if (project)
         {
             project.defaultPersonId = newPerson.id;
-            touchProjectModified(project);
+            project.modifiedAt = new Date().toISOString();
+            recordProjectMutation(changes, project.id, 'projects');
         }
         const treeView = treeProjectViewState(newPerson.projectId);
         treeView.focusPersonId = newPerson.id;
@@ -2580,6 +2584,7 @@ function commitAddPersonModalCreate(title, subtitle, options = {})
         state.treeCenterTargetId = newPerson.id;
     }
 
+    markPrototypeProjectsEdited(changes);
     clearPeopleSelection();
 
     const selectedAfterCreateId = newPerson.id;
@@ -3527,7 +3532,7 @@ function unlinkParentChildRelationship({ parentId, childId, familyId = '' } = {}
     }
 
     unlinkRemoveFamilyIfEmptyAndOrphaned(family);
-    markPrototypeSessionEdited(family.projectId, ['families', 'events', 'sources', 'archive', 'notes']);
+    commitFamilyMutation(family.projectId);
 
     return {
         ok: true,
@@ -3585,7 +3590,7 @@ function unlinkPartnerRelationship({ personAId, personBId, familyId = '', keepCh
     }
 
     unlinkRemoveFamilyById(family.id);
-    markPrototypeSessionEdited();
+    commitFamilyMutation(family.projectId);
 
     return {
         ok: true,
@@ -3593,13 +3598,20 @@ function unlinkPartnerRelationship({ personAId, personBId, familyId = '', keepCh
     };
 }
 
+function commitFamilyMutation(projectId, placeCreated = false)
+{
+    const changes = new Map();
+    recordProjectMutation(changes, projectId, 'families');
+    if (placeCreated) recordProjectMutation(changes, currentProjectId(), 'places');
+    rebuildSampleEventsAndPruneSourceLinks(changes);
+    markPrototypeProjectsEdited(changes);
+}
+
 function refreshAfterRelationshipChange(
     focusPersonId,
     context = 'tree'
 )
 {
-    rebuildSampleEventsAndPruneSourceLinks();
-
     if (focusPersonId)
     {
         state.selectedPersonId = focusPersonId;
@@ -4479,6 +4491,7 @@ function saveRelationshipEdit(context)
         return false;
     }
 
+    const placeCount = sampleData.places?.length || 0;
     if (latest.kind === 'partner')
     {
         const relationshipType = modalBackdrop.querySelector('#relationshipEditType').value;
@@ -4506,7 +4519,7 @@ function saveRelationshipEdit(context)
         setParentChildRelationshipType(family, latest.parentId, latest.childId, type);
     }
     family.updatedAt = new Date().toISOString();
-    markPrototypeSessionEdited();
+    commitFamilyMutation(family.projectId, (sampleData.places?.length || 0) !== placeCount);
     return true;
 }
 

@@ -228,23 +228,21 @@ function toTreePerson(person, context)
 
 function markPersonUpdated(
     person,
-    now = new Date().toISOString()
+    now = new Date().toISOString(),
+    domains
 )
 {
-    if (!person)
-    {
-        return;
-    }
+    if (!person) return;
+    updatePersonTimestamp(person, now);
+    if (domains) markPrototypeSessionEdited(person.projectId, domains, { placeReferences: false });
+    else markPrototypeSessionEdited();
+}
 
-    person.meta =
-        person.meta || {};
-
-    person.meta.updated =
-        'Just now';
-
-    person.updatedAt =
-        now;
-    markPrototypeSessionEdited();
+function updatePersonTimestamp(person, now = new Date().toISOString())
+{
+    person.meta = person.meta || {};
+    person.meta.updated = 'Just now';
+    person.updatedAt = now;
 }
 
 function toPeopleQueryRecord(person, relationshipLabels, getPlaceLabel = getPlaceEventDisplay)
@@ -390,9 +388,11 @@ function buildSampleEvents(context = null)
     const events = [];
     const eventPeople = context?.people || sampleData.people;
     const eventFamilies = context?.families || centralFamilyRecords();
-    const peopleById = context ? new Map(eventPeople.map(person => [person.id, person])) : null;
+    const peopleById = new Map();
+    for (const person of eventPeople)
+        if (context || !peopleById.has(person.id)) peopleById.set(person.id, person);
     const placesById = context ? new Map((context.places || []).map(place => [place.id, place])) : null;
-    const eventPerson = id => peopleById ? peopleById.get(id) : getPerson(id);
+    const eventPerson = id => peopleById.get(id);
     const eventPlaceName = id => placesById ? placesById.get(id)?.name || '' : getPlaceDisplay(id);
 
     eventPeople.forEach(person =>
@@ -746,24 +746,53 @@ function buildSampleEvents(context = null)
     return events;
 }
 
-function projectEventReferences(records, eventProjects)
+function projectEventReferences(records, eventProjects, onChange = () => {})
 {
-    return records.map(record =>
+    let changed = false;
+    const projected = records.map(record =>
     {
         if (!record.linkedEventIds?.length) return record;
         const linkedEventIds = record.linkedEventIds.filter(id => eventProjects.get(id) === record.projectId);
-        return linkedEventIds.length === record.linkedEventIds.length ? record : { ...record, linkedEventIds };
+        if (linkedEventIds.length === record.linkedEventIds.length) return record;
+        changed = true;
+        onChange(record.projectId);
+        return { ...record, linkedEventIds };
     });
+    return changed ? projected : records;
 }
 
-function rebuildSampleEventsAndPruneSourceLinks()
+function rebuildSampleEventsAndPruneSourceLinks(changes)
 {
-    sampleData.events =
-        buildSampleEvents();
+    const previous = sampleData.events || [];
+    const rebuilt = buildSampleEvents();
+    if (changes)
+    {
+        // Borrowing providers may retain event objects. Keep equal records by
+        // identity and report replaced/removed records under their actual owner.
+        const oldById = new Map(previous.map(event => [event.id, event]));
+        const nextIds = new Set();
+        if (oldById.size !== previous.length) recordProjectMutation(changes, undefined, 'events');
+        sampleData.events = rebuilt.map(event =>
+        {
+            if (nextIds.has(event.id)) recordProjectMutation(changes, undefined, 'events');
+            nextIds.add(event.id);
+            const old = oldById.get(event.id);
+            oldById.delete(event.id);
+            if (old && JSON.stringify(old) === JSON.stringify(event)) return old;
+            if (old) recordProjectMutation(changes, old.projectId, 'events');
+            recordProjectMutation(changes, event.projectId, 'events');
+            return event;
+        });
+        for (const event of oldById.values()) recordProjectMutation(changes, event.projectId, 'events');
+    }
+    else sampleData.events = rebuilt;
 
     const eventProjects = new Map(sampleData.events.map(event => [event.id, event.projectId]));
-    for (const key of ['archiveFiles', 'notes'])
-        sampleData[key] = projectEventReferences(sampleData[key], eventProjects);
+    for (const [key, domain] of [['archiveFiles', 'archive'], ['notes', 'notes']])
+        sampleData[key] = projectEventReferences(sampleData[key], eventProjects, projectId =>
+        {
+            if (changes) recordProjectMutation(changes, projectId, domain);
+        });
 
     if (
         Array.isArray(
@@ -772,7 +801,7 @@ function rebuildSampleEventsAndPruneSourceLinks()
         && sampleData.sourceLinks.length
     )
     {
-        pruneInvalidSourceLinks();
+        pruneInvalidSourceLinks(changes);
     }
 
     return sampleData.events;

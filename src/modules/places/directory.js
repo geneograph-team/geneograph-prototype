@@ -6,7 +6,7 @@ function renderPlaces(...args)
 
 function renderPlacesWithDiagnosticsBody()
 {
-    invalidateLinkedPlaceDismissals();
+    invalidateLinkedPlaceDismissals([currentProjectId()]);
     appNavigationObserve();
     if (
         ![

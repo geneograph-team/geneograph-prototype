@@ -123,6 +123,7 @@ function openUnifiedImagePeopleModal(photoId, { mode = 'tag', activePersonId = n
             if (region) next[personId] = region;
             else delete next[personId];
             file.personRegions = next;
+            markPrototypeSessionEdited(file.projectId, ['archive'], { placeReferences: false });
             return true;
         }
         return setPhotoPersonRegion(photo, personId, region);
@@ -769,7 +770,7 @@ function openUnifiedImagePeopleModal(photoId, { mode = 'tag', activePersonId = n
                 } else if (person.primaryPhotoId === photo.id) {
                     person.primaryPhotoId = '';
                     person.primaryPhotoCrop = null;
-                    markPersonUpdated(person);
+                    markPersonUpdated(person, undefined, ['people']);
                 }
                 refreshOwner();
                 return;
@@ -1673,7 +1674,7 @@ function toggleAlbumPhotoFavourite(
         !photo.favorite;
     photo.favoriteUpdatedAt =
         new Date().toISOString();
-    markPrototypeSessionEdited();
+    markPrototypeSessionEdited(photo.projectId, ['media'], { placeReferences: false });
 
     renderAlbumsPreserveViewport({
         focusPhotoId: photo.id,
@@ -1850,14 +1851,13 @@ function deletePhotosPermanently(
         if (changed) board.modifiedAt = new Date().toISOString();
     }
 
-    markPrototypeSessionEdited();
     sampleData.projects.forEach(project =>
     {
         if (!ids.has(project.coverPhotoId)) return;
         project.cover = 'paper';
         project.coverPhotoId = '';
         project.coverImageSrc = '';
-        touchProjectModified(project);
+        project.modifiedAt = new Date().toISOString();
     });
 
     sampleData.people.forEach(
@@ -2094,6 +2094,7 @@ function deletePhotosPermanently(
 
     sampleData.events =
         rebuildSampleEventsAndPruneSourceLinks();
+    markPrototypeSessionEdited();
 
     ensureSelectedAlbumPhoto();
     renderAlbums();

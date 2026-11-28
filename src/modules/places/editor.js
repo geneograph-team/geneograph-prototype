@@ -940,7 +940,7 @@ function commitPlaceEditorDraft()
         clearPlaceReviewDismissals(place.id, PLACE_REVIEW_COORDINATE_ISSUE_TYPES);
     }
     if (!existing) sampleData.places.unshift(place);
-    markPrototypeSessionEdited();
+    markPrototypeSessionEdited(projectId, ['places'], { placeReferences: false });
     state.selectedPlaceId =
         place.id;
 

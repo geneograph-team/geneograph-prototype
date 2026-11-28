@@ -376,7 +376,8 @@ function archiveSyncNoteLink(
     noteId,
     entityType,
     entityId,
-    shouldLink
+    shouldLink,
+    changes
 )
 {
     if (entityType !== 'file')
@@ -423,7 +424,8 @@ function archiveSyncNoteLink(
         [...nextIds],
         {
             projectId:
-            note.projectId
+            note.projectId,
+            changes
         }
     );
 }
@@ -433,9 +435,16 @@ function archiveSetConnection(
     ownerId,
     entityType,
     entityId,
-    shouldLink
+    shouldLink,
+    changes = null
 )
 {
+    if (!changes)
+    {
+        const result = archiveSetConnectionsAtomically([{ ownerType, ownerId, entityType, entityId, shouldLink }]);
+        return result.ok && result.changedCount > 0;
+    }
+
     if (
         ownerType === 'file'
         && entityType === 'source'
@@ -455,7 +464,8 @@ function archiveSetConnection(
               shouldLink,
               {
                   projectId:
-                file.projectId
+                file.projectId,
+                  notify: false
               }
           )
         );
@@ -486,7 +496,8 @@ function archiveSetConnection(
             shouldLink,
             {
                 projectId:
-              source.projectId
+              source.projectId,
+                notify: false
             }
         );
     }
@@ -576,6 +587,12 @@ function archiveSetConnection(
 
         file[field] =
             [...ids];
+        if (entityType === 'person' && !shouldLink && Object.hasOwn(file.personRegions || {}, entityId))
+        {
+            const regions = { ...file.personRegions };
+            delete regions[entityId];
+            file.personRegions = regions;
+        }
 
         if (entityType === 'event' && shouldLink && eventPeople)
         {
@@ -592,7 +609,8 @@ function archiveSetConnection(
                 entityId,
                 'file',
                 file.id,
-                shouldLink
+                shouldLink,
+                changes
             );
         }
     }
@@ -617,178 +635,90 @@ function archiveSetConnection(
         );
 }
 
-function archiveSetConnectionsAtomically(
-    writes = []
-)
+function archiveSetConnectionsAtomically(writes = [], changes = null)
 {
-    const beforePeople = (sampleData.archiveFiles || []).map(file => [
-        file,
-        [...(file.linkedPersonIds || [])]
-    ]);
-    const beforeSourceLinks = [...(sampleData.sourceLinks || [])];
-    const normalizedWrites =
-        writes.map(write => ({
-            ownerType:
-            write?.ownerType || '',
-
-            ownerId:
-            String(write?.ownerId || '').trim(),
-
-            entityType:
-            write?.entityType || '',
-
-            entityId:
-            String(write?.entityId || '').trim(),
-
-            shouldLink:
-            write?.shouldLink !== false
-        }));
-
-    const valid =
-        normalizedWrites.every(write =>
-        {
-            const owner =
-                archiveConnectionRecord(
-                    write.ownerType,
-                    write.ownerId
-                );
-
-            const record =
-                archiveConnectionRecord(
-                    write.entityType,
-                    write.entityId
-                );
-
-            if (
-                !owner
-            || !write.entityType
-            || !write.entityId
-            )
-            {
-                return false;
-            }
-
-            if (
-                write.shouldLink
-            && !record
-            )
-            {
-                return false;
-            }
-
-            return !(
-                write.shouldLink
-            && owner.projectId
-            && record?.projectId
-            && owner.projectId
-              !== record.projectId
-            );
-        });
-
-    if (!valid)
+    const pending = writes.map(write => ({
+        ownerType: write?.ownerType || '',
+        ownerId: String(write?.ownerId || '').trim(),
+        entityType: write?.entityType || '',
+        entityId: String(write?.entityId || '').trim(),
+        shouldLink: write?.shouldLink !== false
+    }));
+    const snapshots = new Map();
+    const snapshot = record =>
     {
-        return {
-            ok: false,
-            changedCount: 0
-        };
-    }
-
-    const applied =
-        [];
-
-    for (const write of normalizedWrites)
-    {
-        const previousPlace =
-            write.ownerType === 'file'
-          && write.entityType === 'place'
-                ? {
-                    linkedPlaceIds: [...(archiveFileById(write.ownerId)?.linkedPlaceIds || [])],
-                    documentPlaceId: archiveFileById(write.ownerId)?.documentPlaceId,
-                    updatedAt: archiveFileById(write.ownerId)?.updatedAt
-                }
-                : null;
-
-        const wasLinked =
-            archiveConnectionIds(
-                write.ownerType,
-                write.ownerId,
-                write.entityType
-            ).includes(
-                write.entityId
-            );
-
-        if (
-            wasLinked === write.shouldLink
-        )
-        {
-            continue;
-        }
-
-        if (
-            !archiveSetConnection(
-                write.ownerType,
-                write.ownerId,
-                write.entityType,
-                write.entityId,
-                write.shouldLink
-            )
-        )
-        {
-            applied
-                .slice()
-                .reverse()
-                .forEach(previous =>
-                {
-                    if (
-                        previous.ownerType === 'file'
-                && previous.entityType === 'place'
-                    )
-                    {
-                        const file =
-                            archiveFileById(
-                                previous.ownerId
-                            );
-
-                        if (file)
-                        {
-                            file.linkedPlaceIds = [...(previous.previousPlace?.linkedPlaceIds || [])];
-                            file.documentPlaceId = previous.previousPlace?.documentPlaceId || null;
-                            file.updatedAt = previous.previousPlace?.updatedAt;
-                        }
-                    }
-                    else
-                    {
-                        archiveSetConnection(
-                            previous.ownerType,
-                            previous.ownerId,
-                            previous.entityType,
-                            previous.entityId,
-                            previous.wasLinked
-                        );
-                    }
-                });
-
-            beforePeople.forEach(([file, ids]) => { file.linkedPersonIds = ids; });
-            sampleData.sourceLinks = beforeSourceLinks;
-
-            return {
-                ok: false,
-                changedCount: 0
-            };
-        }
-
-        applied.push({
-            ...write,
-            wasLinked,
-            previousPlace
-        });
-    }
-
-    return {
-        ok: true,
-        changedCount:
-          applied.length
+        if (record && !snapshots.has(record)) snapshots.set(record, { ...record });
     };
+    const valid = pending.every(write =>
+    {
+        const owner = archiveConnectionRecord(write.ownerType, write.ownerId);
+        const record = archiveConnectionRecord(write.entityType, write.entityId);
+        if (!owner || !write.entityType || !write.entityId || (write.shouldLink && !record)
+            || (write.shouldLink && owner.projectId && record.projectId && owner.projectId !== record.projectId))
+            return false;
+
+        snapshot(owner);
+        snapshot(record);
+        if (write.ownerType === 'source' || (write.ownerType === 'file' && write.entityType === 'source'))
+        {
+            const targetType = write.ownerType === 'source' ? write.entityType : 'file';
+            const targetId = write.ownerType === 'source' ? write.entityId : write.ownerId;
+            for (const link of sourceLinksForTarget(targetType, targetId, owner.projectId))
+                snapshot(archiveSourceById(link.sourceId, owner.projectId));
+        }
+        return true;
+    });
+    if (!valid) return { ok: false, changedCount: 0 };
+
+    const beforeSourceLinks = sampleData.sourceLinks;
+    const mutations = new Map();
+    let changedCount = 0;
+    let placeReferences = false;
+    const restore = () =>
+    {
+        for (const [record, original] of snapshots)
+        {
+            for (const key of Object.keys(record))
+                if (!Object.hasOwn(original, key)) delete record[key];
+            Object.assign(record, original);
+        }
+        sampleData.sourceLinks = beforeSourceLinks;
+    };
+
+    try
+    {
+        for (const write of pending)
+        {
+            const { ownerType, ownerId, entityType, entityId, shouldLink } = write;
+            const wasLinked = archiveConnectionIds(ownerType, ownerId, entityType).includes(entityId);
+            if (wasLinked === shouldLink) continue;
+            if (!archiveSetConnection(ownerType, ownerId, entityType, entityId, shouldLink, mutations))
+            {
+                restore();
+                return { ok: false, changedCount: 0 };
+            }
+
+            const owner = archiveConnectionRecord(ownerType, ownerId);
+            const domains = ownerType === 'source' ? sourceLinkMutationDomains(entityType)
+                : entityType === 'source' ? ['archive', 'sources'] : ['archive'];
+            recordProjectMutation(mutations, owner?.projectId, ...domains);
+            changedCount++;
+            if (entityType === 'place') placeReferences = true;
+        }
+    }
+    catch (error)
+    {
+        restore();
+        throw error;
+    }
+
+    if (changes)
+    {
+        for (const [projectId, domains] of mutations) recordProjectMutation(changes, projectId, ...domains);
+    }
+    else if (mutations.size) markPrototypeProjectsEdited(mutations, { placeReferences });
+
+    return { ok: true, changedCount };
 }
 
 function archiveFileEditIsActive(
