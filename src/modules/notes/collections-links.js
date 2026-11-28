@@ -8,7 +8,11 @@ function openNoteCollectionsModal(
     const note = notes[0];
     const projectId = note.projectId;
     const pendingCollections = [];
-    const membershipCount = id => notes.filter(item => item.collectionIds.includes(id)).length;
+    const membershipCounts = new Map();
+    for (const item of notes)
+        for (const id of new Set(item.collectionIds || []))
+            membershipCounts.set(id, (membershipCounts.get(id) || 0) + 1);
+    const membershipCount = id => membershipCounts.get(id) || 0;
 
     let query = '';
     let createMode = false;
@@ -92,7 +96,7 @@ function openNoteCollectionsModal(
                     collection.id
                 );
 
-            const noteCount = collectionNoteCount(collection);
+            const noteCount = bulk ? 0 : collectionNoteCount(collection);
             const memberCount = membershipCount(collection.id);
             const partial = bulk && !collectionDecisions.has(collection.id) && memberCount > 0 && memberCount < notes.length;
 
@@ -938,7 +942,7 @@ function openNoteCollectionsModal(
                     if (result.changed || newCollections.length)
                         markPrototypeSessionEdited(projectId, ['notes'], { placeReferences: false });
                     closeModal();
-                    renderNotesPreservingInteraction();
+                    renderNotesPreservingInteraction({ focusSelector: '#notesBulk-collection' });
                     showToast(rpText('Notes affected: ' + result.changed, 'Изменено заметок: ' + result.changed));
                     return;
                 }

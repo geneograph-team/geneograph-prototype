@@ -511,7 +511,7 @@ function restoreNotesInteractionState(
             )
             : null;
 
-    if (explicitTarget)
+    if (explicitTarget && !explicitTarget.closest('[hidden]'))
     {
         explicitTarget.focus({
             preventScroll: true
@@ -635,10 +635,9 @@ function restoreNotesInteractionState(
         }
     }
 
-    if (!target)
-    {
-        return;
-    }
+    if (snapshot?.focus?.id?.startsWith('notesBulk-') && (!target || target.closest('[hidden]')))
+        target = main.querySelector('[data-note-bulk]') || main.querySelector('#notesSearch');
+    if (!target) return;
 
     target.focus({
         preventScroll: true
@@ -1006,7 +1005,7 @@ function duplicateCentralNote(
 }
 
 // Transient selection is independent of the note open in the editor.
-const notesBulkSelection = { context: '', ids: new Set(), order: [], anchor: null };
+const notesBulkSelection = { context: '', generation: 0, ids: new Set(), order: [], anchor: null };
 
 function notesBulkContext()
 {
@@ -1018,6 +1017,7 @@ function notesBulkContext()
 function clearNotesBulkSelection()
 {
     notesBulkSelection.context = '';
+    notesBulkSelection.generation++;
     notesBulkSelection.ids.clear();
     notesBulkSelection.order = [];
     notesBulkSelection.anchor = null;
@@ -1057,7 +1057,7 @@ function selectAllNotesBulk(checked)
 
 function captureNotesBulkAction()
 {
-    return { projectId: currentProjectId(), context: notesBulkContext(),
+    return { projectId: currentProjectId(), context: notesBulkContext(), generation: notesBulkSelection.generation,
         ids: notesBulkSelection.order.filter(id => notesBulkSelection.ids.has(id)) };
 }
 
@@ -1066,7 +1066,7 @@ function resolveNotesBulkAction(action)
 {
     if (!action?.projectId || state.activeModule !== 'Notes' ||
         currentProjectId() !== action.projectId || notesBulkContext() !== action.context ||
-        !action.ids.length) return null;
+        notesBulkSelection.generation !== action.generation || !action.ids.length) return null;
     const visible = new Map(filteredNotes().map(note => [note.id, note]));
     const notes = [...new Set(action.ids)].map(id => visible.get(id));
     return notes.length && notes.every(note => note?.projectId === action.projectId) ? notes : null;
@@ -1239,7 +1239,7 @@ function applyNotesBulkAction(action, operation)
     if (changed)
     {
         markPrototypeSessionEdited(action.projectId, domains, { placeReferences });
-        renderNotesPreservingInteraction();
+        renderNotesPreservingInteraction({ focusSelector: '#notesBulk-more' });
     }
     showToast(rpText('Notes affected: ' + changed, 'Изменено заметок: ' + changed));
 }
@@ -1265,7 +1265,7 @@ function openNotesBulkDeleteConfirm(action)
         if (!current) return notesBulkUnavailable();
         const deleted = deleteNotesRecords(current.map(note => note.id), action.projectId);
         closeModal();
-        renderNotesPreservingInteraction();
+        renderNotesPreservingInteraction({ focusSelector: '#notesSearch' });
         showToast(rpText('Notes deleted: ' + deleted, 'Удалено заметок: ' + deleted));
     });
 }

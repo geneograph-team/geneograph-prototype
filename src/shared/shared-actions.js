@@ -906,6 +906,7 @@ function resetProjectModuleState(projectId)
     state.archivePendingTreeRevealId = null;
 
     clearNotesContext();
+    clearNotesBulkSelection();
     state.notesView = 'all';
     state.notesActiveCollectionId = null;
     state.selectedNoteId = null;
